@@ -54,7 +54,8 @@ class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
         case Nil => Stream(valuation)
         case pat :: pats =>
           for (w <- lookup(pat, valuation).toStream;
-               valuation <- unify(w, pat, valuation)) yield valuation
+               `v'` <- unify(w, pat, valuation).toStream;
+               `v''` <- lookupUnify_*(pats, `v'`)) yield `v''`
       }
     }
     

@@ -20,7 +20,7 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
   var words: mutable.ListBuffer[Array[E]] = mutable.ListBuffer.empty  /* please don't change 'words' outside this class :-P */
   private var subtries: Array[mutable.Map[E,Trie[E]]] = new Array(DEFAULT_CAPACITY)
 
-  def insert(word: Array[E]) {
+  def add(word: Array[E]) {
     for (t <- directory.subtrees) {
       val idx = t.root.letterIndex
       if (idx < word.length) {
@@ -30,7 +30,7 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
             case Some(subtrie) => subtrie
             case None => val subtrie = makeSubTrie(t); subtries(idx) += word(idx) -> subtrie; subtrie
           }
-        subtrie insert word
+        subtrie add word
       }
     }
     words += word
