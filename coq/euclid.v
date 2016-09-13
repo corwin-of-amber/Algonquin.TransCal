@@ -10,6 +10,8 @@ Require Import Lt.
 Require Import wf_cruft.
 
 
+Ltac dismiss := eexists; reflexivity.  (* used to finish a goal {y | y = ...} in the obvious way *)
+
 
 Section Euclid.
 
@@ -115,6 +117,10 @@ Section Euclid.
   Qed.
 
   Require Import Psatz.
+
+  Lemma absdiff_0_n n : absdiff 0 n = n.
+    unfold absdiff; lia.
+  Qed.
   
   Definition gcd : forall (a b : nat), nat.
     intros.
@@ -130,7 +136,10 @@ Section Euclid.
 
            ) (a, b)).
 
-    - subst; clear f k.
+    (* Extract the whole thing as a lemma so that it does not get expanded
+     * when unfolding gcd *)
+    Lemma gcd_d a b ab (Hab : ab = (a, b)) n (Hb : b = S n) : lt123' (absdiff a b, min a b) ab.
+      subst.
       destruct a as [|a'].
       + (* a = 0 /\ b <> 0 *)
         apply left_lex, left_lex. simpl.
@@ -151,12 +160,105 @@ Section Euclid.
                rewrite Bool.negb_true_iff. (* negb b = true  -->  b = false *)
                rewrite Nat.eqb_neq.        (* (n =? m) = false  -->  n <> m *)
                auto using neq_absdiff_nz.
+    Defined.
+      
+    apply (gcd_d a b ab Hab n Hb).
   Defined.
 
+  Lemma gcd_unroll_once a b :
+    gcd a b = match b with
+              | 0 => a
+              | S _ => gcd (absdiff a b) (min a b)
+              end.
+    unfold gcd.
+    rewrite Fix_eq at 1.
+    - destruct b; reflexivity.
+    - (* extensionality proof *)
+      admit.
+  Admitted.
   
+  Lemma gcd_k a b k : k >= 1 -> a >= k * b -> gcd a b = gcd (a - k * b) b.
+    destruct b.
+    - (* b = 0  is a degenerate case *)
+      intros.
+      rewrite gcd_unroll_once, gcd_unroll_once.
+      lia.
+    - intro H; induction H.
+      + (* k = 1 *)
+        intro.
+        rewrite gcd_unroll_once.
+        unfold absdiff; f_equal; lia.
+      + (* k > 1 *)
+        intro; rewrite IHle; try lia.
+        rewrite gcd_unroll_once.
+        unfold absdiff; f_equal; lia.
+  Qed.
+
+  (*
+     Nat.div_mod:
+       forall x y : nat, y <> 0 -> x = y * (x / y) + x mod y
+   *)
+
+  Lemma div_mul_le a b : b <> 0 -> (a / b) * b <= a.
+    intro.
+    rewrite Nat.mul_comm.
+    erewrite (Nat.div_mod a b) at 2; try assumption.
+    apply Plus.le_plus_l.
+  Qed.
+
+  Check right_lex.
+
+  Lemma right_lex_pair A B ltA (ltB : _ -> _ -> Prop) x y y' :
+    ltB y y' -> lexprod_pair A B ltA ltB (x, y) (x, y').
+    intros; apply right_lex; assumption.
+  Qed.
+    
+  Lemma right_lex_pair' A B ltA (ltB : _ -> _ -> Prop) x x' y y' :
+    x = x' -> ltB y y' -> lexprod_pair A B ltA ltB (x, y) (x', y').
+    intro; subst. apply right_lex_pair.
+  Qed.
+
+  Lemma lt123'_hole a b : lt123' a b.  (** obviously false **)
+  Admitted.
+
+  Lemma gcd_comm a b : gcd a b = gcd b a.
+    induction (lt123'_wf (a,b)).
+    rewrite gcd_unroll_once.
+    rewrite (gcd_unroll_once b).
+    case b; case a; try reflexivity.
+    - intro; rewrite min_l; try apply le_0_n.
+      rewrite gcd_unroll_once; compute; reflexivity.
+    - intro; rewrite min_l; try apply le_0_n.
+      rewrite gcd_unroll_once; compute; reflexivity.
+    - intros; f_equal.
+      unfold absdiff;lia. lia.
+  Qed.
   
-  
+  Lemma gcd' a b : {y | y = gcd a b}.
+    pose (lt123'_wf (a,b)) as acc.
+    generalize a b acc; fix h 3.
+    intros.
+    destruct (Nat.eq_dec b0 0).
+    - subst; rewrite gcd_unroll_once; dismiss.
+    - destruct (le_lt_dec b0 a0).
+      + erewrite gcd_k.      
+        Focus 3.
+        * apply div_mul_le; assumption.
+        * edestruct h as [r R]. Focus 2. rewrite <- R. dismiss.
+          destruct acc0.
+          apply H. (**) apply lt123'_hole. (**)
+        * (* a >= b |- a / b >= 1 *)
+          apply Nat.div_le_lower_bound; try assumption.
+          rewrite Nat.mul_1_r; assumption.
+      + rewrite gcd_unroll_once.
+        generalize n; destruct b0 at 1 2; try tauto.
+        intro. unfold absdiff. rewrite max_r, min_l.
+
+  Defined.
+        
 End Euclid.
 
 
 Extraction gcd.
+
+Extraction gcd'.
