@@ -45,18 +45,42 @@ object NotDup {
 
     println("-" * 60)
     
-    // Show all representations of the program term
+    // Show all representations of the program term (for debugging; this is slow)
+    /*
     for (t <- new Reconstruct(enc.ntor --> notDup)())
       println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
 
     println("-" * 60)
+    */
 
     // Show terms matching the goal (_ & _ & _ & _)
+    /*
     for (gm <- work.goalMatches;
          t <- new Reconstruct(gm)())
       println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
+    println("-" * 60)
+    */
+
+    for (gm <- work.goalMatches) {
+      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x)().toList), new Tree(0)))
+        println(mkStringColumns(ln map (t => if (t.root == 0) "" else t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty), 40 ))
+    }
   }
   
+  import collection.mutable.ListBuffer
+  
+  def transposeAll[A](xss: List[List[A]], ph: A): List[List[A]] = {
+    val buf = new ListBuffer[List[A]]
+    var yss = xss
+    while (!yss.forall(_.isEmpty)) {
+      buf += (yss map (_.headOption getOrElse ph))
+      yss = (yss map { case _::tail => tail case _ => Nil })
+    }
+    buf.toList
+  }
+  
+  def mkStringColumns[A](l: List[A], colWidth: Int) =
+    l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
   
   class Work(init: List[Array[Int]]) {
     
@@ -91,62 +115,62 @@ object NotDup {
     val in = TI("∈")
     val not_in = TI("∉")
     val set_singleton = TI("{.}")
+    val set_disj = TI("‖")
+    
+    val _elems = TI("elems")
     
     val in_# = enc.ntor --> in.root
+    val not_in_# = enc.ntor --> not_in.root
     val `∨_#` = enc.ntor --> ∨
     val `∧_#` = enc.ntor --> ∧
     val `¬_#` = enc.ntor --> ¬
     
     val _y = TV("y")
     val _z = TV("z")
+    val _w = TV("w")
     
     val `x=x' = x'∈{x}` = new CompiledRule(
-        List(new Bundle(List(Array(eq_#, ~0, ~1, ~2)))),
-        new Scheme.Template(List(_x, `_x'`) map (_.leaf), in:@(`_x'`, set_singleton:@_x)),
-        3, List(1, 2))
+        new Scheme.Template(_x, `_x'`)(_x =:= `_x'`),
+        new Scheme.Template(_x, `_x'`)(in:@(`_x'`, set_singleton:@_x)))
     
     val `elem x (x':xs') = x=x' / elem x xs'` = new CompiledRule(
-      List(new Bundle(List(Array(cons_#, ~2, ~3, ~4), Array(elem_#, ~0, ~1, ~2)))),
-      new Scheme.Template(List(_x, `_x'`, `_xs'`) map (_.leaf), 
-                          (_x =:= `_x'`) | (_elem:@(_x, `_xs'`))),
-      5, List(1, 3, 4))
+        new Scheme.Template(_x, `_x'`, `_xs'`)(_elem:@(_x, _cons:@(`_x'`, `_xs'`))),
+        new Scheme.Template(_x, `_x'`, `_xs'`)
+                          ((_x =:= `_x'`) | (_elem:@(_x, `_xs'`))))
     
     val `¬x∈y = x∉y` = new CompiledRule(
-        List(new Bundle(List(Array(`¬_#`, ~0, ~1), Array(in_#, ~1, ~2, ~3))),
-             new Bundle(List(Array(in_#, ~1, ~2, ~3), Array(`¬_#`, ~0, ~1)))),
-        new Scheme.Template(List(_x, _y) map (_.leaf), not_in:@(_x, _y)),
-        4, List(2, 3))
+        new Scheme.Template(_x, _y)(~(in:@(_x, _y))),
+        new Scheme.Template(_x, _y)(not_in:@(_x, _y)))
+    
+    val `x∉y = ¬x∈y` = new CompiledRule(
+        new Scheme.Template(_x, _y)(not_in:@(_x, _y)),
+        new Scheme.Template(List(_x, _y) map (_.leaf), ~(in:@(_x, _y))))
+    
+    val `x∉y = {x}‖y` = new CompiledRule(
+        new Scheme.Template(_x, _y)(not_in:@(_x, _y)),
+        new Scheme.Template(_x, _y)(set_disj:@(set_singleton(_x), _y)))
     
     val `¬(x ∨ y) = ¬x ∧ ¬y` = new CompiledRule(
-        List(new Bundle(List(Array(`∨_#`, ~1, ~2, ~3), Array(`¬_#`, ~0, ~1)))),
-        new Scheme.Template(List(_x, _y) map (_.leaf), ~_x & ~_y),
-        4, List(2, 3))
+        new Scheme.Template(_x, _y)(~(_x | _y)),
+        new Scheme.Template(_x, _y)(~_x & ~_y))
     
     val `x ∧ (y ∧ z) = (x ∧ y) ∧ z` = new CompiledRule(
-        List(new Bundle(List(Array(`∧_#`, ~0, ~1, ~2), Array(`∧_#`, ~2, ~3, ~4))),
-             new Bundle(List(Array(`∧_#`, ~2, ~3, ~4), Array(`∧_#`, ~0, ~1, ~2)))),
-        new Scheme.Template(List(_x, _y, _z) map (_.leaf), _x & _y & _z),
-        5, List(1, 3, 4))
+        new Scheme.Template(_x, _y, _z)(_x & (_y & _z)),
+        new Scheme.Template(_x, _y, _z)(_x & _y & _z))
 
+    val `elem x y = x ∈ elems y` = new CompiledRule(
+        new Scheme.Template(_x, _xs)(_elem:@(_x, _xs)),
+        new Scheme.Template(_x, _xs)(in:@(_x, _elems:@(_xs))))
+    
     val `notDup (x:xs) = ¬(elem x xs) ∧ notDup xs` = new CompiledRule(
-        List(new Bundle(List(Array(cons_#, ~1, ~2, ~3), Array(notDup_#, ~0, ~1)))),
-        new Scheme.Template(List(_x, _xs) map (_.leaf), ~(_elem:@(_x, _xs)) & _notDup:@(_xs)),
-        4, List(2, 3))
+        new Scheme.Template(_x, _xs)(_notDup:@(_cons:@(_x, _xs))),
+        new Scheme.Template(_x, _xs)(~(_elem:@(_x, _xs)) & _notDup:@(_xs)))
     
     val _goalMarker = $TI("gem")
     
     val goal = new CompiledRule(
-        List(new Bundle(List(Array(`∧_#`, ~0, ~1, ~2),
-                             Array(`∧_#`, ~1, ~3, ~4),
-                             Array(`∧_#`, ~3, ~5, ~6))),
-             new Bundle(List(Array(`∧_#`, ~1, ~3, ~4),
-                             Array(`∧_#`, ~0, ~1, ~2),
-                             Array(`∧_#`, ~3, ~5, ~6))),
-             new Bundle(List(Array(`∧_#`, ~3, ~5, ~6),
-                             Array(`∧_#`, ~1, ~3, ~4),
-                             Array(`∧_#`, ~0, ~1, ~2)))),
-        new Scheme.Template(List(I(1), I(2), I(3), I(4)), _goalMarker(TI(1), TI(2), TI(3), TI(4))),
-        7, List(5, 6, 4, 2))
+        new Scheme.Template(_x, _y, _z, _w)(_x & _y & _z & _w),
+        new Scheme.Template(_x, _y, _z, _w)(_goalMarker(_x, _y, _z, _w)))
     
     def work(w: Array[Int]) {
       println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
@@ -157,8 +181,11 @@ object NotDup {
       processRule(`x=x' = x'∈{x}`, w)
       processRule(`elem x (x':xs') = x=x' / elem x xs'`, w)
       processRule(`¬x∈y = x∉y`, w)
+      processRule(`x∉y = ¬x∈y`, w)
+      processRule(`x∉y = {x}‖y`, w)
       processRule(`¬(x ∨ y) = ¬x ∧ ¬y`, w)
       processRule(`x ∧ (y ∧ z) = (x ∧ y) ∧ z`, w)
+      processRule(`elem x y = x ∈ elems y`, w)
       processRule(`notDup (x:xs) = ¬(elem x xs) ∧ notDup xs`, w)
       
       processRule(goal, w)
@@ -169,7 +196,7 @@ object NotDup {
       for (s <- rule.shards) {
         for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
           println(s"valuation = ${valuation mkString " "}")
-          val add = enc.toBundle(rule.conclude(valuation)) fillIn valuation(0)
+          val add = enc.toBundle()(rule.conclude(valuation)) fillIn valuation(0)
           wq.enqueue (add.toSeq:_*)
         }
       }

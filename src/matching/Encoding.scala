@@ -2,6 +2,7 @@ package matching
 
 import syntax.AstSugar._
 import report.data.NumeratorWithMap
+import scala.collection.mutable.ListBuffer
 
 
 
@@ -31,7 +32,24 @@ class Encoding {
     ((ntor --> head) +: top +: toTuple(rest.toSeq)) :: (rest flatMap toTuples)
   }
 
-  def toBundle(term: Term, holes: Term*) = new Bundle(toTuples(term, -1), (holes map (ntor -->)):_*)
+  def toTuples(term: Term, alt: Map[Term, Int]) : List[Array[Int]] = {
+    if (alt.contains(term) && term.isLeaf) List.empty
+    else {
+      val (head, rest) = headRest(term)
+      ((ntor --> head) +: toTuple(Seq(term) ++ rest.toSeq, alt)) :: (rest flatMap (toTuples(_, alt)))
+    }
+  }
+
+  def toBundle(holes: Term*)(term: Term) = {
+    if (holes.isEmpty)
+      new Bundle(toTuples(term, -1))
+    else {
+      val altsq = term :: holes.toList ++ (term.nodes filterNot (n => (n eq term) || n.isLeaf))
+      val alt = altsq.zipWithIndex.toMap.mapValues(~_)
+      import syntax.Piping._
+      new Bundle(toTuples(term, alt) |-- println)
+    }
+  }
   
   def headRest(term: Term) = {
     isApp(term) match {
@@ -41,6 +59,7 @@ class Encoding {
   }
   
   def toTuple(sq: Seq[AnyRef]) = sq map (ntor -->) toArray
+  def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, ntor --> k)) toArray
 
   def asTerm(n: Int) = (ntor <-- n).asInstanceOf[Term]
 
@@ -56,11 +75,38 @@ class Bundle(val tuples: List[Array[Int]]) {
     this(Bundle.puncture(tuples, holes.toList))
   
   def fillIn(tuple: Array[Int], args: Int*) =
-    tuple map (x => if (x < 0) args(-x - 1) else x)
+    tuple map (x => if (x < 0) args(~x) else x)
   
   def fillIn(args: Int*): List[Array[Int]] =
     tuples map (tp => fillIn(tp, args:_*))
 
+  lazy val minValuationSize = tuples.flatten.toSeq.min match {
+    case x if x < 0 => ~x + 1
+    case _ => 0
+  }
+  
+  import collection.mutable
+  
+  def shuffles = {
+    0 until tuples.length map { i =>
+      val inb = new ListBuffer ++ tuples
+      val outb = new ListBuffer[Array[Int]]
+      val covered = mutable.Set.empty[Int]  // set of placeholders already encountered
+      var j = i
+      while (inb.nonEmpty) {
+        val next = inb(j)
+        inb.remove(j)
+        covered ++= next filter (_ < 0)
+        outb += next
+        // - find the next spot that shares at least one value with covered
+        if (inb.nonEmpty) {
+          j = inb indexWhere (_ exists covered.contains)
+          if (j < 0) throw new RuntimeException("bundle is not connected: " + (tuples map (_ mkString ",") mkString " "))
+        }
+      }
+      new Bundle(outb.toList)
+    } toList
+  }
 }
 
 object Bundle {
