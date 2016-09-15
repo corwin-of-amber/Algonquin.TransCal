@@ -1,7 +1,7 @@
 package matching
 
 import syntax.Scheme
-import syntax.AstSugar.T
+import syntax.AstSugar._
 
 
 
@@ -32,3 +32,29 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Scheme,
   }
   
 }
+
+
+
+object Rewrite {
+  
+  val `=>` = I("=>", "operator")  // directional rewrite
+  
+  
+  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
+    
+    def varsUsed(t: Term) = vars filter t.leaves.contains
+          
+    rulesSrc flatMap {
+      case eqn @ T(`=>`, List(lhs, rhs)) => 
+        val v = varsUsed(eqn) map (_.leaf)
+        Seq(new CompiledRule(new Scheme.Template(v, lhs), new Scheme.Template(v, rhs)))
+      case eqn @ T(`=`, List(lhs, rhs)) => 
+        val v = varsUsed(eqn) map (_.leaf)
+        val (l, r) = (new Scheme.Template(v, lhs), new Scheme.Template(v, rhs))
+        Seq(new CompiledRule(l, r), new CompiledRule(r, l))
+      case other =>
+        throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
+    }
+  }
+}
+

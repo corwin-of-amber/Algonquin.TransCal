@@ -7,6 +7,7 @@ import matching.Bundle
 import matching.Match
 import matching.Encoding
 import matching.CompiledRule
+import matching.Rewrite
 
 
 
@@ -81,7 +82,51 @@ object NotDup {
   
   def mkStringColumns[A](l: List[A], colWidth: Int) =
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
-  
+
+
+  object Rules
+  {
+    val x = TV("x"); val y = TV("y"); val z = TV("z")
+    val `x'` = TV("x'")
+    val xs = TV("xs"); val `xs'` = TV("xs'")
+    
+    val _in = TI("∈")
+    val _not_in = TI("∉")
+    val _set_singleton = TI("{.}")
+    val _set_disj = TI("‖")
+    
+    val _elems = TI("elems")
+    
+    def in(x: Term, xs: Term) = _in:@(x, xs)
+    def not_in(x: Term, xs: Term) = _not_in:@(x, xs)
+    def `{}`(x: Term) = _set_singleton:@(x)
+    def set_disj(s: Term, t: Term) = _set_disj:@(s, t)
+    def cons(x: Term, xs: Term) = _cons:@(x, xs)
+    def elem(x: Term, xs: Term) = _elem:@(x, xs)
+    def elems(xs: Term) = _elems:@(xs)
+    
+    val `=>` = I("=>", "operator")
+    
+    implicit class RuleOps(private val t: Term) extends AnyVal {
+      def =:>(s: Term) = T(`=>`)(t, s)
+    }
+    
+    val vars = List(x, y, z, `x'`, xs, `xs'`)
+    
+    val rulesSrc = List(
+        (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
+        elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
+        ~(in(x,y)) =:= not_in(x, y),
+        not_in(x, xs) =:= set_disj(`{}`(x), xs),
+        ~(x | y) =:= (~x & ~y),
+        (x & (y & z)) =:= (x & y & z),
+        elem(x, xs) =:= in(x, elems(xs)),
+        (_notDup:@(cons(x, xs))) =:= (~elem(x, xs) & (_notDup:@(xs)))
+        )
+        
+    val rules = Rewrite.compileRules(vars, rulesSrc)
+  }
+        
   class Work(init: List[Array[Int]]) {
     
     import collection.mutable
@@ -100,18 +145,22 @@ object NotDup {
       }
     }
      
+    /*
     val xs_# = enc.ntor --> _xs.root
     val cons_# = enc.ntor --> _cons.root
     val elem_# = enc.ntor --> _elem.root
     val eq_# = enc.ntor --> I("=")
-    
     val notDup_# = enc.ntor --> _notDup.root
-    
-    val `xs = x':xs'` = new CompiledRule(
-        List(new Bundle(List(Array(xs_#, ~0)))),
-        new Scheme.Template(List(), _cons:@(`_x'`, `_xs'`)),
-        1, List())
-    
+    */
+
+    val `xs = x':xs'` = {
+      import Rules._
+      Rewrite.compileRules(List.empty, List(_xs =:> cons(`_x'`, `_xs'`))).head
+    }
+    /*  new CompiledRule(
+        new Scheme.Template()(_xs),
+        new Scheme.Template()(_cons:@(`_x'`, `_xs'`)))
+    */
     val in = TI("∈")
     val not_in = TI("∉")
     val set_singleton = TI("{.}")
@@ -119,16 +168,19 @@ object NotDup {
     
     val _elems = TI("elems")
     
+    /*
     val in_# = enc.ntor --> in.root
     val not_in_# = enc.ntor --> not_in.root
     val `∨_#` = enc.ntor --> ∨
     val `∧_#` = enc.ntor --> ∧
     val `¬_#` = enc.ntor --> ¬
+    */
     
     val _y = TV("y")
     val _z = TV("z")
     val _w = TV("w")
     
+
     val `x=x' = x'∈{x}` = new CompiledRule(
         new Scheme.Template(_x, `_x'`)(_x =:= `_x'`),
         new Scheme.Template(_x, `_x'`)(in:@(`_x'`, set_singleton:@_x)))
@@ -177,6 +229,8 @@ object NotDup {
       
       trie add w
       
+      for (r <- `xs = x':xs'` :: Rules.rules) processRule(r, w)
+      /*
       processRule(`xs = x':xs'`, w)
       processRule(`x=x' = x'∈{x}`, w)
       processRule(`elem x (x':xs') = x=x' / elem x xs'`, w)
@@ -187,6 +241,7 @@ object NotDup {
       processRule(`x ∧ (y ∧ z) = (x ∧ y) ∧ z`, w)
       processRule(`elem x y = x ∈ elems y`, w)
       processRule(`notDup (x:xs) = ¬(elem x xs) ∧ notDup xs`, w)
+      */
       
       processRule(goal, w)
     }
