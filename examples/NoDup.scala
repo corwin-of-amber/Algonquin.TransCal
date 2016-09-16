@@ -13,7 +13,7 @@ import java.io.FileWriter
 
 
 
-object NotDup {
+object NoDup {
   
   import semantics.Prelude._
   
@@ -23,9 +23,9 @@ object NotDup {
   val _x = TV("x")
   val _xs = TV("xs")
   
-  val _notDup = TV("notDup")
+  val _nodup = TV("nodup")
   
-  val notDup = (_nil ↦ TRUE) /: ((_cons:@(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _notDup:@_xs))
+  val nodup = (_nil ↦ TRUE) /: ((_cons:@(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _nodup:@_xs))
  
   val `_x'` = TV("x'")
   val `_xs'` = TV("xs'")
@@ -39,13 +39,13 @@ object NotDup {
   
   def main(args: Array[String]) {
     
-    println(notDup toPretty)
+    println(nodup toPretty)
     
     
-    val notDupEnc = enc.toTuples(notDup)
+    val nodupEnc = enc.toTuples(nodup)
     
     // Apply rewrite rules until saturated    
-    val work = new Work(notDupEnc)
+    val work = new Work(nodupEnc)
     
     work()
 
@@ -53,7 +53,7 @@ object NotDup {
     
     // Show all representations of the program term (for debugging; this is slow)
     /*
-    for (t <- new Reconstruct(enc.ntor --> notDup)())
+    for (t <- new Reconstruct(enc.ntor --> nodup)())
       println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
 
     println("-" * 60)
@@ -138,7 +138,7 @@ object NotDup {
         (x & (y & z)) =:= (x & y & z),
         (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
         elem(x, xs) =:= in(x, elems(xs)),
-        (_notDup:@(cons(x, xs))) =:= (~elem(x, xs) & (_notDup:@(xs)))
+        (_nodup:@(cons(x, xs))) =:= (~elem(x, xs) & (_nodup:@(xs)))
         )
         
     val rules = Rewrite.compileRules(vars, rulesSrc)
@@ -167,7 +167,7 @@ object NotDup {
     val cons_# = enc.ntor --> _cons.root
     val elem_# = enc.ntor --> _elem.root
     val eq_# = enc.ntor --> I("=")
-    val notDup_# = enc.ntor --> _notDup.root
+    val nodup_# = enc.ntor --> _nodup.root
     */
 
     val `xs = x':xs'` = {
@@ -232,9 +232,9 @@ object NotDup {
         new Scheme.Template(_x, _xs)(_elem:@(_x, _xs)),
         new Scheme.Template(_x, _xs)(in:@(_x, _elems:@(_xs))))
     
-    val `notDup (x:xs) = ¬(elem x xs) ∧ notDup xs` = new CompiledRule(
-        new Scheme.Template(_x, _xs)(_notDup:@(_cons:@(_x, _xs))),
-        new Scheme.Template(_x, _xs)(~(_elem:@(_x, _xs)) & _notDup:@(_xs)))
+    val `nodup (x:xs) = ¬(elem x xs) ∧ nodup xs` = new CompiledRule(
+        new Scheme.Template(_x, _xs)(_nodup:@(_cons:@(_x, _xs))),
+        new Scheme.Template(_x, _xs)(~(_elem:@(_x, _xs)) & _nodup:@(_xs)))
     */
     val _goalMarker = $TI("gem")
     
@@ -260,7 +260,7 @@ object NotDup {
       processRule(`¬(x ∨ y) = ¬x ∧ ¬y`, w)
       processRule(`x ∧ (y ∧ z) = (x ∧ y) ∧ z`, w)
       processRule(`elem x y = x ∈ elems y`, w)
-      processRule(`notDup (x:xs) = ¬(elem x xs) ∧ notDup xs`, w)
+      processRule(`nodup (x:xs) = ¬(elem x xs) ∧ nodup xs`, w)
       */
       
       for (g <- goal) processRule(g, w)
