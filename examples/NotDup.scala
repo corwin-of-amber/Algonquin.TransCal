@@ -8,6 +8,8 @@ import matching.Match
 import matching.Encoding
 import matching.CompiledRule
 import matching.Rewrite
+import java.io.FileOutputStream
+import java.io.FileWriter
 
 
 
@@ -30,8 +32,11 @@ object NotDup {
 
 
   lazy implicit val enc = new matching.Encoding
-  lazy val trie = new Trie[Int](new Tree(-1, List(new Tree(0, List(new Tree(1), new Tree(2), new Tree(3))))))
-
+  lazy val trie = {
+    def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
+    new Trie[Int](D(-1, D(0, D(1, D(2), D(3)), D(2, D(3, D(4))), D(3))))
+  }
+  
   def main(args: Array[String]) {
     
     println(notDup toPretty)
@@ -63,9 +68,22 @@ object NotDup {
     */
 
     for (gm <- work.goalMatches) {
+      println(gm mkString " ")
       for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x)().toList), new Tree(0)))
-        println(mkStringColumns(ln map (t => if (t.root == 0) "" else t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty), 40 ))
+        println("    " + mkStringColumns(ln map (t => if (t.root == 0) "" else t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty), 40 ))
     }
+    
+    
+    // Dump some things to files
+    val encf = new FileWriter("enc")
+    val pairs = enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
+    for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
+    encf.close()
+    
+    val tupf = new FileWriter("tuples")
+    val words = trie.words sortBy (_(1))
+    for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (enc.ntor <--) mkString "] ["}]\n"); }
+    tupf.close()
   }
   
   import collection.mutable.ListBuffer
@@ -94,6 +112,7 @@ object NotDup {
     val _not_in = TI("∉")
     val _set_singleton = TI("{.}")
     val _set_disj = TI("‖")
+    val _set_union = TI("∪")
     
     val _elems = TI("elems")
     
@@ -101,15 +120,12 @@ object NotDup {
     def not_in(x: Term, xs: Term) = _not_in:@(x, xs)
     def `{}`(x: Term) = _set_singleton:@(x)
     def set_disj(s: Term, t: Term) = _set_disj:@(s, t)
+    def set_union(s: Term, t: Term) = _set_union:@(s, t)
     def cons(x: Term, xs: Term) = _cons:@(x, xs)
     def elem(x: Term, xs: Term) = _elem:@(x, xs)
     def elems(xs: Term) = _elems:@(xs)
     
-    val `=>` = I("=>", "operator")
-    
-    implicit class RuleOps(private val t: Term) extends AnyVal {
-      def =:>(s: Term) = T(`=>`)(t, s)
-    }
+    import Rewrite.RuleOps
     
     val vars = List(x, y, z, `x'`, xs, `xs'`)
     
@@ -120,6 +136,7 @@ object NotDup {
         not_in(x, xs) =:= set_disj(`{}`(x), xs),
         ~(x | y) =:= (~x & ~y),
         (x & (y & z)) =:= (x & y & z),
+        (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
         elem(x, xs) =:= in(x, elems(xs)),
         (_notDup:@(cons(x, xs))) =:= (~elem(x, xs) & (_notDup:@(xs)))
         )
@@ -155,7 +172,7 @@ object NotDup {
 
     val `xs = x':xs'` = {
       import Rules._
-      Rewrite.compileRules(List.empty, List(_xs =:> cons(`_x'`, `_xs'`))).head
+      Rewrite.compileRules(List.empty, List(_xs =:= cons(`_x'`, `_xs'`)))
     }
     /*  new CompiledRule(
         new Scheme.Template()(_xs),
@@ -176,11 +193,12 @@ object NotDup {
     val `¬_#` = enc.ntor --> ¬
     */
     
+    
     val _y = TV("y")
     val _z = TV("z")
     val _w = TV("w")
     
-
+    /*
     val `x=x' = x'∈{x}` = new CompiledRule(
         new Scheme.Template(_x, `_x'`)(_x =:= `_x'`),
         new Scheme.Template(_x, `_x'`)(in:@(`_x'`, set_singleton:@_x)))
@@ -217,19 +235,21 @@ object NotDup {
     val `notDup (x:xs) = ¬(elem x xs) ∧ notDup xs` = new CompiledRule(
         new Scheme.Template(_x, _xs)(_notDup:@(_cons:@(_x, _xs))),
         new Scheme.Template(_x, _xs)(~(_elem:@(_x, _xs)) & _notDup:@(_xs)))
-    
+    */
     val _goalMarker = $TI("gem")
     
-    val goal = new CompiledRule(
-        new Scheme.Template(_x, _y, _z, _w)(_x & _y & _z & _w),
-        new Scheme.Template(_x, _y, _z, _w)(_goalMarker(_x, _y, _z, _w)))
+    import Rewrite.RuleOps
+    
+    val goal = Rewrite.compileRules(List(_x, _y, _z, _w), List((_x & _y & _z) =:> _goalMarker(_x, _y, _z))) /*new CompiledRule(
+        new Scheme.Template(_x, _y, _z /*, _w*/)(_x & _y & _z /*& _w*/),
+        new Scheme.Template(_x, _y, _z /*, _w*/)(_goalMarker(_x, _y, _z/*, _w*/)))*/
     
     def work(w: Array[Int]) {
       println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
       
       trie add w
       
-      for (r <- `xs = x':xs'` :: Rules.rules) processRule(r, w)
+      for (r <- `xs = x':xs'` ::: Rules.rules) processRule(r, w)
       /*
       processRule(`xs = x':xs'`, w)
       processRule(`x=x' = x'∈{x}`, w)
@@ -243,7 +263,7 @@ object NotDup {
       processRule(`notDup (x:xs) = ¬(elem x xs) ∧ notDup xs`, w)
       */
       
-      processRule(goal, w)
+      for (g <- goal) processRule(g, w)
     }
     
     def processRule(rule: CompiledRule, w: Array[Int]) {
@@ -251,8 +271,9 @@ object NotDup {
       for (s <- rule.shards) {
         for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
           println(s"valuation = ${valuation mkString " "}")
-          val add = enc.toBundle()(rule.conclude(valuation)) fillIn valuation(0)
-          wq.enqueue (add.toSeq:_*)
+          wq.enqueue (rule.conclude(valuation, trie):_*)
+          //val add = enc.toBundle()(rule.conclude(valuation)) fillIn valuation(0)
+          //wq.enqueue (add.toSeq:_*)
         }
       }
     }

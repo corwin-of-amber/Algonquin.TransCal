@@ -38,7 +38,8 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
   
   def get(index: Int, letter: E) = {
     val subtrie = subtries(index)
-    if (subtrie == null) None
+    if (subtrie == null) { /** for debugging **/ if (!(directory.subtrees exists (_.root.letterIndex == index))) throw new RuntimeException(s"trie not indexed by position ${index}");
+                           None }
     else subtrie get letter
   }
   

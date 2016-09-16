@@ -47,7 +47,7 @@ class Encoding {
       val altsq = term :: holes.toList ++ (term.nodes filterNot (n => (n eq term) || n.isLeaf))
       val alt = altsq.zipWithIndex.toMap.mapValues(~_)
       import syntax.Piping._
-      new Bundle(toTuples(term, alt) |-- println)
+      new Bundle(toTuples(term, alt) |-- { x => println(x map (_ mkString " ")) })
     }
   }
   
@@ -84,6 +84,8 @@ class Bundle(val tuples: List[Array[Int]]) {
     case x if x < 0 => ~x + 1
     case _ => 0
   }
+  
+  def bare = new Bundle(tuples filter (_ exists (_ < 0)))
   
   import collection.mutable
   
