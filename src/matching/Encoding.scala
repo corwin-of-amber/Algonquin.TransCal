@@ -33,22 +33,20 @@ class Encoding {
   }
 
   def toTuples(term: Term, alt: Map[Term, Int]) : List[Array[Int]] = {
-    if (alt.contains(term) && term.isLeaf) List.empty
+    if (alt.contains(term) && alt(term) != -1 && term.isLeaf) List.empty
     else {
       val (head, rest) = headRest(term)
       ((ntor --> head) +: toTuple(Seq(term) ++ rest.toSeq, alt)) :: (rest flatMap (toTuples(_, alt)))
     }
   }
 
-  def toBundle(holes: Term*)(term: Term) = {
-    if (holes.isEmpty)
-      new Bundle(toTuples(term, -1))
-    else {
-      val altsq = term :: holes.toList ++ (term.nodes filterNot (n => (n eq term) || n.isLeaf))
-      val alt = altsq.zipWithIndex.toMap.mapValues(~_)
-      import syntax.Piping._
-      new Bundle(toTuples(term, alt) |-- { x => println(x map (_ mkString " ")) })
-    }
+  def toBundle(holes: Term*)(terms: Term*) = {
+    import syntax.Piping._
+    def dbg(x: List[Array[Int]]) { println(x map (_ map (x => if (x < 0) x else (ntor <-- x)) mkString " ")) }
+    
+    val altsq = terms.head :: holes.toList ++ (terms flatMap (term => term.nodes filterNot (n => (n eq term) || n.isLeaf)))
+    val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.tail map ((_, ~0)))
+    new Bundle((terms flatMap (toTuples(_, alt)) toList))// |-- dbg)
   }
   
   def headRest(term: Term) = {

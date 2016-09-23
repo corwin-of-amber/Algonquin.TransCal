@@ -21,7 +21,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     */
     
   def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) =
-    this(enc.toBundle(pattern.vars map (T(_)):_*)(pattern.template).bare, 
+    this(enc.toBundle(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.|||):_*).bare, 
          enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template),
          conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
   
@@ -63,15 +63,19 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
 object Rewrite {
   
   val `=>` = I("=>", "operator")  // directional rewrite
+  val ||| = I("|||", "operator")
   
   implicit class RuleOps(private val t: Term) extends AnyVal {
     def =:>(s: Term) = T(`=>`)(t, s)
+    def |||(s: Term) = T(Rewrite.|||)(t, s)
   }
 
   def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
     
     def varsUsed(t: Term) = vars filter t.leaves.contains
           
+    //println(rulesSrc map (_ toPretty))
+    
     rulesSrc flatMap {
       case eqn @ T(`=>`, List(lhs, rhs)) => 
         val v = varsUsed(eqn) map (_.leaf)

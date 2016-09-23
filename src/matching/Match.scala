@@ -39,11 +39,14 @@ class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
      
     def lookup(pattern: Array[Int], valuation: Array[Int]): Seq[Array[Int]] = {
       var t = trie
-      for ((ph, idx) <- pattern.zipWithIndex) {
-        val c = if (ph >= 0) ph else valuation(-ph - 1)
-        if (c > 0) t = t.get(idx, c) getOrElse { return Seq.empty }
+      try {
+        for ((ph, idx) <- pattern.zipWithIndex) {
+          val c = if (ph >= 0) ph else valuation(~ph)
+          if (c > 0) t = t.get(idx, c) getOrElse { return Seq.empty }
+        }
+        return t.words
       }
-      return t.words
+      catch { case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; ${e}") }
     }
     
     /**

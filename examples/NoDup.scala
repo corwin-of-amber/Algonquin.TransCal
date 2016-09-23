@@ -24,6 +24,7 @@ object NoDup {
   val _xs = TV("xs")
   
   val _nodup = TV("nodup")
+  val `_nodup'` = TV("nodup'")
   
   val nodup = (_nil ↦ TRUE) /: ((_cons:@(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _nodup:@_xs))
  
@@ -32,25 +33,171 @@ object NoDup {
 
 
   lazy implicit val enc = new matching.Encoding
-  lazy val trie = {
+  lazy val directory = {
     def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
-    new Trie[Int](D(-1, D(0, D(1, D(2), D(3)), D(2, D(3, D(4))), D(3))))
+    D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
+  }
+
+
+  val _phMarker = $TI("orb", "operator")
+  val _goalMarker = $TI("gem", "operator")
+  
+  val start = {
+    import Rewrite.RuleOps
+    import BasicSignature._
+    
+    Rewrite.compileRules(List(_x, y), List((_x & y) =:> _phMarker(TI(1))))
+  }
+  
+  val goal1 = {
+    import Rewrite.RuleOps
+    import BasicSignature._
+
+    Rewrite.compileRules(List(x, y, z, w, v),
+        List((_phMarker(TI(1)) ||| (x & y & z & w)) =:> _goalMarker(x, y, z, w))
+      )
+  }
+  
+  val goal2 = {
+    import Rewrite.RuleOps
+    import BasicSignature._
+
+    Rewrite.compileRules(List(y, z, w, v),
+        List((not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> _phMarker(TI(2)),
+            (_phMarker(TI(2)) ||| (set_disj(y, z))) =:> _goalMarker(y, z))
+      )
+  }
+  
+  val goal3 = {
+    import Rewrite.RuleOps
+    import BasicSignature._
+
+    Rewrite.compileRules(List(x, y, z, w, v),
+      List(((set_disj(set_union(y, z), w)) & v) =:> _phMarker(TI(3)),
+           (_phMarker(TI(3)) ||| ((`_nodup'`:@(y, z)))) =:> _goalMarker(y, z))
+      )
+  }
+  
+  case class State(val program: Term, val elaborate: List[(Term, Term)], val tuples: List[Array[Int]])(implicit val enc: Encoding) {
+    def this(program: Term)(implicit enc: Encoding) = this(program, List.empty, enc.toTuples(program))
+    
+    def +(el: (Term, Term)) = State(program, elaborate :+ el, tuples ++ enc.toTuples(el._2, el._1))
+    def ++(l: Iterable[Array[Int]]) = State(program, elaborate, tuples ++ l)
+  }
+  object State {
+    def apply(program: Term)(implicit enc: Encoding) = new State(program)
+  }
+  
+  // --------------------------
+  // low-level state primitives
+  // --------------------------
+  
+  def locate(s: State, rules: List[CompiledRule]) = {
+    // Apply rules to find the pattern
+    val work0 = new Work(s.tuples, rules, directory)
+    work0()
+    println("-" * 60)
+
+    for (gm <- work0.matches(_phMarker.leaf);
+         t <- new Reconstruct(gm(1), work0.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc))
+      println("    " + (t toPretty))
+    
+    // Get the heads of all the terms matched by the pattern
+    s ++ work0.matches(_phMarker.leaf)
+  }
+  
+  def generalize(s: State, rules: List[CompiledRule], leaves: List[Term], context: List[Term]): State = {
+    // Apply rewrite rules until saturated    
+    val work = new Work(s.tuples, rules, directory)
+    work()
+    println("-" * 60)
+    
+    // Reconstruct and generalize
+    for (gm <- work.matches(_phMarker.leaf);
+         t <- new Reconstruct(gm(1), work.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
+         tg <- { import BasicSignature._ ; generalize(t, leaves, context) }) {
+      println("    " + t.toPretty)
+      println("    as  " + tg.toPretty)
+    }
+    
+    s // TODO
+  }
+  
+  def elaborate(s: State, rules: List[CompiledRule]) = {
+    val work = new Work(s.tuples, rules, directory)
+    work()
+    println("-" * 60)
+    
+    showem(work.goalMatches, work.trie)
+    
+    s // TODO
   }
   
   def main(args: Array[String]) {
     
     println(nodup toPretty)
     
+    val state0 = State(nodup)
+    val nodupEnc = state0.tuples//enc.toTuples(nodup)
     
-    val nodupEnc = enc.toTuples(nodup)
-    
-    // Apply rewrite rules until saturated    
-    val work = new Work(nodupEnc)
-    
-    work()
+    // Find matches for source pattern (_ & _)    
+    val state0_ = locate(state0, AssocRules.rules ++ start)
 
+    // Get the heads of all the terms matched by the pattern
+    //val anchor = work0.matches(_phMarker.leaf)
+
+    // Generalize  [ {x}, xs ]
+    import BasicSignature._ 
+    val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), List(x, xs))
+    
+    /*
+    val work1 = new Work(state0_.tuples, BasicRules.rules /*++ NoDupRules1.rules ++ NoDupRules2.rules*/ ++ goal1, directory)
+    work1()
     println("-" * 60)
     
+    // - reconstruct and generalize  [ {x}, xs ]
+    for (gm <- work1.matches(_phMarker.leaf);
+         t <- new Reconstruct(gm(1), work1.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
+         tg <- { import BasicSignature._ ; generalize(t, List(`{}`(x), xs), List(x, xs)) }) {
+      println("    " + t.toPretty)
+      println("    as  " + tg.toPretty)
+    }
+    */
+    
+    val state2 = elaborate(state1, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1)
+    
+    val state3 = elaborate(state2, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2)
+    
+    val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3)
+    
+    
+    dump(state4)
+    
+    /*
+    // Apply rewrite rules until saturated    
+    val work2 = new Work(state0_.tuples, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1, directory)
+    work2()
+    println("-" * 60)
+    
+    showem(work2.goalMatches, work2.trie)
+    
+    // Apply rewrite rules until saturated
+    val work3 = new Work(state2.tuples /*work2.trie.words filterNot (_(0) == (enc.ntor --> _goalMarker.leaf))*/, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2, directory)
+    work3()
+    println("-" * 60)
+
+    showem(work3.goalMatches, work3.trie)
+    
+    // Apply rewrite rules until saturated    
+    val work4 = new Work(state3.tuples /*work3.trie.words filterNot (_(0) == (enc.ntor --> _goalMarker.leaf))*/, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3, directory)
+    work4()
+    println("-" * 60)
+
+    showem(work4.goalMatches, work4.trie)
+
+    val work = work4
+    */
+        
     // Show all representations of the program term (for debugging; this is slow)
     /*
     for (t <- new Reconstruct(enc.ntor --> nodup)())
@@ -59,29 +206,25 @@ object NoDup {
     println("-" * 60)
     */
 
-    // Show terms matching the goal (_ & _ & _ & _)
+    // Show terms matching the goal (_ & (_ || _) & _)
     /*
     for (gm <- work.goalMatches;
          t <- new Reconstruct(gm)())
       println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
     println("-" * 60)
     */
-
-    for (gm <- work.goalMatches) {
-      println(gm mkString " ")
-      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x)().toList), new Tree(0)))
-        println("    " + mkStringColumns(ln map (t => if (t.root == 0) "" else t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty), 40 ))
-    }
-    
+  }
+  
+  def dump(state: State) {
     
     // Dump some things to files
     val encf = new FileWriter("enc")
-    val pairs = enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
+    val pairs = state.enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
     for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
     encf.close()
     
     val tupf = new FileWriter("tuples")
-    val words = trie.words sortBy (_(1))
+    val words = state.tuples sortBy (_(1))
     for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (enc.ntor <--) mkString "] ["}]\n"); }
     tupf.close()
   }
@@ -102,9 +245,33 @@ object NoDup {
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
 
 
-  object Rules
+  def showem(matches: Seq[Array[Int]], trie: Trie[Int]) {
+    for (gm <- matches) {
+      println(gm mkString " ")
+      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc).toList), B))
+        println("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
+    }
+  }
+  
+  def generalize(t: Term, leaves: List[Term], context: List[Term]): Option[Term] =
+    leaves.indexOf(t) match {
+      case -1 => if (context contains t) None else T_?(t.root)(t.subtrees map (generalize(_, leaves, context)))
+      case idx => Some(TI(idx))
+    }
+  
+  def T_?(root: Identifier)(subtrees: List[Option[Term]]) = 
+    if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
+  
+  trait Rules
   {
-    val x = TV("x"); val y = TV("y"); val z = TV("z")
+    val vars: List[Term]
+    val rulesSrc: List[Term]
+    
+    lazy val rules = Rewrite.compileRules(vars, rulesSrc)
+  }
+  
+  object BasicSignature {
+    val x = TV("x"); val y = TV("y"); val z = TV("z"); val w = TV("w"); val v = TV("v")
     val `x'` = TV("x'")
     val xs = TV("xs"); val `xs'` = TV("xs'")
     
@@ -125,7 +292,23 @@ object NoDup {
     def elem(x: Term, xs: Term) = _elem:@(x, xs)
     def elems(xs: Term) = _elems:@(xs)
     
-    import Rewrite.RuleOps
+    class Brackets(left: String, right: String) extends Formula.Notation {
+      import Formula._
+      import report.data.TapeString._
+      def format(term: AstSugar.Term) = {
+        tape"${left}${display(term.subtrees.head)}${right}"
+      }
+
+      val precedence: Int = 0
+    }
+    
+    import Formula.{M,O}
+    Formula.INFIX ++= M(O("‖", 1), O("∈", 1), O("∉", 1), O("∪", 1)) + ("{.}" -> new Brackets("{", "}"))
+  }
+  
+  object BasicRules extends Rules
+  {
+    import BasicSignature._
     
     val vars = List(x, y, z, `x'`, xs, `xs'`)
     
@@ -137,17 +320,46 @@ object NoDup {
         ~(x | y) =:= (~x & ~y),
         (x & (y & z)) =:= (x & y & z),
         (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
-        elem(x, xs) =:= in(x, elems(xs)),
-        (_nodup:@(cons(x, xs))) =:= (~elem(x, xs) & (_nodup:@(xs)))
-        )
-        
-    val rules = Rewrite.compileRules(vars, rulesSrc)
+        elem(x, xs) =:= in(x, elems(xs))
+    )
+  }
+
+  object AssocRules extends Rules
+  {
+    import BasicSignature._
+    
+    val vars = List(x, y, z, `x'`, xs, `xs'`)
+    
+    val rulesSrc = List(
+        (x & (y & z)) =:= (x & y & z)
+    )
+  }
+  
+  object NoDupRules1 extends Rules {
+    import BasicSignature._
+    val ys = TI("ys")
+    val vars = List(y, ys)
+    val rulesSrc = List(
+        xs =:= cons(`x'`, `xs'`),
+        (_nodup:@(cons(y, ys))) =:= (~elem(y, ys) & (_nodup:@(ys)))
+    )
+  }
+  
+  object NoDupRules2 extends Rules {
+    import BasicSignature._
+    val vars = List(x, xs)
+    val rulesSrc = List(
+        (`_nodup'`:@(x, xs)) =:= (set_disj(x, elems(xs)) & _nodup:@(xs))
+    )
   }
         
-  class Work(init: List[Array[Int]]) {
+  class Work(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int]) {
     
     import collection.mutable
     
+    def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry]) =
+      this(init, compiledRules, new Trie[Int](directory))
+
     val match_ = new Match(trie)(enc)
     
     val wq = mutable.Queue.empty[Array[Int]] ++ init
@@ -161,129 +373,41 @@ object NoDup {
         }
       }
     }
-     
-    /*
-    val xs_# = enc.ntor --> _xs.root
-    val cons_# = enc.ntor --> _cons.root
-    val elem_# = enc.ntor --> _elem.root
-    val eq_# = enc.ntor --> I("=")
-    val nodup_# = enc.ntor --> _nodup.root
-    */
-
-    val `xs = x':xs'` = {
-      import Rules._
-      Rewrite.compileRules(List.empty, List(_xs =:= cons(`_x'`, `_xs'`)))
-    }
-    /*  new CompiledRule(
-        new Scheme.Template()(_xs),
-        new Scheme.Template()(_cons:@(`_x'`, `_xs'`)))
-    */
-    val in = TI("∈")
-    val not_in = TI("∉")
-    val set_singleton = TI("{.}")
-    val set_disj = TI("‖")
-    
-    val _elems = TI("elems")
-    
-    /*
-    val in_# = enc.ntor --> in.root
-    val not_in_# = enc.ntor --> not_in.root
-    val `∨_#` = enc.ntor --> ∨
-    val `∧_#` = enc.ntor --> ∧
-    val `¬_#` = enc.ntor --> ¬
-    */
-    
-    
-    val _y = TV("y")
-    val _z = TV("z")
-    val _w = TV("w")
-    
-    /*
-    val `x=x' = x'∈{x}` = new CompiledRule(
-        new Scheme.Template(_x, `_x'`)(_x =:= `_x'`),
-        new Scheme.Template(_x, `_x'`)(in:@(`_x'`, set_singleton:@_x)))
-    
-    val `elem x (x':xs') = x=x' / elem x xs'` = new CompiledRule(
-        new Scheme.Template(_x, `_x'`, `_xs'`)(_elem:@(_x, _cons:@(`_x'`, `_xs'`))),
-        new Scheme.Template(_x, `_x'`, `_xs'`)
-                          ((_x =:= `_x'`) | (_elem:@(_x, `_xs'`))))
-    
-    val `¬x∈y = x∉y` = new CompiledRule(
-        new Scheme.Template(_x, _y)(~(in:@(_x, _y))),
-        new Scheme.Template(_x, _y)(not_in:@(_x, _y)))
-    
-    val `x∉y = ¬x∈y` = new CompiledRule(
-        new Scheme.Template(_x, _y)(not_in:@(_x, _y)),
-        new Scheme.Template(List(_x, _y) map (_.leaf), ~(in:@(_x, _y))))
-    
-    val `x∉y = {x}‖y` = new CompiledRule(
-        new Scheme.Template(_x, _y)(not_in:@(_x, _y)),
-        new Scheme.Template(_x, _y)(set_disj:@(set_singleton(_x), _y)))
-    
-    val `¬(x ∨ y) = ¬x ∧ ¬y` = new CompiledRule(
-        new Scheme.Template(_x, _y)(~(_x | _y)),
-        new Scheme.Template(_x, _y)(~_x & ~_y))
-    
-    val `x ∧ (y ∧ z) = (x ∧ y) ∧ z` = new CompiledRule(
-        new Scheme.Template(_x, _y, _z)(_x & (_y & _z)),
-        new Scheme.Template(_x, _y, _z)(_x & _y & _z))
-
-    val `elem x y = x ∈ elems y` = new CompiledRule(
-        new Scheme.Template(_x, _xs)(_elem:@(_x, _xs)),
-        new Scheme.Template(_x, _xs)(in:@(_x, _elems:@(_xs))))
-    
-    val `nodup (x:xs) = ¬(elem x xs) ∧ nodup xs` = new CompiledRule(
-        new Scheme.Template(_x, _xs)(_nodup:@(_cons:@(_x, _xs))),
-        new Scheme.Template(_x, _xs)(~(_elem:@(_x, _xs)) & _nodup:@(_xs)))
-    */
-    val _goalMarker = $TI("gem")
-    
-    import Rewrite.RuleOps
-    
-    val goal = Rewrite.compileRules(List(_x, _y, _z, _w), List((_x & _y & _z) =:> _goalMarker(_x, _y, _z))) /*new CompiledRule(
-        new Scheme.Template(_x, _y, _z /*, _w*/)(_x & _y & _z /*& _w*/),
-        new Scheme.Template(_x, _y, _z /*, _w*/)(_goalMarker(_x, _y, _z/*, _w*/)))*/
     
     def work(w: Array[Int]) {
-      println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
+      //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
       
       trie add w
       
-      for (r <- `xs = x':xs'` ::: Rules.rules) processRule(r, w)
-      /*
-      processRule(`xs = x':xs'`, w)
-      processRule(`x=x' = x'∈{x}`, w)
-      processRule(`elem x (x':xs') = x=x' / elem x xs'`, w)
-      processRule(`¬x∈y = x∉y`, w)
-      processRule(`x∉y = ¬x∈y`, w)
-      processRule(`x∉y = {x}‖y`, w)
-      processRule(`¬(x ∨ y) = ¬x ∧ ¬y`, w)
-      processRule(`x ∧ (y ∧ z) = (x ∧ y) ∧ z`, w)
-      processRule(`elem x y = x ∈ elems y`, w)
-      processRule(`nodup (x:xs) = ¬(elem x xs) ∧ nodup xs`, w)
-      */
+      for (r <- compiledRules) processRule(r, w)
       
-      for (g <- goal) processRule(g, w)
+      //for (g <- goal) processRule(g, w)
     }
     
     def processRule(rule: CompiledRule, w: Array[Int]) {
       val valuation = new Array[Int](rule.nHoles)
       for (s <- rule.shards) {
         for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
-          println(s"valuation = ${valuation mkString " "}")
-          wq.enqueue (rule.conclude(valuation, trie):_*)
-          //val add = enc.toBundle()(rule.conclude(valuation)) fillIn valuation(0)
-          //wq.enqueue (add.toSeq:_*)
+          //println(s"valuation = ${valuation mkString " "}")
+          val add = rule.conclude(valuation, trie)
+          wq.enqueue (add:_*)
         }
       }
     }
     
-    def goalMatches = {
-      trie.get(0, enc.ntor --> _goalMarker.leaf) match {
+    def matches(headSymbol: Identifier) = {
+      trie.get(0, enc.ntor --> headSymbol) match {
         case Some(t) => t.words
         case _ => Seq.empty
       }
     }
+    
+    def nonMatches(headSymbols: Identifier*) = {
+      val heads = headSymbols map (enc.ntor -->)
+      trie.words filterNot (heads contains _(0))
+    }
+    
+    def goalMatches = matches(_goalMarker.leaf)
     
   }
   
@@ -291,26 +415,20 @@ object NoDup {
   /**
    * Reconstruction of terms from tuples stored in the trie.
    */
-  class Reconstruct(init: Tree[Int]) {
+  class Reconstruct private (init: Tree[Int], trie: Trie[Int]) {
     
     import collection.mutable
     import math.Ordering
     import Reconstruct._
 
-    def this(root: Int) = this(new Tree(root))
-    def this(tuple: Array[Int]) = this(Reconstruct.tupleToTree(tuple))
+    def this(root: Int, trie: Trie[Int]) = this(new Tree(root), Reconstruct.mkTrie1(trie.words))
+    def this(root: Int, words: Seq[Array[Int]]) = this(new Tree(root), Reconstruct.mkTrie1(words))
+    def this(tuple: Array[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), Reconstruct.mkTrie1(trie.words))
     
     case class Entry(val t: Tree[Int]) {
       val pri = -t.size
     }
-    
-    // copy from trie indexed by location 1
-    val trie1 = {
-      val t = new Trie[Int](new Tree(-1, List(new Tree(1))))
-      trie.words foreach t.add
-      t
-    }
-    
+        
     val pq = new mutable.PriorityQueue[Entry]()(Ordering.by(_.pri)) += Entry(init)
     val ws = mutable.Set.empty[Tree[Int]]
 
@@ -319,7 +437,7 @@ object NoDup {
         val e = pq.dequeue()
         var expanded = false
         for (leaf <- e.t.leaves if !expanded;
-             alt <- trie1.get(1, leaf.leaf) map (_.words) getOrElse List()) {
+             alt <- trie.get(1, leaf.leaf) map (_.words) getOrElse List()) {
           val expand = e.t.replaceDescendant((leaf, tupleToTree(alt)))
           expanded = true
           if (ws add expand)
@@ -328,9 +446,32 @@ object NoDup {
         if (expanded) None else Some(e.t)
       }) flatten
     }
+    
+    def apply(enc: Encoding): Stream[Term] = {
+      for (t <- apply()) yield decode(t)(enc)
+    }
+    
+    def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
+      //println(enc.ntor <-- t.root)
+      enc.ntor <-- t.root match {
+        case r: Identifier =>
+          r.kind match {
+            case "operator" | "connective" | "quantifier" => T(r)(t.subtrees map decode)
+            case _ => T(r):@(t.subtrees map decode)
+          }
+        case t: Tree[_] => t.asInstanceOf[Term] // hope there are no other trees
+      }
+    }
   }
   
   object Reconstruct {
+    
+    /** Build a trie indexed by location 1 */
+    def mkTrie1(words: Seq[Array[Int]]) = {
+      val t = new Trie[Int](new Tree(-1, List(new Tree(1))))
+      words foreach t.add
+      t
+    }
     
     def tupleToTree(tuple: Array[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
     
