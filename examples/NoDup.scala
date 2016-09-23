@@ -134,85 +134,31 @@ object NoDup {
   }
   
   def main(args: Array[String]) {
+    import BasicSignature._ 
+    val BasicRules = new BasicRules
+    val AssocRules = new AssocRules
     
     println(nodup toPretty)
     
     val state0 = State(nodup)
-    val nodupEnc = state0.tuples//enc.toTuples(nodup)
     
-    // Find matches for source pattern (_ & _)    
+    // Find matches for source pattern (_ ∧ _) - these are marked as 1⃝
     val state0_ = locate(state0, AssocRules.rules ++ start)
 
-    // Get the heads of all the terms matched by the pattern
-    //val anchor = work0.matches(_phMarker.leaf)
-
     // Generalize  [ {x}, xs ]
-    import BasicSignature._ 
     val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), List(x, xs))
     
-    /*
-    val work1 = new Work(state0_.tuples, BasicRules.rules /*++ NoDupRules1.rules ++ NoDupRules2.rules*/ ++ goal1, directory)
-    work1()
-    println("-" * 60)
-    
-    // - reconstruct and generalize  [ {x}, xs ]
-    for (gm <- work1.matches(_phMarker.leaf);
-         t <- new Reconstruct(gm(1), work1.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
-         tg <- { import BasicSignature._ ; generalize(t, List(`{}`(x), xs), List(x, xs)) }) {
-      println("    " + t.toPretty)
-      println("    as  " + tg.toPretty)
-    }
-    */
-    
+    // 1⃝  ⇢  x' ∉ {x}  ∧  x ∉ elems xs'  ∧  x' ∉ elems xs'  ∧  nodup xs'
     val state2 = elaborate(state1, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1)
     
+    // x ∉ elems xs'  ∧  x' ∉ elems xs'  ⇢  ({x} ∪ {x'}) ‖ elems xs'
     val state3 = elaborate(state2, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2)
     
+    // 1⃝  ⇢  x' ∉ {x}  ∧  nodup' ({x} ∪ {x'}) xs'
     val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3)
-    
-    
+
+
     dump(state4)
-    
-    /*
-    // Apply rewrite rules until saturated    
-    val work2 = new Work(state0_.tuples, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1, directory)
-    work2()
-    println("-" * 60)
-    
-    showem(work2.goalMatches, work2.trie)
-    
-    // Apply rewrite rules until saturated
-    val work3 = new Work(state2.tuples /*work2.trie.words filterNot (_(0) == (enc.ntor --> _goalMarker.leaf))*/, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2, directory)
-    work3()
-    println("-" * 60)
-
-    showem(work3.goalMatches, work3.trie)
-    
-    // Apply rewrite rules until saturated    
-    val work4 = new Work(state3.tuples /*work3.trie.words filterNot (_(0) == (enc.ntor --> _goalMarker.leaf))*/, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3, directory)
-    work4()
-    println("-" * 60)
-
-    showem(work4.goalMatches, work4.trie)
-
-    val work = work4
-    */
-        
-    // Show all representations of the program term (for debugging; this is slow)
-    /*
-    for (t <- new Reconstruct(enc.ntor --> nodup)())
-      println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
-
-    println("-" * 60)
-    */
-
-    // Show terms matching the goal (_ & (_ || _) & _)
-    /*
-    for (gm <- work.goalMatches;
-         t <- new Reconstruct(gm)())
-      println(t map (enc.ntor <--) map (_.asInstanceOf[Identifier]) toPretty)
-    println("-" * 60)
-    */
   }
   
   def dump(state: State) {
@@ -262,81 +208,10 @@ object NoDup {
   def T_?(root: Identifier)(subtrees: List[Option[Term]]) = 
     if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
   
-  trait Rules
-  {
-    val vars: List[Term]
-    val rulesSrc: List[Term]
-    
-    lazy val rules = Rewrite.compileRules(vars, rulesSrc)
-  }
-  
-  object BasicSignature {
-    val x = TV("x"); val y = TV("y"); val z = TV("z"); val w = TV("w"); val v = TV("v")
-    val `x'` = TV("x'")
-    val xs = TV("xs"); val `xs'` = TV("xs'")
-    
-    val _in = TI("∈")
-    val _not_in = TI("∉")
-    val _set_singleton = TI("{.}")
-    val _set_disj = TI("‖")
-    val _set_union = TI("∪")
-    
-    val _elems = TI("elems")
-    
-    def in(x: Term, xs: Term) = _in:@(x, xs)
-    def not_in(x: Term, xs: Term) = _not_in:@(x, xs)
-    def `{}`(x: Term) = _set_singleton:@(x)
-    def set_disj(s: Term, t: Term) = _set_disj:@(s, t)
-    def set_union(s: Term, t: Term) = _set_union:@(s, t)
-    def cons(x: Term, xs: Term) = _cons:@(x, xs)
-    def elem(x: Term, xs: Term) = _elem:@(x, xs)
-    def elems(xs: Term) = _elems:@(xs)
-    
-    class Brackets(left: String, right: String) extends Formula.Notation {
-      import Formula._
-      import report.data.TapeString._
-      def format(term: AstSugar.Term) = {
-        tape"${left}${display(term.subtrees.head)}${right}"
-      }
-
-      val precedence: Int = 0
-    }
-    
-    import Formula.{M,O}
-    Formula.INFIX ++= M(O("‖", 1), O("∈", 1), O("∉", 1), O("∪", 1)) + ("{.}" -> new Brackets("{", "}"))
-  }
-  
-  object BasicRules extends Rules
-  {
-    import BasicSignature._
-    
-    val vars = List(x, y, z, `x'`, xs, `xs'`)
-    
-    val rulesSrc = List(
-        (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
-        elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
-        ~(in(x,y)) =:= not_in(x, y),
-        not_in(x, xs) =:= set_disj(`{}`(x), xs),
-        ~(x | y) =:= (~x & ~y),
-        (x & (y & z)) =:= (x & y & z),
-        (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
-        elem(x, xs) =:= in(x, elems(xs))
-    )
-  }
-
-  object AssocRules extends Rules
-  {
-    import BasicSignature._
-    
-    val vars = List(x, y, z, `x'`, xs, `xs'`)
-    
-    val rulesSrc = List(
-        (x & (y & z)) =:= (x & y & z)
-    )
-  }
-  
   object NoDupRules1 extends Rules {
     import BasicSignature._
+    val enc = NoDup.enc
+
     val ys = TI("ys")
     val vars = List(y, ys)
     val rulesSrc = List(
@@ -347,6 +222,8 @@ object NoDup {
   
   object NoDupRules2 extends Rules {
     import BasicSignature._
+    val enc = NoDup.enc
+
     val vars = List(x, xs)
     val rulesSrc = List(
         (`_nodup'`:@(x, xs)) =:= (set_disj(x, elems(xs)) & _nodup:@(xs))
