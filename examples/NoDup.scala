@@ -11,6 +11,7 @@ import relentless.rewriting.Rewrite
 import java.io.FileOutputStream
 import java.io.FileWriter
 import relentless.rewriting.Reconstruct
+import relentless.rewriting.Rewrite.WorkLoop
 
 
 
@@ -40,8 +41,37 @@ object NoDup {
   }
 
 
+  def main(args: Array[String]) {
+    import BasicSignature._ 
+    val BasicRules = new BasicRules
+    val AssocRules = new AssocRules
+    
+    println(nodup toPretty)
+    
+    val state0 = State(nodup)
+    
+    // Find matches for source pattern (_ ∧ _) - these are marked as 1⃝
+    val state0_ = locate(state0, AssocRules.rules ++ start)
+
+    // Generalize  [ {x}, xs ]
+    val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), List(x, xs))
+    
+    // 1⃝  ⇢  x' ∉ {x}  ∧  x ∉ elems xs'  ∧  x' ∉ elems xs'  ∧  nodup xs'
+    val state2 = elaborate(state1, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1)
+    
+    // x ∉ elems xs'  ∧  x' ∉ elems xs'  ⇢  ({x} ∪ {x'}) ‖ elems xs'
+    val state3 = elaborate(state2, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2)
+    
+    // 1⃝  ⇢  x' ∉ {x}  ∧  nodup' ({x} ∪ {x'}) xs'
+    val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3)
+
+
+    dump(state4)
+  }
+  
+  
+  import Rewrite._goalMarker
   val _phMarker = $TI("orb", "operator")
-  val _goalMarker = $TI("gem", "operator")
   
   val start = {
     import Rewrite.RuleOps
@@ -95,7 +125,7 @@ object NoDup {
   
   def locate(s: State, rules: List[CompiledRule]) = {
     // Apply rules to find the pattern
-    val work0 = new Work(s.tuples, rules, directory)
+    val work0 = new WorkLoop(s.tuples, rules, directory)
     work0()
     println("-" * 60)
 
@@ -109,7 +139,7 @@ object NoDup {
   
   def generalize(s: State, rules: List[CompiledRule], leaves: List[Term], context: List[Term]): State = {
     // Apply rewrite rules until saturated    
-    val work = new Work(s.tuples, rules, directory)
+    val work = new WorkLoop(s.tuples, rules, directory)
     work()
     println("-" * 60)
     
@@ -125,41 +155,13 @@ object NoDup {
   }
   
   def elaborate(s: State, rules: List[CompiledRule]) = {
-    val work = new Work(s.tuples, rules, directory)
+    val work = new WorkLoop(s.tuples, rules, directory)
     work()
     println("-" * 60)
     
     showem(work.goalMatches, work.trie)
     
     s // TODO
-  }
-  
-  def main(args: Array[String]) {
-    import BasicSignature._ 
-    val BasicRules = new BasicRules
-    val AssocRules = new AssocRules
-    
-    println(nodup toPretty)
-    
-    val state0 = State(nodup)
-    
-    // Find matches for source pattern (_ ∧ _) - these are marked as 1⃝
-    val state0_ = locate(state0, AssocRules.rules ++ start)
-
-    // Generalize  [ {x}, xs ]
-    val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), List(x, xs))
-    
-    // 1⃝  ⇢  x' ∉ {x}  ∧  x ∉ elems xs'  ∧  x' ∉ elems xs'  ∧  nodup xs'
-    val state2 = elaborate(state1, BasicRules.rules ++ NoDupRules1.rules /*++ NoDupRules2.rules*/ ++ goal1)
-    
-    // x ∉ elems xs'  ∧  x' ∉ elems xs'  ⇢  ({x} ∪ {x'}) ‖ elems xs'
-    val state3 = elaborate(state2, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2)
-    
-    // 1⃝  ⇢  x' ∉ {x}  ∧  nodup' ({x} ∪ {x'}) xs'
-    val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3)
-
-
-    dump(state4)
   }
   
   def dump(state: State) {
@@ -231,64 +233,6 @@ object NoDup {
     )
   }
         
-  class Work(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int]) {
-    
-    import collection.mutable
-    
-    def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry]) =
-      this(init, compiledRules, new Trie[Int](directory))
-
-    val match_ = new Match(trie)(enc)
-    
-    val wq = mutable.Queue.empty[Array[Int]] ++ init
-    val ws = mutable.Set.empty[List[Int]]
-    
-    def apply() {
-      while (!wq.isEmpty) {
-        val w = wq.dequeue()
-        if (ws add (w toList)) {
-          work(w)
-        }
-      }
-    }
-    
-    def work(w: Array[Int]) {
-      //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
-      
-      trie add w
-      
-      for (r <- compiledRules) processRule(r, w)
-      
-      //for (g <- goal) processRule(g, w)
-    }
-    
-    def processRule(rule: CompiledRule, w: Array[Int]) {
-      val valuation = new Array[Int](rule.nHoles)
-      for (s <- rule.shards) {
-        for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
-          //println(s"valuation = ${valuation mkString " "}")
-          val add = rule.conclude(valuation, trie)
-          wq.enqueue (add:_*)
-        }
-      }
-    }
-    
-    def matches(headSymbol: Identifier) = {
-      trie.get(0, enc.ntor --> headSymbol) match {
-        case Some(t) => t.words
-        case _ => Seq.empty
-      }
-    }
-    
-    def nonMatches(headSymbols: Identifier*) = {
-      val heads = headSymbols map (enc.ntor -->)
-      trie.words filterNot (heads contains _(0))
-    }
-    
-    def goalMatches = matches(_goalMarker.leaf)
-    
-  }
-  
 
   
 }

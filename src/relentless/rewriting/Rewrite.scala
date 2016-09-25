@@ -6,6 +6,8 @@ import syntax.Identifier
 import relentless.matching.Bundle
 import relentless.matching.Encoding
 import relentless.matching.Trie
+import relentless.matching.Match
+import syntax.Tree
 
 
 
@@ -91,5 +93,70 @@ object Rewrite {
         throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
     }
   }
+  
+  val _goalMarker = $TI("gem", "operator")
+
+
+  /**
+   * Applies a set of rewrite rules in a loop until saturation ("fixed point").
+   */
+  class WorkLoop(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) {
+    
+    import collection.mutable
+    
+    def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+      this(init, compiledRules, new Trie[Int](directory))
+
+    val match_ = new Match(trie)(enc)
+    
+    val wq = mutable.Queue.empty[Array[Int]] ++ init
+    val ws = mutable.Set.empty[List[Int]]
+    
+    def apply() {
+      while (!wq.isEmpty) {
+        val w = wq.dequeue()
+        if (ws add (w toList)) {
+          work(w)
+        }
+      }
+    }
+    
+    def work(w: Array[Int]) {
+      //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
+      
+      trie add w
+      
+      for (r <- compiledRules) processRule(r, w)
+      
+      //for (g <- goal) processRule(g, w)
+    }
+    
+    def processRule(rule: CompiledRule, w: Array[Int]) {
+      val valuation = new Array[Int](rule.nHoles)
+      for (s <- rule.shards) {
+        for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
+          //println(s"valuation = ${valuation mkString " "}")
+          val add = rule.conclude(valuation, trie)
+          wq.enqueue (add:_*)
+        }
+      }
+    }
+    
+    def matches(headSymbol: Identifier) = {
+      trie.get(0, enc.ntor --> headSymbol) match {
+        case Some(t) => t.words
+        case _ => Seq.empty
+      }
+    }
+    
+    def nonMatches(headSymbols: Identifier*) = {
+      val heads = headSymbols map (enc.ntor -->)
+      trie.words filterNot (heads contains _(0))
+    }
+    
+    def goalMatches = matches(_goalMarker.leaf)
+    
+  }
+    
 }
 
