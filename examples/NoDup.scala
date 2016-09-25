@@ -2,12 +2,12 @@ package examples
 
 import syntax._
 import syntax.AstSugar._
-import matching.Trie
-import matching.Bundle
-import matching.Match
-import matching.Encoding
-import matching.CompiledRule
-import matching.Rewrite
+import relentless.matching.Trie
+import relentless.matching.Bundle
+import relentless.matching.Match
+import relentless.matching.Encoding
+import relentless.rewriting.CompiledRule
+import relentless.rewriting.Rewrite
 import java.io.FileOutputStream
 import java.io.FileWriter
 
@@ -32,7 +32,7 @@ object NoDup {
   val `_xs'` = TV("xs'")
 
 
-  lazy implicit val enc = new matching.Encoding
+  lazy implicit val enc = new Encoding
   lazy val directory = {
     def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))

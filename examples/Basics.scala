@@ -2,8 +2,8 @@ package examples
 
 import syntax.AstSugar._
 import syntax.Formula
-import matching.Rewrite
-import matching.Encoding
+import relentless.rewriting.Rewrite
+import relentless.matching.Encoding
 
 
 

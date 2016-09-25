@@ -1,8 +1,11 @@
-package matching
+package relentless.rewriting
 
 import syntax.Scheme
 import syntax.AstSugar._
 import syntax.Identifier
+import relentless.matching.Bundle
+import relentless.matching.Encoding
+import relentless.matching.Trie
 
 
 

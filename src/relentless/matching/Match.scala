@@ -1,4 +1,4 @@
-package matching
+package relentless.matching
 
 import syntax.AstSugar.Term
 
