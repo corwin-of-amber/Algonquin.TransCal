@@ -4,5 +4,6 @@
 \#*\#
 .\#*
 .*.aux
+.*.swp
 lia.cache
 /bin/

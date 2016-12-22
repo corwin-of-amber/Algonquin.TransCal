@@ -1,0 +1,54 @@
+button#reload {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+}
+
+p { display: flex; align-items: baseline }
+
+
+mu { position: relative; }
+mu.above { align-self: flex-start; }
+mu.below { align-self: flex-end; }
+
+mu table {
+  display: block;
+  position: absolute;
+  /*outline: 1px solid rgba(0,0,0,.1);*/
+  border-spacing: 0;
+}
+
+mu tr {
+}
+
+mu table td.spacer {
+  border-left: 1px dashed rgba(0,0,0,.15);
+  border-right: 1px dashed rgba(0,0,0,.15);
+}
+
+mu table td.brace {
+  width: 1000px;  /* @@@ only way to make td occupy table width?? */
+  border-bottom: 1px solid red;
+  border-radius: 0 0 50px 50px;
+  height: 7px;
+}
+
+mu table td.caption {
+  position: absolute;
+  outline: 1px solid rgba(0,0,0,.1);
+  white-space: nowrap;
+}
+
+mu table td.caption p { margin: 0 }
+
+mu table.smaller td.brace {
+  height: 4px;
+}
+
+mu table.smaller td.caption {
+  font-size: 60%;
+}
+
+mu table.align-right >*>*> td.caption {
+  right: 0;
+}
