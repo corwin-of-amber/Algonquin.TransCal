@@ -5,7 +5,9 @@ button#reload {
 }
 
 p { display: flex; align-items: baseline }
-
+p {
+  outline: 1px solid rgba(0,0,0,.1);
+}
 
 mu { position: relative; }
 mu.above { align-self: flex-start; }
@@ -21,14 +23,14 @@ mu table {
 mu tr {
 }
 
-mu table td.spacer {
+mu table >*>*> td.spacer {
   border-left: 1px dashed rgba(0,0,0,.15);
   border-right: 1px dashed rgba(0,0,0,.15);
 }
 
-mu table td.brace {
+mu table >*>*> td.brace {
   width: 1000px;  /* @@@ only way to make td occupy table width?? */
-  border-bottom: 1px solid red;
+  border-bottom: 1px solid #C78578;
   border-radius: 0 0 50px 50px;
   height: 7px;
 }
@@ -52,3 +54,19 @@ mu table.smaller td.caption {
 mu table.align-right >*>*> td.caption {
   right: 0;
 }
+
+mu table.above {
+  bottom: 0;
+}
+
+mu table.above >*>*> td.brace {
+  border-top: 1px solid #C78578;
+  border-bottom: none;
+  border-radius: 50px 50px 0 0;
+}
+
+mu table.above >*>*> td.caption {
+  bottom: 7px;  /* height of brace cell */
+                /* if spacer is added, this value is overwritten by typesetter */
+}
+

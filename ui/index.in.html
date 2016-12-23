@@ -17,14 +17,21 @@
 <script src="markup.ls.js"></script>
 
 <div id="workbench">
-  <p>[] ↦ true</p>
-  <p><span>x : xs ↦&nbsp;</span><mu class="below" id="0"></mu><span>¬</span><mu class="below" id="1"></mu><span>elem x&nbsp;</span><mu id="2"></mu><span>xs</span><mu id="3"></mu><span>&nbsp;∧&nbsp;</span><mu class="below" id="8"></mu><span>nodup xs</span><mu id="9"></mu></p>
+  <p>nodup =</p>
+  <dd>
+    <p>[] ↦ ⊤</p>
+    <p><span>x : xs ↦&nbsp;</span><mu class="below" id="0"></mu><mu class="above" id="15"></mu><span>¬</span><mu class="below" id="1"></mu><mu class="above" id="12"></mu><span>elem x&nbsp;</span><mu id="2"></mu><span>xs</span><mu id="3"></mu><span>&nbsp;∧&nbsp;</span><mu class="below" id="8"></mu><span>nodup xs</span><mu id="9"></mu></p>
+  </dd>
 
 <mu-brace from="2" to="3" class="smaller">x' : xs'</mu-brace>
 <mu-brace from="1" to="3" class="align-right">x = x' ∨ elem x xs'</mu-brace>
-<mu-brace from="0" to="3" class="align-right"><p><mu class="above" id="4"></mu>x ≠ x'<mu id="5"></mu>&nbsp;∧&nbsp;<mu id="6"></mu>¬elem x xs'<mu id="7"></mu></p></mu-brace>
+<mu-brace from="0" to="3" class="align-right"><p><mu id="4"></mu>x ≠ x'<mu id="5"></mu>&nbsp;∧&nbsp;<mu id="6"></mu>¬elem x xs'<mu id="7"></mu></p></mu-brace>
 <mu-brace from="4" to="5">x' ∉ {x}</mu-brace>
 <mu-brace from="6" to="7">x ∉ elems xs'</mu-brace>
-<mu-brace from="8" to="9"><p><mu id="10"></mu><span>¬elem x' xs'</span><mu id="11"></mu><span>&nbsp;∧&nbsp;nodup xs'</span> </mu-brace>
-<mu-brace from="10" to="11">abc</mu-brace>
+<mu-brace from="8" to="9"><p><mu id="10"></mu><span>¬elem x' xs'</span><mu id="11"></mu><span>&nbsp;∧&nbsp;nodup xs'</span></p></mu-brace>
+<mu-brace from="10" to="11">x' ∉ elems xs'</mu-brace>
+<mu-brace from="6" to="11">{x} ∪ {x'} ‖ elems xs'</mu-brace>
+<mu-brace from="12" to="3" class="above"><p><mu class="above" id="13"></mu>x ∉ elems xs<mu class="above" id="14"></mu></p></mu-brace>
+<mu-brace from="13" to="14" class="above"><p>{x} ‖ elems xs'</p></mu-brace>
+<mu-brace from="15" to="9" class="above align-right">nodup' {x} xs</mu-brace>
 </div>
