@@ -3,7 +3,7 @@
 $ ->
   offy = 0
   boxes = []
-  $ 'mu-brace' .each (i, brace) ->
+  $ 'mu-brace' .remove!each (i, brace) ->
     st = $ 'mu#' + $(brace).attr('from')
     ed = $ 'mu#' + $(brace).attr('to')
     dir = if st.has-class 'above' then 'up' else 'down'
@@ -14,7 +14,6 @@ $ ->
     else
       bottom = highest(boxes, [st.offset!left, ed.offset!left])
       spc = Math.max(0, st.offset!top - bottom - 1)
-      console.log bottom, spc
 
     t = $ '<table>'
       for a in brace.attributes then ..attr a.name, a.value
@@ -22,17 +21,24 @@ $ ->
         if spc > 0
           ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
         ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
-        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).remove!contents!))
+        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
       else  /* dir == 'up' */
-        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).remove!contents!))
-        ..append ($('<tr>').append(brac = $ '<td>' .add-class 'brace'))
+        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
+        ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
         if spc > 0
           ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
         capt.css 'bottom', 7 /* = height of brace */ + spc
+      if (sx = ..attr('shift-x')) then capt.css 'left', sx
       ..width w
       st.append ..
 
     boxes.push capt
+
+  #for ops then ..!
+  #ops[0]!
+  #setTimeout ->
+  #  for op in ops[1 to] then op!
+  #, 0
 
 
 lowest = (boxes, [st-x, ed-x]) ->

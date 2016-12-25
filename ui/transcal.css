@@ -4,6 +4,12 @@ button#reload {
   right: 9px;
 }
 
+#workbench {
+  /*font-family: CMU Serif;*/
+  font-size: 13pt;
+}
+table { font-size: inherit; }  /* Webkit default is to override font */
+
 p { display: flex; align-items: baseline }
 p {
   outline: 1px solid rgba(0,0,0,.1);
@@ -48,7 +54,7 @@ mu table.smaller td.brace {
 }
 
 mu table.smaller td.caption {
-  font-size: 60%;
+  font-size: 75%;
 }
 
 mu table.align-right >*>*> td.caption {
