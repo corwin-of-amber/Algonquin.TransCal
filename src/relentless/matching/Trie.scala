@@ -18,7 +18,7 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
   private val DEFAULT_CAPACITY = 5
   
   var words: mutable.ListBuffer[Array[E]] = mutable.ListBuffer.empty  /* please don't change 'words' outside this class :-P */
-  private var subtries: Array[mutable.Map[E,Trie[E]]] = new Array(DEFAULT_CAPACITY)
+  /*private*/ var subtries: Array[mutable.Map[E,Trie[E]]] = new Array(DEFAULT_CAPACITY)
 
   def add(word: Array[E]) {
     for (t <- directory.subtrees) {
@@ -42,6 +42,8 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
                            None }
     else subtrie get letter
   }
+  
+  def ++=(words: Iterable[Array[E]]) = { words foreach add ; this }
   
   /* this is so it can be overridden easily */
   def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E](subdirectory)

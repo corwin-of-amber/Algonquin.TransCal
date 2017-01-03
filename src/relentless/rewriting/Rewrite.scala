@@ -27,13 +27,14 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     
   def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) =
     this(enc.toBundle(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.|||):_*).bare, 
-         enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template),
+         enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template.split(Rewrite.|||):_*),
          conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
   
   def conclude(valuation: Array[Int], trie: Trie[Int]) = {
     assert(valuation.length >= nHoles)
     
-    val newSubterms = collection.mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation(i))))
+    def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)
+    val newSubterms = collection.mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
         
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     def fresh(wv: Array[Int]) = enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
@@ -54,7 +55,16 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
         val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie) getOrElse fresh(wv)
         newSubterms += wv(1) -> wv1
         wv(1) = wv1
-      }
+      }/*
+      else {
+        // this is an experiment
+        if (wv(0) != (enc.ntor --> Rewrite._goalMarker.leaf)) {
+        val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie)
+        wv1 foreach { j =>
+          if (j != wv(1)) println(s"${enc.ntor <-- j} ~ ${enc.ntor <-- wv(1)}")
+        }
+        }
+      }*/
       //println(s"[ ${w mkString " "} -->")
       //println(s"  ${wv mkString " "} ]")
       wv
@@ -93,8 +103,8 @@ object Rewrite {
         throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
     }
   }
-  
-  val _goalMarker = $TI("gem", "operator")
+
+  val _goalMarker = $TI("gem", "marker")
 
 
   /**
@@ -118,6 +128,20 @@ object Rewrite {
         if (ws add (w toList)) {
           work(w)
         }
+      }
+    }
+    
+    def stream() = {
+      var i = 0
+      Reconstruct.whileYield(!wq.isEmpty) {
+        val w = wq.dequeue()
+        if (ws add (w toList)) {
+          work(w)
+        }
+        val gm = goalMatches
+        val gmAdded = gm drop i
+        i = gm.length
+        gmAdded
       }
     }
     
