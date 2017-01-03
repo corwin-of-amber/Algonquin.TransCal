@@ -1,38 +1,57 @@
 
 
 $ ->
-  offy = 0
-  boxes = []
-  $ 'mu-brace' .remove!each (i, brace) ->
-    st = $ 'mu#' + $(brace).attr('from')
-    ed = $ 'mu#' + $(brace).attr('to')
-    dir = if st.has-class 'above' then 'up' else 'down'
-    w = ed.offset!left - st.offset!left + 1
-    if dir == 'down'
-      top = lowest(boxes, [st.offset!left, ed.offset!left])
-      spc = Math.max(0, top - st.offset!top)
-    else
-      bottom = highest(boxes, [st.offset!left, ed.offset!left])
-      spc = Math.max(0, st.offset!top - bottom - 1)
+  markup = new Markup
+  markup.typeset($ 'mu-brace' .remove!)
 
-    t = $ '<table>'
-      for a in brace.attributes then ..attr a.name, a.value
+
+class Markup
+
+  ->
+    @boxes = []
+
+  typeset: (braces) ->
+    braces.each (i, brace) ~>
+      st = $ 'mu#' + $(brace).attr('from')
+      ed = $ 'mu#' + $(brace).attr('to')
+      dir = if st.has-class 'above' then 'up' else 'down'
+      w = ed.offset!left - st.offset!left + 1
       if dir == 'down'
-        if spc > 0
-          ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
-        ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
-        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
-      else  /* dir == 'up' */
-        ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
-        ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
-        if spc > 0
-          ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
-        capt.css 'bottom', 7 /* = height of brace */ + spc
-      if (sx = ..attr('shift-x')) then capt.css 'left', sx
-      ..width w
-      st.append ..
+        top = lowest(@boxes, [st.offset!left, ed.offset!left])
+        spc = Math.max(0, top - st.offset!top)
+      else
+        bottom = highest(@boxes, [st.offset!left, ed.offset!left])
+        spc = Math.max(0, st.offset!top - bottom - 1)
 
-    boxes.push capt
+      t = $ '<table>'
+        for a in brace.attributes then ..attr a.name, a.value
+        if dir == 'down'
+          if spc > 0
+            ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
+          ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
+          ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
+        else  /* dir == 'up' */
+          ..append ($('<tr>').append(capt = $ '<td>' .add-class 'caption' .append $(brace).contents!))
+          ..append ($('<tr>').append($ '<td>' .add-class 'brace'))
+          if spc > 0
+            ..append ($('<tr>').append($ '<td>' .add-class 'spacer' .height spc))
+          capt.css 'bottom', 7 /* = height of brace */ + spc
+        if (sx = ..attr('shift-x')) then capt.css 'left', sx
+        ..width w
+        st.append ..
+
+      @boxes.push capt
+
+  insert-markers: (elements) ->
+    console.assert elements.length > 0
+    max = Math.max 0, ...($ 'mu' .map (i,x) -> x.id)
+    st: $ '<mu>' .attr id: max+1 .add-class 'below' .insert-before elements[0]
+    ed: $ '<mu>' .attr id: max+2 .insert-after elements[*-1]
+
+  adjust-paragraph: (p) ->
+    p
+      bottom = Math.max ...(..find 'td' .map (i, x) -> x.getBoundingClientRect!bottom)
+      ..css margin-bottom: 17 + bottom - ..0.getBoundingClientRect!bottom
 
   #for ops then ..!
   #ops[0]!
@@ -62,3 +81,6 @@ highest = (boxes, [st-x, ed-x]) ->
          (st-x < l && r < ed-x)
       then rect.top
   Math.min ...tops
+
+
+export Markup

@@ -5,7 +5,6 @@ split-left = (ast, by-v=ast.root) ->
   else [ast]
 
 numeral = (ast) ->
-  console.log ast
   if ast.is-leaf! && ast.root == "O" then 0
   else
     [fun, ...args] = split-left ast, "@"
@@ -45,6 +44,10 @@ class Notation
     else if $.isFunction(op)
       op!
 
+  mkop: (op) ->
+    $ '<span>' .add-class 'ast-root' .append @mkdom op
+
+
 class InfixOperator extends Notation
   (@op, pri, assoc = \none) -> super(pri, assoc)
 
@@ -53,7 +56,7 @@ class InfixOperator extends Notation
     [left, right] = [term.subtrees[0], term.subtrees[1]]
     x =
       * pp.pretty-print left, @pri, (@assoc == 'left' || @assoc == 'both')
-      * @mkdom @op
+      * @mkop @op
       * pp.pretty-print right, @pri, (@assoc == 'right' || @assoc == 'both')
     flatten x
 
@@ -64,7 +67,7 @@ class PrefixOperator extends Notation
     console.assert(term.subtrees.length == 1)
     right = term.subtrees[0]
     x =
-      * @mkdom @op
+      * @mkop @op
       * pp.pretty-print right, @pri, true
     flatten x
 
@@ -82,6 +85,7 @@ class Brackets extends Notation
 
 
 notations =
+  '≠': new InfixOperator(" ≠ ", 6, \right)
   ':': new InfixOperator(" : ", 6, \right)
   '∧': new InfixOperator(" ∧ ", 7, \left)
   '↦': new InfixOperator(" ↦ ", 8, \right)
@@ -190,7 +194,8 @@ class PrettyPrint
             pri_ = 0
             ..append @pretty-print fun, pri_, true
             for x, i in args
-              ..append cti " "
+              ..append ($ '<span>' .text ' '   /* ← non-breaking space */
+                        .add-class 'ast-root')
               ..append @pretty-print x, pri_, false
       else if (nota = notations[ast.root])?
         $ '<span>'
@@ -236,7 +241,7 @@ class PrettyPrint
         $ '<span>' .add-class 'return' .text "⇢ "
           ..append @pretty-print ast.subtrees[0]
       else if ast.root == ":="
-        $ '<span>' 
+        $ '<span>'
           pri_ = 5
           st = if ast.subtrees[0].root == "return" then 1 else 0
           for va, i in ast.subtrees[st til -1]
@@ -273,6 +278,7 @@ class PrettyPrint
           ..append ($ '<span>' .text ("}"))
 
     span
+      ..data {ast}
       if pri_? && (pri_ > pri || (pri_ == pri && !assoc))
         ..prepend document.createTextNode "("
         ..append document.createTextNode ")"

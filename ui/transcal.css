@@ -10,7 +10,7 @@ button#reload {
 }
 table { font-size: inherit; }  /* Webkit default is to override font */
 
-p { display: flex; align-items: baseline }
+p, p span { display: flex; align-items: baseline; white-space: pre }
 p {
   outline: 1px solid rgba(0,0,0,.1);
 }
@@ -76,3 +76,15 @@ mu table.above >*>*> td.caption {
                 /* if spacer is added, this value is overwritten by typesetter */
 }
 
+/* Selection */
+.selection {
+  background: rgba(0,80,255,0.25);
+}
+
+.hover {
+  outline: 1px dashed blue;
+}
+
+.drag-hover {
+  outline: 1px dashed orange;
+}
