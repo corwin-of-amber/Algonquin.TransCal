@@ -35,7 +35,7 @@ configure-selection = (dom) ->
       $(@).parent!add-class 'hover'
       $(@).parent!attr 'draggable' true
       if (ast = $(@).parent!data 'ast')?
-        $ 'button' .text ast._id
+        $ '#debug-data' .text ast._id
     ..mouseleave ->
       $(@).parent!remove-class 'hover'
       $(@).parent!remove-attr 'draggable'
@@ -96,14 +96,17 @@ configure-drag-and-drop = do ->
             embrace drop-target, caption
 
 
-embrace = (target, caption) ->
+embrace = (target, caption, positioning='below') ->
   target.closest 'p[mu-markup]' .first!
     /**/ console.assert ..length > 0 /**/
     markup = ..data 'markup'
     /**/ console.assert markup? /**/
     {st, ed} = markup.insert-markers target
 
+    st.add-class positioning
+
     brace = $ '<mu-brace>' .attr from: st.attr('id'), to: ed.attr('id')
+      ..add-class positioning
       ..append caption
       configure-selection ..
       configure-drag-and-drop ..
@@ -119,32 +122,53 @@ display = (state) ->
     configure-drag-and-drop ..
 
 find-origin = (ast, within) ->
-  root-id = ast._id
-  console.log root-id
-  els = within.filter ((i,x) -> $(x).data('ast')?._id == root-id)
-  if els.length == 0
-    els = $([])
-    for child in ast.subtrees then els .= add find-origin(child, within)
-  els
+  aux = (ast) ->
+    root-id = ast._id
+    els = within.filter ((i,x) -> $(x).data('ast')?._id == root-id)
+    if els.length == 0
+      els = $([])
+      for child in ast.subtrees then els .= add aux child
+    els
+  fragments = aux ast
+  # now all fragments must belong to the same p[mu-markup].
+  # arbitrarily choose the first
+  p = fragments.closest('p[mu-markup]').first!
+  if p.length
+    fragments.filter((i,x) -> p.has(x).length > 0)
+      /**/ console.assert ..length > 0 /**/
+  else
+    fragments  # fallback
+
 
 $ ->
   display load '../prog.json'
+
+  $ '#workbench' .click -> $ '.selection' .remove-class 'selection'
+
+  $ '#workbench' .on 'click' '.elaborate-into' (ev) ->
+    $(ev.target).prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
+      if ..length > 0 && (ast = ..data('ast'))?
+        p = $(ev.target).closest('p[mu-markup]')
+        within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*'))
+        target = find-origin(ast, within)
+        positioning = if ev.altKey then 'above'
+        embrace target, $('<p>').append($(ev.target).nextAll!), positioning
+
+
+$ ->
+  $.contextMenu do
+    selector: '#toggle-menu'
+    trigger: 'left'
+    items: $.contextMenu.fromMenu $ '#menu'
+    animation: {duration: 0}
+    position: (opt) ->
+      opt.$menu
+        ..position({ my: "right top", at: "right bottom", of: this, offset: "0 5"})
+
 
   $ '#reload' .click ->
     $ '#workbench' .empty!
     display load '../prog.json'
 
-
-  $ '#workbench' .click -> $ '.selection' .remove-class 'selection'
-
-
-  $ '#workbench' .click '.elaborate-into' (ev) ->
-    $(ev.target).prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
-      if ..length > 0 && (ast = ..data('ast'))?
-        console.log ast._id
-        p = $(ev.target).closest('p[mu-markup]')
-        within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*'))
-        console.log within
-        target = find-origin(ast, within)
-        console.log target
-        embrace target, $('<p>').append $(ev.target).nextAll!
+  $ '#helper-lines' .click ->
+    $ '#workbench' .toggle-class 'helper-lines'

@@ -45,13 +45,15 @@ class Markup
   insert-markers: (elements) ->
     console.assert elements.length > 0
     max = Math.max 0, ...($ 'mu' .map (i,x) -> x.id)
-    st: $ '<mu>' .attr id: max+1 .add-class 'below' .insert-before elements[0]
+    st: $ '<mu>' .attr id: max+1 .insert-before elements[0]
     ed: $ '<mu>' .attr id: max+2 .insert-after elements[*-1]
 
   adjust-paragraph: (p) ->
     p
       bottom = Math.max ...(..find 'td' .map (i, x) -> x.getBoundingClientRect!bottom)
       ..css margin-bottom: 17 + bottom - ..0.getBoundingClientRect!bottom
+      top = Math.min ...(..find 'td' .map (i, x) -> x.getBoundingClientRect!top)
+      ..css margin-top: 17 + Math.max(0, ..0.getBoundingClientRect!top - top)
 
   #for ops then ..!
   #ops[0]!

@@ -1,4 +1,4 @@
-button#reload {
+button#toggle-menu {
   position: absolute;
   top: 9px;
   right: 9px;
@@ -11,9 +11,6 @@ button#reload {
 table { font-size: inherit; }  /* Webkit default is to override font */
 
 p, p span { display: flex; align-items: baseline; white-space: pre }
-p {
-  outline: 1px solid rgba(0,0,0,.1);
-}
 
 mu { position: relative; }
 mu.above { align-self: flex-start; }
@@ -43,7 +40,6 @@ mu table >*>*> td.brace {
 
 mu table td.caption {
   position: absolute;
-  outline: 1px solid rgba(0,0,0,.1);
   white-space: nowrap;
 }
 
@@ -74,6 +70,19 @@ mu table.above >*>*> td.brace {
 mu table.above >*>*> td.caption {
   bottom: 7px;  /* height of brace cell */
                 /* if spacer is added, this value is overwritten by typesetter */
+}
+
+/* for debugging */
+#workbench.helper-lines p,
+#workbench.helper-lines mu table td.caption {
+  outline: 1px solid rgba(0,0,0,.1);
+}
+
+#debug-data {
+  position: absolute;
+  bottom: 9px;
+  right: 9px;
+  font-size: 12px;
 }
 
 /* Selection */

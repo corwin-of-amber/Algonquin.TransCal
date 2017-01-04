@@ -2,19 +2,33 @@
 
 <script src="node_modules/nwjs-kremlin/reload.js"></script>
 
-<link rel="stylesheet" type="text/css" href="transcal.css">
-
 <%= jquery />
+
+<script src="../../node_modules/jquery-contextmenu/dist/jquery.contextMenu.js"></script>
+<script src="../../node_modules/jquery-contextmenu/dist/jquery.ui.position.min.js"></script>
+<link rel="stylesheet" type="text/css" href="../../node_modules/jquery-contextmenu/dist/jquery.contextMenu.css">
+
+<link rel="stylesheet" type="text/css" href="transcal.css">
 
 <script src="lang/tree.ls.js"></script>
 <script src="pretty.ls.js"></script>
 <script src="transcal.ls.js"></script> 
 
-<button id="reload"></button>
+
+<button id="toggle-menu"></button>
+<menu type="context" id="menu">
+  <command label="Reload"        id="reload">
+  <command label="Helper lines"  id="helper-lines">
+</menu>
+
+<div id="debug-data">
+</div>
 
 <script src="markup.ls.js"></script>
 
-<div id="workbench">
+<div id="workbench" class="helper-lines">
+</div>
+
 <!--
   <p>nodup =</p>
   <dd>
@@ -34,4 +48,3 @@
 <mu-brace from="13" to="14" class="above"><p><span>{<i>x</i>} ‖ elems <i>xs'</i></span></p></mu-brace>
 <mu-brace from="15" to="9" class="above align-right">nodup' {<i>x</i>} <i>xs</i></mu-brace>
 -->
-</div>
