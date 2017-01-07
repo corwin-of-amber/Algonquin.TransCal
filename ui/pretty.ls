@@ -39,10 +39,12 @@ class Notation
   (@pri, @assoc) ->
 
   mkdom: (op) ->
-    if !(op instanceof Node || op instanceof $ || op instanceof Array)
-      cti op
+    if (op instanceof Node || op instanceof $ || op instanceof Array)
+      $(op).clone!
     else if $.isFunction(op)
       op!
+    else
+      cti op
 
   mkop: (op) ->
     $ '<span>' .add-class 'ast-root' .append @mkdom op
@@ -59,6 +61,10 @@ class InfixOperator extends Notation
       * @mkop @op
       * pp.pretty-print right, @pri, (@assoc == 'right' || @assoc == 'both')
     flatten x
+
+  wrap: ($w) ->
+    @op = $w.clone!append @mkdom @op
+    @
 
 class PrefixOperator extends Notation
   (@op, pri) -> super(pri, \right)
@@ -85,15 +91,17 @@ class Brackets extends Notation
 
 
 notations =
-  '≠': new InfixOperator(" ≠ ", 6, \right)
-  ':': new InfixOperator(" : ", 6, \right)
-  '∧': new InfixOperator(" ∧ ", 7, \left)
-  '↦': new InfixOperator(" ↦ ", 8, \right)
-  '/': new InfixOperator(" / ", 9, \right)
-  '∉': new InfixOperator(" ∉ ", 6, \none)
-  '‖': new InfixOperator(" ‖ ", 6, \none)
-  '∪': new InfixOperator(" ∪ ", 6, \left)
-  '¬': new PrefixOperator("¬", 3)
+  ':':   new InfixOperator(" : ", 100, \right)
+  '/':   new InfixOperator(" / ", 100, \right).wrap $('<span>').add-class('slash')
+  '↦':   new InfixOperator(" ↦ ",  99, \right)
+  '∧':   new InfixOperator(" ∧ ",  80, \left)
+  '≠':   new InfixOperator(" ≠ ",  70, \right)
+  '=':   new InfixOperator(" = ",  70, \right)
+  '::':  new InfixOperator(" :: ", 60, \right)
+  '∉':   new InfixOperator(" ∉ ",  70, \none)
+  '‖':   new InfixOperator(" ‖ ",  70, \none)
+  '∪':   new InfixOperator(" ∪ ",  85, \left)
+  '¬':   new PrefixOperator("¬",   75)
   '{.}': new Brackets("{", "}")
 
 aliases =
@@ -128,7 +136,7 @@ class PrettyPrint
       record-types[k] = v
 
 
-  pretty-print: (ast, pri=9, assoc=false) ->
+  pretty-print: (ast, pri=1000, assoc=false) ->
     #console.log ast
     pri_ = void
     span =
@@ -139,10 +147,11 @@ class PrettyPrint
         #if fun.is-leaf! && @coq-options.printing.implicit && (impt = implicit-arguments[dealias fun.root])?
         #  args = [x for x, i in args when i not in impt]
         $ '<span>'
-          if (infix = infix-operators[dealias fun.root])?
-            if $.isFunction(infix) then infix = infix args
-            ..append <| @binop args.0, infix.op, args.1, (pri_ = infix.pri), infix.assoc
-          else if (nota = notations[fun.root])?
+          #if (infix = infix-operators[dealias fun.root])?
+          #  if $.isFunction(infix) then infix = infix args
+          #  ..append <| @binop args.0, infix.op, args.1, (pri_ = infix.pri), infix.assoc
+          if (nota = notations[fun.root])?
+            pri_ = nota.pri
             ..append <| nota.format @, new Tree(fun.root, args)
           else if fun.root == "pair" && args.length == 2
             pri_ = -1
@@ -191,13 +200,14 @@ class PrettyPrint
             ..append @pretty-print args.0.subtrees.1, 9, true
             ..append cti "}"
           else
-            pri_ = 0
+            pri_ = 10
             ..append @pretty-print fun, pri_, true
             for x, i in args
               ..append ($ '<span>' .text ' '   /* ← non-breaking space */
                         .add-class 'ast-root')
               ..append @pretty-print x, pri_, false
       else if (nota = notations[ast.root])?
+        pri_ = nota.pri
         $ '<span>'
           ..append <| nota.format @, ast
       else if ast.root == ":" && ast.subtrees.length > 1
@@ -279,6 +289,8 @@ class PrettyPrint
 
     span
       ..data {ast}
+      if ast.isLeaf!
+        ..add-class 'ast-leaf'
       if pri_? && (pri_ > pri || (pri_ == pri && !assoc))
         ..prepend document.createTextNode "("
         ..append document.createTextNode ")"

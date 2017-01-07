@@ -41,6 +41,7 @@ mu table >*>*> td.brace {
 mu table td.caption {
   position: absolute;
   white-space: nowrap;
+  padding: 0;
 }
 
 mu table td.caption p { margin: 0 }
@@ -70,6 +71,12 @@ mu table.above >*>*> td.brace {
 mu table.above >*>*> td.caption {
   bottom: 7px;  /* height of brace cell */
                 /* if spacer is added, this value is overwritten by typesetter */
+}
+
+/* special notations */
+.slash {
+  position: relative; top: +.1em;
+  font-size: larger;
 }
 
 /* for debugging */

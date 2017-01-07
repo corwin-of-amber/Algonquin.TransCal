@@ -17,7 +17,7 @@ object BasicSignature {
   val l = TV("l")
   
   val _nil = TV("[]")
-  val _cons = TV(":")
+  val _cons = TV("::")
   val _elem = TV("elem")
   val _elems = TI("elems")
 
@@ -49,11 +49,12 @@ object BasicSignature {
       tape"${left}${display(term.subtrees.head)}${right}"
     }
 
-    val precedence: Int = 0
+    val precedence = 0
+    override val arity = 1
   }
   
   import Formula.{M,O}
-  Formula.INFIX ++= M(O("≠", 1), O("‖", 1), O("∈", 1), O("∉", 1), O("∪", 1), O("++", 1)) + ("{.}" -> new Brackets("{", "}"))
+  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5)) + ("{.}" -> new Brackets("{", "}"))
 }
 
 

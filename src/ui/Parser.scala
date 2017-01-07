@@ -10,6 +10,7 @@ import collection.JavaConversions._
 import scala.util.matching.Regex
 import syntax.Tree
 import syntax.AstSugar._
+import examples.BasicSignature
 
 
   
@@ -18,7 +19,6 @@ object Parser {
   val GRAMMAR = 
 		raw"""P -> | P S
 		      S -> E ;
-          S -> § = E ;
           E -> E100
           E100     -> N: | E99
               N:   -> E99 : E100
@@ -37,13 +37,22 @@ object Parser {
               N≠   -> E70 ≠ E60
           E60      -> N:: | E50
               N::  -> E50 :: E60
-          E50      -> N+ | N- | N‖ | E0
-              N+   -> E50 + E0
-              N-   -> E50 - E0
-              N‖   -> E50 || E0
+          E50      -> N+ | N- | N‖ | E10
+              N+   -> E50 + E10
+              N-   -> E50 - E10
+              N‖   -> E50 || E10
+          E10      -> N@ | E0
+              N@   -> E10 E0
           E0       -> N{} | # | § | ( E100 )
               N{}  -> { E100 }"""
 	
+	val TOKENS = List(raw"\d+".r -> "#",   // numeral
+	                  raw"[?]?[\w']+".r -> "§",   // identifier
+	                  "[(){}+-=≠~<>:]".r -> "",
+	                  raw"\\/|/\\|\|\||->|<->|::".r -> "",
+	                  raw"\s+".r -> null)
+
+		
 	def op(op: Term => Term) = ((l: List[Term]) => op(l(0)))
   def op(op: (Term, Term) => Term) = ((l: List[Term]) => op(l(0), l(1)))
   
@@ -53,18 +62,26 @@ object Parser {
       "N↔︎"   -> op(_ <-> _),
       "N∧"   -> op(_ & _),
       "N∨"   -> op(_ | _),
-      "N¬"   -> op(~_)
+      "N¬"   -> op(~_),
+      "N="   -> op(_ =:= _),
+      "N::"  -> op(BasicSignature.cons _),
+      "N@"   -> op(_ :@ _)
   )
   
 	def main(args: Array[String])
 	{
-		val program = "a -> b <-> ~ c -> d ;";
-		val p = new Parser
-		for (prog <- p(program); t <- prog) println(t toPretty)
+		val program = raw"x /\ y -> 1; 1 -> ?nodup' x y; xs = x :: xs';"
+		
+		val lex = new BabyLexer(TOKENS)
+		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
+		val tokens = lex.tokenize(program)
+		println(tokens)
+		for (prog <- p(tokens); t <- prog) println(t toPretty)
 	}
   
-	class BabyLexer(val patterns: Map[String, Regex])
+	class BabyLexer(val patterns: List[(Regex, String)])
 	{
+	  /*
 		def cat(token: String): String =
 		{
 		  patterns find { case (_, v) => v.unapplySeq(token).nonEmpty } match {
@@ -72,10 +89,31 @@ object Parser {
 		    case _ => token  // individual category
 		  }
 		}
+		*/
 		
 		def tokenize(text: String) = {
-			for (tok <- text.split("\\s+")) yield new Token(cat(tok), tok)
-		} toList
+		  val l = ListBuffer.empty[Token]
+		  var pos = 0
+		  while (pos < text.length) {
+  		  val (newPos, cat, value) = (
+    		  for ((regex, cat) <- patterns) yield {
+    		    val mo = regex.pattern.matcher(text).region(pos, text.length)
+    		    if (mo.lookingAt())
+    		      (mo.end(), cat, mo.group())
+    		    else
+    		      (0, null, null)
+    		  }).maxBy((_._1))
+    		if (newPos <= pos)
+    		  throw new Exception(s"unrecognized token at '${text.substring(pos)}'")
+    		if (cat != null) {
+      		val tag = if (cat == "") value else cat
+      		l.add(new Token(tag, value))
+    		}
+    		pos = newPos
+		  }
+		  l.toList
+			//for (tok <- text.split("\\s+")) yield new Token(cat(tok), tok)
+		} //toList
 	}
 	
 	class Token(tag: String, value: String) extends Word(tag)
@@ -96,7 +134,7 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
   def this() = this(new Grammar(Parser.GRAMMAR), Parser.NOTATIONS)
   
 	def apply(program: String): List[List[Term]] = {
-		val lex = new BabyLexer(Map("#" -> ("\\d+".r), "§" -> ("\\w+".r)))
+		val lex = new BabyLexer(List(raw"\S+".r -> "", raw"\s+".r -> null))
 		val tokens = lex.tokenize(program)
 		apply(tokens)
 	}

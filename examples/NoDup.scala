@@ -21,7 +21,7 @@ object NoDup {
   import semantics.Prelude._
   
   val _nil = TV("[]")
-  val _cons = TV(":")
+  val _cons = TV("::")
   val _elem = TV("elem")
   val _x = TV("x")
   val _xs = TV("xs")
@@ -52,20 +52,31 @@ object NoDup {
     val state0 = State(nodupProg)
     
     // Find matches for source pattern (_ ∧ _) - these are marked as 1⃝
-    val state0_ = locate(state0, AssocRules.rules ++ start, TI(1), None)
+    val state0_ = locate(state0, AssocRules.rules, mkLocator(x, y)(x & y, TI(1)))
 
-    // Generalize  [ {x}, xs ]
+    // Generalize   1⃝  ⇢  nodup' {x} xs
     val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), Some(`_nodup'`), List(x, xs))
     
+    // Let  xs  =  x' : xs'
+    val state1_ = state1 +- (_xs, cons(`x'`, `xs'`))
+    
     // 1⃝  ⇢  x' ∉ {x}  ∧  x ∉ elems xs'  ∧  x' ∉ elems xs'  ∧  nodup xs'
-    val state2 = elaborate(state1, BasicRules.rules ++ NoDupRules1.rules ++ goal1, goal1scheme)
+    val state2 = elaborate(state1_, BasicRules.rules ++ NoDupRules1.rules, mkGoal(x, y, z, w)(x & y & z & w, Some(TI(1))))
     
     // x ∉ elems xs'  ∧  x' ∉ elems xs'  ⇢  ({x} ∪ {x'}) ‖ elems xs'
-    val state2_ = locate(state2, BasicRules.rules ++ anchor2, TI(2), Some(anchor2scheme))
-    val state3 = elaborate(state2_, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal2, goal2scheme)
+    val state2_ = locate(state2, BasicRules.rules, mkLocator()(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`)), TI(2)))
+    val state3 = elaborate(state2_, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules, mkGoal(y, z)(set_disj(y, z), Some(TI(2))))
     
     // 1⃝  ⇢  x' ∉ {x}  ∧  nodup' ({x} ∪ {x'}) xs'
-    val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules ++ goal3, goal3scheme)
+    val state4 = elaborate(state3, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules, 
+        mkLocator_simple(x, y, z, w)(set_disj(set_union(y, z), w) & x, TI(3)) ++
+        mkGoal(x, y)(`_nodup'`:@(x, y), Some(TI(3))))
+
+    // Note: this is equivalent but slower:
+    //val state3_ = locate(state3, BasicRules.rules, mkLocator_simple(x, y, z, w)(set_disj(set_union(y, z), w) & x, TI(3)))
+    //val state4 = elaborate(state3_, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules, 
+    //    mkGoal(x, y)(`_nodup'`:@(x, y), Some(TI(3))))
+
     dump(state4)
     
     // Derive nodup' -- this part should be more automatic
@@ -156,7 +167,10 @@ object NoDup {
   }
   //val goal4scheme = { import BasicSignature._; new Scheme.Template(y)(y) }
   
-  class CompiledGoal(val rules: List[CompiledRule], val scheme: Scheme) {
+  class CompiledGoal(val rules: List[CompiledRule], val scheme: Scheme)
+  
+  class CompiledPattern(val rules: List[CompiledRule], val scheme: Option[Scheme], val anchor: Term) {
+    def ++(goal: CompiledGoal) = new CompiledGoal(rules ++ goal.rules, goal.scheme)  // note: omits this.scheme
   }
   
   def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None) = {
@@ -175,9 +189,16 @@ object NoDup {
     // _phmMarker(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
     val rules = Rewrite.compileRules(vars toList, List(pattern =:> (_phMarker(anchor) ||| _phmMarker(anchor :: vars.toList))))
     val tmpl = new Scheme.Template(vars:_*)(pattern)
-    new CompiledGoal(rules, tmpl)
+    new CompiledPattern(rules, Some(tmpl), anchor)
   }
-
+  
+  def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term) = {
+    import Rewrite.RuleOps
+    // _phMarker(anchor) is so that it fits the goal pattern
+    val rules = Rewrite.compileRules(vars toList, List(pattern =:> _phMarker(anchor)))
+    new CompiledPattern(rules, None, anchor)
+  }
+  
   case class State(val program: Term, val focusedSubterm: Map[Int, Term], val elaborate: List[(Term, Term)], val tuples: List[Array[Int]])(implicit val enc: Encoding) {
     def this(program: Term)(implicit enc: Encoding) = this(program, Map.empty, List.empty, enc.toTuples(program))
     
@@ -186,11 +207,13 @@ object NoDup {
     def at(subterms: Map[Int, Term]) = State(program, subterms, elaborate, tuples)
     
     def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_._2.nodes)) map (t => (enc.ntor --> t, t)) toMap
-    def incorporate(term: Term, as: Term) = enc.toTuples(term, as) //Rewrite.recode(enc.toBundle()(term).tuples, trie)
-    
+    def incorporate(term: Term, as: Term) = enc.toTuples(term, as)
+
     def +(el: (Term, Term)) = State(program, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el._2, el._1))
     def ++(els: Iterable[(Term, Term)]) = State(program, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el._2, el._1))))
     def ++(l: Iterable[Array[Int]])(implicit d: DummyImplicit) = State(program, focusedSubterm, elaborate, tuples ++ l)
+    
+    def +-(el: (Term, Term)) = State(program, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
   }
   object State {
     def apply(program: Term)(implicit enc: Encoding) = new State(program)
@@ -248,6 +271,10 @@ object NoDup {
   // low-level state primitives
   // --------------------------
   
+  def locate(s: State, rules: List[CompiledRule], pattern: CompiledPattern): State = {
+    locate(s, rules ++ pattern.rules, pattern.anchor, pattern.scheme)
+  }
+
   def locate(s: State, rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) = {
     // Apply rules to find the pattern
     val work0 = new WorkLoop(s.tuples, rules, directory)
@@ -271,11 +298,11 @@ object NoDup {
         marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map (gm(1) -> _)) toMap;
     }
     
-    val elab = anchorScheme match {
+    val elab = (anchorScheme match {
       case Some(s) =>
         marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
-    }
+    }) filter { case (x, y) => x != y }
     
     for (t <- subterms.values) println("    " + (t toPretty))
 
@@ -305,19 +332,25 @@ object NoDup {
     val work = new WorkLoop(s.tuples, rules, directory)
     work()
     println("-" * 60)
+    val work0 = compaction(work)
     
     // Reconstruct and generalize
     val gen =
-      for (gm <- work.matches(_phMarker.leaf);
-           t <- new Reconstruct(gm(1), work.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
+      for (gm <- work0.matches(_phMarker.leaf);
+           t <- new Reconstruct(gm(1), work0.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
            tg <- generalize(t, leaves, context)) yield {
-        println("    " + t.toPretty)
+        println(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
-        println(s"    as  (${vas mkString " "} ↦ ${tg.toPretty}) ${leaves map (_.toPretty) mkString " "}")
-        tg
+        println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}") // ${leaves map (_.toPretty) mkString " "}")
+        //tg
+        (s.focusedSubterm get gm(1) map ((_, t))) ++
+        (name match {
+           case Some(f) => List((t, f :@ leaves))
+           case None => List((t, (vas ↦: tg) :@ leaves))
+        })
       }
     
-    s ++ (name map ((_, gen.head)))
+    s ++ gen.flatten //(name map ((_, gen.head)))
   }
   
   def elaborate(s: State, rules: List[CompiledRule], goal: CompiledGoal): State = {
@@ -343,7 +376,7 @@ object NoDup {
               new Reconstruct(m(1), nonMatches)(enc).headOption getOrElse TI("?")
           }
         println(s"${original toPretty} --> ${elaborated toPretty}")
-        s + ((original, elaborated)) // TODO
+        s ++ List((original, elaborated))
       case _ => s
     }
   }

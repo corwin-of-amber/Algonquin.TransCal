@@ -38,10 +38,18 @@ configure-selection = (dom) ->
         $ '#debug-data' .text ast._id
     ..mouseleave ->
       $(@).parent!remove-class 'hover'
+      <~ requestAnimationFrame
       $(@).parent!remove-attr 'draggable'
     ..click (ev) ->
       $(@).parent!trigger 'selected', {add: ev.metaKey}
       ev.stopPropagation!
+
+  dom.find '.ast-leaf'
+    ..mouseenter ->
+      $(@).add-class 'hover'
+      if (ast = $(@).data 'ast')?
+        $ '#debug-data' .text ast._id
+    ..mouseleave -> $(@).remove-class 'hover'
 
   dom.find 'span'
     ..on \selected (ev, opts={}) ->
@@ -56,7 +64,6 @@ configure-drag-and-drop = do ->
   dragged = void
   (dom) ->
     dom.find '.ast-root'
-
       ..on \dragover ->
         it.preventDefault!
         $(@).parent!add-class 'drag-hover'
@@ -70,6 +77,21 @@ configure-drag-and-drop = do ->
           ..dataTransfer = ev.originalEvent.dataTransfer
           ..expression = true
         $(@).parent!0.dispatchEvent ev0
+
+    dom.find '.ast-leaf'
+      ..on \dragover ->
+        it.preventDefault!
+        $(@).add-class 'drag-hover'
+      ..on \dragleave ->
+        $(@).remove-class 'drag-hover'
+      ..on \drop (ev) ->
+        $(@).remove-class 'drag-hover'
+        if ! ev.originalEvent.expression
+          ev.stopPropagation!
+          ev0 = new Event 'drop'
+            ..dataTransfer = ev.originalEvent.dataTransfer
+            ..expression = true
+          @.dispatchEvent ev0
 
     dom.find 'span'
       ..on \dragstart (ev) ->
@@ -96,12 +118,15 @@ configure-drag-and-drop = do ->
             embrace drop-target, caption
 
 
-embrace = (target, caption, positioning='below') ->
+embrace = (target, caption, positioning='auto') ->
   target.closest 'p[mu-markup]' .first!
     /**/ console.assert ..length > 0 /**/
     markup = ..data 'markup'
     /**/ console.assert markup? /**/
     {st, ed} = markup.insert-markers target
+
+    if positioning == 'auto'
+      positioning = if st.parent!closest('mu').has-class('above') then 'above' else 'below'
 
     st.add-class positioning
 
@@ -124,13 +149,13 @@ display = (state) ->
 find-origin = (ast, within) ->
   aux = (ast) ->
     root-id = ast._id
-    els = within.filter ((i,x) -> $(x).data('ast')?._id == root-id)
+    els = within.filter ((i,x) -> $(x).data('ast')?._id == root-id) .first!
     if els.length == 0
       els = $([])
       for child in ast.subtrees then els .= add aux child
     els
   fragments = aux ast
-  # now all fragments must belong to the same p[mu-markup].
+  # now we need all fragments to belong to the same p[mu-markup].
   # arbitrarily choose the first
   p = fragments.closest('p[mu-markup]').first!
   if p.length
@@ -149,7 +174,8 @@ $ ->
     $(ev.target).prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
       if ..length > 0 && (ast = ..data('ast'))?
         p = $(ev.target).closest('p[mu-markup]')
-        within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*'))
+        # Look with right-hand sides
+        within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*').addBack!)
         target = find-origin(ast, within)
         positioning = if ev.altKey then 'above'
         embrace target, $('<p>').append($(ev.target).nextAll!), positioning
