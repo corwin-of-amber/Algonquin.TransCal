@@ -52,4 +52,5 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
 
 object Trie {
   implicit class DirectoryEntry(val letterIndex: Int)
+  type Directory = Tree[DirectoryEntry]
 }

@@ -103,8 +103,9 @@ object Rewrite {
         throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
     }
   }
-
-  val _goalMarker = $TI("gem", "marker")
+  
+  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
+    compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
 
   /**
@@ -138,7 +139,7 @@ object Rewrite {
         if (ws add (w toList)) {
           work(w)
         }
-        val gm = goalMatches
+        val gm = matches(RuleBasedTactic.Markers.goal.leaf) // perhaps generalize to other markers?
         val gmAdded = gm drop i
         i = gm.length
         gmAdded
@@ -177,8 +178,6 @@ object Rewrite {
       val heads = headSymbols map (enc.ntor -->)
       trie.words filterNot (heads contains _(0))
     }
-    
-    def goalMatches = matches(_goalMarker.leaf)
     
   }
     

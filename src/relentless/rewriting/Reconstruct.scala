@@ -51,7 +51,7 @@ class Reconstruct private (init: Tree[Int], trie: Trie[Int], indexMapping: Map[I
     } flatten
   }
   
-  def apply(enc: Encoding): Stream[Term] = apply(enc, Set(Rewrite._goalMarker.leaf))
+  def apply(enc: Encoding): Stream[Term] = apply(enc, Set(RuleBasedTactic.Markers.goal.leaf))
   
   def apply(enc: Encoding, except: Set[Identifier]): Stream[Term] = {
     for (t <- apply(except map (enc.ntor -->))) yield decode(t)(enc)

@@ -13,6 +13,10 @@ import java.io.FileWriter
 import relentless.rewriting.Reconstruct
 import relentless.rewriting.Rewrite.WorkLoop
 import report.data.DisplayContainer
+import relentless.rewriting.Revision
+import relentless.rewriting.RuleBasedTactic.Markers
+import relentless.rewriting.RuleBasedTactic
+import java.io.PrintWriter
 
 
 
@@ -20,8 +24,6 @@ object NoDup {
   
   import semantics.Prelude._
   
-  val _nil = TV("[]")
-  val _cons = TV("::")
   val _elem = TV("elem")
   val _x = TV("x")
   val _xs = TV("xs")
@@ -29,14 +31,15 @@ object NoDup {
   val _nodup = TV("nodup")
   val `_nodup'` = TV("nodup'")
   
-  val nodupProg = (_nil ↦ TRUE) /: ((_cons:@(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _nodup:@_xs))
+  import BasicSignature.{_nil, cons}
+  val nodupProg = (_nil ↦ TRUE) /: ((cons(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _nodup:@_xs))
  
   val `_x'` = TV("x'")
   val `_xs'` = TV("xs'")
 
 
   lazy implicit val enc = new Encoding
-  lazy val directory = {
+  lazy implicit val directory = {
     def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
   }
@@ -49,7 +52,7 @@ object NoDup {
     
     println(nodupProg toPretty)
     
-    val state0 = State(nodupProg)
+    val state0 = Revision(nodupProg)
     
     // Find matches for source pattern (_ ∧ _) - these are marked as 1⃝
     val state0_ = locate(state0, AssocRules.rules, mkLocator(x, y)(x & y, TI(1)))
@@ -83,7 +86,7 @@ object NoDup {
     val a = TV("a")
     val `nodup' a x:xs` = `_nodup'`:@(a, cons(`x'`, `xs'`))
     
-    val state10 = State( `nodup' a x:xs` )
+    val state10 = Revision( `nodup' a x:xs` )
     elaborate(state10, BasicRules.rules ++ NoDupRules1.rules ++ NoDupRules2.rules, mkGoal(x, y, z, w)(not_in(x,y) & (`_nodup'`:@(z, w))))
     /*
     val QuantifiedRules = new QuantifiedRules
@@ -105,9 +108,9 @@ object NoDup {
     )
   }
 
-  import Rewrite._goalMarker
-  val _phMarker = $TI("⨀", "marker")
-  val _phmMarker = $TI("⨀⋯", "marker")
+  val _goalMarker = Markers.goal
+  val _phMarker = Markers.placeholder
+  val _phmMarker = Markers.placeholderEx
   
   val start = {
     import Rewrite.RuleOps
@@ -167,11 +170,7 @@ object NoDup {
   }
   //val goal4scheme = { import BasicSignature._; new Scheme.Template(y)(y) }
   
-  class CompiledGoal(val rules: List[CompiledRule], val scheme: Scheme)
-  
-  class CompiledPattern(val rules: List[CompiledRule], val scheme: Option[Scheme], val anchor: Term) {
-    def ++(goal: CompiledGoal) = new CompiledGoal(rules ++ goal.rules, goal.scheme)  // note: omits this.scheme
-  }
+  import RuleBasedTactic.{CompiledGoal, CompiledPattern}
   
   def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None) = {
     import Rewrite.RuleOps
@@ -199,25 +198,6 @@ object NoDup {
     new CompiledPattern(rules, None, anchor)
   }
   
-  case class State(val program: Term, val focusedSubterm: Map[Int, Term], val elaborate: List[(Term, Term)], val tuples: List[Array[Int]])(implicit val enc: Encoding) {
-    def this(program: Term)(implicit enc: Encoding) = this(program, Map.empty, List.empty, enc.toTuples(program))
-    
-    lazy val trie = new Trie[Int](directory) ++= tuples
-    
-    def at(subterms: Map[Int, Term]) = State(program, subterms, elaborate, tuples)
-    
-    def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_._2.nodes)) map (t => (enc.ntor --> t, t)) toMap
-    def incorporate(term: Term, as: Term) = enc.toTuples(term, as)
-
-    def +(el: (Term, Term)) = State(program, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el._2, el._1))
-    def ++(els: Iterable[(Term, Term)]) = State(program, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el._2, el._1))))
-    def ++(l: Iterable[Array[Int]])(implicit d: DummyImplicit) = State(program, focusedSubterm, elaborate, tuples ++ l)
-    
-    def +-(el: (Term, Term)) = State(program, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
-  }
-  object State {
-    def apply(program: Term)(implicit enc: Encoding) = new State(program)
-  }
   
   def compaction(work: WorkLoop): WorkLoop = {
     val trie = work.trie
@@ -252,24 +232,11 @@ object NoDup {
     else work
   }
   
-  def spanning(trie: Trie[Int], init: Iterable[Int], boundary: Iterable[Int]) = {
-    import collection.mutable
-    val ws = mutable.Set.empty ++ boundary
-    val wq = mutable.Queue.empty ++ init
-    Reconstruct.whileYield(wq.nonEmpty) {
-      val u = wq.dequeue
-      if (ws add u) {
-        val incident = 1 until trie.subtries.length flatMap (i => trie.get(i, u).toList flatMap (_.words))
-        for (e <- incident; v <- e drop 1 if !(ws contains v)) wq enqueue v
-        incident
-      }
-      else Seq.empty
-    } flatten
-  }
-  
   // --------------------------
   // low-level state primitives
   // --------------------------
+  
+  type State = Revision
   
   def locate(s: State, rules: List[CompiledRule], pattern: CompiledPattern): State = {
     locate(s, rules ++ pattern.rules, pattern.anchor, pattern.scheme)
@@ -308,7 +275,7 @@ object NoDup {
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = spanning(new Trie[Int](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
+    val tuples = RuleBasedTactic.spanning(new Trie[Int](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
     s ++ marks ++ elab ++ tuples at subterms
   }
   
@@ -345,7 +312,7 @@ object NoDup {
         //tg
         (s.focusedSubterm get gm(1) map ((_, t))) ++
         (name match {
-           case Some(f) => List((t, f :@ leaves))
+           case Some(f) => List((t, f :@ leaves), (f, (vas ↦: tg)))
            case None => List((t, (vas ↦: tg) :@ leaves))
         })
       }
@@ -364,9 +331,9 @@ object NoDup {
     println("-" * 60)
     val work0 = compaction(work)
     
-    showem(work0.goalMatches, work.trie)
+    showem(work0.matches(Markers.goal.leaf), work.trie)
     
-    work0.goalMatches.headOption match {
+    work0.matches(Markers.goal.leaf).headOption match {
       case Some(m) =>
         val elaborated = goalScheme(pickFirst(m, work0.trie).subtrees)
         val original =
@@ -389,10 +356,11 @@ object NoDup {
     for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
     encf.close()
     
-    val tupf = new FileWriter("tuples")
+    val tupf = new PrintWriter(System.out) //new FileWriter("tuples")
     val words = state.tuples sortBy (_(1))
-    for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (enc.ntor <--) mkString "] ["}]\n"); }
-    tupf.close()
+    for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (state.enc.ntor <--) mkString "] ["}]\n"); }
+    //tupf.close()
+    tupf.flush()
     
     val progf = new FileWriter("prog.json")
     val cc = new DisplayContainer
@@ -400,6 +368,14 @@ object NoDup {
         "elaborate" -> (state.elaborate map (el => cc.list(List(el._1, el._2)))))
     progf.write(json.toString)
     progf.close()
+  }
+  
+  def dump(tuples: Seq[Array[Int]])(implicit enc: Encoding) {
+    val tupf = new PrintWriter(System.out) //new FileWriter("tuples")
+    val words = tuples sortBy (_(1))
+    for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (enc.ntor <--) mkString "] ["}]\n"); }
+    //tupf.close()
+    tupf.flush()
   }
   
   import collection.mutable.ListBuffer

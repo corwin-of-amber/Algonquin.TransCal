@@ -16,7 +16,7 @@ object BasicSignature {
   val f = TV("f")
   val l = TV("l")
   
-  val _nil = TV("[]")
+  val _nil = TV("⟨⟩")
   val _cons = TV("::")
   val _elem = TV("elem")
   val _elems = TI("elems")
