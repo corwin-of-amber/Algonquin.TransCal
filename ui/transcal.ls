@@ -198,3 +198,12 @@ $ ->
 
   $ '#helper-lines' .click ->
     $ '#workbench' .toggle-class 'helper-lines'
+
+
+$ ->
+  cm = new CodeMirror $('#editor').0, do
+    line-numbers: true
+  #  content: "text/coq"
+
+  cm.setValue fs.readFileSync '../prog.txt', 'utf-8'
+

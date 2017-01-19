@@ -3,6 +3,7 @@
 <script src="node_modules/nwjs-kremlin/reload.js"></script>
 
 <%= jquery />
+<%= codemirror />
 
 <script src="../../node_modules/jquery-contextmenu/dist/jquery.contextMenu.js"></script>
 <script src="../../node_modules/jquery-contextmenu/dist/jquery.ui.position.min.js"></script>
@@ -26,7 +27,13 @@
 
 <script src="markup.ls.js"></script>
 
-<div id="workbench" class="helper-lines">
+<div id="workspace">
+  <div class="pane" id="editor">
+  </div>
+  <div class="pane" id="workbench">
+    <div id="top" class="container"></div>
+    <div id="script"></div>
+  </div>
 </div>
 
 <!--

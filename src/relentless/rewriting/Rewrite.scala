@@ -174,11 +174,16 @@ object Rewrite {
       }
     }
     
-    def nonMatches(headSymbols: Identifier*) = {
-      val heads = headSymbols map (enc.ntor -->)
-      trie.words filterNot (heads contains _(0))
-    }
+    def nonMatches(headSymbols: Identifier*) = 
+      WorkLoop.nonMatches(trie.words, headSymbols:_*)
     
+  }
+  
+  object WorkLoop {
+    def nonMatches(words: Seq[Array[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
+      val heads = headSymbols map (enc.ntor -->)
+      words filterNot (heads contains _(0))
+    }
   }
     
 }

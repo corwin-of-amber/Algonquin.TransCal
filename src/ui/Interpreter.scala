@@ -13,10 +13,12 @@ import relentless.rewriting.CompiledRule
 import relentless.rewriting.Rewrite
 import relentless.matching.Encoding
 import relentless.rewriting.Revision
+import relentless.rewriting.RevisionDiff
 import relentless.rewriting.Locate
 import examples.BasicSignature
 import relentless.rewriting.Generalize
 import relentless.rewriting.Elaborate
+import relentless.rewriting.Rules
 
 
 
@@ -24,14 +26,13 @@ object Interpreter {
   
   import Parser._
   
-  case class AccumulatedRules(src: List[Scheme.Template], compiled: List[CompiledRule])(implicit enc: Encoding) {
-    def +(ruledef: Scheme.Template) = 
-      AccumulatedRules(src :+ ruledef, compiled ++ Rewrite.compileRule(ruledef))
-  }
-  
-  case class State(prog: Revision, rules: AccumulatedRules)  {
+  case class State(prog: Revision, rules: Rules)  {
     def !< (op: Revision => Revision) = State(op(prog), rules)
-    def !> (op: AccumulatedRules => AccumulatedRules) = State(prog, op(rules))
+    def !> (op: Rules => Rules) = State(prog, op(rules))
+    
+    def +<>+ (op: Revision => (RevisionDiff, Rules)) = op(prog) match {
+      case (p, r) => State(prog ++: p, rules ++ r)
+    }
   }
   
 	def main(args: Array[String])
@@ -46,7 +47,6 @@ object Interpreter {
                        |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; "
 		
 		println(program)
-		println("=" * 60)
 		
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
@@ -56,22 +56,23 @@ object Interpreter {
 		implicit val directory = examples.NoDup.directory
 		
 		val interp = new Interpreter
-		var state = State(Revision(examples.NoDup.nodupProg), AccumulatedRules(List.empty, List.empty))
+		var state = State(Revision(examples.NoDup.nodupProg), Rules.empty)
 		
 		p(tokens).headOption match {
 		  case Some(prog) => for (t <- prog) {
+		    println("-" * 65)
 		    val pat = interp.varify(t)
 		    println(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
 		    for (a <- t.get[DeductionHints]) println(s"  ${a}")
 		    state = interp.interpretDerivation(state, pat)
-		    //examples.NoDup.dump(state.prog)
 		  }
 		  case None => println("oops! parse error")
 		}
 		
-		println("=" * 60)
+		println("=" * 65)
 		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
 		
+		examples.NoDup.dump(state.prog)
 	}
 	
 }
@@ -79,6 +80,9 @@ object Interpreter {
 class Interpreter(implicit val enc: Encoding) {
   
   import Interpreter._
+  
+  val BasicRules = new examples.BasicRules
+  val AssocRules = new examples.AssocRules
   
   def interpretDerivation(s: State, scheme: Scheme.Template) = {
     val t = scheme.template
@@ -88,30 +92,29 @@ class Interpreter(implicit val enc: Encoding) {
       val List(from, to) = t.subtrees
       if (isAnchorName(to)) {
         println("  locate")
-        s !< new Locate((new examples.AssocRules).rules ++ s.rules.compiled,
-                        examples.NoDup.mkLocator(vars map (T(_)):_*)(from, to)).apply
+        s +<>+ new Locate(AssocRules.rules ++ s.rules.compiled,
+                         examples.NoDup.mkLocator(vars map (T(_)):_*)(from, to)).apply
       }
       else {
         if (!isAnchorName(from)) println("  locate &")
         LambdaCalculus.isApp(to) match {
           case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
             println(s"  generalize ${f} ${args}")
-            val ctx = List(BasicSignature.x, BasicSignature.xs)
-            s !< new Generalize((new examples.BasicRules).rules, args, Some(f), ctx).apply
+            //val ctx = Set(BasicSignature.x, BasicSignature.xs)
+            s +<>+ new Generalize(BasicRules.rules, args, Some(f), None).apply
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))
-              s !< new Elaborate((new examples.BasicRules).rules ++ s.rules.compiled,
+              s +<>+ new Elaborate(BasicRules.rules ++ s.rules.compiled,
                                  examples.NoDup.mkGoal(vars map (T(_)):_*)(to, Some(from))).apply
             else {
               val anchor = $TI("!")
               val fromvars = vars filter (from.terminals contains _)
               val tovars = vars filter (to.terminals contains _)
-              s !< new Elaborate((new examples.BasicRules).rules ++ s.rules.compiled, 
+              s +<>+ new Elaborate(BasicRules.rules ++ s.rules.compiled, 
                 examples.NoDup.mkLocator_simple(fromvars map (T(_)):_*)(from, anchor) ++
                 examples.NoDup.mkGoal(tovars map (T(_)):_*)(to, Some(anchor))).apply
             }
-        //s
         }
       }
     }

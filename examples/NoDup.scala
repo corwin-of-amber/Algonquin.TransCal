@@ -356,11 +356,10 @@ object NoDup {
     for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
     encf.close()
     
-    val tupf = new PrintWriter(System.out) //new FileWriter("tuples")
+    val tupf = new FileWriter("tuples")
     val words = state.tuples sortBy (_(1))
     for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (state.enc.ntor <--) mkString "] ["}]\n"); }
-    //tupf.close()
-    tupf.flush()
+    tupf.close()
     
     val progf = new FileWriter("prog.json")
     val cc = new DisplayContainer
