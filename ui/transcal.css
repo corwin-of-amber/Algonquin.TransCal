@@ -13,24 +13,28 @@ body {
 .pane {
   overflow: scroll;
 }
-#editor.pane {
-  min-width: 20%;
-  max-width: 50%;
-  flex-grow: 1;
-}
+
 #editor.pane .CodeMirror {
   height: 100%;
 }
 #editor.pane .CodeMirror .CodeMirror-widget {
   line-height: 12px;  /* because some characters are too tall (due to alternative font glyph rendering) */
 }
+
 #workbench.pane {
   padding: 5px;
-  flex-grow: 1;
-  border-left: 1px solid black;
 }
 
+.gutter { background: rgba(0,0,0,0.05); 
 
+    background-repeat: no-repeat;
+    background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+    background-image:  url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    cursor: ew-resize;
+}
 
 button#toggle-menu {
   position: absolute;

@@ -8,18 +8,18 @@ load = (fn) ->
       .._id = json._id
 
   prog: jsonToTree(json.program)
-  elab: json.elaborate.map (.map jsonToTree)
+  elab: json.elaborate.map (-> it[0 to 1].map(jsonToTree) ++ it[2 to])
 
 
 pp = new PrettyPrint
 
 
 draw = (state) ->
-  pp.pretty-print state.prog .append-to ($ '<p>' .append-to '#workbench')
+  #pp.pretty-print state.prog .append-to ($ '<p>' .append-to '#workbench')
   for el in state.elab
     $ '<p>' .append-to '#workbench'
       pp.pretty-print el.0 .append-to ..
-      $ '<span>' .add-class 'elaborate-into' .text " ⇢ " .append-to ..
+      $ '<span>' .add-class 'elaborate-into' .text " ⇢ " .data 'annotations' el.2 .append-to ..
       pp.pretty-print el.1 .append-to ..
 
 setup-markups = (dom) ->
@@ -166,19 +166,46 @@ find-origin = (ast, within) ->
 
 
 $ ->
+  sizes = localStorage.getItem('split-sizes')
+
+  if sizes
+    sizes = JSON.parse(sizes)
+  else
+    sizes = [50, 50]  # default sizes
+
+  split = Split ['#editor.pane', '#workbench.pane'], do
+    sizes: sizes
+    gutterSize: 5
+    snapOffset: 0
+    elementStyle: (dimension, size, gutterSize) ->
+        'flex-basis': 'calc(' + size + '% - ' + gutterSize + 'px)'
+    gutterStyle: (dimension, gutterSize) ->
+        'flex-basis':  gutterSize + 'px'
+    onDragEnd: ->
+      localStorage.setItem 'split-sizes', JSON.stringify(split.getSizes!);
+
+$ ->
   display load '../prog.json'
 
   $ '#workbench' .click -> $ '.selection' .remove-class 'selection'
 
   $ '#workbench' .on 'click' '.elaborate-into' (ev) ->
+    annot = $(ev.target).data 'annotations'
     $(ev.target).prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
       if ..length > 0 && (ast = ..data('ast'))?
         p = $(ev.target).closest('p[mu-markup]')
         # Look with right-hand sides
         within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*').addBack!)
         target = find-origin(ast, within)
-        positioning = if ev.altKey then 'above'
-        embrace target, $('<p>').append($(ev.target).nextAll!), positioning
+        if target.length > 0
+          positioning = | ev.altKey                =>  'above'
+                        | annot.some (is /above/)  =>  'above'
+                        | annot.some (is /below/)  =>  'below'
+          embrace target, $('<p>').append($(ev.target).nextAll!), positioning
+        else
+          console.warn "original term not found"
+
+  $ '#workbench .elaborate-into' .click!
 
 
 $ ->

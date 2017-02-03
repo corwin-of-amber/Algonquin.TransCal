@@ -1,0 +1,14 @@
+{
+  "name": "transcal",
+  "description": "",
+  "main": "index.html",
+  "authors": [
+    "corwin <corwin.amber@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "dependencies": {
+    "Split.js": "^1.2.0"
+  }
+}
