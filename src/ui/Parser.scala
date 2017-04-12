@@ -12,6 +12,8 @@ import syntax.Tree
 import syntax.AstSugar._
 import examples.BasicSignature
 import scala.reflect.ClassTag
+import java.io.BufferedReader
+import java.io.Reader
 
 
   
@@ -22,8 +24,10 @@ object Parser {
 		      S -> E ;
           S -> E [...] ;
           E -> E100
-          E100     -> N: | E99
+          E100     -> N: | N/ | N↦ | E99
               N:   -> E99 : E100
+              N/   -> E99 / E100
+              N↦   -> E99 ↦ E100
           E99      -> N→ | E95
               N→  -> E95 -> E99
           E95      -> N↔︎ | E85
@@ -54,9 +58,9 @@ object Parser {
               N⟨⟩   -> ⟨ ⟩"""
 	
 	val TOKENS = List(raw"\d+".r -> "#",   // numeral
-	                  raw"[?]?[\w'_]+".r -> "§",   // identifier
+	                  raw"[?]?[\w'_1⃝]+".r -> "§",   // identifier
 	                  raw"\[.*?\]".r -> "[...]",   // hints
-	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩]".r -> "",
+	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩↦]".r -> "",
 	                  raw"\\/|/\\|\|\||->|<->|::".r -> "",
 	                  raw"\s+".r -> null)
 
@@ -73,6 +77,8 @@ object Parser {
       "N∨"   -> op(_ | _),
       "N¬"   -> op(~_),
       "N="   -> op(_ =:= _),
+      "N/"   -> op(_ /: _),
+      "N↦"   -> op(_ ↦ _),
       "N≠"   -> op(BasicSignature.!=:= _),
       "N::"  -> op(BasicSignature.cons _),
       "N‖"   -> op(BasicSignature.set_disj _),
@@ -85,9 +91,33 @@ object Parser {
       "N⟨⟩"   -> op(BasicSignature._nil)
   )
   
+  // -----------
+  // Blocks Part
+  // -----------
+	
+  def getLines(f: BufferedReader): Stream[String] = {
+    val line = f.readLine()
+    if (line == null) Stream.empty else line #:: getLines(f)
+  }
+
+  def splitBlocks(s: Stream[String]): Stream[String] = s match {
+    case Stream.Empty => Stream.empty
+    case firstH #:: rest => rest.span(_.matches(raw"^\S")) match {
+      case (firstT, rest) =>
+        def splitRest = splitBlocks(rest dropWhile (_ == ""))
+        (firstH #:: firstT).mkString #:: splitRest
+    }
+  }
+
+  def getBlocks(f: BufferedReader) = splitBlocks(getLines(f))
+  def getBlocks(f: Reader): Stream[String] = getBlocks(new BufferedReader(f))
+	
+	
+  
 	def main(args: Array[String])
 	{
-		val program = raw"""_ /\ _ -> 1;                1 -> ?nodup' x y;       xs = x :: xs';          1 -> _ /\ _ /\ _ /\ _;
+		val program = raw"""x ↦ y;
+                        _ /\ _ -> 1;                1 -> ?nodup' x y;       xs = x :: xs';          1 -> _ /\ _ /\ _ /\ _;
                         x ∉ _ /\ x' ∉ _ -> _ ‖ _;   (_ ∪ _ ‖ _) /\ _ -> nodup' _ _ ; """
 		
 		val lex = new BabyLexer(TOKENS)
@@ -99,16 +129,6 @@ object Parser {
   
 	class BabyLexer(val patterns: List[(Regex, String)])
 	{
-	  /*
-		def cat(token: String): String =
-		{
-		  patterns find { case (_, v) => v.unapplySeq(token).nonEmpty } match {
-		    case Some((k, _)) => k
-		    case _ => token  // individual category
-		  }
-		}
-		*/
-		
 		def tokenize(text: String) = {
 		  val l = ListBuffer.empty[Token]
 		  var pos = 0
@@ -130,8 +150,7 @@ object Parser {
     		pos = newPos
 		  }
 		  l.toList
-			//for (tok <- text.split("\\s+")) yield new Token(cat(tok), tok)
-		} //toList
+		}
 	}
 	
 	class Token(tag: String, value: String) extends Word(tag)
@@ -143,21 +162,29 @@ object Parser {
 	}
 
   trait Annotation
-  trait Annotated {
-    this : Term =>
+  trait Annotated[X] {
+    this: X =>
     val annot: List[Annotation] = List.empty
     
     def get[A <: Annotation : ClassTag] = annot collect { case a: A => a }
-    def /+(a: Annotation) = _with(annot :+ a)
-    def /++(as: Seq[Annotation]) = _with(annot ++ as)
+    def /+(a: Annotation)(implicit wax: WithAnnotation[X]) = _with(annot :+ a)
+    def /++(as: Seq[Annotation])(implicit wax: WithAnnotation[X]) = _with(annot ++ as)
     
-    private def _with(l: List[Annotation]) =
-      new Term(root, subtrees) with Annotated { override val annot = l }
+    protected def _with(l: List[Annotation])(implicit wax: WithAnnotation[X]) = wax.copyWith(this, l)
   }
+
+  trait WithAnnotation[X] {
+    def copyWith(x: X, l: List[Annotation]): X with Annotated[X]
+  }
+  
+  implicit object WithAnnotationForTerm extends WithAnnotation[Term] {
+    def copyWith(t: Term, l: List[Annotation]) =
+      new Term(t.root, t.subtrees) with Annotated[Term] { override val annot = l }
+  }
+  
   implicit def annotate(t: Term) = t match {
-    case a: Annotated => a
-    case _ =>
-      new Term(t.root, t.subtrees) with Annotated
+    case a: Annotated[Term] @unchecked /* it cannot really be anything else because of this: X in Annotated[X] */ => a
+    case _ => implicitly[WithAnnotation[Term]].copyWith(t, List.empty)
   }
   
   case class DeductionHints(options: List[String]) extends Annotation
@@ -190,13 +217,25 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
     case "P" => t.subtrees flatMap toTerms
     case "S" | "E" | E() => List(collapseAnnotations(t.subtrees flatMap toTerms))
     case "#" => List(TI(Integer.parseInt(t.root.asInstanceOf[Token].text)))
-    case "§" => List(TV(t.root.asInstanceOf[Token].text))
+    case "§" => List(variables(t.root.asInstanceOf[Token].text))
     case "=" | ";" => List()    
     case "[...]" => 
-      List(TV("[...]") /+ DeductionHints(List(t.root.asInstanceOf[Token].text)))
+      List(TV("[...]") /+ DeductionHints(parseOptions(t.root.asInstanceOf[Token].text)))
     case k => 
       List(NOTATIONS(k)(t.subtrees filter (!_.isLeaf) flatMap toTerms toList)) // kind of assumes each subtree only yields one term
   }
+  
+  val BRACKETS = raw"\[(.*)\]".r
+  
+  def parseOptions(s: String) = (s match {
+    case BRACKETS(s) => s
+    case _ => s
+  }).split(raw"\s+").toList
+  
+  def memoize[I, O](f: I => O): collection.mutable.Map[I, O] = new collection.mutable.HashMap[I, O]() {
+    override def apply(key: I) = getOrElseUpdate(key, f(key))
+  }
+  val variables = memoize[String, Term] { case s => TV(s) } /* not thread-safe but Parser is (supposed to be) single-threaded */
   
   def collapseAnnotations(terms: Seq[Term]) = terms match {
     case head :: tail => 

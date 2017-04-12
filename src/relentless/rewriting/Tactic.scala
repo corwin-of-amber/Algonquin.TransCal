@@ -2,7 +2,7 @@ package relentless.rewriting
 
 import syntax.Identifier
 import syntax.Tree
-import syntax.AstSugar.{Term, FormulaDisplay}
+import syntax.AstSugar._
 import syntax.Scheme
 import syntax.Strip
 
@@ -20,34 +20,37 @@ abstract class Tactic {
 }
 
 
-case class Revision(val program: Term, val focusedSubterm: Map[Int, Term], val elaborate: List[(Term, Term)], val tuples: List[Array[Int]])(implicit val enc: Encoding, val directory: Directory) {
+case class Revision(val program: Term, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[Array[Int]])(implicit val enc: Encoding, val directory: Directory) {
   def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Map.empty, List.empty, enc.toTuples(program))
   
   lazy val trie = new Trie[Int](directory) ++= tuples
   
   def at(subterms: Map[Int, Term]) = Revision(program, subterms, elaborate, tuples)
   
-  def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_._2.nodes)) map (t => (enc.ntor --> t, t)) toMap
+  def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_.rhs.nodes)) map (t => (enc.ntor --> t, t)) toMap
   def incorporate(term: Term, as: Term) = enc.toTuples(term, as)
 
-  def +(el: (Term, Term)) = Revision(program, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el._2, el._1))
-  def ++(els: Iterable[(Term, Term)]) = Revision(program, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el._2, el._1))))
+  import Revision._
+  
+  def +(el: Equivalence) = Revision(program, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el.rhs, el.lhs))
+  def ++(els: Iterable[Equivalence]) = Revision(program, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el.rhs, el.lhs))))
   def ++(l: Iterable[Array[Int]])(implicit d: DummyImplicit) = Revision(program, focusedSubterm, elaborate, tuples ++ l)
   
-  def +-(el: (Term, Term)) = Revision(program, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
-  def ++-(els: Iterable[(Term, Term)]) = Revision(program, focusedSubterm, elaborate ++ els, tuples)
+  def +-(el: Equivalence) = Revision(program, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
+  def ++-(els: Iterable[Equivalence]) = Revision(program, focusedSubterm, elaborate ++ els, tuples)
 }
 
 object Revision {
+  case class Equivalence(lhs: Term, rhs: Term)
   def apply(program: Term)(implicit enc: Encoding, directory: Directory) = new Revision(program)
 }
 
 
 case class RevisionDiff(
-    val terms: Option[Map[Int, Term]],   /* corresponds to Revision.at */
-    val elaborate_++  : List[(Term, Term)],  /* corresponds to ++(List[(Term, Term)]) */
-    val elaborate_++- : List[(Term, Term)],  /* corresponds to ++-(List[(Term, Term)]) */
-    val tuples_++     : List[Array[Int]]     /* corresponds to ++(List[Array[Int]]) */
+    val terms: Option[Map[Int, Term]],               /* corresponds to Revision.at */
+    val elaborate_++  : List[Revision.Equivalence],  /* corresponds to ++(List[Equivalence]) */
+    val elaborate_++- : List[Revision.Equivalence],  /* corresponds to ++-(List[Equivalence]) */
+    val tuples_++     : List[Array[Int]]             /* corresponds to ++(List[Array[Int]]) */
     ) {
   
   def ++:(rev: Revision) = {
@@ -107,6 +110,43 @@ object RuleBasedTactic {
   
   class CompiledPattern(val rules: List[CompiledRule], val scheme: Option[Scheme], val anchor: Term) {
     def ++(goal: CompiledGoal) = new CompiledGoal(rules ++ goal.rules, goal.scheme)  // note: omits this.scheme
+  }
+  
+  implicit class ⇢(private val lhs: Term) extends AnyVal {
+    def ⇢(rhs: Term) = Revision.Equivalence(lhs, rhs)
+  }
+  object ⇢ {
+    def unapply(e: Revision.Equivalence) = e match { case Revision.Equivalence(lhs, rhs) => Some((lhs, rhs)) }
+  }
+  
+  /**
+   * Helpers for constructing sets of rules for locating sub-terms and goals.
+   */
+
+  def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None)(implicit enc: Encoding) = {
+    import Rewrite.RuleOps
+    val rules = Rewrite.compileRules(vars toList, List(anchor match {
+      case None => pattern =:> Markers.goal(vars toList)
+      case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
+    }))
+    val tmpl = new Scheme.Template(vars:_*)(pattern)
+    new CompiledGoal(rules, tmpl)
+  }
+  
+  def mkLocator(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
+    import Rewrite.RuleOps
+    // ⨀(anchor) is to mark the matched term as the goal
+    // ⨀⋯(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
+    val rules = Rewrite.compileRules(vars toList, List(pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList))))
+    val tmpl = new Scheme.Template(vars:_*)(pattern)
+    new CompiledPattern(rules, Some(tmpl), anchor)
+  }
+  
+  def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
+    import Rewrite.RuleOps
+    // ⨀(anchor) is to mark the matched term as the goal
+    val rules = Rewrite.compileRules(vars toList, List(pattern =:> Markers.placeholder(anchor)))
+    new CompiledPattern(rules, None, anchor)
   }
   
   /**
@@ -173,7 +213,32 @@ trait Compaction extends RuleBasedTactic {
 }  
 
 
-class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) {
+class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) extends Tactic {
+  
+  import syntax.AstSugar._
+  import RuleBasedTactic.⇢
+  
+  def rules(implicit enc: Encoding) = Rules(equalities ++ derivedFrom(equalities))
+  val elab = equalities map (_.template) collect { case T(`=`, List(lhs, rhs)) => lhs ⇢ rhs }
+  
+  def apply(s: Revision) = (
+      if (incorporate) RevisionDiff(None, elab, List(), List())
+                  else RevisionDiff(None, List(), elab, List()), 
+      rules(s.enc)
+  )
+  
+  object ST { def unapply(s: Scheme.Template) = Some((s.vars, s.template)) }
+  
+  def derivedFrom(equalities: Iterable[Scheme.Template]) = equalities flatMap {
+    case ST(vars, T(`=`, List(lhs, rhs@T(/, _)))) =>
+      rhs split / collect { case T(↦, List(pat, expr)) => (lhs :@ pat) =:= expr } map (new Scheme.Template(vars, _))
+    case _ => List()
+  }
+  
+}
+
+
+class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
   
@@ -206,7 +271,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
       case Some(s) =>
         marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
-    }) filter { case (x, y) => x != y }
+    }) collect { case (x, y) if x != y => x ⇢ y }
     
     for (t <- subterms.values) println("    " + (t toPretty))
 
@@ -242,16 +307,16 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
         println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
 
-        (s.focusedSubterm get gm(1) map ((_, t))) ++
+        (s.focusedSubterm get gm(1) map (_ ⇢ t)) ++
         (name match {
-           case Some(f) => List((t, f :@ leaves), (f, (vas ↦: tg)))
-           case None => List((t, (vas ↦: tg) :@ leaves))
+           case Some(f) => List(t ⇢ (f :@ leaves), f ⇢ (vas ↦: tg))
+           case None => List(t ⇢ ((vas ↦: tg) :@ leaves))
         })
       }
     
     object F { def unapply(t: Term) = LambdaCalculus.isAbs(t) }
     val elab = gen.flatten
-    val rules = elab collect { case (f, F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
+    val rules = elab collect { case (f ⇢ F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
     
     (RevisionDiff(None, elab.toList, List(), List()), Rules(rules.toList))
   }
@@ -308,9 +373,9 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
   def apply(s: Revision) = {
     val work = this.work(s)
 
-    examples.NoDup.showem(work.matches(Markers.goal.leaf), work.trie)
-    
     implicit val enc = s.enc
+    
+    examples.NoDup.showem(work.matches(Markers.goal.leaf), work.trie)
     
     lazy val nonMatches = WorkLoop.nonMatches(s.tuples, Markers.all map (_.leaf):_*)
     
@@ -324,7 +389,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
               new Reconstruct(m(1), nonMatches)(s.enc).headOption getOrElse TI("?")
           }
         println(s"${original toPretty} --> ${elaborated toPretty}")
-        (RevisionDiff(None, List((original, elaborated)), List(), List()), Rules.empty)
+        (RevisionDiff(None, List(original ⇢ elaborated), List(), List()), Rules.empty)
       case _ => (RevisionDiff(None, List(), List(), List()), Rules.empty)
     }
   }

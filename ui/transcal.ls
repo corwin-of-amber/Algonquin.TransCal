@@ -1,14 +1,7 @@
 fs = require 'fs'
 
 load = (fn) ->
-  json = JSON.parse fs.readFileSync fn, 'utf-8'
-
-  jsonToTree = (json) ->
-    new Tree(json.root.literal, json.subtrees.map jsonToTree)
-      .._id = json._id
-
-  prog: jsonToTree(json.program)
-  elab: json.elaborate.map (-> it[0 to 1].map(jsonToTree) ++ it[2 to])
+  TransCal.parse-output fs.readFileSync fn, 'utf-8'
 
 
 pp = new PrettyPrint
@@ -140,11 +133,13 @@ embrace = (target, caption, positioning='auto') ->
     markup.adjust-paragraph ..
 
 display = (state) ->
-  draw state
   $ '#workbench'
+    ..empty!
+    draw state
     setup-markups ..
     configure-selection ..
     configure-drag-and-drop ..
+    ..find '.elaborate-into' .each (i, el) -> elaboration-piece-in $(el)
 
 find-origin = (ast, within) ->
   aux = (ast) ->
@@ -164,6 +159,20 @@ find-origin = (ast, within) ->
   else
     fragments  # fallback
 
+elaboration-piece-in = (el, positioning) ->
+  annot = el.data 'annotations'
+  el.prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
+    if ..length > 0 && (ast = ..data('ast'))?
+      p = el.closest('p[mu-markup]')
+      # Look with right-hand sides
+      within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*').addBack!)
+      target = find-origin(ast, within)
+      if target.length > 0
+        if !positioning
+          positioning = | annot.some (is /above/)  =>  'above'
+                        | annot.some (is /below/)  =>  'below'
+        embrace target, $('<p>').append(el.nextAll!), positioning
+        return true
 
 $ ->
   sizes = localStorage.getItem('split-sizes')
@@ -185,27 +194,18 @@ $ ->
       localStorage.setItem 'split-sizes', JSON.stringify(split.getSizes!);
 
 $ ->
+  TransCal.run fs.readFileSync "../examples/NoDup.tc", "utf-8"
+  .then -> console.log "Done!" ; display it
+
   display load '../prog.json'
 
   $ '#workbench' .click -> $ '.selection' .remove-class 'selection'
 
   $ '#workbench' .on 'click' '.elaborate-into' (ev) ->
-    annot = $(ev.target).data 'annotations'
-    $(ev.target).prevAll!filter ((i,x) -> $(x).data('ast')?) .first!
-      if ..length > 0 && (ast = ..data('ast'))?
-        p = $(ev.target).closest('p[mu-markup]')
-        # Look with right-hand sides
-        within = p.prevAll!find('*').not($('.elaborate-into').prevAll!find('*').addBack!)
-        target = find-origin(ast, within)
-        if target.length > 0
-          positioning = | ev.altKey                =>  'above'
-                        | annot.some (is /above/)  =>  'above'
-                        | annot.some (is /below/)  =>  'below'
-          embrace target, $('<p>').append($(ev.target).nextAll!), positioning
-        else
-          console.warn "original term not found"
+    elaboration-piece-in $(ev.target), ev.altKey && 'above'
+      if !.. then console.warn "original term not found"
 
-  $ '#workbench .elaborate-into' .click!
+  #$ '#workbench .elaborate-into' .click!
 
 
 $ ->
@@ -232,5 +232,5 @@ $ ->
     line-numbers: true
   #  content: "text/coq"
 
-  cm.setValue fs.readFileSync '../prog.txt', 'utf-8'
+  cm.setValue fs.readFileSync '../examples/NoDup.tc', 'utf-8'
 

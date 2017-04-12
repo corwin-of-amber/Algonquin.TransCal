@@ -1,5 +1,8 @@
 package relentless.rewriting
 
+import collection.mutable
+
+import syntax.Tree
 import syntax.Scheme
 import syntax.AstSugar._
 import syntax.Identifier
@@ -7,7 +10,6 @@ import relentless.matching.Bundle
 import relentless.matching.Encoding
 import relentless.matching.Trie
 import relentless.matching.Match
-import syntax.Tree
 
 
 
@@ -17,14 +19,6 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   def this(pattern: Bundle, conclusion: Bundle, parameterIndexes: List[Int])(implicit enc: Encoding) =
     this(pattern.shuffles, conclusion, pattern.minValuationSize, parameterIndexes)
 
-    /*
-  def this(pattern: Bundle, conclusion: Bundle)(implicit enc: Encoding) =
-    this(pattern, conclusion, conclusion match {
-      //case s: Scheme.Arity =>1 to s.arity toList
-      case _ => 1 until pattern.minValuationSize toList  // not the best solution, assumes scheme ignores extraneous args
-    })
-    */
-    
   def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) =
     this(enc.toBundle(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.|||):_*).bare, 
          enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template.split(Rewrite.|||):_*),
@@ -34,7 +28,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     assert(valuation.length >= nHoles)
     
     def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)
-    val newSubterms = collection.mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
+    val newSubterms = mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
         
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     def fresh(wv: Array[Int]) = enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
@@ -47,26 +41,14 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
       }
     }
     
-    //println("--- " + newSubterms)
-    
+    // construct new tuples by replacing holes (negative integers) with valuation elements and fresh terms
     for (w <- conclusion.tuples.reverse) yield {
       val wv = w map { case x if x < 0 => newSubterms.getOrElse(x, x) case x => x }
       if (wv(1) < 0) {
         val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie) getOrElse fresh(wv)
         newSubterms += wv(1) -> wv1
         wv(1) = wv1
-      }/*
-      else {
-        // this is an experiment
-        if (wv(0) != (enc.ntor --> Rewrite._goalMarker.leaf)) {
-        val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie)
-        wv1 foreach { j =>
-          if (j != wv(1)) println(s"${enc.ntor <-- j} ~ ${enc.ntor <-- wv(1)}")
-        }
-        }
-      }*/
-      //println(s"[ ${w mkString " "} -->")
-      //println(s"  ${wv mkString " "} ]")
+      }
       wv
     }
   }
@@ -114,6 +96,7 @@ object Rewrite {
   class WorkLoop(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) {
     
     import collection.mutable
+    import WorkLoop._
     
     def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
       this(init, compiledRules, new Trie[Int](directory))
@@ -162,6 +145,7 @@ object Rewrite {
         for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
           //println(s"valuation = ${valuation mkString " "}")
           val add = rule.conclude(valuation, trie)
+          trace(rule, valuation, add)
           wq.enqueue (add:_*)
         }
       }
@@ -176,13 +160,25 @@ object Rewrite {
     
     def nonMatches(headSymbols: Identifier*) = 
       WorkLoop.nonMatches(trie.words, headSymbols:_*)
-    
+   
   }
   
   object WorkLoop {
     def nonMatches(words: Seq[Array[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
       val heads = headSymbols map (enc.ntor -->)
       words filterNot (heads contains _(0))
+    }
+    
+    /**
+     * Used for misc debugging
+     */
+    object trace {
+      def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[Array[Int]]) {
+        for (w <- conclusion)
+          productions += w.toList -> (rule, valuation)
+      }
+      
+      val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
     }
   }
     

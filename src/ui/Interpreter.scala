@@ -1,24 +1,33 @@
 package ui
 
-import ontopt.pen.Grammar
+import java.io.File
+import java.io.FileReader
+import java.io.InputStreamReader
+import java.io.FileWriter
 
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme
 import syntax.Strip
-import semantics.Namespace
 import syntax.transform.TreeSubstitution
+import semantics.Namespace
 import semantics.LambdaCalculus
+import synth.pods.TacticalError
+import report.data.DisplayContainer
+import report.data.SerializationContainer
+
 import relentless.rewriting.CompiledRule
 import relentless.rewriting.Rewrite
 import relentless.matching.Encoding
 import relentless.rewriting.Revision
 import relentless.rewriting.RevisionDiff
 import relentless.rewriting.Locate
-import examples.BasicSignature
+import relentless.rewriting.RuleBasedTactic
 import relentless.rewriting.Generalize
 import relentless.rewriting.Elaborate
 import relentless.rewriting.Rules
+import relentless.rewriting.Let
+import ui.Parser.DeductionHints
 
 
 
@@ -30,61 +39,127 @@ object Interpreter {
     def !< (op: Revision => Revision) = State(op(prog), rules)
     def !> (op: Rules => Rules) = State(prog, op(rules))
     
-    def +<>+ (op: Revision => (RevisionDiff, Rules)) = op(prog) match {
-      case (p, r) => State(prog ++: p, rules ++ r)
+    def +<>+ (op: Revision => (RevisionDiff, Rules))(implicit ann: List[Annotation]) = op(prog) match {
+      case (p, r) => State(prog ++: decorate(p, ann), rules ++ r)
     }
   }
   
+
+	import Revision.Equivalence
+	
+	implicit object WithAnnotationForEquivalence extends WithAnnotation[Revision.Equivalence] {
+	  override def copyWith(e: Equivalence, l: List[Annotation]) =
+	    new Equivalence(e.lhs, e.rhs) with Annotated[Equivalence] { override val annot = l }
+	}
+	
+  implicit def annotate_(e: Equivalence) = e match {
+    case a: Annotated[Equivalence] @unchecked /* it cannot really be anything else because of this: X in Annotated[X] */ => a
+    case _ => implicitly[WithAnnotation[Equivalence]].copyWith(e, List.empty)
+  }
+	
+  def decorate(diff: RevisionDiff, annotations: List[Annotation]) = {
+    def f(el: List[Revision.Equivalence]) = el map (_ /++ annotations) // map { case (x,y) => (x /++ annotations, y) }
+    if (annotations.isEmpty) diff /* optimization */
+    else RevisionDiff(diff.terms, f(diff.elaborate_++), f(diff.elaborate_++-), diff.tuples_++)
+  }  
+	
+	def toJson(rev: Revision)(implicit cc: SerializationContainer) = {
+	  def annots(e: Equivalence) = e.get[DeductionHints] flatMap (_.options)
+  	cc.map("program" -> rev.program,
+        "elaborate" -> (rev.elaborate map (el => cc.list(List(el.lhs, el.rhs, cc.list(annots(el)))))))
+	}
+	
+	def dump(rev: Revision) = {
+    val progf = new FileWriter("prog.json")
+    implicit val cc = new DisplayContainer
+    progf.write(toJson(rev).toString)
+    progf.close()
+  }
+	
+	/* -- scallop is super slow to load? -- *
+  import org.rogach.scallop._
+
+	class CommandLineArgs(args: Array[String]) extends ScallopConf(args) {
+	  val filename = trailArg[String](required=false, default=Some("-"))
+	  
+	  def file() = new File(filename())
+	}
+	*/
+
+  class CommandLineArgs(args: Array[String]) {
+    val filename = () => if (args.length > 0) args(0) else "-"
+    
+    def file() = filename() match { case "-" => new InputStreamReader(System.in) case fn => new FileReader(new File(fn)) }
+  }
+	
+	
 	def main(args: Array[String])
 	{
-		val program = raw"""nodup ⟨⟩ = ⟨⟩
+	  /*nodup ⟨⟩ = true
                        |nodup (?x :: ?xs) = (~(elem ?x ?xs) /\ nodup ?xs)
-                       |_ /\ _ -> 1                             [only assoc]
-                       |1 -> ?nodup' {x} xs
+		val program = raw"""nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
+                       |_ /\ _ -> 1⃝                              [only assoc]
+                       |1⃝ -> ?nodup' {x} xs  [above]
                        |xs = x' :: xs'
-                       |1 -> _ /\ _ /\ _ /\ _
+                       |1⃝ -> _ /\ _ /\ _ /\ _
                        |x ∉ _ /\ x' ∉ _ -> _ ‖ _
-                       |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; "
+                       |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; " */
+		
+		val cmd = new CommandLineArgs(args)
+		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
 		
 		println(program)
 		
 		val lex = new BabyLexer(TOKENS)
-		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
+		val p = new Parser()
 		val tokens = lex.tokenize(program)
+		println(tokens)
 		
-		implicit val enc = examples.NoDup.enc
+		implicit val enc = new Encoding //examples.NoDup.enc
 		implicit val directory = examples.NoDup.directory
 		
 		val interp = new Interpreter
-		var state = State(Revision(examples.NoDup.nodupProg), Rules.empty)
+		var state: State = null
 		
 		p(tokens).headOption match {
 		  case Some(prog) => for (t <- prog) {
 		    println("-" * 65)
-		    val pat = interp.varify(t)
+		    /* First statement has to be an equality, and it sets the focused term */
+		    if (state == null) {
+		      if (t.root != `=`) throw new TacticalError(s"Must start with an equality; found ${t.toPretty}")
+		      state = State(Revision(t.subtrees(0)), Rules.empty)
+		    }
+		    /* Apply tactic */
+		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) }) // causes leaf nodes with the same identifier to become aliased
+		    val patv = interp.varify(t)
+		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
 		    println(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
 		    for (a <- t.get[DeductionHints]) println(s"  ${a}")
-		    state = interp.interpretDerivation(state, pat)
+		    implicit val ann = t.get[Annotation]
+		    implicit val dh = t.get[DeductionHints]
+		    state = state +<>+ interp.interpretDerivation(state, pat).apply
 		  }
 		  case None => println("oops! parse error")
 		}
 		
 		println("=" * 65)
 		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
+		for (e <- state.prog.elaborate) println(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
 		
-		examples.NoDup.dump(state.prog)
+		dump(state.prog)
 	}
-	
+
 }
 	
 class Interpreter(implicit val enc: Encoding) {
   
   import Interpreter._
+  import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
   
   val BasicRules = new examples.BasicRules
   val AssocRules = new examples.AssocRules
   
-  def interpretDerivation(s: State, scheme: Scheme.Template) = {
+  def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]) = {
     val t = scheme.template
     val vars = scheme.vars
     if (t.root == ->.root) {
@@ -92,43 +167,45 @@ class Interpreter(implicit val enc: Encoding) {
       val List(from, to) = t.subtrees
       if (isAnchorName(to)) {
         println("  locate")
-        s +<>+ new Locate(AssocRules.rules ++ s.rules.compiled,
-                         examples.NoDup.mkLocator(vars map (T(_)):_*)(from, to)).apply
+        new Locate(AssocRules.rules ++ s.rules.compiled,
+                   mkLocator(vars map (T(_)):_*)(from, to))
       }
       else {
         if (!isAnchorName(from)) println("  locate &")
         LambdaCalculus.isApp(to) match {
           case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
             println(s"  generalize ${f} ${args}")
-            //val ctx = Set(BasicSignature.x, BasicSignature.xs)
-            s +<>+ new Generalize(BasicRules.rules, args, Some(f), None).apply
+            new Generalize(BasicRules.rules, args, Some(f), None)
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))
-              s +<>+ new Elaborate(BasicRules.rules ++ s.rules.compiled,
-                                 examples.NoDup.mkGoal(vars map (T(_)):_*)(to, Some(from))).apply
+              new Elaborate(BasicRules.rules ++ s.rules.compiled,
+                            mkGoal(vars map (T(_)):_*)(to, Some(from)))
             else {
               val anchor = $TI("!")
               val fromvars = vars filter (from.terminals contains _)
               val tovars = vars filter (to.terminals contains _)
-              s +<>+ new Elaborate(BasicRules.rules ++ s.rules.compiled, 
-                examples.NoDup.mkLocator_simple(fromvars map (T(_)):_*)(from, anchor) ++
-                examples.NoDup.mkGoal(tovars map (T(_)):_*)(to, Some(anchor))).apply
+              new Elaborate(BasicRules.rules ++ s.rules.compiled, 
+                mkLocator_simple(fromvars map (T(_)):_*)(from, anchor) ++
+                mkGoal(tovars map (T(_)):_*)(to, Some(anchor)))
             }
         }
       }
     }
     else if (t.root == `=`) {
       println("  let")
-      s !> (_ + scheme)
+      new Let(List(scheme), incorporate = hints exists (_.options contains "++"))
     }
     else {
       println(s"  unknown root '${t.root}'")
-      s
+      new Let(List.empty) /* noop */
     }
   }
   
-  def isAnchorName(t: Term) = t.isLeaf && t.leaf.literal.isInstanceOf[Int]
+  def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
+    case _: Int => true //.isInstanceOf[Int]
+    case s: String => s.contains("⃝")
+  })
   
   val PATVAR_RE = raw"\?(.*)".r
   
@@ -137,6 +214,7 @@ class Interpreter(implicit val enc: Encoding) {
     def varify0(t: Term): Scheme.Template = t.root.literal match {
       case PATVAR_RE(lit) => val v = T(new Identifier(lit, t.root.kind, t.root.ns)); new Scheme.Template(List(v.leaf), v)
       case "_" => val v = $TV(`ⓧ`); new Scheme.Template(List(v.leaf), v)
+      case _ if t.isLeaf => new Scheme.Template(List(), t)
       case _ => 
         val s = t.subtrees map varify0
         new Scheme.Template(removeDups(s flatMap (_.vars)), T(t.root, s map (_.template)))

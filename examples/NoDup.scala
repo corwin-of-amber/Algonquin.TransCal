@@ -44,9 +44,11 @@ object NoDup {
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
   }
 
-
+  import RuleBasedTactic.{⇢, CompiledGoal, CompiledPattern, mkGoal, mkLocator, mkLocator_simple}
+  
   def main(args: Array[String]) {
-    import BasicSignature._ 
+    import BasicSignature._
+
     val BasicRules = new BasicRules
     val AssocRules = new AssocRules
     
@@ -61,7 +63,7 @@ object NoDup {
     val state1 = generalize(state0_, BasicRules.rules, List(`{}`(x), xs), Some(`_nodup'`), List(x, xs))
     
     // Let  xs  =  x' : xs'
-    val state1_ = state1 +- (_xs, cons(`x'`, `xs'`))
+    val state1_ = state1 +- (_xs ⇢ cons(`x'`, `xs'`))
     
     // 1⃝  ⇢  x' ∉ {x}  ∧  x ∉ elems xs'  ∧  x' ∉ elems xs'  ∧  nodup xs'
     val state2 = elaborate(state1_, BasicRules.rules ++ NoDupRules1.rules, mkGoal(x, y, z, w)(x & y & z & w, Some(TI(1))))
@@ -170,35 +172,6 @@ object NoDup {
   }
   //val goal4scheme = { import BasicSignature._; new Scheme.Template(y)(y) }
   
-  import RuleBasedTactic.{CompiledGoal, CompiledPattern}
-  
-  def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None) = {
-    import Rewrite.RuleOps
-    val rules = Rewrite.compileRules(vars toList, List(anchor match {
-      case None => pattern =:> _goalMarker(vars toList)
-      case Some(anchor) => (_phMarker(anchor) ||| pattern) =:> _goalMarker(vars toList)
-    }))
-    val tmpl = new Scheme.Template(vars:_*)(pattern)
-    new CompiledGoal(rules, tmpl)
-  }
-  
-  def mkLocator(vars: Term*)(pattern: Term, anchor: Term) = {
-    import Rewrite.RuleOps
-    // _phMarker(anchor) is so that it fits the goal pattern
-    // _phmMarker(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
-    val rules = Rewrite.compileRules(vars toList, List(pattern =:> (_phMarker(anchor) ||| _phmMarker(anchor :: vars.toList))))
-    val tmpl = new Scheme.Template(vars:_*)(pattern)
-    new CompiledPattern(rules, Some(tmpl), anchor)
-  }
-  
-  def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term) = {
-    import Rewrite.RuleOps
-    // _phMarker(anchor) is so that it fits the goal pattern
-    val rules = Rewrite.compileRules(vars toList, List(pattern =:> _phMarker(anchor)))
-    new CompiledPattern(rules, None, anchor)
-  }
-  
-  
   def compaction(work: WorkLoop): WorkLoop = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
@@ -269,7 +242,7 @@ object NoDup {
       case Some(s) =>
         marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
-    }) filter { case (x, y) => x != y }
+    }) collect { case (x, y) if x != y => (x ⇢ y) }
     
     for (t <- subterms.values) println("    " + (t toPretty))
 
@@ -310,10 +283,10 @@ object NoDup {
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
         println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}") // ${leaves map (_.toPretty) mkString " "}")
         //tg
-        (s.focusedSubterm get gm(1) map ((_, t))) ++
+        (s.focusedSubterm get gm(1) map (_ ⇢ t)) ++
         (name match {
-           case Some(f) => List((t, f :@ leaves), (f, (vas ↦: tg)))
-           case None => List((t, (vas ↦: tg) :@ leaves))
+           case Some(f) => List(t ⇢ (f :@ leaves), f ⇢ (vas ↦: tg))
+           case None => List(t ⇢ ((vas ↦: tg) :@ leaves))
         })
       }
     
@@ -343,7 +316,7 @@ object NoDup {
               new Reconstruct(m(1), nonMatches)(enc).headOption getOrElse TI("?")
           }
         println(s"${original toPretty} --> ${elaborated toPretty}")
-        s ++ List((original, elaborated))
+        s ++ List(original ⇢ elaborated)
       case _ => s
     }
   }
@@ -364,7 +337,7 @@ object NoDup {
     val progf = new FileWriter("prog.json")
     val cc = new DisplayContainer
     val json = cc.map("program" -> state.program,
-        "elaborate" -> (state.elaborate map (el => cc.list(List(el._1, el._2)))))
+        "elaborate" -> (state.elaborate map (el => cc.list(List(el.lhs, el.rhs)))))
     progf.write(json.toString)
     progf.close()
   }
@@ -393,7 +366,7 @@ object NoDup {
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
 
 
-  def showem(matches: Seq[Array[Int]], trie: Trie[Int]) {
+  def showem(matches: Seq[Array[Int]], trie: Trie[Int])(implicit enc: Encoding) {
     for (gm <- matches) {
       println(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
       for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc).toList), B))
