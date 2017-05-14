@@ -367,9 +367,10 @@ object NoDup {
 
 
   def showem(matches: Seq[Array[Int]], trie: Trie[Int])(implicit enc: Encoding) {
+    val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       println(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
-      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc).toList), B))
+      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc, except).toList), B))
         println("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }

@@ -28,11 +28,11 @@ class Reconstruct private (init: Tree[Int], trie: Trie[Int], indexMapping: Map[I
   
   def ++(mapping: Map[Int, Term]) = new Reconstruct(init, trie, indexMapping ++ mapping)
   
-  case class Entry(val t: Tree[Int]) {
+  case class Entry(val t: Tree[Int], val visited: Set[Int]) {
     val pri = -t.size
   }
       
-  val pq = new mutable.PriorityQueue[Entry]()(Ordering.by(_.pri)) += Entry(init)
+  val pq = new mutable.PriorityQueue[Entry]()(Ordering.by(_.pri)) += Entry(init, init.nodes map (_.root) toSet)
   val ws = mutable.Set.empty[Tree[Int]]
 
   def apply(except: Set[Int] = Set.empty) = {
@@ -41,33 +41,36 @@ class Reconstruct private (init: Tree[Int], trie: Trie[Int], indexMapping: Map[I
       var expanded = false
       for (leaf <- e.t.leaves if !expanded && !(indexMapping contains leaf.root);
            alt <- trie.get(1, leaf.leaf) map (_.words) getOrElse List()
-           if !(except contains alt(0))) {
+           if !(except contains alt(0)) && !(alt.drop(2) exists (e.visited contains _))) {
+           //!(alt.drop(2) exists (e.t.nodes map (_.root) contains _))) {
+                                        //   ^ ad-hoc filter to prevent cycles caused by id
         val expand = e.t.replaceDescendant((leaf, tupleToTree(alt)))
         expanded = true
         if (ws add expand)
-          pq enqueue Entry(expand)
+          pq enqueue Entry(expand, e.visited ++ alt.drop(2))
       }
       if (expanded) None else Some(e.t)
     } flatten
   }
   
-  def apply(enc: Encoding): Stream[Term] = apply(enc, Set(RuleBasedTactic.Markers.goal.leaf))
+  def apply(enc: Encoding): Stream[Term] = apply(enc, Set.empty) //(RuleBasedTactic.Markers.goal.leaf))
   
   def apply(enc: Encoding, except: Set[Identifier]): Stream[Term] = {
     for (t <- apply(except map (enc.ntor -->))) yield decode(t)(enc)
   }
   
   def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
-    //println(enc.ntor <-- t.root)
+    //println(s"decode ${t} ${enc.ntor <-- t.root}")
     enc.ntor <-- t.root match {
       case r: Identifier =>
         r.kind match {
           case "operator" | "connective" | "quantifier" | "marker" => T(r)(t.subtrees map decode)
           case _ => 
-            if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
+            //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
             T(r):@(t.subtrees map decode)
         }
       case t: Tree[_] => t.asInstanceOf[Term] // hope there are no other trees
+      case _ => T(new Identifier("some error", "marker"))
     }
   }
 }

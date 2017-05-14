@@ -1,0 +1,21 @@
+/* rather basic stream fusion */
+
+filterMap ?p ?f ?l = filter p (map f l)    [++]
+
+map ?f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
+filter ?p = ((⟨⟩ ↦ ⟨⟩) / 
+  (?x :: ?xs ↦ ( (p x => x :: filter p xs) /
+                 (~p x => filter p xs) )))
+
+l = ?x :: ?xs
+->
+p (f x) = ⊤
+
+filter _ _  -> 1
+1 -> _ :: filterMap _ _ _
+[]
+<-
+p (f x) = ⊥
+
+filter _ _ -> 1
+1 -> ?f2 p f xs

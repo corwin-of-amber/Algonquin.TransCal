@@ -20,16 +20,21 @@ import java.io.Reader
 object Parser {
 
   val GRAMMAR = 
-		raw"""P -> | P S
-		      S -> E ;
-          S -> E [...] ;
+		raw"""P -> | P ; S | P ; C | P ;
+		      S -> E
+          S -> E [...]
+          C -> C→ | C← | C□
+              C→   -> -> | →
+              C←  -> <- | ←
+              C□   -> [] | □
           E -> E100
           E100     -> N: | N/ | N↦ | E99
               N:   -> E99 : E100
               N/   -> E99 / E100
               N↦   -> E99 ↦ E100
-          E99      -> N→ | E95
+          E99      -> N→ | N⇒ | E95
               N→  -> E95 -> E99
+              N⇒  -> E95 => E99
           E95      -> N↔︎ | E85
               N↔︎  -> E95 <-> E85
           E85      -> N∨ | E80
@@ -46,22 +51,26 @@ object Parser {
               N‖   -> E70 || E60 | E70 ‖ E60
           E60      -> N:: | E50
               N::  -> E50 :: E60
-          E50      -> N+ | N- | N∪ | E10
+          E50      -> N+ | N- | N∪ | N++ | E10
               N+   -> E50 + E10
               N-   -> E50 - E10
               N∪   -> E50 ∪ E10
+              N++  -> E50 ++ E10
           E10      -> N@ | E0
               N@   -> E10 E0
-          E0       -> N{} | N() | N⟨⟩ | # | §
+          E0       -> N{} | N() | N⟨⟩ | N⊤ | N⊥ | # | §
               N()  -> ( E100 )
               N{}  -> { E100 }
-              N⟨⟩   -> ⟨ ⟩"""
+              N⟨⟩   -> ⟨ ⟩
+              N⊤   -> ⊤
+              N⊥   -> ⊥"""
 	
-	val TOKENS = List(raw"\d+".r -> "#",   // numeral
-	                  raw"[?]?[\w'_1⃝]+".r -> "§",   // identifier
-	                  raw"\[.*?\]".r -> "[...]",   // hints
-	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩↦]".r -> "",
-	                  raw"\\/|/\\|\|\||->|<->|::".r -> "",
+	val TOKENS = List(raw"\d+".r -> "#",              // numeral
+	                  raw"[?]?[\w'_1⃝]+".r -> "§",    // identifier
+	                  raw"\[.+?\]".r -> "[...]",      // hints
+	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
+	                  raw"\\/|/\\|\|\||<-|->|<->|=>|\[\]|::|\+\+".r -> "",
+	                  raw"/\*[\s\S]*?\*/".r -> null,
 	                  raw"\s+".r -> null)
 
 	
@@ -72,6 +81,7 @@ object Parser {
   val NOTATIONS: Map[String, List[Term] => Term] = Map(
       "N:"   -> op(_ :- _),
       "N→"   -> op(_ -> _),
+      "N⇒"   -> op(BasicSignature.`⇒:` _),
       "N↔︎"   -> op(_ <-> _),
       "N∧"   -> op(_ & _),
       "N∨"   -> op(_ | _),
@@ -85,10 +95,18 @@ object Parser {
       "N∈"   -> op(BasicSignature.in _),
       "N∉"   -> op(BasicSignature.not_in _),
       "N∪"   -> op(BasicSignature.set_union _),
+      "N++"  -> op(BasicSignature.++ _),
       "N@"   -> op(_ :@ _),
       "N()"  -> op(x => x),
       "N{}"  -> op(BasicSignature.`{}` _),
-      "N⟨⟩"   -> op(BasicSignature._nil)
+      "N⟨⟩"   -> op(BasicSignature._nil),
+      "N⊤"   -> op(BasicSignature.tt),
+      "N⊥"   -> op(BasicSignature.ff),
+      
+      /* command notations */
+      "C→"   -> op(TI("→")),
+      "C←"  -> op(TI("←")),
+      "C□"   -> op(TI("□"))
   )
   
   // -----------
@@ -102,10 +120,10 @@ object Parser {
 
   def splitBlocks(s: Stream[String]): Stream[String] = s match {
     case Stream.Empty => Stream.empty
-    case firstH #:: rest => rest.span(_.matches(raw"^\S")) match {
+    case firstH #:: rest => rest.span(_.matches(raw"\s.*")) match {
       case (firstT, rest) =>
         def splitRest = splitBlocks(rest dropWhile (_ == ""))
-        (firstH #:: firstT).mkString #:: splitRest
+        (firstH #:: firstT).mkString("\n") #:: splitRest
     }
   }
 
@@ -214,7 +232,8 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
   val E = raw"E\d+".r
  
   def toTerms(t: Tree[Word]): List[Term] = t.root.tag match {
-    case "P" => t.subtrees flatMap toTerms
+    case "P" | "C" => t.subtrees flatMap toTerms
+    //case "C" => List(TI(t.subtrees(0).root.asInstanceOf[Token].text))
     case "S" | "E" | E() => List(collapseAnnotations(t.subtrees flatMap toTerms))
     case "#" => List(TI(Integer.parseInt(t.root.asInstanceOf[Token].text)))
     case "§" => List(variables(t.root.asInstanceOf[Token].text))

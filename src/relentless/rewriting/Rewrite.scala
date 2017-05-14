@@ -19,17 +19,22 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   def this(pattern: Bundle, conclusion: Bundle, parameterIndexes: List[Int])(implicit enc: Encoding) =
     this(pattern.shuffles, conclusion, pattern.minValuationSize, parameterIndexes)
 
-  def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) =
-    this(enc.toBundle(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.|||):_*).bare, 
+  def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) = {
+    this(enc.toBundles(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.||>) map (_.split(Rewrite.|||))).bare, 
          enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template.split(Rewrite.|||):_*),
-         conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
+         conclusion.vars map (v => 1 + (pattern.vars indexOf v))) 
+    import Rewrite.RuleOps
+    of (pattern.template =:> conclusion.template)
+  }
   
   def conclude(valuation: Array[Int], trie: Trie[Int]) = {
     assert(valuation.length >= nHoles)
     
-    def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)
+    def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)  // --- introduces an existential
     val newSubterms = mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
         
+    //if (dbg != null) println(s"[rewrite] conclude from ${dbg.toPretty}  with  ${newSubterms mapValues (enc.ntor <--)}");
+    
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     def fresh(wv: Array[Int]) = enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
@@ -53,6 +58,10 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     }
   }
   
+  /* For debugging and error report */
+  var dbg: Term = null;
+  def of(t: Term) = { dbg = t; this }
+
 }
 
 
@@ -60,13 +69,19 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
 object Rewrite {
   
   val `=>` = I("=>", "operator")  // directional rewrite
-  val ||| = I("|||", "operator")
+  val ||| = I("|||", "operator")  // parallel patterns or conclusions
+  val ||> = I("||>", "operator")
   
   implicit class RuleOps(private val t: Term) extends AnyVal {
     def =:>(s: Term) = T(`=>`)(t, s)
     def |||(s: Term) = T(Rewrite.|||)(t, s)
+    def ||>(s: Term) = T(Rewrite.||>)(t, s)
   }
 
+  import syntax.Formula
+  import syntax.Formula._
+  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5));
+  
   def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
     
     def varsUsed(t: Term) = vars filter t.leaves.contains
@@ -107,7 +122,7 @@ object Rewrite {
     val ws = mutable.Set.empty[List[Int]]
     
     def apply() {
-      while (!wq.isEmpty) {
+      while (!wq.isEmpty && !exceeded) {
         val w = wq.dequeue()
         if (ws add (w toList)) {
           work(w)
@@ -137,6 +152,12 @@ object Rewrite {
       for (r <- compiledRules) processRule(r, w)
       
       //for (g <- goal) processRule(g, w)
+    }
+    
+    def exceeded = {
+      //trie.subtries(1).size > 1000
+      //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
+      (trie.words map (_(1)) toSet).size > 1000
     }
     
     def processRule(rule: CompiledRule, w: Array[Int]) {
@@ -181,6 +202,29 @@ object Rewrite {
       val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
     }
   }
+ 
+  
+  def main(args: Array[String]): Unit = {
+    implicit val enc = new Encoding
+    import examples.BasicSignature._
+    //val r = new CompiledRule(new Scheme.Template(x)(`⇒:`(tt, x)), new Scheme.Template(x)(id(x)))
+    val rules = List(new CompiledRule(new Scheme.Template(x,y)(f:@(y,x)), new Scheme.Template(x,y)(y:@x)),
+        new CompiledRule(new Scheme.Template(x,y)(y:@x), new Scheme.Template(x,y)(tt)),
+        new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x,y)(ff)))
+    for (r <- rules) {
+      for (v <- r.shards) println(v.tuples map (_.mkString(" ")))
+      println
+      println(r.conclusion.tuples map (_.mkString(" ")))
+      println("-" * 60)
+    }
     
+    import java.io.FileWriter
+    val encf = new FileWriter("enc")
+    val pairs = enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
+    for ((k, v) <- pairs) { encf.write(s"${k} ${v}  (${v.getClass().getName()})\n"); }
+    encf.close()
+    
+    
+  }
 }
 

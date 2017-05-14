@@ -1,0 +1,6 @@
+concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]
+
+_ ++ _ ->  1⃝ 
+1⃝ -> ?concat' xs xss
+xs = x' :: xs'
+1⃝ -> _ :: _

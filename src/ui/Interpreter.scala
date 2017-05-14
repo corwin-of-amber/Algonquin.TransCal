@@ -58,9 +58,9 @@ object Interpreter {
   }
 	
   def decorate(diff: RevisionDiff, annotations: List[Annotation]) = {
-    def f(el: List[Revision.Equivalence]) = el map (_ /++ annotations) // map { case (x,y) => (x /++ annotations, y) }
+    def f(el: List[Revision.Equivalence]) = el map (_ /++ annotations)
     if (annotations.isEmpty) diff /* optimization */
-    else RevisionDiff(diff.terms, f(diff.elaborate_++), f(diff.elaborate_++-), diff.tuples_++)
+    else RevisionDiff(diff.terms, diff.env_++, f(diff.elaborate_++), f(diff.elaborate_++-), diff.tuples_++)
   }  
 	
 	def toJson(rev: Revision)(implicit cc: SerializationContainer) = {
@@ -115,11 +115,13 @@ object Interpreter {
 		val tokens = lex.tokenize(program)
 		println(tokens)
 		
-		implicit val enc = new Encoding //examples.NoDup.enc
+		implicit val enc = new Encoding
 		implicit val directory = examples.NoDup.directory
 		
 		val interp = new Interpreter
 		var state: State = null
+		val stack = collection.mutable.Stack.empty[State]
+		val out = collection.mutable.ListBuffer.empty[State]
 		
 		p(tokens).headOption match {
 		  case Some(prog) => for (t <- prog) {
@@ -129,24 +131,31 @@ object Interpreter {
 		      if (t.root != `=`) throw new TacticalError(s"Must start with an equality; found ${t.toPretty}")
 		      state = State(Revision(t.subtrees(0)), Rules.empty)
 		    }
-		    /* Apply tactic */
-		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) }) // causes leaf nodes with the same identifier to become aliased
-		    val patv = interp.varify(t)
-		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
-		    println(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
-		    for (a <- t.get[DeductionHints]) println(s"  ${a}")
-		    implicit val ann = t.get[Annotation]
-		    implicit val dh = t.get[DeductionHints]
-		    state = state +<>+ interp.interpretDerivation(state, pat).apply
+		    if      (t == TI("→")) stack push state
+		    else if (t == TI("←")) state = stack pop
+		    else if (t == TI("□")) out += state
+		    else {
+  		    /* Apply tactic */
+  		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) }) // causes leaf nodes with the same identifier to become aliased
+  		    val patv = interp.varify(t)
+  		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
+  		    println(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
+  		    for (a <- t.get[DeductionHints]) println(s"  ${a}")
+  		    implicit val ann = t.get[Annotation]
+  		    implicit val dh = t.get[DeductionHints]
+  		    state = state +<>+ interp.interpretDerivation(state, pat).apply
+		    }
 		  }
 		  case None => println("oops! parse error")
 		}
 		
-		println("=" * 65)
-		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
-		for (e <- state.prog.elaborate) println(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
-		
-		dump(state.prog)
+		for (state <- out :+ state) {
+  		println("=" * 65)
+  		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
+  		for (e <- state.prog.elaborate) println(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
+  		
+  		dump(state.prog)
+		}
 	}
 
 }
@@ -162,12 +171,15 @@ class Interpreter(implicit val enc: Encoding) {
   def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]) = {
     val t = scheme.template
     val vars = scheme.vars
+    val rules =
+      if (hints contains "only assoc") AssocRules.rules
+      else BasicRules.rules ++ s.rules.compiled
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
       val List(from, to) = t.subtrees
       if (isAnchorName(to)) {
         println("  locate")
-        new Locate(AssocRules.rules ++ s.rules.compiled,
+        new Locate(rules,
                    mkLocator(vars map (T(_)):_*)(from, to))
       }
       else {
@@ -175,17 +187,23 @@ class Interpreter(implicit val enc: Encoding) {
         LambdaCalculus.isApp(to) match {
           case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
             println(s"  generalize ${f} ${args}")
-            new Generalize(BasicRules.rules, args, Some(f), None)
+            if (isAnchorName(from))
+              new Generalize(rules, args, Some(f), None)
+            else {
+              // TODO
+              new Generalize(rules, args, Some(f), None)
+              
+            }
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))
-              new Elaborate(BasicRules.rules ++ s.rules.compiled,
+              new Elaborate(rules,
                             mkGoal(vars map (T(_)):_*)(to, Some(from)))
             else {
-              val anchor = $TI("!")
+              val anchor = $TI("⚓︎")
               val fromvars = vars filter (from.terminals contains _)
               val tovars = vars filter (to.terminals contains _)
-              new Elaborate(BasicRules.rules ++ s.rules.compiled, 
+              new Elaborate(rules, 
                 mkLocator_simple(fromvars map (T(_)):_*)(from, anchor) ++
                 mkGoal(tovars map (T(_)):_*)(to, Some(anchor)))
             }
@@ -197,14 +215,14 @@ class Interpreter(implicit val enc: Encoding) {
       new Let(List(scheme), incorporate = hints exists (_.options contains "++"))
     }
     else {
-      println(s"  unknown root '${t.root}'")
-      new Let(List.empty) /* noop */
+      throw new TacticalError(s"unknown root '${t.root}'")
     }
   }
   
   def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
-    case _: Int => true //.isInstanceOf[Int]
+    case _: Int => true
     case s: String => s.contains("⃝")
+    case _ => false
   })
   
   val PATVAR_RE = raw"\?(.*)".r

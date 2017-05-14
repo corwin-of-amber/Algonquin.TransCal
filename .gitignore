@@ -7,3 +7,8 @@
 .*.swp
 lia.cache
 /bin/
+enc
+tuples
+prog.json
+prog.txt
+.cache-main

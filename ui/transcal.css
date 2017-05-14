@@ -11,7 +11,11 @@ body {
 }
 
 .pane {
-  overflow: scroll;
+  overflow: auto;
+}
+
+#editor.pane {
+  overflow: hidden;
 }
 
 #editor.pane .CodeMirror {

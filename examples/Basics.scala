@@ -8,6 +8,16 @@ import relentless.matching.Encoding
 
 
 object BasicSignature {
+  
+  val `⇒` = I("⇒", "operator")  // used for guarded command, instead of |! that we used in Bellmania
+  def `⇒:`(x: Term, y: Term): Term = T(`⇒`, List(x, y))
+  
+  val tt = TV("⊤")
+  val ff = TV("⊥")
+  
+  val _id = TV("id")
+  def id(x: Term) = _id:@(x)
+  
   val x = TV("x"); val y = TV("y"); val z = TV("z"); val w = TV("w"); val v = TV("v")
   val `x'` = TV("x'")
   val xs = TV("xs"); val `xs'` = TV("xs'")
@@ -54,7 +64,7 @@ object BasicSignature {
   }
   
   import Formula.{M,O}
-  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5)) + ("{.}" -> new Brackets("{", "}"))
+  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
 }
 
 
@@ -76,6 +86,14 @@ class BasicRules(implicit val enc: Encoding) extends Rules
   val vars = List(x, y, z, `x'`, xs, `xs'`)
 
   val rulesSrc = List(
+      (`⇒:`(tt, y)) =:> id(y),
+      (`⇒:`(ff, y)) =:> ff,
+      ~tt =:= ff,
+      ~ff =:= tt,
+      (x /: ff) =:> id(x),
+      (ff /: x) =:> id(x),
+      id(id(x)) =:> id(x),
+      
       (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
       elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
       ~(x =:= y) =:= `!=:=`(x, y),

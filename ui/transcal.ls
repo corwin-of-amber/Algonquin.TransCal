@@ -1,9 +1,5 @@
 fs = require 'fs'
 
-load = (fn) ->
-  TransCal.parse-output fs.readFileSync fn, 'utf-8'
-
-
 pp = new PrettyPrint
 
 
@@ -132,15 +128,6 @@ embrace = (target, caption, positioning='auto') ->
     markup.typeset brace
     markup.adjust-paragraph ..
 
-display = (state) ->
-  $ '#workbench'
-    ..empty!
-    draw state
-    setup-markups ..
-    configure-selection ..
-    configure-drag-and-drop ..
-    ..find '.elaborate-into' .each (i, el) -> elaboration-piece-in $(el)
-
 find-origin = (ast, within) ->
   aux = (ast) ->
     root-id = ast._id
@@ -171,8 +158,21 @@ elaboration-piece-in = (el, positioning) ->
         if !positioning
           positioning = | annot.some (is /above/)  =>  'above'
                         | annot.some (is /below/)  =>  'below'
-        embrace target, $('<p>').append(el.nextAll!), positioning
+        embrace target, $('<p>').append(el.nextAll!clone!), positioning
         return true
+
+display = (state) ->
+  $ '#workbench'
+    ..empty!
+    draw state
+    setup-markups ..
+    configure-selection ..
+    configure-drag-and-drop ..
+    #..find '.elaborate-into' .each (i, el) -> elaboration-piece-in $(el)
+
+load = (fn) ->
+  TransCal.parse-output fs.readFileSync fn, 'utf-8'
+
 
 $ ->
   sizes = localStorage.getItem('split-sizes')
@@ -194,10 +194,7 @@ $ ->
       localStorage.setItem 'split-sizes', JSON.stringify(split.getSizes!);
 
 $ ->
-  TransCal.run fs.readFileSync "../examples/NoDup.tc", "utf-8"
-  .then -> console.log "Done!" ; display it
-
-  display load '../prog.json'
+  display load './prog.json'
 
   $ '#workbench' .click -> $ '.selection' .remove-class 'selection'
 
@@ -232,5 +229,11 @@ $ ->
     line-numbers: true
   #  content: "text/coq"
 
-  cm.setValue fs.readFileSync '../examples/NoDup.tc', 'utf-8'
+  cm.setValue fs.readFileSync '../examples/FilterMap.tc', 'utf-8'
+
+  $(window).keydown (ev) ->
+    if ev.keyCode == 13 && (ev.metaKey || ev.ctrlKey)
+      TransCal.run cm.getValue!
+      .then -> console.log "Done!" ; display it
+
 

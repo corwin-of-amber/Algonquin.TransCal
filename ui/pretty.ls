@@ -14,6 +14,7 @@ cti = (text) -> document.createTextNode text
 
 spaced = -> [cti(" "), it, cti(" ")]
 
+/*
 infix-operators =
   plus:               {op: " + ", pri: 3, assoc: 'left'}
   eq:                 {op: " = ", pri: 4}
@@ -33,7 +34,7 @@ infix-operators =
   orb:  ->            {op: [(cti " "), ($ '<span>' .addClass 'operator bool' .text "||"), (cti " ")], pri: 2}
   In:                 {op: " ⋵ ", pri: 4}
   lookup: ->          {op: [(cti " "), ($ '<span>' .addClass 'operator fmap' .text "?"), (cti " ")], pri: 2}
-
+*/
 
 class Notation
   (@pri, @assoc) ->
@@ -94,6 +95,7 @@ notations =
   ':':   new InfixOperator(" : ", 100, \right)
   '/':   new InfixOperator(" / ", 100, \right).wrap $('<span>').add-class('slash')
   '↦':   new InfixOperator(" ↦ ",  99, \right)
+  '⇒':   new InfixOperator(" ⇒ ",  99, \right)
   '∧':   new InfixOperator(" ∧ ",  80, \left)
   '≠':   new InfixOperator(" ≠ ",  70, \right)
   '=':   new InfixOperator(" = ",  70, \right)
@@ -102,6 +104,7 @@ notations =
   '‖':   new InfixOperator(" ‖ ",  70, \none)
   '∪':   new InfixOperator(" ∪ ",  85, \left)
   '¬':   new PrefixOperator("¬",   75)
+  '++':  new InfixOperator(" ++ ", 50, \left)
   '{.}': new Brackets("{", "}")
 
 aliases =
