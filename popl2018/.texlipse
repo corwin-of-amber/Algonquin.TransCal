@@ -1,0 +1,14 @@
+#TeXlipse project settings
+#Mon Mar 13 12:53:33 EDT 2017
+markTmpDer=true
+builderNum=2
+outputDir=out
+makeIndSty=
+bibrefDir=
+outputFormat=pdf
+tempDir=tmp
+mainTexFile=popl2018.tex
+outputFile=popl2018.pdf
+langSpell=en
+markDer=true
+srcDir=src
