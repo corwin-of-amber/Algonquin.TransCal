@@ -92,12 +92,11 @@ A rephrasing is needed to expose useful structure.
 We lay out the steps informally, and then show two ways in which \TransCal
 tactics can be used to formalize it.
 
-\newcommand\symvar[1]{\mathit{#1}}
-\newcommand\symfun[1]{\mathsf{#1}}
 \newcommand\xs{\symvar{xs}}
 \newcommand\nodups{\symfun{nodups}}
 \newcommand\notElem{\symfun{notElem}}
 \newcommand\elem{\symfun{elem}}
+\newcommand\ys{\symvar{ys}}
 
 \begin{itemize}
 \item
@@ -108,23 +107,65 @@ This is equivalent to $\{x\} \parallel \widehat{\xs}$, where $\parallel$
 denotes set disjointness.
 \item
 Generalize the resulting right-hand side as $\nodups' \, \{x\} \; \xs$,
-  where $\nodups' = a\,\xs \mapsto a\parallel\widehat{\xs} \land \mathrm{nodups}\;\xs$.
+  where $\nodups' = a\,\xs \mapsto a\parallel\widehat{\xs} \land \nodups\;\xs$.
 \item 
 If $xs=[]$, both conjuncts are trivially false.
 Assume therefore $\xs = x' : \xs'$ for some $x'$ and $\xs'$ of the appropriate
 types.
 \item
 $a \parallel \widehat{x':\xs'}$ can be unfolded to
-$\notElem~x'~a \land a \parallel \widehat{\xs'}$.
+$x'\not\in a \land a \parallel \widehat{\xs'}$.
 \item $\nodups~(x':\xs')$ can be unfolded to
 $\notElem~x'~\xs' \land \nodups~\xs'$. The last two unfolds give:
-\[\notElem~x'~a \land a \parallel \widehat{\xs'} \land
+\[x'\not\in a \land a \parallel \widehat{\xs'} \land
   \notElem~x'~\xs' \land \nodups~\xs'\]
-\item $a \parallel \widehat{\xs'} \land
+\item Use associativity and rewrite the two middle conjuncts:
+\[a \parallel \widehat{\xs'} \land
   \notElem~x'~\xs' 
-  ~~\equiv~~
+  \;\;\;{\equiv}\;\;\;
   a \parallel \widehat{\xs'} \land
   \{x'\} \parallel \widehat{\xs'}
-  ~~\equiv~~
-  \big(a \cup \{x'\}\big) \parallel \widehat{xs'}$.
+  \;\;\;{\equiv}\;\;\;
+  \big(a \cup \{x'\}\big) \parallel \widehat{xs'}\]
+The expression becomes
+\[x'\not\in a ~\land~ \big(a \cup \{x'\}\big) \parallel \widehat{xs'}
+  ~\land~ \nodups~\xs'\]
+\item Notice that the last two conjuncts constitute $\nodups'\,(a\cup\{x'\})\;\xs'$.
+  Conclude
+\[\nodups'\,a\;(x'\!{:}\xs') \;\;=\;\; x'\not\in a ~\land~ \nodups'\,(a\cup\{x'\})\;\xs'\]
+which gives a recursive implementation of $\nodups'$.
 \end{itemize}
+
+\bigskip
+Evidently, expressing the refinement steps in English is rather cumbersome.
+Since the transformations are algebraic in nature, a more mathematical
+language would be better.
+As an appetizer, we display the same development in annotated form in
+\Cref{nodups:proof-sketch-1}.
+Braces are used to mark up subterms being rewritten.
+
+\begin{figure}[b]
+\includegraphics[width=0.6\textwidth]{gfx/nodup-1-placeholder}
+\caption{\label{nodups:proof-sketch-1} Development}
+\end{figure}
+
+\begin{table}
+\[\begin{array}{rcl}
+    \elem~x~\lnil       & \dotto &  \bot                   \\
+    \elem~x~(y:\ys)     & \doteq &  x=y \lor \elem~x~\ys   \\
+    \elem~x~\ys         & \doteq &  x \in \widehat{\ys}    \\
+    \notElem~x~\ys      & \doteq &  \lnot \elem~x~\ys      \\
+    x\neq y             & \doteq &  \lnot(x = y)           \\
+    x\not\in y          & \doteq &  \lnot(x \in y)         \\
+    x \in \{y\}         & \doteq &  x = y                  \\
+    x \parallel \{y\}   & \doteq &  y \not\in x            \\
+    x \land (y\land z)  & \doteq &  x\land y\land z        \\
+    \lnot(x\land y)     & \doteq &  \lnot x \lor \lnot y   \\
+    \lnot(x\lor y)      & \doteq &  \lnot x \land \lnot y  \\
+    x\parallel y \land
+    x\parallel z        & \doteq &  x \parallel (y\cup z)  \\
+    x\parallel z \land
+    y\parallel z        & \doteq &  (x\cup y) \parallel z  \\
+  \end{array}\]
+\caption{\label{basic-rules}}
+\end{table}
