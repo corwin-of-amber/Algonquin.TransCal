@@ -6,6 +6,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Bellmaniac"/>
 	<classpathentry kind="lib" path="lib/mongo-java-driver-2.13.1.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/Teaching.Compilers.Earley"/>
+	<classpathentry kind="lib" path="earley.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
