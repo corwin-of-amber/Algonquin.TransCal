@@ -20,7 +20,7 @@ import java.io.Reader
 object Parser {
 
   val GRAMMAR = 
-		raw"""P -> | P ; S | P ; C | P ;
+		raw"""P -> | S | C | P ; S | P ; C | P ;
 		      S -> E
           S -> E [...]
           C -> C→ | C← | C□
@@ -214,6 +214,8 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
 
   import Parser._
   
+  lazy val earley = new EarleyParser(grammar)
+  
   def this() = this(new Grammar(Parser.GRAMMAR), Parser.NOTATIONS)
   
 	def apply(program: String): List[List[Term]] = {
@@ -223,9 +225,13 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
 	}
 
   def apply(tokens: List[Token]) = {
-		val e = new EarleyParser(grammar);
-		e.parseSentence(new SimpleSentence(tokens)).toList map toTree map toTerms
+		earley.parseSentence(new SimpleSentence(tokens)).toList map toTree map toTerms
 	}
+  
+  def error = {
+    val pm = earley.diagnoseError()
+    s"at '${pm.token}': expecting ${pm.expecting mkString " "}"
+  }
   
   def toTree(pt: ontopt.pen.Tree): Tree[Word] = new Tree(pt.root, pt.subtrees map toTree toList)
   

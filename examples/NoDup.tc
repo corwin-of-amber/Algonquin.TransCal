@@ -1,4 +1,5 @@
 nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
+
 _ /\ _ -> 1⃝                              [only assoc]
 1⃝ -> ?nodup' {x} xs  [above]
 xs = x' :: xs'
