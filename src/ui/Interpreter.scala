@@ -123,7 +123,7 @@ object Interpreter {
 		val stack = collection.mutable.Stack.empty[State]
 		val out = collection.mutable.ListBuffer.empty[State]
 		
-		p(tokens).headOption match {
+		singleOption(p(tokens)) match {
 		  case Some(prog) => for (t <- prog) {
 		    println("-" * 65)
 		    /* First statement has to be an equality, and it sets the focused term */
@@ -146,7 +146,8 @@ object Interpreter {
   		    state = state +<>+ interp.interpretDerivation(state, pat).apply
 		    }
 		  }
-		  case None => println("oops! parse error")
+		  case None => 
+		    println(s"oops! parse error; ${p.error}")
 		}
 		
 		for (state <- out :+ state) {
@@ -156,6 +157,13 @@ object Interpreter {
   		
   		dump(state.prog)
 		}
+	}
+	
+	def singleOption[A](l: List[A]): Option[A] = l match {
+	  case x :: xs => 
+	    if (xs.nonEmpty) println(">>> warning: ambiguous parse")
+	    Some(x)
+	  case _ => None
 	}
 
 }
