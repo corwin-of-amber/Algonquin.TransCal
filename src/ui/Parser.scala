@@ -32,9 +32,11 @@ object Parser {
               N:   -> E99 : E100
               N/   -> E99 / E100
               N↦   -> E99 ↦ E100
-          E99      -> N→ | N⇒ | E95
-              N→  -> E95 -> E99
-              N⇒  -> E95 => E99
+          E99      -> N→ | N⇒ | E98
+              N→  -> E98 -> E99
+              N⇒  -> E98 => E99
+          E98      -> N@[] | E95
+              N@[]  -> @ E w/o IL
           E95      -> N↔︎ | E85
               N↔︎  -> E95 <-> E85
           E85      -> N∨ | E80
@@ -63,13 +65,15 @@ object Parser {
               N{}  -> { E100 }
               N⟨⟩   -> ⟨ ⟩
               N⊤   -> ⊤
-              N⊥   -> ⊥"""
+              N⊥   -> ⊥
+          IL      -> § | IL §"""
 	
 	val TOKENS = List(raw"\d+".r -> "#",              // numeral
 	                  raw"[?]?[\w'_1⃝]+".r -> "§",    // identifier
 	                  raw"\[.+?\]".r -> "[...]",      // hints
-	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
+	                  "[@(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
 	                  raw"\\/|/\\|\|\||<-|->|<->|=>|\[\]|::|\+\+".r -> "",
+	                  raw"w/o".r -> "",
 	                  raw"/\*[\s\S]*?\*/".r -> null,
 	                  raw"\s+".r -> null)
 
@@ -102,6 +106,7 @@ object Parser {
       "N⟨⟩"   -> op(BasicSignature._nil),
       "N⊤"   -> op(BasicSignature.tt),
       "N⊥"   -> op(BasicSignature.ff),
+      "N@[]" -> ((l: List[Term]) => TI("@[]")(l)),
       
       /* command notations */
       "C→"   -> op(TI("→")),
@@ -238,7 +243,7 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
   val E = raw"E\d+".r
  
   def toTerms(t: Tree[Word]): List[Term] = t.root.tag match {
-    case "P" | "C" => t.subtrees flatMap toTerms
+    case "P" | "C" | "IL" => t.subtrees flatMap toTerms
     //case "C" => List(TI(t.subtrees(0).root.asInstanceOf[Token].text))
     case "S" | "E" | E() => List(collapseAnnotations(t.subtrees flatMap toTerms))
     case "#" => List(TI(Integer.parseInt(t.root.asInstanceOf[Token].text)))

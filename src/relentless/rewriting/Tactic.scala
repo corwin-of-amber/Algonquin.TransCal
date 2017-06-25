@@ -439,3 +439,59 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
   }
 
 }
+
+
+class UnifyHole(given: Scheme.Template) extends syntax.Unify {
+  override def isVar(x: Tree[Identifier]) = given.vars.contains(x)
+  
+  def matches(t: Term) = {
+    try {
+      makeMgu(given.template, t, List())
+      true
+    } catch  {
+      case ex : syntax.Unify.CannotUnify => false
+    }
+  }
+}
+
+class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
+  
+  import RuleBasedTactic._
+  import syntax.AstSugar.TI
+  val hole = TI("□")
+  def apply(s: Revision) = {
+    val work0 = this.work(s)
+    
+    implicit val enc = s.enc
+    
+    // Reconstruct and generalize
+    val gen =
+      for (gm <- work0.matches(Markers.placeholder.leaf);
+           t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
+           (left, ugly) <- findrec(t) if !ugly.isEmpty) yield {
+        println(s"    ${left.toPretty} ${ugly.map(_.toPretty)}")
+      }
+    
+    (RevisionDiff(None, List(), List(), List(), List()), Rules.empty)
+  }
+  
+  def findrec(t: Term) : Option[(Term, List[Term])] = {
+    if (t.nodes.exists { _ == "nodup" } )
+      println(s"TTTTTT: ${t.toPretty} ${new UnifyHole(given).matches(t)}")
+    if (new UnifyHole(given).matches(t))
+      Some (hole, List(t)) 
+    else if (disallowed.contains(t))
+      None
+    else {
+      val submatches: List[Option[(Term, List[Term])]] = t.subtrees.map(findrec _)
+      if (submatches.contains(None)) {
+        None
+      } else {
+        val lefts = submatches.flatten.map(_._1)
+        val rights = submatches.flatten.map(_._2)
+        Some (new Tree(t.root, lefts), rights.flatten)
+      }
+    }
+  }
+
+}

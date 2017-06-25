@@ -28,6 +28,7 @@ import relentless.rewriting.Elaborate
 import relentless.rewriting.Rules
 import relentless.rewriting.Let
 import ui.Parser.DeductionHints
+import relentless.rewriting.FindRecursion
 
 
 
@@ -202,6 +203,11 @@ class Interpreter(implicit val enc: Encoding) {
               new Generalize(rules, args, Some(f), None)
               
             }
+          case _ if to.root == "@[]" =>
+            assert(isAnchorName(from))
+            println(to)
+            val given::disallowed = t.subtrees
+            new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))
