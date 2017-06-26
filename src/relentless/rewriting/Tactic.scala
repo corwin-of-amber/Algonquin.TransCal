@@ -403,7 +403,6 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
-  import syntax.AstSugar.TI
   
   def this(rules: List[CompiledRule], goal: RuleBasedTactic.CompiledGoal) =
     this(rules ++ goal.rules, goal.scheme)
@@ -444,7 +443,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
 class UnifyHole(given: Scheme.Template) extends syntax.Unify {
   override def isVar(x: Tree[Identifier]) = given.vars.contains(x)
   
-  def matches(t: Term) = {
+  def apply(t: Term) = {
     try {
       makeMgu(given.template, t, List())
       true
@@ -457,28 +456,32 @@ class UnifyHole(given: Scheme.Template) extends syntax.Unify {
 class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
-  import syntax.AstSugar.TI
+
   val hole = TI("□")
+  val matches = new UnifyHole(given)
+  
   def apply(s: Revision) = {
     val work0 = this.work(s)
     
     implicit val enc = s.enc
     
+    println(s"Given ${given.template.toPretty}");
     // Reconstruct and generalize
     val gen =
       for (gm <- work0.matches(Markers.placeholder.leaf);
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
-           (left, ugly) <- findrec(t) if !ugly.isEmpty) yield {
-        println(s"    ${left.toPretty} ${ugly.map(_.toPretty)}")
+           val () = println(s"Matching ${t.toPretty}:");
+           (context, matched) <- findrec(t) if !matched.isEmpty) yield {
+        println(s"    ${context.toPretty} ${matched.map(_.toPretty)}")
       }
     
     (RevisionDiff(None, List(), List(), List(), List()), Rules.empty)
   }
   
   def findrec(t: Term) : Option[(Term, List[Term])] = {
-    if (t.nodes.exists { _ == "nodup" } )
-      println(s"TTTTTT: ${t.toPretty} ${new UnifyHole(given).matches(t)}")
-    if (new UnifyHole(given).matches(t))
+    if (t.nodes.exists { _ == TI("nodup'") } )
+      println(s"(${matches(t)}): ${t.toPretty}")
+    if (matches(t))
       Some (hole, List(t)) 
     else if (disallowed.contains(t))
       None
@@ -487,8 +490,7 @@ class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowe
       if (submatches.contains(None)) {
         None
       } else {
-        val lefts = submatches.flatten.map(_._1)
-        val rights = submatches.flatten.map(_._2)
+        val (lefts, rights) = submatches.flatten.unzip
         Some (new Tree(t.root, lefts), rights.flatten)
       }
     }

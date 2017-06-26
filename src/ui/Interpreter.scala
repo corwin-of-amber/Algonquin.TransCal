@@ -150,12 +150,15 @@ object Interpreter {
 		  case None => 
 		    println(s"oops! parse error; ${p.error}")
 		}
-		
+		println("Finale")
 		for (state <- out :+ state) {
   		println("=" * 65)
+  		println("Templates: (state.rules.src)")
   		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
-  		for (e <- state.prog.elaborate) println(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
-  		
+  		println()
+  		println("Elaborated: (state.prog.elaborate)")
+  		for (e <- state.prog.elaborate) println(s"* ${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
+  		println("State:")
   		dump(state.prog)
 		}
 	}
@@ -206,7 +209,8 @@ class Interpreter(implicit val enc: Encoding) {
           case _ if to.root == "@[]" =>
             assert(isAnchorName(from))
             println(to)
-            val given::disallowed = t.subtrees
+            val given::disallowed = to.subtrees
+            println(s"Given: ${given.toPretty}; Disallowed: ${disallowed.map(_.toPretty)}")
             new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
           case _ => 
             println("  elaborate")
