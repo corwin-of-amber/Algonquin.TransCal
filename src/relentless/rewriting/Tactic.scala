@@ -441,7 +441,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
 
 
 class UnifyHole(given: Scheme.Template) extends syntax.Unify {
-  override def isVar(x: Tree[Identifier]) = given.vars.contains(x)
+  override def isVar(x: Tree[Identifier]) = x.isLeaf && given.vars.contains(x.leaf)
   
   def apply(t: Term) = {
     try {
@@ -458,7 +458,7 @@ class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowe
   import RuleBasedTactic._
 
   val hole = TI("□")
-  val matches = new UnifyHole(given)
+  def matches = new UnifyHole(given)
   
   def apply(s: Revision) = {
     val work0 = this.work(s)
