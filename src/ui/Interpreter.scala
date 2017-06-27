@@ -77,6 +77,21 @@ object Interpreter {
     progf.close()
   }
 	
+	/**
+	 * For deep debugging; dump some internal structures to files.
+	 */
+	def internalDump(rev: Revision) = {
+    val encf = new FileWriter("enc")
+    val pairs = rev.enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
+    for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
+    encf.close()
+    
+    val tupf = new FileWriter("tuples")
+    val words = rev.tuples sortBy (_(1))
+    for (w <- words) { tupf.write(s"${w mkString " "}  [${w map (rev.enc.ntor <--) mkString "] ["}]\n"); }
+    tupf.close()
+	}	  
+	
 	/* -- scallop is super slow to load? -- *
   import org.rogach.scallop._
 
@@ -158,8 +173,8 @@ object Interpreter {
   		println()
   		println("Elaborated: (state.prog.elaborate)")
   		for (e <- state.prog.elaborate) println(s"* ${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
-  		println("State:")
   		dump(state.prog)
+  		internalDump(state.prog)
 		}
 	}
 	
