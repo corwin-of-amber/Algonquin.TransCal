@@ -453,36 +453,36 @@ class UnifyHole(given: Scheme.Template) extends syntax.Unify {
   }
 }
 
-class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
+class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, over: Term, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
 
   val hole = TI("□")
   def matches = new UnifyHole(given)
   
-  def apply(s: Revision) = {
+  def apply(s: Revision): (RevisionDiff, Rules) = {
     val work0 = this.work(s)
     
     implicit val enc = s.enc
     
-    println(s"Given ${given.template.toPretty}");
-    // Reconstruct and generalize
+    println(s"Given ${given.template.toPretty} over ${over.toPretty}");
+    
     val gen =
       for (gm <- work0.matches(Markers.placeholder.leaf);
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
-           val () = println(s"Matching ${t.toPretty}:");
            (context, matched) <- findrec(t) if !matched.isEmpty) yield {
-        println(s"    ${context.toPretty} ${matched.map(_.toPretty)}")
+        println(s"    Context: ${context.toPretty}")
+        println(s"    Matched: ${matched.map(_.toPretty).mkString("\n            ")}\n")
+        val Some(original) = s.focusedSubterm get gm(1)
+        (original ⇢ t)
       }
-    
-    (RevisionDiff(None, List(), List(), List(), List()), Rules.empty)
+    (RevisionDiff(None, List(), List(gen(0)), List(), List()), Rules.empty)
   }
   
   def findrec(t: Term) : Option[(Term, List[Term])] = {
-    if (t.nodes.exists { _ == TI("nodup'") } )
-      println(s"(${matches(t)}): ${t.toPretty}")
-    if (matches(t))
-      Some (hole, List(t)) 
+    if (matches(t)) {
+      Some (hole, List(t))
+    } 
     else if (disallowed.contains(t))
       None
     else {

@@ -224,9 +224,9 @@ class Interpreter(implicit val enc: Encoding) {
           case _ if to.root == "@[]" =>
             assert(isAnchorName(from))
             println(to)
-            val given::disallowed = to.subtrees
+            val over::given::disallowed = to.subtrees
             println(s"Given: ${given.toPretty}; Disallowed: ${disallowed.map(_.toPretty)}")
-            new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
+            new FindRecursion(rules, new Scheme.Template(vars, given), over, disallowed.toSet)
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))
