@@ -317,6 +317,21 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
   
 }
 
+object common {
+    
+  def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {
+    leaves.indexOf(t) match {
+      case -1 => if (context contains t) None else T_?(t.root)(t.subtrees map (generalize(_, leaves, context)))
+      case idx => Some( TI(Strip.greek(idx)) )
+    }
+  }
+  
+  /** Construct Some[Term] only if no subtree is None. Otherwise, None. */
+  def T_?(root: Identifier)(subtrees: List[Option[Term]]) = 
+    if (subtrees exists (_ == None)) None
+    else Some(T(root)(subtrees map (_.get)))
+
+}
 
 class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Term], context: Option[Set[Term]]) extends RuleBasedTactic(rules) with Compaction {
   
@@ -337,7 +352,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
       for (gm <- work0.matches(Markers.placeholder.leaf);
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
            //x <- Some(println(s"[generalize] ${t.toPretty}"));
-           tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
+           tg <- common.generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
         println(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
         println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
@@ -383,19 +398,6 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
       case _ => t.subtrees flatMap patternLeaves
     }
   }
-  
-  def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {
-    //println(s"[generalize] ${t.toPretty}  with context  ${context}")
-
-    leaves.indexOf(t) match {
-      case -1 => if (context contains t) None else T_?(t.root)(t.subtrees map (generalize(_, leaves, context)))
-      case idx => Some( TI(Strip.greek(idx)) )
-    }
-  }
-  
-  /** Construct Some[Term] only if no subtree is None. Otherwise, None. */
-  def T_?(root: Identifier)(subtrees: List[Option[Term]]) = 
-    if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
 
 }
 
@@ -453,32 +455,32 @@ class UnifyHole(given: Scheme.Template) extends syntax.Unify {
   }
 }
 
-class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, over: Term, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
+class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, sink: Term, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
-
-  val hole = TI("□")
-  def matches = new UnifyHole(given)
   
   def apply(s: Revision): (RevisionDiff, Rules) = {
     val work0 = this.work(s)
     
     implicit val enc = s.enc
     
-    println(s"Given ${given.template.toPretty} over ${over.toPretty}");
-    
     val gen =
-      for (gm <- work0.matches(Markers.placeholder.leaf);
-           t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
+      for (Array(_, init, _ @ _*) <- work0.matches(Markers.placeholder.leaf);
+           t <- new Reconstruct(init, work0.nonMatches(Markers.all map (_.leaf):_*))(enc);
+           generalized <- common.generalize(t, List(sink), s.env.vars.toSet);
            (context, matched) <- findrec(t) if !matched.isEmpty) yield {
         println(s"    Context: ${context.toPretty}")
-        println(s"    Matched: ${matched.map(_.toPretty).mkString("\n            ")}\n")
-        val Some(original) = s.focusedSubterm get gm(1)
+        println(s"    Matched: ${matched.map(_.toPretty).mkString("\n            ")}")
+        println(s"    TG: ${generalized.toPretty}\n")
+        val Some(original) = s.focusedSubterm get init
         (original ⇢ t)
       }
     (RevisionDiff(None, List(), List(gen(0)), List(), List()), Rules.empty)
   }
   
+  def matches = new UnifyHole(given)
+  val hole = TI("□")
+
   def findrec(t: Term) : Option[(Term, List[Term])] = {
     if (matches(t)) {
       Some (hole, List(t))
