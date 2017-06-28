@@ -203,26 +203,21 @@ class Interpreter(implicit val enc: Encoding) {
       else BasicRules.rules ++ s.rules.compiled
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
-      val List(from, to) = t.subtrees
-      if (isAnchorName(to)) {
+      val List(from, to) = t.subtrees map parseAnchors
+      if (isAnchor(to)) {
         println("  locate")
         new Locate(rules,
                    mkLocator(vars map (T(_)):_*)(from, to))
       }
       else {
-        if (!isAnchorName(from)) println("  locate &")
+        if (!isAnchor(from)) println("  locate &")
         LambdaCalculus.isApp(to) match {
           case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
             println(s"  generalize ${f} ${args}")
-            if (isAnchorName(from))
-              new Generalize(rules, args, Some(f), None)
-            else {
-              // TODO
-              new Generalize(rules, args, Some(f), None)
-              
-            }
+            assert(isAnchor(from)) // TODO
+            new Generalize(rules, args, Some(f), None)
           case _ if to.root == "@[]" =>
-            assert(isAnchorName(from))
+            assert(isAnchor(from)) // TODO
             val sink::given::disallowed = to.subtrees
             println(s"  ripple: ${given.toPretty}; over ${sink.toPretty} Disallowed: ${disallowed.map(_.toPretty)}")
             new FindRecursion(rules, new Scheme.Template(vars, given), sink, disallowed.toSet)
@@ -251,6 +246,14 @@ class Interpreter(implicit val enc: Encoding) {
     }
   }
   
+  /**
+   * Sets the root's kind to 'anchor' if it's an anchor.
+   */
+  def parseAnchors(t: Term) =
+    if (isAnchorName(t)) T(new Identifier(t.leaf.literal, "anchor", t.leaf.ns)) else t
+  
+  def isAnchor(t: Term) = t.isLeaf && t.leaf.kind == "anchor"
+    
   def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
     case _: Int => true
     case s: String => s.contains("⃝")
@@ -272,7 +275,7 @@ class Interpreter(implicit val enc: Encoding) {
     
     // Rename the ⓧs into readable names
     val proto = varify0(t)
-    val ns = new Namespace
+    val ns = new Uid
     val vars = proto.vars.zipWithIndex map { 
       case (v, i) => (T(v), if (v.literal == `ⓧ`) T(new Identifier(Strip.greek(i), v.kind, ns)) else T(v))
     }

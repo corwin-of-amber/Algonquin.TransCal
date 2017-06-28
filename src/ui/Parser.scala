@@ -69,7 +69,8 @@ object Parser {
           IL      -> § | IL §"""
 	
 	val TOKENS = List(raw"\d+".r -> "#",              // numeral
-	                  raw"[?]?[\w'_1⃝]+".r -> "§",    // identifier
+	                  raw"[?]?[\wα'_]+".r -> "§",     // identifier
+	                  raw"\d⃝".r -> "§",              // anchor name (circled numeral)
 	                  raw"\[.+?\]".r -> "[...]",      // hints
 	                  "[@(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
 	                  raw"\\/|/\\|\|\||<-|->|<->|=>|\[\]|::|\+\+".r -> "",

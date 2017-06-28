@@ -70,7 +70,7 @@ class Encoding {
    */
   def toBundles(holes: Term*)(terms: List[List[Term]]) = {
     val altsq = terms.head.head :: holes.toList ++ 
-      (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n) /* (*) */ /*n.isLeaf*/)))
+      (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n) || (n.isLeaf && n.leaf.kind == "anchor") /* (*) */)))
     val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.head.tail map ((_, ~0))) ++
       (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, ~(altsq.length + i))) })
     new Bundle((terms.flatten flatMap (toTuples(_, alt, holes.length)) toList))// |-- dbg)
