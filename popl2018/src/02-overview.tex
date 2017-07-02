@@ -146,8 +146,15 @@ Braces are used to mark up subterms being rewritten.
 
 \begin{figure}[b]
 \includegraphics[width=0.6\textwidth]{gfx/nodup-1-placeholder}
-\caption{\label{nodups:proof-sketch-1} Development}
+\caption{\label{nodups:proof-sketch-1} Development (this is a placeholder)}
 \end{figure}
+
+The first step to formalizing this development in \TransCal is to have
+some basic theory expressed by rewrite rules.
+Such rules are shown in \Cref{basic-rules}.
+They are not specific to the $\nodups$ example, and indeed can be use
+in various contexts,
+but for compactness, only the rules related to the example were included.
 
 \begin{table}
 \[\begin{array}{rcl}
@@ -169,3 +176,20 @@ Braces are used to mark up subterms being rewritten.
   \end{array}\]
 \caption{\label{basic-rules}}
 \end{table}
+
+The development is a sequence of tactic applications, which involve
+identification of a subterm to rewrite and a goal predicate.
+While pointing directly at a term via a UI is possible,
+\TransCal allows a textual batch interface where the subterm is
+indicated via a pattern, in the hope that it will be more robust
+to changes in the original program.
+When matching a pattern, a subset of the rewrite rules may optionally
+be turned on to allow a less rigid match; e.g. associativity rules are
+turned on by default to allow matching with some of the operands in
+a chained application of an associative operator such as $\land$.
+(If there are several possible rewrites that match the pattern,
+the system employs a heuristic that chooses the shortest resulting term.)
+The located term is then rewritten using all available rules,
+until a revision that fits the goal predicate is found.
+
+-- this is not finished.

@@ -1,0 +1,131 @@
+\section{Functional Description}
+
+This section explains in more detail the structure and operation of \TransCal.
+
+At the core of \TransCal lies the \newterm{relentless rewriting} engine.
+Its purpose is to exhaustively try to rewrite a given ("\newterm{focused}")
+term and produce a stream of equivalent terms.
+Since the number of these terms is exceedingly large, and since the search
+is driven by a goal predicate, the output is not generated as a sequence
+but via a more compact data structure that can represent many different,
+equivalent terms efficiently.
+This structure is a \newterm{program equivalence graph}, commonly used
+for different kinds of compiler optimizations (\cite{}).
+In a PEG, vertices represent equivalent classes of program terms.
+As terms are tree-like, each member of an equivalence class can have
+sub-terms, but these are \emph{also} equivalence classes, since all
+members of an equivalence classes are interchangeable.
+By choosing representatives from equivalence classes, different representation
+of the focused term can be read off of the PEG.
+
+The most important operation on a PEG is finding occurrences of patterns in
+order to match rewrite rules.
+This has to be done in an incremental manner since the PEG changes all the
+time by applications of said rules.
+To this end, the PEG is stored as a graph (in fact, a hypergraph) in a way
+that allows incident edges to be accessed efficiently.
+
+\tikzset{peg vertex/.style={circle, fill, inner sep=0, minimum size=3pt},
+  peg vertex label/.style={font=\fontsize{7}{7}\selectfont},
+  peg edge parent/.style={<-,shorten <=.5pt},
+  peg edge child/.style={shorten >=1.5pt},
+  peg edge label/.style={rectangle, draw, inner xsep=2pt, inner ysep=3pt}}
+
+\begin{figure}[b]
+\begin{tikzpicture}[>=latex]
+
+  % input PEG
+  \node[peg vertex](z) {};
+  \node[peg edge label, below=3mm of z](e3) {$\lnot$};
+  \draw (z) edge[peg edge parent] (e3);
+  \node[peg vertex, below=3mm of e3](a) {};
+  \draw (e3) edge[peg edge child] (a);
+  \node[peg edge label, below=5mm of a, xshift=-7mm](e1) {$=$};
+  \draw (a) edge[peg edge parent] (e1);
+  \node[peg vertex, below=5mm of e1, xshift=-4mm](b) {};
+  \node[peg vertex, below=5mm of e1, xshift=+4mm](c) {};
+  \draw (e1.south) edge[peg edge child, out=-90, in=30] (b);
+  \draw (e1.south) edge[peg edge child, out=-90, in=150] (c);
+  \node[peg vertex label, anchor=north] at (b) {$x$};
+  \node[peg vertex label, anchor=north] at (c) {$y$};
+  \node[peg edge label, below=5mm of a, xshift=+7mm](e2) {$\in$};
+  \draw (a) edge[peg edge parent] (e2);
+  \node[peg vertex, below=5mm of e2, xshift=+2mm](f) {};
+  \draw (e2.south) edge[peg edge child, out=-90, in=20] (b);
+  \draw (e2.south) edge[peg edge child, out=-90, in=140] (f);
+  \node[peg edge label, below=2mm of f, xshift=-5mm, inner ysep=2.2pt] (e3) {\scalebox{0.66}{$\{\cdot\}$}};
+  \draw (f) edge[peg edge parent] (e3);
+  \draw (e3) edge[peg edge child, out=160, in=0] (c);
+  
+  \node[above=2mm of z] {(a)};
+
+  % Rewrite rule
+  \node[peg vertex, right=4cm of z](z) {};
+  \node[peg edge label, below=3mm of z](e3) {$\lnot$};
+  \draw (z) edge[peg edge parent] (e3);
+  \node[peg vertex, below=3mm of e3](a) {};
+  \draw (e3) edge[peg edge child] (a);
+  \node[peg edge label, below=3mm of a](e1) {$\in$};
+  \draw (a) edge[peg edge parent] (e1);
+  \node[peg vertex, below=5mm of e1, xshift=-4mm](b) {};
+  \node[peg vertex, below=5mm of e1, xshift=+4mm](c) {};
+  \draw (e1.south) edge[peg edge child, out=-90, in=30] (b);
+  \draw (e1.south) edge[peg edge child, out=-90, in=150] (c);
+  % -- dashed
+  \node[peg edge label, right=5mm of a, dashed](e2) {$\not\in$};
+  \draw (z) edge[peg edge parent, dashed] (e2.north);
+  \draw (e2.south) edge[peg edge child, dashed, out=-100, in=20] (b);
+  \draw (e2.south) edge[peg edge child, dashed] (c);
+  \node[below=of e1]  {$\lnot(\alpha \in \beta) \dotto \alpha\not\in\beta$};
+  
+  \node[above=2mm of z] {(b)};
+
+  % Outcome
+  \node[peg vertex, right=4cm of z](z) {};
+  \node[peg edge label, below=3mm of z](e3) {$\lnot$};
+  \draw (z) edge[peg edge parent] (e3);
+  \node[peg vertex, below=3mm of e3](a) {};
+  \draw (e3) edge[peg edge child] (a);
+  \node[peg edge label, below=5mm of a, xshift=-7mm](e1) {$=$};
+  \draw (a) edge[peg edge parent] (e1);
+  \node[peg vertex, below=5mm of e1, xshift=-4mm](b) {};
+  \node[peg vertex, below=5mm of e1, xshift=+4mm](c) {};
+  \draw (e1.south) edge[peg edge child, out=-90, in=30] (b);
+  \draw (e1.south) edge[peg edge child, out=-90, in=150] (c);
+  \node[peg vertex label, anchor=north] at (b) {$x$};
+  \node[peg vertex label, anchor=north] at (c) {$y$};
+  \node[peg edge label, below=5mm of a, xshift=+7mm](e2) {$\in$};
+  \draw (a) edge[peg edge parent] (e2);
+  \node[peg vertex, below=5mm of e2, xshift=+2mm](f) {};
+  \draw (e2.south) edge[peg edge child, out=-90, in=20] (b);
+  \draw (e2.south) edge[peg edge child, out=-90, in=140] (f);
+  \node[peg edge label, below=2mm of f, xshift=-5mm, inner ysep=2.2pt] (e4) {\scalebox{0.66}{$\{\cdot\}$}};
+  \draw (f) edge[peg edge parent] (e4);
+  \draw (e4) edge[peg edge child, out=160, in=0] (c);
+  % new part
+  \node[peg edge label, right=5mm of e3](e5) {$\not\in$};
+  \draw (z) edge[peg edge parent] (e5.north);
+  \draw (e5.south) edge[peg edge child, out=-120, in=23] (b);
+  \draw (e5.south) edge[peg edge child, out=-120, in=40] (f);
+  
+  \node[above=2mm of z] {(c)};
+  
+\end{tikzpicture}
+\caption{\label{functional:peg example}
+  A PEG representing (a) the equivalent terms $\lnot(x=y)$ and $\lnot(x\in\{y\})$;
+  (b) the rewrite rule $\lnot(\alpha \in \beta) \dotto \alpha\not\in\beta$;
+  (c) the equivalent terms from before with the addition of $x\not\in\{y\}$.}
+\end{figure}
+
+An example for such a PEG is shown in \Cref{functional:peg example}(a).
+In the diagram, each (sub-)term is represented by a vertex (a black dot),
+and hyper-edges are directed from children to parent, in a data flow-like
+manner.
+Edge labels represent operators or functions applied to the sub-terms.
+The PEG in the figure represents two terms, $\lnot(x=y)$ and $\lnot(x\in\{y\})$.
+Rewrite rules are represented in a similar manner, but comprise of two
+overlapping subgraphs --- one for the premise and one for the conclusion.
+To apply a rule, a subgraph isomorphic to the premise is sought in the
+PEG, and, if found, a copy on the conjecture is \emph{overlayed} on this
+occurrence (\Cref{functional:peg example}(b) and (c);
+dashed edges denote the representation of the rule's conclusion).
