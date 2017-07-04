@@ -132,8 +132,12 @@ object Interpreter {
 		println(tokens)
 		
 		implicit val enc = new Encoding
-		implicit val directory = examples.NoDup.directory
-		
+		implicit val directory = {   // TODO directory should be derived from active rules
+		  import relentless.matching.Trie; import syntax.Tree
+      def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
+      D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3), D(4)))
+    }		
+
 		val interp = new Interpreter
 		var state: State = null
 		val stack = collection.mutable.Stack.empty[State]
@@ -218,9 +222,9 @@ class Interpreter(implicit val enc: Encoding) {
             new Generalize(rules, args, Some(f), None)
           case _ if to.root == "@[]" =>
             assert(isAnchor(from)) // TODO
-            val sink::given::disallowed = to.subtrees
-            println(s"  ripple: ${given.toPretty}; over ${sink.toPretty} Disallowed: ${disallowed.map(_.toPretty)}")
-            new FindRecursion(rules, new Scheme.Template(vars, given), sink, disallowed.toSet)
+            val given::disallowed = to.subtrees
+            println(s"  recurse ${given.toPretty}    (disallowed: ${disallowed.map(_.toPretty)})")
+            new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
           case _ => 
             println("  elaborate")
             if (isAnchorName(from))

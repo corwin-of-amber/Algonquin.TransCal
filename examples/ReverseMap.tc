@@ -1,0 +1,12 @@
+reverseMap ?f ?l = reverse (map f l)    [++]
+
+map ?f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
+reverse = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ reverse xs :+ x))
+
+l = ?x :: ?xs
+reverse _ :+ _ -> 1⃝
+1⃝ -> ?reverseMap' f xs (f x :: ⟨⟩)
+
+h = reverseMap' f xs a    [++]
+xs = ?x' :: ?xs'
+h -> reverseMap' _ xs' _

@@ -7,7 +7,7 @@ xs = x' :: xs'
 
 h = nodup' a xs   [++]
 h -> 2⃝
-2⃝ -> @ {dummy} \ ?nodup' _ xs' w/o nodup nodup'
+2⃝ -> @ nodup' _ xs' w/o nodup nodup'
 
 /* 1⃝ -> _ /\ nodup' _ xs' */
 

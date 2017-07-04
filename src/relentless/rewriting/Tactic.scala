@@ -210,7 +210,6 @@ trait Compaction extends RuleBasedTactic {
      */
     val id = enc.ntor --> examples.BasicSignature._id.leaf
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
-      println(word mkString " ")
       if (word(1) != word(2))
         equiv += word(1) -> word(2)
     }
@@ -455,7 +454,7 @@ class UnifyHole(given: Scheme.Template) extends syntax.Unify {
   }
 }
 
-class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, sink: Term, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
+class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
   
   import RuleBasedTactic._
   
@@ -467,7 +466,8 @@ class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, sink: Ter
     val gen =
       for (Array(_, init, _ @ _*) <- work0.matches(Markers.placeholder.leaf);
            t <- new Reconstruct(init, work0.nonMatches(Markers.all map (_.leaf):_*))(enc);
-           generalized <- common.generalize(t, List(sink), s.env.vars.toSet);
+           //x <- Some(println(s"[generalize] ${t.toPretty}"));
+           generalized <- common.generalize(t, List(), s.env.vars.toSet);
            (context, matched) <- findrec(t) if !matched.isEmpty) yield {
         println(s"    Context: ${context.toPretty}")
         println(s"    Matched: ${matched.map(_.toPretty).mkString("\n            ")}")
