@@ -9,7 +9,7 @@ import relentless.matching.Encoding
 
 object BasicSignature {
   
-  val `⇒` = I("⇒", "operator")  // used for guarded command, instead of |! that we used in Bellmania
+  val `⇒` = I("⇒", "operator")  // used for guarded command, replacing |! that was used in Bellmania
   def `⇒:`(x: Term, y: Term): Term = T(`⇒`, List(x, y))
   
   val tt = TV("⊤")

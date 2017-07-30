@@ -215,18 +215,25 @@ class Interpreter(implicit val enc: Encoding) {
       }
       else {
         if (!isAnchor(from)) println("  locate &")
-        LambdaCalculus.isApp(to) match {
-          case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
-            println(s"  generalize ${f} ${args}")
+        import semantics.LambdaCalculus._
+        val `@[]` = TI("@[]")
+        
+        to match {
+                                                                       //-------------------------
+          case f @: args if f.isLeaf && (vars contains f.leaf) =>      // Generalize
+            println(s"  generalize ${f} ${args}")                      //-------------------------
             assert(isAnchor(from)) // TODO
             new Generalize(rules, args, Some(f), None)
-          case _ if to.root == "@[]" =>
-            assert(isAnchor(from)) // TODO
-            val given::disallowed = to.subtrees
+                                                                       //-------------------------            
+          case T(`@[]`, given :: disallowed) =>                        // Find Recursion
+            assert(isAnchor(from)) // TODO                             //-------------------------
+            //val given::disallowed = to.subtrees
             println(s"  recurse ${given.toPretty}    (disallowed: ${disallowed.map(_.toPretty)})")
-            new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
-          case _ => 
-            println("  elaborate")
+            new FindRecursion(rules, new Scheme.Template(vars, given), 
+                              disallowed.toSet)
+                                                                       //-------------------------
+          case _ =>                                                    // Elaborate
+            println("  elaborate")                                     //-------------------------
             if (isAnchorName(from))
               new Elaborate(rules,
                             mkGoal(vars map (T(_)):_*)(to, Some(from)))
@@ -238,6 +245,7 @@ class Interpreter(implicit val enc: Encoding) {
                 mkLocator_simple(fromvars map (T(_)):_*)(from, anchor) ++
                 mkGoal(tovars map (T(_)):_*)(to, Some(anchor)))
             }
+
         }
       }
     }
