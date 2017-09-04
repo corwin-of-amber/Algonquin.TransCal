@@ -2,7 +2,58 @@
 
 \subsection{Rewrite-based Deductive Synthesis}
 
+% I am writing about deductive synthesis in general, these first few
+% sentences may belong further up.
+Synthesis is the process of reading a program specification and
+producing program code.
+Deduction is a formal method that imitates human reasoning by defining
+rules and the conditions in which they can be applied to draw new facts
+from existing facts.
+Hence deductive synthesis makes for a very natural combination, applied
+to automated programming.
+In this setting, the specification should consist of some formal description
+of the input-output relation, plus additional concerns such as safety or
+resource bounds.
+Rules tell the reasoning engine what pieces of code can be used to implement
+what specifications.
+As is the case with automatic theorem provers, deductive reasoning is
+computationally hard because there are may ways to apply deduction rules,
+and this number keeps growing as more facts are deduced.
+Programming by itself is a complex reasoning task, which requires planning,
+abstraction, and decomposition.
+
+The rewrite-based approach proposes an intuitive class of reasoning techniques
+via substitution.
+The concept of \emph{equals-for-equals} is so basic and commonly used in math
+that sometimes we do it without even noticing.
+In this project, we will build a rewrite engine that will build an engine
+capable of rewriting program terms in an extended programming language that
+can express both our specifications and executable programs.
+Its task would be to rewrite specifications until they ``morph'' into an
+acceptable program, acceptance defined by restricting the allowed subset of the
+vocabulary and/or semantic restriction such as computational complexity
+of the resulting program.
+We will tackle the computational complexity problem by utilizing Program
+Equivalence Graph, a data structure capable of compactly representing an
+exponentially large set of equivalent terms;
+since rewrites (generally) preserve equivalence,
+the outcomes of a conceptually unbounded number of rewrite steps.
+
 \subsection{Developing a Library of Rules and Tactics}
+
+Once the core infrastructure is in place, we should focus on developing
+a collection of useful rewrite rules and routines to guide their application.
+While rules define classes of equivalent programs, tactics define desirable
+properties of (intermediate) program terms within a class.
+We call them ``tactics'' because they are reminiscent of tactics in proof
+assistants (Coq, Isabelle), where they are used to carry out
+small-ish proof steps such as induction, case analysis, bijection, etc.
+They are what the user ultimately sees and invokes.
+
+\begin{itemize}
+  \item Different kinds of recursion (e.g. tail)
+  \item Finite differencing (Paige style)
+\end{itemize}
 
 \subsection{Theory of Saturating Rewrite Systems}
 

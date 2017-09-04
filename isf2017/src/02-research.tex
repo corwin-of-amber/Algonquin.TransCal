@@ -30,3 +30,33 @@ handling policy of the application. Their biggest shortcomings were
 To overcome these obstacles, we have to define a richer meta-programming
 language that can reason about computation at the semantic level.
 \end{paragraph}
+
+% sub paragraph
+\begin{paragraph}{Bridging the Performance Gap}
+One of the rules-of-thumb in OOP encapsulation is that a caller module
+does not have to be concerned with how specific methods of the callee are
+implemented. In practice, performance concerns affect and sometimes dominate
+the design of library APIs.
+The reason is the poverty of ways to compose programs, the most common of
+which are \emph{message passing}-based mechanisms --- procedure calls,
+asynchronous events, dynamic dispatch, actors, etc. are all instances of
+this rather basic, operational approach.
+Some programs are not written to begin with because they are considered
+by the developer as sub-optimal or even na\"ive.
+However, na\"ive programs provide ideal abstractions by ignoring performance.
+Of course, to allow such programs into existence means that the compiler
+has to work harder, perhaps interactively with the human, to overcome the
+problems of prohibitively high resource usage that will emerge as a result.
+\end{paragraph}
+
+% sub paragraph
+\begin{paragraph}{HCI and Visual Representation Issues}
+Even a small number of refinements can lead to many different choices
+during the development and refinement process.
+While various heuristics can commonly be applied to choose between them,
+there is need for occasional human intervention.
+Since it is not possible to simply list the alternatives, a more accessible
+medium is required to allow users to receive feedback from both successful
+and failed refinement steps, and to sift through a pile of mostly-similar
+program terms to get just the right one.
+\end{paragraph}
