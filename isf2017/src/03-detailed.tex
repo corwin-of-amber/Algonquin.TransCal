@@ -50,14 +50,77 @@ assistants (Coq, Isabelle), where they are used to carry out
 small-ish proof steps such as induction, case analysis, bijection, etc.
 They are what the user ultimately sees and invokes.
 
+Concrete use cases that we already have in mind for tactics are:
+
 \begin{itemize}
-  \item Different kinds of recursion (e.g. tail)
-  \item Finite differencing (Paige style)
+  \item Restriction of access to a value to a specific API or a proxy;
+    e.g. replacing direct array accesses with a stack ADT (thus only allowing push and pop)
+    or allowing to read the sum of the array but not individual elements.
+  \item Different kinds of recursion; the most notable example being
+    tail recursion, because then existing compiler optimizations can be
+    used to turn the code into a loop.
+  \item Finite differencing; instrumenting code for memoizing intermediate
+    values and then updating them when operands change, generalizing results
+    from SETL (TODO Robert Paige, 1982).
 \end{itemize}
 
 \subsection{Theory of Saturating Rewrite Systems}
 
+In the most general case, it is easy to see that exhaustive rewriting via
+pattern-based rules is prone to divergence.
+Directed rewrite systems have been studied in the past in which a well-formed
+measure is used to prove the absence of infinite derivations --- in a similar
+way to termination proofs for programs.
+These techniques do not apply to our situation where bidirectional rules exist;
+however, it is easy to see that bidirectionality by itself does not pose a
+problem because rewriting in one direction and then the other yields the
+original term, which have already been encountered and is therefore discarded.
+Divergence of PEG rewriting is caused by rules that generate infinitely many
+\emph{new} terms, for example $f(x) \to f(g(x))$.
+Previous experience shows that careful construction of appropriate rules can
+prevent divergence and still produce useful results\cite{lpar2010}.
+We call such systems \emph{saturating}, and wish to study their properties.
+In particular, we are interested in:
+\begin{itemize}
+  \item Classes of rules that guarantee saturation;
+  \item Effective detection of matching loops that cause non-saturation;
+  \item Identifying a ``non-saturating core'', that is, a subset of the
+    rules that cause divergence. 
+\end{itemize}
+
+These results would have practical implications on the design of
+deductive synthesis engines.
+They can help shape guidelines for the selection of rewrite rules for
+tactical purposes according to synthesis goal.
+We can also artificially prevent matching loops by bounding the number of
+applications of rules from the non-saturating core.
+
+On top of that, there is a long history surrounding treatment of
+operators with known algebraic properties, such as commutativity
+and associativity.
+These can be encoded as equivalences, but this leads to an exponential
+number of variations for terms, often making problems intractable when
+they contain long chains.
+This problem was deemed hard for symbolic theorem provers, but we
+believe we can achieve good performance by natively wiring such treatment
+into the internal representation of PEGs.
+
 \subsection{When to Stop?}
+
+As discussed so far, application of tactics is at the discretion of the
+user, as is the decision to stop applying them and send the program to
+the compiler.
+The user has to be ``satisfied'' with the revisions made interactively.
+Can this be automated as well?
+In a more general setting, the user will set some kind of goals for the
+resulting artifact to meet, and a bag of tactics that can be useful for
+obtaining it.
+The system will then have more freedom in applying tactics, but it also
+means it will have to make more complex decisions.
+In particular, it will have to decide when it is ``done''.
+
+We have several propositions of metrics that can guide a system into
+making such a decision.
 
 \begin{itemize}
   \item Metrics for safety
