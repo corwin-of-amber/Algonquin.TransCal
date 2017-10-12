@@ -63,5 +63,25 @@ after writing a procedure, to verify it, a programmer has to provide a formal
 specification in some logic, repeating many of the implementation details.
 To avoid repetitiveness, some form of synthesis is required, backed up by some
 form of formal reasoning that tells the system which parts can be re-used when
-refining and which parts have to be specified.
+refining and which parts change and need to be specified.
+\end{paragraph}
+
+\begin{paragraph}{Related Work}
+Work on semi-automated programming began quite long ago at Kestrel Institute~\cite{AI1985/Smith},
+which led to the development of several prototype projects,
+KIDS~\cite{TSE1990/Smith}, DTRE~\cite{CPS1991/Blaine}, 
+and Specware~\cite{2001/McDonald:specware}.
+These systems are built on the concept of an algorithmic knowledge base encoded
+as a library, and matched against program specifications to apply the
+right transformation and obtain a correct-by-construction implementation.
+KIDS contains one of the early interactive proof assistants, to support
+fulfillment of pre-conditions required for some algorithmic solutions.
+
+AutoBayes~\cite{JFP2003/Fischer} is an example for a domain-specific automatic programming system
+developed by NASA.
+It contains a large database of statistical algorithms for constructing and
+analyzing models.
+A solver tries different \emph{schemas}, allowing backtracking to find
+a computationally optimal combination, and derives a specialized algorithm
+for learning a specific model supplied by the user.
 \end{paragraph}

@@ -61,7 +61,12 @@ Concrete use cases that we already have in mind for tactics are:
     used to turn the code into a loop.
   \item Finite differencing; instrumenting code for memoizing intermediate
     values and then updating them when operands change, generalizing results
-    from SETL (TODO Robert Paige, 1982).
+    from SETL (\cite{TOPLAS1982/Paige,ESOP1990/Paige}).
+    Finite differencing has a history beyond computer science, from when
+    humans were performing a lot of calculations manually.
+    Today, it plays a major role in some compiler optimizations
+    (\cite{CACM1997/Cocke})
+    and in algorithm design methodology (\cite{Book1997/Dijkstra,VHLL1974/Earley}).
 \end{itemize}
 
 \subsection{Theory of Saturating Rewrite Systems}
@@ -74,7 +79,7 @@ way to termination proofs for programs.
 These techniques do not apply to our situation where bidirectional rules exist;
 however, it is easy to see that bidirectionality by itself does not pose a
 problem because rewriting in one direction and then the other yields the
-original term, which have already been encountered and is therefore discarded.
+original term, which has already been encountered and is therefore discarded.
 Divergence of PEG rewriting is caused by rules that generate infinitely many
 \emph{new} terms, for example $f(x) \to f(g(x))$.
 Previous experience shows that careful construction of appropriate rules can
