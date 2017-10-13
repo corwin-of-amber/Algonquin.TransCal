@@ -77,6 +77,18 @@ right transformation and obtain a correct-by-construction implementation.
 KIDS contains one of the early interactive proof assistants, to support
 fulfillment of pre-conditions required for some algorithmic solutions.
 
+The same concepts inspired the creation of the Refinement Calculator~\cite{TPHOLs1996/Butler};
+it provides an interactive environment where expressions are replaced with
+new ones that subsist in some transitive relation, such that multiple steps
+can be combined to a proof that the same relation holds between the first
+revision and the last.
+The relation can be some order on values ($\leq$), or a more complicated relation
+on programs such as \emph{behavioral refinement}, in which the proposed substitution
+exhibits the same set of run-time behaviors or fewer compared to the original
+term.
+This asserts that any safety property satisfied by the original program is held
+on the revised.
+
 AutoBayes~\cite{JFP2003/Fischer} is an example for a domain-specific automatic programming system
 developed by NASA.
 It contains a large database of statistical algorithms for constructing and
@@ -84,4 +96,13 @@ analyzing models.
 A solver tries different \emph{schemas}, allowing backtracking to find
 a computationally optimal combination, and derives a specialized algorithm
 for learning a specific model supplied by the user.
+
+A more recent system, Fiat~\cite{POPL2015/Delaware}, is what can be described
+as a glorified domain-specific language compiler.
+Instead of the usual code generation--optimization phases, it employs a set
+of domain tactics that transform the input program, and then use an extraction
+mechanism implemented in Coq to generate the code.
+Transformations are done in a high-level theory, but a library for creating
+tactics allows a language designer to describe implementation-specific details
+that are crucial for some performance benefits.
 \end{paragraph}
