@@ -105,4 +105,17 @@ mechanism implemented in Coq to generate the code.
 Transformations are done in a high-level theory, but a library for creating
 tactics allows a language designer to describe implementation-specific details
 that are crucial for some performance benefits.
+
+Generally speaking, early approaches to transformational synthesis relied on
+manual guidance, while automation was mainly limited by available computational
+power. Later systems allow for greater automation in exploring the program space
+but inhabit domain niches, since the general problem is still considered computationally hard.
+
+The concept of refinement as used by \cite{TPHOLs1996/Butler,POPL2015/Delaware} mentioned above
+is not constrained to synthesis, but has applications in formal verification
+as well. In \cite{CAV2015/Hawblitzel}, researchers show that abstracting
+concurrent code into several layers can greatly simplify the task of generating
+a machine-checkable correctness proof.
+While it takes advantage of SMT technology, this approach does require a rather
+large amount of annotations and ghost code.
 \end{paragraph}
