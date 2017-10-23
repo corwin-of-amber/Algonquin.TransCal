@@ -127,18 +127,73 @@ In particular, it will have to decide when it is ``done''.
 We have several propositions of metrics that can guide a system into
 making such a decision.
 
-\begin{paragraph}{Metrics for safety.} ~ \cite{MLCS1994/Avron}
+\begin{paragraph}{Metrics for safety.} 
+Theoretical work in logic~\cite{MLCS1994/Avron} suggests syntax-directed
+criteria for classifying computable relations defined by formulas,
+using the logical concept of \emph{domain irrelevance}.
+This work has been applied to queries in database theory.
+By adjusting the basic inference rules, a spectrum of safety predicates can
+be defined, so this approach may apply to different domains.
 \end{paragraph}
 
-\begin{paragraph}{Dynamic rippling.} ~ \cite{Festschrift2017/JohanssonDB10}
+\begin{paragraph}{Dynamic rippling.}
+In the area of automated reasoning and the design of proof assistants,
+there have been several advances in discovering proofs by induction.
+One of these techniques is called \emph{dynamic rippling}~\cite{Festschrift2017/JohanssonDB10}:
+it quantifies the distance between a given hypothesis and a desired conjecture
+(typically induction hypothesis and step) and attempts to carry out proof
+steps that will decrease this measure.
+This approach has been implemented in Isabelle/HOL and was included in
+its inventor's doctoral dissertation.
 \end{paragraph}
 
-\begin{paragraph}{Resource-aware types.} ~ \cite{CAV2012/Hoffman}
+\begin{paragraph}{Resource-aware types.}
+It is no shame to say that many program transformations targeted in this
+proposal are high-level variants of compiler optimizations by their widely
+accepted notion.
+If so, a straight-forward metric would be an estimation of resources
+that a program term will consume during its execution.
+Such formalism exists in the form of type systems that encode resource
+usage properties~\cite{CAV2012/Hoffman} such as time and space complexity.
+While naturally providing some sound approximation rather than a precise
+identification, it can guide the system to stop when the desired level
+of performance has been obtained.
 \end{paragraph}
+
+The project will involve applying these metrics with appropriate 
+instantiation of their components, and evaluating their effectiveness
+in filtering candidate programs in a range of scenarios.
 
 \subsection{Termination Proofs}
 
-\begin{itemize}
+The projects described in the previous subsections all revolve around partial
+correctness, that is, convergence of semantics on terminating executions.
+This is common practice because
+(i) it simplifies reasoning and makes proofs more compact and elegant;
+(ii) most programs encountered terminate for very simple reasons.
+Still, from a theoretical point of view, non-careful substitution of a subprogram
+with a non-terminating expression is a known source for unsoundness.
+To make the refinement process airtight, we will seek methods for generating,
+alongside the development, an accompanying termination proof.
+Two research questions stand out at first blush:
+
+\begin{enumerate}
   \item Is it enough to prove termination of the high-level program?
+    While certainly not true in general, there are cases where this holds
+    obviously. If the high-level program has a loop structure, and it terminates,
+    then there is a well-founded measure that decreases by every iteration.
+    If refinement preserves the loop structure and each step terminates trivially
+    (e.g.  is loop-free) then the refined program must persist the same
+    decrease in that measure, and therefore termintates.
   \item Can we adapt high-level termination proof to low-level?
-\end{itemize}
+    In cases where a program's termination does not imply its revision's,
+    we still may be able to transform the termination proof along the same
+    lines that transformed the program itself.
+    A simple example is a \textit{gcd} computation algorithm due to Euclid.
+    the original formulation uses subtraction as the basic step;
+    a more efficient version may use division remainder and run for fewer
+    iterations.
+    Still, a single remainder operation is the equivalent of several subtraction
+    operations, hence the same argument that was used for termination of
+    Euclid's original version can be applied, with small changes, to the new variant.
+\end{enumerate}

@@ -1,2 +1,28 @@
 \section{Preliminary Results}
 
+\begin{paragraph}
+{Bellmania.} As a demonstration of the efficacy of synthesis in non-trivial
+scenarios and as a response to a challenge introduced by Prof. Charles Leiserson
+at MIT,
+I designed an developed a formal framework for mechanized derivation of 
+cache-oblivious implementations for sequential and parallel 
+dynamic programming algorithms. Dynamic programming is pervasive in several 
+applications of computer science and can greatly speed up otherwise 
+intractable computations, but requires large amounts of memory, 
+which puts stress on memory access bandwidths and creates performance 
+bottlenecks. These problems can be alleviated by more effective utilization 
+of the machine’s fast memory caches, 
+but doing so requires complex reordering of memory accesses to achieve 
+desired spatial and temporal locality properties. 
+By building up on recent developments in parallel high-performance computing, 
+in particular recursive divide-and-conquer applied to dynamic programming,
+and by restating it as a refinement problem that starts from a na\"ive, 
+inefficient loop implementation and targets a better, 
+equivalent implementation, which is also cache-oblivious. 
+I encoded the concepts underlying the divide-and-conquer technique as program 
+transformation steps set up in an interactive environment where the user chooses 
+which transformations to apply and the system continuously verifies semantic 
+soundness of each step. 
+This allowed me to produce verified implementations of several dynamic programming 
+algorithms using a handful of transformation rules.
+\end{paragraph}
