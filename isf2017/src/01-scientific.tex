@@ -13,15 +13,15 @@ public, and the flow of data requires organization, searching and sorting
 to make sense of it.
 Soon enough our wallets will be filled with electronic currency and
 manage trade contracts for us.
-In this new economy it will become hard to imagine how we could ever
+In this new economy it will become hard to imagine we could ever
 shop for groceries without software.
 
 To cope with ever-increasing need to create more software, developers
 will have to adopt new practices.
 Today's development tools limit code reuse and collaboration in larger
-scales, e.g. in an open source community setting.
+scales, \eg in an open source community setting.
 Software modules are being rewritten and old code ages quickly and becomes
-unusable due to rapidly changing APIs unless it is routinely maintained,
+unusable due to rapidly changing APIs, unless it is routinely maintained,
 incurring high overheads.
 Over time, code bases become harder to understand, maintain, and reuse.
 Accompanying design documents and other documentation are written, but
@@ -29,7 +29,7 @@ they are hard to keep up-to-date with the code, and at any rate, it does
 not seem that the right way to understand a computer program is to read
 a book about it.
 
-\begin{paragraph}{Clear separation of semantics and implementation.}
+\begin{subparagraph}{Clearly distinguishing semantics from implementation}
 Most software starts its life as clean, elegant code, thoughtfully designed.
 What happens then is that concerns such as portability, performance,
 and integration with other software arise, and the developers are forced
@@ -48,10 +48,9 @@ between the two, can help manage the risks from changes by (i) only changing the
 specification when requirements actually change, (ii) keeping the specification
 smaller than the whole program, making it easier to review, and (iii) making
 sure, mechanically, that the correlation between the layers is maintained.
-\end{paragraph}
+\end{subparagraph}
 
-
-\begin{paragraph}{Not repeating oneself.}
+\begin{subparagraph}{Not repeating oneself}
 The previous point is very much addressed by software engineering approaches
 like design-by-contract and by formal methods such as model checking and Hoare-Floyd
 style verification.
@@ -64,7 +63,7 @@ specification in some logic, repeating many of the implementation details.
 To avoid repetitiveness, some form of synthesis is required, backed up by some
 form of formal reasoning that tells the system which parts can be re-used when
 refining and which parts change and need to be specified.
-\end{paragraph}
+\end{subparagraph}
 
 \begin{paragraph}{Related Work}
 Work on semi-automated programming began quite long ago at Kestrel Institute~\cite{AI1985/Smith},
