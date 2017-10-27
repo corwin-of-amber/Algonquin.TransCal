@@ -1,2 +1,10 @@
-\newcommand\eg{\textit{e.g.}\xspace}
-\newcommand\ie{\textit{e.g.}\xspace}
+\newcommand\eg{\textit{e.g.}\@\xspace}
+\newcommand\ie{\textit{i.e.}\@\xspace}
+
+\makeatletter
+\newcommand*{\etc}{%
+    \@ifnextchar{.}%
+        {\textit{etc}}%
+        {\textit{etc.}\@\xspace}%
+}
+\makeatother

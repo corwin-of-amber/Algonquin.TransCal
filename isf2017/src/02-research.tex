@@ -4,34 +4,50 @@ This research aims to improve the productivity of software development
 as well as the quality of the developed code by promoting a new style
 of \emph{gradual programming by refinement}.
 % explain why refinement is great etc.
+This allows rapid prototyping by ignoring some aspects of the system
+(especially, its resource usage).
+Such aspects are not left unaddressed, but are later dealt with by refining
+the first revision using formal tools.
+In this way, developers would produce higher quality code faster;
+the resulting code will be easier to read and maintain;
+consequently, it becomes more reusable since it has a clear semantic structure
+rather than a flat API.
+That means that individual modules can be incorporated into new code,
+a process which today requires a great amount of tedious, menial labor.
 
 \begin{paragraph}{Challenges}
-The process becomes more interactive with the programmer and the
+We envision the development process becoming more interactive with the programmer and the
 compiler taking turns. Correctness should be preserved at all times
 to deliver useful abstractions.
 Smaller steps allow more interactivity but require more programmer
 effort; large steps increase automation but create higher latency
 and may not generalize well.
+This opens up a whole area of trade-offs in the design of such interactions.
 \end{paragraph}
 
-% sub paragraph
-\begin{paragraph}{Separation of Concerns}
+
+\begin{subparagraph}{Separation of Concerns}
 Effective abstractions simplify the thought process of putting together
-a piece of software by ignoring some of the aspects of it, focusing on
+a piece of software by decomposing the problem, focusing on
 one concern at a time. This allows the developer to filter out background
 noise and pay attention to all the different functionality requirements.
 Previous approaches to \emph{aspect-oriented programming} recognized this
-difficulty and were able to separate away e.g. the logging layer or error
+difficulty and were able to separate away \eg the logging layer or error
 handling policy of the application. Their biggest shortcomings were 
-(i) being overly attached to the language syntax rather than semantics, 
-(ii) providing a rather thin white-box interface between modules
+\begin{enumerate*}[label=(\textit{\roman*})]
+\item
+being overly attached to the language syntax rather than semantics, 
+\item
+providing a rather thin white-box interface between modules
     (so-called \emph{aspects}), and
-(iii) committing to the orthodox batch-compilation development cycle.
+\item 
+committing to the orthodox batch-compilation development cycle.
 To overcome these obstacles, we have to define a richer meta-programming
 language that can reason about computation at the semantic level.
-\end{paragraph}
+\end{enumerate*}
+\end{subparagraph}
 
-% sub paragraph
+
 \begin{subparagraph}{Bridging the Performance Gap}
 One of the rules-of-thumb in OOP encapsulation is that a caller module
 does not have to be concerned with how specific methods of the callee are
@@ -49,7 +65,7 @@ has to work harder, perhaps interactively with the human, to overcome the
 problems of prohibitively high resource usage that will emerge as a result.
 \end{subparagraph}
 
-% sub paragraph
+
 \begin{subparagraph}{HCI and Visual Representation Issues}
 Even a small number of refinements can lead to many different choices
 during the development and refinement process.
