@@ -41,13 +41,16 @@ A particular syndrome we wish to address is that the \emph{meaning} of
 the software, often called its \emph{semantics}, sometimes \emph{formal specification},
 and colloquially \emph{"The What"}, is intertwined and mixed with all
 other aspects of programming within the code --- its \emph{implementation},
-\emph{"The How"}.
+\emph{"The How"}~\cite{CACM2012/Bodik}.
 Creating software layers for software semantics and its implementation,
 in conjunction with a corresponding compiler that knows about the connection
-between the two, can help manage the risks from changes by (i) only changing the
-specification when requirements actually change, (ii) keeping the specification
-smaller than the whole program, making it easier to review, and (iii) making
-sure, mechanically, that the correlation between the layers is maintained.
+between the two, can help manage the risks from changes by
+\begin{enumerate*}[label=(\textit{\roman*})]
+\item only changing the
+specification when requirements actually change, 
+\item keeping the specification smaller than the whole program, making it easier to review, and
+\item making sure, mechanically, that the correlation between the layers is maintained.
+\end{enumerate*}
 \end{subparagraph}
 
 \begin{subparagraph}{Not repeating oneself}
@@ -63,6 +66,11 @@ specification in some logic, repeating many of the implementation details.
 To avoid repetitiveness, some form of synthesis is required, backed up by some
 form of formal reasoning that tells the system which parts can be re-used when
 refining and which parts change and need to be specified.
+Kuncak \etal~\cite{CACM2012/Kuncak} argue that the task resembles that of
+constructing a specialized \emph{constraint solver} for a set of constraints
+at hand; this is in contrast with generic constraint solvers, which are
+either not available for a particular domain (due to inherent undecidability)
+or are not efficient enough.
 \end{subparagraph}
 
 \begin{paragraph}{Related Work}
@@ -96,6 +104,15 @@ A solver tries different \emph{schemas}, allowing backtracking to find
 a computationally optimal combination, and derives a specialized algorithm
 for learning a specific model supplied by the user.
 
+In Scala\textsuperscript{Z3}, similar guidelines were followed by match-making
+constraints written in the Scala programming language with a palette of
+solving techniques encoded in first-order logic and implemented on top of
+Z3, a leading SMT solver. SMT (Satisfiability Modulo Theory) is a term used
+to describe a family of solvers that can check satisfiability of a logical
+formula under some intended interpretation of the domain (\eg natural numbers).
+Such solvers have been used excessively for verification in the past,
+but less so for synthesis purposes.
+
 A more recent system, Fiat~\cite{POPL2015/Delaware}, is what can be described
 as a glorified domain-specific language compiler.
 Instead of the usual code generation--optimization phases, it employs a set
@@ -117,4 +134,13 @@ show that abstracting concurrent code into several layers can greatly simplify t
 a machine-checkable correctness proof.
 While it takes advantage of SMT technology, this approach does require a rather
 large amount of annotations and ghost code.
+Domain-specific abstractions were also shown useful in analysis and,
+surprisingly, debugging, by Bod\'ik \etal~\cite{SNAPL2107/Bodik}.
+
+\emph{Interactive} synthesis, not necessarily deductive,
+is trending, and several papers have been disseminated on the subject
+\cite{SYNASC2012/Gulwani,CACM2012/Gulwani,CAV2011/Gvero,Onward2015/Barman}.
+These revolve mostly around programming by demonstration or via examples.
+Still, syntax plays a role~\cite{NATOSec2015/Alur} and the user can restrict the resulting program
+to a particular API or control structure, thus guiding the search.
 \end{paragraph}

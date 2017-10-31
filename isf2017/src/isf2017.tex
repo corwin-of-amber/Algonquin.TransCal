@@ -16,8 +16,12 @@
 
 %% Header customization
 \pagestyle{fancy}
-\lhead{\small Detailed description of the research program}
+\lhead{}
 \rhead{\small Application no. 582/18 | Shachar Itzhaky}
+
+\fancypagestyle{firstpage}{%
+  \lhead{\small Detailed description of the research program}
+}
 
 %% Subparagraph customization
 \titleformat{\subparagraph}[runin]
@@ -31,12 +35,15 @@
 
 %\section*{TransCal (ISF 2017)}
 
+\thispagestyle{firstpage}
+
 \input{01-scientific}
 \input{02-research}
 \input{03-detailed}
 \input{04-preliminary}
 \input{05-summary}
 
+\clearpage
 \bibliographystyle{plain}
 \bibliography{isf2017}
 

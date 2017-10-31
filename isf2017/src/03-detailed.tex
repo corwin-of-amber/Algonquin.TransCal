@@ -95,7 +95,7 @@ original term, which has already been encountered and is therefore discarded.
 Divergence of PEG rewriting is caused by rules that generate infinitely many
 \emph{new} terms, for example $f(x) \to f(g(x))$.
 Previous experience shows that careful construction of appropriate rules can
-prevent divergence and still produce useful results\cite{lpar2010}.
+prevent divergence and still produce useful results~\cite{LPAR2013/Itzhaky}.
 We call such systems \emph{saturating}, and wish to study their properties.
 In particular, we are interested in:
 \begin{itemize}
@@ -170,8 +170,11 @@ usage properties~\cite{CAV2012/Hoffman} such as time and space complexity.
 While naturally providing some sound approximation rather than a precise
 identification, it can guide the system to stop when the desired level
 of performance has been obtained.
+The experience of Prof. Nadia Polikarpova (listed as a collaborator) with such types, 
+and her specialty, will surely prove useful for this project.
 \end{paragraph}
 
+\bigskip
 The project will involve applying these metrics with appropriate 
 instantiation of their components, and evaluating their effectiveness
 in filtering candidate programs in a range of scenarios.
@@ -187,7 +190,7 @@ Still, from a theoretical point of view, non-careful substitution of a subprogra
 with a non-terminating expression is a known source for unsoundness.
 To make the refinement process airtight, we will seek methods for generating,
 alongside the development, an accompanying termination proof.
-Two research questions stand out at first blush:
+Two research questions stand out at this point:
 
 \begin{enumerate}
   \item Is it enough to prove termination of the high-level program?

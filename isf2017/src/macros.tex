@@ -1,3 +1,5 @@
+
+% Latin!
 \newcommand\eg{\textit{e.g.}\@\xspace}
 \newcommand\ie{\textit{i.e.}\@\xspace}
 
@@ -6,5 +8,10 @@
     \@ifnextchar{.}%
         {\textit{etc}}%
         {\textit{etc.}\@\xspace}%
+}
+\newcommand*{\etal}{%
+    \@ifnextchar{.}%
+        {\textit{et al}}%
+        {\textit{et al.}\@\xspace}%
 }
 \makeatother

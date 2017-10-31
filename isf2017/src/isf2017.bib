@@ -96,6 +96,17 @@
  numpages = {7}
 } 
 
+% The What and the How terminology
+@article{CACM2012/Bodik,
+  author    = {Rastislav Bod{\'{\i}}k},
+  title     = {Compiling what to how: technical perspective},
+  journal   = {Commun. {ACM}},
+  volume    = {55},
+  number    = {2},
+  pages     = {102},
+  year      = {2012}
+}
+
 % Old refinement paper (Finland)
 @INPROCEEDINGS{TPHOLs1996/Butler,
     author = {Michael Butler and Thomas L\r{a}ngbacka},
@@ -203,4 +214,142 @@
                {SOSP} 2015, Monterey, CA, USA, October 4-7, 2015},
   pages     = {1--17},
   year      = {2015}
+}
+
+% DSL symbolic compilation -- shows that abstractions are useful for analysis and debugging
+@InProceedings{SNAPL2107/Bodik,
+  author =	{Rastislav Bod{\'i}k and Kartik Chandra and Phitchaya Mangpo Phothilimthana and Nathaniel Yazdani},
+  title =	{{Domain-Specific Symbolic Compilation}},
+  booktitle =	{2nd Summit on Advances in Programming Languages (SNAPL 2017)},
+  pages =	{2:1--2:17},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-032-3},
+  ISSN =	{1868-8969},
+  year =	{2017}
+}
+
+% Scala^Z3, embedding constraint solving in a functional language
+@inproceedings{CADE2011/Koksal,
+  author    = {Ali Sinan K{\"{o}}ksal and
+               Viktor Kuncak and
+               Philippe Suter},
+  title     = {Scala to the Power of {Z3:} Integrating {SMT} and Programming},
+  booktitle = {Automated Deduction - {CADE-23} - 23rd International Conference on
+               Automated Deduction, Wroclaw, Poland, July 31 - August 5, 2011. Proceedings},
+  pages     = {400--406},
+  year      = {2011}
+}
+
+% Synthesis procedures -- achievable declarative programming w/ solvers
+@article{CACM2012/Kuncak,
+ author = {Kuncak, Viktor and Mayer, Mika{\"e}l and Piskac, Ruzica and Suter, Philippe},
+ title = {Software Synthesis Procedures},
+ journal = {Commun. ACM},
+ issue_date = {February 2012},
+ volume = {55},
+ number = {2},
+ month = feb,
+ year = {2012}
+} 
+
+%
+% Interactive synthesis stuff
+%
+@inproceedings{SYNASC2012/Gulwani,
+  author    = {Sumit Gulwani},
+  title     = {Synthesis from Examples: Interaction Models and Algorithms},
+  booktitle = {14th International Symposium on Symbolic and Numeric Algorithms for
+               Scientific Computing, {SYNASC} 2012, Timisoara, Romania, September
+               26-29, 2012},
+  pages     = {8--14},
+  year      = {2012}
+}
+% - FlashFill!
+@article{CACM2012/Gulwani,
+  author    = {Sumit Gulwani and
+               William R. Harris and
+               Rishabh Singh},
+  title     = {Spreadsheet data manipulation using examples},
+  journal   = {Commun. {ACM}},
+  volume    = {55},
+  number    = {8},
+  pages     = {97--105},
+  year      = {2012}
+}
+@inproceedings{CAV2011/Gvero,
+  author    = {Tihomir Gvero and
+               Viktor Kuncak and
+               Ruzica Piskac},
+  title     = {Interactive Synthesis of Code Snippets},
+  booktitle = {Computer Aided Verification - 23rd International Conference, {CAV}
+               2011, Snowbird, UT, USA, July 14-20, 2011. Proceedings},
+  pages     = {418--423},
+  year      = {2011}
+}
+@inproceedings{Onward2015/Barman,
+ author = {Barman, Shaon and Bodik, Rastislav and Chandra, Satish and Torlak, Emina and Bhattacharya, Arka and Culler, David},
+ title = {Toward Tool Support for Interactive Synthesis},
+ booktitle = {2015 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software (Onward!)},
+ series = {Onward! 2015},
+ year = {2015},
+ isbn = {978-1-4503-3688-8},
+ location = {Pittsburgh, PA, USA},
+ pages = {121--136},
+ numpages = {16}
+}
+% - DemoMatch
+@inproceedings{PLDI2017/Yessenov,
+  author    = {Kuat Yessenov and
+               Ivan Kuraj and
+               Armando Solar{-}Lezama},
+  title     = {DemoMatch: {API} discovery from demonstrations},
+  booktitle = {Proceedings of the 38th {ACM} {SIGPLAN} Conference on Programming
+               Language Design and Implementation, {PLDI} 2017, Barcelona, Spain,
+               June 18-23, 2017},
+  pages     = {64--78},
+  year      = {2017}
+}
+
+% Grand SyGuS
+@incollection{NATOSec2015/Alur,
+  author    = {Rajeev Alur and
+               Rastislav Bod{\'{\i}}k and
+               Eric Dallal and
+               Dana Fisman and
+               Pranav Garg and
+               Garvit Juniwal and
+               Hadas Kress{-}Gazit and
+               P. Madhusudan and
+               Milo M. K. Martin and
+               Mukund Raghothaman and
+               Shambwaditya Saha and
+               Sanjit A. Seshia and
+               Rishabh Singh and
+               Armando Solar{-}Lezama and
+               Emina Torlak and
+               Abhishek Udupa},
+  title     = {Syntax-Guided Synthesis},
+  booktitle = {Dependable Software Systems Engineering},
+  series    = {{NATO} Science for Peace and Security Series, {D:} Information and
+               Communication Security},
+  volume    = {40},
+  publisher = {{IOS} Press},  
+  pages     = {1--25},
+  year      = {2015}
+}
+
+
+% My very own LPAR yay me
+@inproceedings{LPAR2013/Itzhaky,
+  author    = {Shachar Itzhaky and
+               Sumit Gulwani and
+               Neil Immerman and
+               Mooly Sagiv},
+  title     = {Solving Geometry Problems Using a Combination of Symbolic and Numerical
+               Reasoning},
+  booktitle = {Logic for Programming, Artificial Intelligence, and Reasoning - 19th
+               International Conference, LPAR-19, Stellenbosch, South Africa, December
+               14-19, 2013. Proceedings},
+  pages     = {457--472},
+  year      = {2013}
 }
