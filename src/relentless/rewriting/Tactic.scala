@@ -202,6 +202,8 @@ trait Compaction extends RuleBasedTactic {
         for ((k, subtrie) <- trie.subtries(index)) uniques(subtrie, index+1)
       }
     }
+
+    // for each edge type, compare words by parameters and add to equiv by target.
     for ((k, subtrie) <- trie.subtries(0) if !(except contains k)) {
       uniques(subtrie, 2)
     }
@@ -209,10 +211,14 @@ trait Compaction extends RuleBasedTactic {
      * a meek effort to eliminate id() terms by equating the argument with the result
      */
     val id = enc.ntor --> examples.BasicSignature._id.leaf
+    // get all words with type id and find eqalities between target and single param
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
       println(word mkString " ")
-      if (word(1) != word(2))
-        equiv += word(1) -> word(2)
+      if (word(1) != word(2)) {
+        val rep = Seq(word(2), word(1)).min
+        val source = Seq(word(2), word(1)).max
+        equiv += source -> rep
+      }
     }
     /*--------------------*/
     if (equiv.nonEmpty) {
