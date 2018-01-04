@@ -334,7 +334,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
     
     // Reconstruct and generalize
     val gen =
-      for (gm <- work0.matches(Markers.placeholder.leaf);
+      for (gm <- work0.matches(Markers.placeholder.leaf).toStream;
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
            //x <- Some(println(s"[generalize] ${t.toPretty}"));
            tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
