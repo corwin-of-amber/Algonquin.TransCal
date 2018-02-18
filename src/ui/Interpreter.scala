@@ -5,6 +5,8 @@ import java.io.FileReader
 import java.io.InputStreamReader
 import java.io.FileWriter
 
+import com.typesafe.scalalogging.slf4j.Logger
+import org.slf4j.LoggerFactory
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme
@@ -15,7 +17,6 @@ import semantics.LambdaCalculus
 import synth.pods.TacticalError
 import report.data.DisplayContainer
 import report.data.SerializationContainer
-
 import relentless.rewriting.CompiledRule
 import relentless.rewriting.Rewrite
 import relentless.matching.Encoding
@@ -104,7 +105,9 @@ object Interpreter {
                        |1⃝ -> _ /\ _ /\ _ /\ _
                        |x ∉ _ /\ x' ∉ _ -> _ ‖ _
                        |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; " */
-		
+
+    val logger = Logger(LoggerFactory.getLogger("main"))
+    logger.info("Starting new run")
 		val cmd = new CommandLineArgs(args)
 		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
 		

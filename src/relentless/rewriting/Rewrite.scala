@@ -1,7 +1,8 @@
 package relentless.rewriting
 
-import collection.mutable
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
+import collection.mutable
 import syntax.Tree
 import syntax.Scheme
 import syntax.AstSugar._
@@ -108,7 +109,7 @@ object Rewrite {
   /**
    * Applies a set of rewrite rules in a loop until saturation ("fixed point").
    */
-  class WorkLoop(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) {
+  class WorkLoop(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
     
     import collection.mutable
     import WorkLoop._
@@ -146,10 +147,14 @@ object Rewrite {
     
     def work(w: Array[Int]) {
       //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
-      
+
+      if (trie.words.contains(w))
+        logger.debug(s"Readding a word to trie. word: $w")
       trie add w
-      
-      for (r <- compiledRules) processRule(r, w)
+      logger.trace(s"working on word ${w mkString " "}")
+      for (r <- compiledRules) {
+        processRule(r, w)
+      }
       
       //for (g <- goal) processRule(g, w)
     }
@@ -167,6 +172,7 @@ object Rewrite {
           //println(s"valuation = ${valuation mkString " "}")
           val add = rule.conclude(valuation, trie)
           trace(rule, valuation, add)
+          logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString(", ")}. words: ${add map (_ mkString " ") mkString ", "}")
           wq.enqueue (add:_*)
         }
       }
