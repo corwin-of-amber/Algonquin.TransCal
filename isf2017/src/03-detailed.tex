@@ -38,18 +38,29 @@ The rewrite-based approach proposes an intuitive class of reasoning techniques
 via substitution.
 The concept of \emph{equals-for-equals} is so basic and commonly used in math
 that sometimes we do it without even noticing.
-In this project, we will build a rewrite engine that will build an engine
-capable of rewriting program terms in an extended programming language that
+In this project, we will build a rewrite engine that will be
+capable of finding equivalent substitutes for program terms in an extended programming language that
 can express both our specifications and executable programs.
 Its task would be to rewrite specifications until they ``morph'' into an
 acceptable program, acceptance defined by restricting the allowed subset of the
-vocabulary and/or semantic restriction such as computational complexity
+vocabulary and/or enforcing semantic restriction such as computational complexity
 of the resulting program.
 We will tackle the computational complexity problem by utilizing Program
-Equivalence Graph, a data structure capable of compactly representing an
-exponentially large set of equivalent terms;
+Equivalence Graphs (used \eg in~\cite{PLDI2015/Wilcox}),
+a data structure capable of compactly representing an exponentially large
+set of equivalent terms;
 since rewrites (generally) preserve equivalence,
-the outcomes of a conceptually unbounded number of rewrite steps.
+the outcomes of a conceptually unbounded number of rewrite steps
+can be succinctly stored using a single PEG.
+
+The project will focus on manipulating PEGs and traversing them, finding
+efficient ways to search for terms and extract them from the data structure,
+and controlling the order in which terms are generated --- for example,
+short terms first, which is a common approach alluding to Occam's razor
+(approximating that short programs are simpler than longer ones).
+We will design a language for interacting with the engine, and construct 
+example programs based on real-world needs to demonstrate its capabilities.
+
 
 \subsection{Developing a Library of Rules and Tactics}
 
@@ -57,7 +68,8 @@ Once the core infrastructure is in place, we should focus on developing
 a collection of useful rewrite rules and routines to guide their application.
 While rules define classes of equivalent programs, tactics define desirable
 properties of (intermediate) program terms within a class.
-We call them ``tactics'' because they are reminiscent of tactics in proof
+We call them ``tactics'' because they are reminiscent of building
+blocks of the same name present in proof
 assistants (Coq, Isabelle), where they are used to carry out
 small-ish proof steps such as induction, case analysis, bijection, etc.
 They are what the user ultimately sees and invokes.
@@ -115,7 +127,7 @@ applications of rules from the non-saturating core.
 On top of that, there is a long history surrounding treatment of
 operators with known algebraic properties, such as commutativity
 and associativity.
-These can be encoded as equivalences, but this leads to an exponential
+These can be encoded as equivalences, but doing this leads to an exponential
 number of variations for terms, often making problems intractable when
 they contain long chains.
 This problem was deemed hard for symbolic theorem provers, but we
@@ -127,14 +139,14 @@ into the internal representation of PEGs.
 As discussed so far, application of tactics is at the discretion of the
 user, as is the decision to stop applying them and send the program to
 the compiler.
-The user has to be ``satisfied'' with the revisions made interactively.
+The user has to review the results and become ``satisfied'' with the revisions made interactively.
 Can this be automated as well?
 In a more general setting, the user will set some kind of goals for the
 resulting artifact to meet, and a bag of tactics that can be useful for
 obtaining it.
 The system will then have more freedom in applying tactics, but it also
 means it will have to make more complex decisions.
-In particular, it will have to decide when it is ``done''.
+In particular, it will have to decide when its task is ``done''.
 
 We have several propositions of metrics that can guide a system into
 making such a decision.
@@ -161,7 +173,7 @@ its inventor's doctoral dissertation.
 
 \begin{paragraph}{Resource-aware types.}
 It is no shame to say that many program transformations targeted in this
-proposal are high-level variants of compiler optimizations by their widely
+proposal are high-level variants of compiler optimizations according to their widely
 accepted notion.
 If so, a straight-forward metric would be an estimation of resources
 that a program term will consume during its execution.
@@ -170,8 +182,8 @@ usage properties~\cite{CAV2012/Hoffman} such as time and space complexity.
 While naturally providing some sound approximation rather than a precise
 identification, it can guide the system to stop when the desired level
 of performance has been obtained.
-The experience of Prof. Nadia Polikarpova (listed as a collaborator) with such types, 
-and her specialty, will surely prove useful for this project.
+We will benefit from the expertise Prof. Nadia Polikarpova (listed as a collaborator) with such types, 
+and her specialty, in the design of a suitable type characterization for program derivation.
 \end{paragraph}
 
 \bigskip
