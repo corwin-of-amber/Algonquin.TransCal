@@ -116,6 +116,7 @@ object Interpreter {
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
+    logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
 		println(tokens)
 		
 		implicit val enc = new Encoding

@@ -15,3 +15,5 @@ prog.txt
 /.DS_Store
 /target/
 /.idea/
+/build/
+/.gradle/

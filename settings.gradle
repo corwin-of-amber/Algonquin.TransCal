@@ -1,0 +1,8 @@
+rootProject.name = 'transcal'
+
+includeBuild('../bellmaniac')
+//        {
+//    dependencySubstitution {
+//        substitute module('org.algonquin.') with project(':')
+//    }
+//}
