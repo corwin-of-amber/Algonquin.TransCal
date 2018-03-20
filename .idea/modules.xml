@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_main.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_main.iml" group="bellmaniac" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_test.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_test.iml" group="bellmaniac" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal_main.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal_main.iml" group="transcal" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal_test.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal_test.iml" group="transcal" />
+    </modules>
+  </component>
+</project>

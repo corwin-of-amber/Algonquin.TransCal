@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <excludeFromCompile>
+      <file url="file://$PROJECT_DIR$/../bellmaniac/src/main/scala/synth/tactics/sketch/SynthSCP.java" />
+    </excludeFromCompile>
+    <bytecodeTargetLevel>
+      <module name="bellmaniac_main" target="1.8" />
+      <module name="bellmaniac_test" target="1.8" />
+      <module name="transcal_main" target="1.8" />
+      <module name="transcal_test" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
