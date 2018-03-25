@@ -282,6 +282,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
     val work0 = work(s)
 
     val anchor_# = s.enc.ntor --> anchor
+    /** All places with placeholder where first parameter is anchor_# */
     val marks = work0.matches(Markers.placeholder.leaf) filter (_(2) == anchor_#)
     val matches = work0.matches(Markers.placeholderEx.leaf) filter (_(2) == anchor_#)
     //val nonMatches = work0.nonMatches(Markers.all map (_.leaf):_*)
