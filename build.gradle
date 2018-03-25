@@ -12,6 +12,21 @@ repositories {
     }
 }
 
+sourceSets {
+    main {
+        scala {
+            output.resourcesDir = "build/classes/scala/main"
+        }
+    }
+    test {
+        scala {
+            output.resourcesDir = "build/classes/scala/test"
+        }
+    }
+}
+
+def json4s_version = '3.5.3'
+
 dependencies {
     compile "org.scala-lang:scala-library:2.11.8"
     testCompile "org.scalatest:scalatest_2.11:3.0.0"
@@ -21,6 +36,10 @@ dependencies {
     compile "org.algonquin:bellmaniac"
     compile group: 'com.typesafe.scala-logging', name: 'scala-logging-slf4j_2.11', version: '2.1.2'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '0.9.26'
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.json4s', name: 'json4s-core_2.11', version: json4s_version
+    compile group: 'org.json4s', name: 'json4s-native_2.11', version: json4s_version
+    compile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
 }
 
