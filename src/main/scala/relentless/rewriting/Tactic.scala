@@ -9,7 +9,6 @@ import syntax.Strip
 import relentless.matching.Encoding
 import relentless.matching.Trie
 import relentless.matching.Trie.Directory
-import relentless.rewriting.Rewrite.WorkLoop
 
 import scala.collection.SetLike
 import semantics.LambdaCalculus
@@ -90,7 +89,7 @@ object Rules {
 abstract class RuleBasedTactic(rules: List[CompiledRule]) extends Tactic with LazyLogging {
 
   def work(s: Revision) = {
-    val work0 = new WorkLoop(s.tuples, rules, s.directory)(s.enc)
+    val work0 = new Rewrite(s.tuples, rules, s.directory)(s.enc)
     work0()
     println("-" * 60)
     work0
@@ -183,9 +182,9 @@ trait Compaction extends RuleBasedTactic {
 
   override def work(s: Revision) = compaction(super.work(s))(s.enc)
 
-  def compaction(work: WorkLoop)(implicit enc: Encoding): WorkLoop = compaction0(work)
+  def compaction(work: Rewrite)(implicit enc: Encoding): Rewrite = compaction0(work)
 
-  private def compaction0(work: WorkLoop)(implicit enc: Encoding): WorkLoop = {
+  private def compaction0(work: Rewrite)(implicit enc: Encoding): Rewrite = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
     val except = Markers.all map (enc.ntor --> _.leaf)
@@ -227,7 +226,7 @@ trait Compaction extends RuleBasedTactic {
     /*--------------------*/
     if (equiv.nonEmpty) {
       def subst(w: Array[Int]) = w map (x => equiv getOrElse (x,x))
-      val work = new WorkLoop(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
+      val work = new Rewrite(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
       work()
       compaction0(work)
     }

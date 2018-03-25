@@ -13,7 +13,6 @@ import relentless.matching.Trie
 import relentless.matching.Match
 
 
-
 class CompiledRule(val shards: List[Bundle], val conclusion: Bundle, 
                    val nHoles: Int, val parameterIndexes: List[Int])(implicit enc: Encoding) {
   
@@ -27,6 +26,18 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     import Rewrite.RuleOps
     of (pattern.template =:> conclusion.template)
   }
+
+  //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
+  private def fresh(wv: Array[Int]) =
+    enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
+
+  private def lookup(ivs: Seq[(Int, Int)], t: Trie[Int]): Option[Int] = ivs match {
+    case Nil => Some(t.words.head(1))
+    case (i, v) +: ivs => t.get(i, v) match {
+      case None => None
+      case Some(t) => lookup(ivs, t)
+    }
+  }
   
   def conclude(valuation: Array[Int], trie: Trie[Int]) = {
     assert(valuation.length >= nHoles)
@@ -35,17 +46,6 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     val newSubterms = mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
         
     //if (dbg != null) println(s"[rewrite] conclude from ${dbg.toPretty}  with  ${newSubterms mapValues (enc.ntor <--)}");
-    
-    //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
-    def fresh(wv: Array[Int]) = enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
-
-    def lookup(ivs: Seq[(Int, Int)], t: Trie[Int]): Option[Int] = ivs match {
-      case Nil => Some(t.words.head(1))
-      case (i, v) +: ivs => t.get(i, v) match {
-        case None => None
-        case Some(t) => lookup(ivs, t)
-      }
-    }
     
     // construct new tuples by replacing holes (negative integers) with valuation elements and fresh terms
     for (w <- conclusion.tuples.reverse) yield {
@@ -66,9 +66,94 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
 }
 
 
+/** Representing the rewrite system
+  *
+  * The rewriting is done by building a Trie of terms.
+  * The full term can be recreated using reconstruct
+  */
+class Rewrite(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
+
+  import collection.mutable
+  import Rewrite._
+
+  def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+    this(init, compiledRules, new Trie[Int](directory))
+
+  val match_ = new Match(trie)(enc)
+
+  val wq = mutable.Queue.empty[Array[Int]] ++ init
+  val ws = mutable.Set.empty[List[Int]]
+
+  def apply() {
+    while (!wq.isEmpty && !exceeded) {
+      val w = wq.dequeue()
+      if (ws add (w toList)) {
+        work(w)
+      }
+    }
+  }
+
+  def stream() = {
+    var i = 0
+    Reconstruct.whileYield(!wq.isEmpty) {
+      val w = wq.dequeue()
+      if (ws add (w toList)) {
+        work(w)
+      }
+      val gm = matches(RuleBasedTactic.Markers.goal.leaf) // perhaps generalize to other markers?
+      val gmAdded = gm drop i
+      i = gm.length
+      gmAdded
+    }
+  }
+
+  def work(w: Array[Int]) {
+    //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
+
+    if (trie.words.contains(w))
+      logger.debug(s"Readding a word to trie. word: $w")
+    trie add w
+    logger.trace(s"working on word ${w mkString " "}")
+    for (r <- compiledRules) {
+      processRule(r, w)
+    }
+
+    //for (g <- goal) processRule(g, w)
+  }
+
+  def exceeded = {
+    //trie.subtries(1).size > 1000
+    //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
+    (trie.words map (_(1)) toSet).size > 1000
+  }
+
+  def processRule(rule: CompiledRule, w: Array[Int]) {
+    val valuation = new Array[Int](rule.nHoles)
+    for (s <- rule.shards) {
+      for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
+        //println(s"valuation = ${valuation mkString " "}")
+        val add = rule.conclude(valuation, trie)
+        trace(rule, valuation, add)
+        logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString(", ")}. words: ${add map (_ mkString " ") mkString ", "}")
+        wq.enqueue (add:_*)
+      }
+    }
+  }
+
+  def matches(headSymbol: Identifier) = {
+    trie.get(0, enc.ntor --> headSymbol) match {
+      case Some(t) => t.words
+      case _ => Seq.empty
+    }
+  }
+
+  def nonMatches(headSymbols: Identifier*) =
+    Rewrite.nonMatches(trie.words, headSymbols:_*)
+
+}
+
 
 object Rewrite {
-  
   val `=>` = I("=>", "operator")  // directional rewrite
   val ||| = I("|||", "operator")  // parallel patterns or conclusions
   val ||> = I("||>", "operator")
@@ -105,108 +190,21 @@ object Rewrite {
   def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
+  def nonMatches(words: Seq[Array[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
+    val heads = headSymbols map (enc.ntor -->)
+    words filterNot (heads contains _(0))
+  }
 
   /**
-   * Applies a set of rewrite rules in a loop until saturation ("fixed point").
+   * Used for misc debugging
    */
-  class WorkLoop(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
-    
-    import collection.mutable
-    import WorkLoop._
-    
-    def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
-      this(init, compiledRules, new Trie[Int](directory))
+  object trace {
+    def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[Array[Int]]) {
+      for (w <- conclusion)
+        productions += w.toList -> (rule, valuation)
+    }
 
-    val match_ = new Match(trie)(enc)
-    
-    val wq = mutable.Queue.empty[Array[Int]] ++ init
-    val ws = mutable.Set.empty[List[Int]]
-    
-    def apply() {
-      while (!wq.isEmpty && !exceeded) {
-        val w = wq.dequeue()
-        if (ws add (w toList)) {
-          work(w)
-        }
-      }
-    }
-    
-    def stream() = {
-      var i = 0
-      Reconstruct.whileYield(!wq.isEmpty) {
-        val w = wq.dequeue()
-        if (ws add (w toList)) {
-          work(w)
-        }
-        val gm = matches(RuleBasedTactic.Markers.goal.leaf) // perhaps generalize to other markers?
-        val gmAdded = gm drop i
-        i = gm.length
-        gmAdded
-      }
-    }
-    
-    def work(w: Array[Int]) {
-      //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
-
-      if (trie.words.contains(w))
-        logger.debug(s"Readding a word to trie. word: $w")
-      trie add w
-      logger.trace(s"working on word ${w mkString " "}")
-      for (r <- compiledRules) {
-        processRule(r, w)
-      }
-      
-      //for (g <- goal) processRule(g, w)
-    }
-    
-    def exceeded = {
-      //trie.subtries(1).size > 1000
-      //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
-      (trie.words map (_(1)) toSet).size > 1000
-    }
-    
-    def processRule(rule: CompiledRule, w: Array[Int]) {
-      val valuation = new Array[Int](rule.nHoles)
-      for (s <- rule.shards) {
-        for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
-          //println(s"valuation = ${valuation mkString " "}")
-          val add = rule.conclude(valuation, trie)
-          trace(rule, valuation, add)
-          logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString(", ")}. words: ${add map (_ mkString " ") mkString ", "}")
-          wq.enqueue (add:_*)
-        }
-      }
-    }
-    
-    def matches(headSymbol: Identifier) = {
-      trie.get(0, enc.ntor --> headSymbol) match {
-        case Some(t) => t.words
-        case _ => Seq.empty
-      }
-    }
-    
-    def nonMatches(headSymbols: Identifier*) = 
-      WorkLoop.nonMatches(trie.words, headSymbols:_*)
-   
-  }
-  
-  object WorkLoop {
-    def nonMatches(words: Seq[Array[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
-      val heads = headSymbols map (enc.ntor -->)
-      words filterNot (heads contains _(0))
-    }
-    
-    /**
-     * Used for misc debugging
-     */
-    object trace {
-      def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[Array[Int]]) {
-        for (w <- conclusion)
-          productions += w.toList -> (rule, valuation)
-      }
-      
-      val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
-    }
+    val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
   }
  
   

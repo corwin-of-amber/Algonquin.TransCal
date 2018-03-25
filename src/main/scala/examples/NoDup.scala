@@ -11,7 +11,6 @@ import relentless.rewriting.Rewrite
 import java.io.FileOutputStream
 import java.io.FileWriter
 import relentless.rewriting.Reconstruct
-import relentless.rewriting.Rewrite.WorkLoop
 import report.data.DisplayContainer
 import relentless.rewriting.Revision
 import relentless.rewriting.RuleBasedTactic.Markers
@@ -172,7 +171,7 @@ object NoDup {
   }
   //val goal4scheme = { import BasicSignature._; new Scheme.Template(y)(y) }
   
-  def compaction(work: WorkLoop): WorkLoop = {
+  def compaction(work: Rewrite): Rewrite = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
     val except = List(_goalMarker, _phMarker, _phmMarker) map (enc.ntor --> _.leaf)
@@ -198,7 +197,7 @@ object NoDup {
     }
     if (equiv.nonEmpty) {
       def subst(w: Array[Int]) = w map (x => equiv getOrElse (x,x))
-      val work = new WorkLoop(trie.words.toStream map subst, List.empty, trie.directory)
+      val work = new Rewrite(trie.words.toStream map subst, List.empty, trie.directory)
       work()
       compaction(work)
     }
@@ -217,7 +216,7 @@ object NoDup {
 
   def locate(s: State, rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) = {
     // Apply rules to find the pattern
-    val work0 = new WorkLoop(s.tuples, rules, directory)
+    val work0 = new Rewrite(s.tuples, rules, directory)
     work0()
     println("-" * 60)
 
@@ -254,7 +253,7 @@ object NoDup {
   
   def explore(s: State, rules: List[CompiledRule], anchor: Term) = {
     // Apply rules to find the pattern
-    val work = new WorkLoop(s.tuples, rules, directory)
+    val work = new Rewrite(s.tuples, rules, directory)
     work.stream() foreach (_ map println)
     println("-" * 60)
 
@@ -269,7 +268,7 @@ object NoDup {
   
   def generalize(s: State, rules: List[CompiledRule], leaves: List[Term], name: Option[Term], context: List[Term]): State = {
     // Apply rewrite rules until saturated    
-    val work = new WorkLoop(s.tuples, rules, directory)
+    val work = new Rewrite(s.tuples, rules, directory)
     work()
     println("-" * 60)
     val work0 = compaction(work)
@@ -298,7 +297,7 @@ object NoDup {
   }
 
   def elaborate(s: State, rules: List[CompiledRule], goalScheme: Scheme) = {
-    val work = new WorkLoop(s.tuples, rules, directory)
+    val work = new Rewrite(s.tuples, rules, directory)
     val nonMatches = work.nonMatches(_phMarker.leaf, _phmMarker.leaf, _goalMarker.leaf)
     work()
     println("-" * 60)
