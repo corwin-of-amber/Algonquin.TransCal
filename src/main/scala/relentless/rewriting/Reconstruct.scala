@@ -2,16 +2,13 @@ package relentless.rewriting
 
 //import com.typesafe.scalalogging.slf4j.{LazyLogging, Logger}
 //import org.slf4j.LoggerFactory
-import syntax.Tree
-import syntax.Identifier
+import relentless.matching.{Encoding, Trie}
 import syntax.AstSugar._
-import relentless.matching.Trie
-import relentless.matching.Encoding
+import syntax.{Identifier, Tree}
 
-import scala.collection.immutable
 import scala.collection.immutable.HashSet
 import scala.collection.immutable.Stream.cons
-import scala.collection.mutable
+import scala.collection.{immutable, mutable}
 
 /**
   * Reconstruction of terms from tuples stored in the trie.
@@ -24,9 +21,9 @@ import scala.collection.mutable
 class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
   //  class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) extends LazyLogging {
 
-  import collection.mutable
-  import math.Ordering
   import Reconstruct._
+
+  import collection.mutable
 
   def this(root: Int, trie: Trie[Int]) = this(new Tree(root), trie.words.toStream)
 
@@ -218,16 +215,6 @@ object Reconstruct {
         newEntry #:: newEntry.advance(isFinal)
       }
     }
-  }
-
-  case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) {
-    def isFinal: Boolean = params.isEmpty
-
-    override def toString: String = s"type: $edgeType target: $target params: ${params mkString " "}"
-  }
-
-  case object HyperEdge {
-    def apply[T](seq: Seq[T]): HyperEdge[T] = HyperEdge[T](seq(0), seq(1), seq drop 2)
   }
 
   def edgeToTree[T](edge: HyperEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
