@@ -1,9 +1,9 @@
 package relentless.matching
 
-import collection.mutable
-
+import relentless.rewriting.HyperEdge
 import syntax.Tree
-import scala.collection.SeqLike
+
+import scala.collection.mutable
 
 
 /**
@@ -17,10 +17,10 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
   
   private val DEFAULT_CAPACITY = 5
   
-  var words: mutable.ListBuffer[Array[E]] = mutable.ListBuffer.empty  /* please don't change 'words' outside this class :-P */
+  var words: mutable.ListBuffer[HyperEdge[E]] = mutable.ListBuffer.empty  /* please don't change 'words' outside this class :-P */
   /*private*/ var subtries: Array[mutable.Map[E,Trie[E]]] = new Array(DEFAULT_CAPACITY)
 
-  def add(word: Array[E]) {
+  def add(word: HyperEdge[E]) {
     for (t <- directory.subtrees) {
       val idx = t.root.letterIndex
       if (idx < word.length) {
@@ -43,7 +43,7 @@ class Trie[E](val directory: Tree[Trie.DirectoryEntry]) {
     else subtrie get letter
   }
   
-  def ++=(words: Iterable[Array[E]]) = { words foreach add ; this }
+  def ++=(words: Iterable[HyperEdge[E]]) = { words foreach add ; this }
   
   /* this is so it can be overridden easily */
   def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E](subdirectory)

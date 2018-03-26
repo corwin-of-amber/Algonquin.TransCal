@@ -18,7 +18,7 @@ import scala.collection.{immutable, mutable}
   * @param indexMapping associates some term identifiers with existing terms -- these will not
   *                     be traversed, instead the value in the mapping will be taken as is.
   */
-class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
+class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
   //  class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) extends LazyLogging {
 
   import Reconstruct._
@@ -27,11 +27,11 @@ class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMappi
 
   def this(root: Int, trie: Trie[Int]) = this(new Tree(root), trie.words.toStream)
 
-  def this(root: Int, words: Seq[Array[Int]]) = this(new Tree(root), words.toStream)
+  def this(root: Int, words: Seq[HyperEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: Array[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: HyperEdge[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
 
-  def this(tuple: Array[Int], words: Seq[Array[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
+  def this(tuple: HyperEdge[Int], words: Seq[HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
 
   def ++(mapping: Map[Int, Term]): Reconstruct = {
     indexMapping ++= mapping
@@ -64,7 +64,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMappi
     mutable.Map[Int, HashSet[HyperEdge[Int]]]().withDefaultValue(HashSet.empty)
 
   // input
-  val edges: Stream[HyperEdge[Int]] = words map ((word) => HyperEdge[Int](word))
+  val edges: Stream[HyperEdge[Int]] = words
 
   // each step keep calculating to get a depth calculation
   val nextStep: mutable.Queue[Entry[Int]] = mutable.Queue.empty
@@ -223,7 +223,7 @@ object Reconstruct {
 
   def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
 
-  def tupleToTree(tuple: Array[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
+  def tupleToTree(tuple: HyperEdge[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
 
   def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
     if (!cond) Stream.empty

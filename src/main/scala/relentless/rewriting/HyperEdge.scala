@@ -13,7 +13,7 @@ case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) extends IndexedS
 
   override def length: Int = params.length + 2
 
-  def apply[T](idx: Int): T = if (idx == 0) edgeType else if (idx == 1) target else params.apply(idx-2)
+  def apply(idx: Int): T = if (idx == 0) edgeType else if (idx == 1) target else params(idx-2)
 }
 
 case object HyperEdge {

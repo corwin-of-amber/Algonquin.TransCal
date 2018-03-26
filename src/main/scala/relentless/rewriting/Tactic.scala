@@ -1,17 +1,11 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.slf4j.LazyLogging
-import syntax.Identifier
-import syntax.Tree
-import syntax.AstSugar._
-import syntax.Scheme
-import syntax.Strip
-import relentless.matching.Encoding
-import relentless.matching.Trie
+import relentless.matching.{Encoding, Trie}
 import relentless.matching.Trie.Directory
-
-import scala.collection.SetLike
 import semantics.LambdaCalculus
+import syntax.AstSugar._
+import syntax.{Identifier, Scheme, Strip, Tree}
 
 
 
@@ -20,7 +14,7 @@ abstract class Tactic {
 }
 
 
-case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[Array[Int]])(implicit val enc: Encoding, val directory: Directory) {
+case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[HyperEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
   def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toTuples(program))
 
   lazy val trie = new Trie[Int](directory) ++= tuples
@@ -35,7 +29,7 @@ case class Revision(val program: Term, val env: Revision.Environment, val focuse
   def ++(e: Environment) = Revision(program, Environment(env.vars ++ e.vars), focusedSubterm, elaborate, tuples)
   def +(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el.rhs, el.lhs))
   def ++(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el.rhs, el.lhs))))
-  def ++(l: Iterable[Array[Int]])(implicit d: DummyImplicit) = Revision(program, env, focusedSubterm, elaborate, tuples ++ l)
+  def ++(l: Iterable[HyperEdge[Int]])(implicit d: DummyImplicit) = Revision(program, env, focusedSubterm, elaborate, tuples ++ l)
 
   def +-(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
   def ++-(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples)
@@ -54,7 +48,7 @@ case class RevisionDiff(
     val env_++        : List[Term],                  /* corresponds to ++(Environment) */
     val elaborate_++  : List[Revision.Equivalence],  /* corresponds to ++(List[Equivalence]) */
     val elaborate_++- : List[Revision.Equivalence],  /* corresponds to ++-(List[Equivalence]) */
-    val tuples_++     : List[Array[Int]]             /* corresponds to ++(List[Array[Int]]) */
+    val tuples_++     : List[HyperEdge[Int]]             /* corresponds to ++(List[Array[Int]]) */
     ) {
 
   def ++:(rev: Revision) = {
@@ -225,7 +219,7 @@ trait Compaction extends RuleBasedTactic {
     }
     /*--------------------*/
     if (equiv.nonEmpty) {
-      def subst(w: Array[Int]) = w map (x => equiv getOrElse (x,x))
+      def subst(w: HyperEdge[Int]): HyperEdge[Int] = HyperEdge(w map (x => equiv getOrElse (x,x)))
       val work = new Rewrite(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
       work()
       compaction0(work)
@@ -238,10 +232,9 @@ trait Compaction extends RuleBasedTactic {
 
 class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) extends Tactic {
 
-  import syntax.AstSugar._
-  import RuleBasedTactic.⇢
-  import Rewrite.RuleOps
   import LambdaCalculus.↦⁺
+  import RuleBasedTactic.⇢
+  import syntax.AstSugar._
 
   val vars = equalities flatMap (_.vars) map (T(_))
   def rules(implicit enc: Encoding) = Rules((equalities ++ derivedFrom(equalities)) map skolemize)
@@ -446,7 +439,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
     }
   }
 
-  def pickFirst(match_ : Array[Int], trie: Trie[Int])(implicit enc: Encoding) = {
+  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
     new Reconstruct(match_, trie)(enc, except).head
   }
