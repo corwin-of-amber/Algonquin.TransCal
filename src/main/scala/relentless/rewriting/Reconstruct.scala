@@ -223,7 +223,8 @@ object Reconstruct {
 
   def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
 
-  def tupleToTree(tuple: HyperEdge[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
+  def tupleToTree[A](tuple: HyperEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
+  def tupleToTree[A](tuple: Seq[A]): Tree[A] = tupleToTree(HyperEdge(tuple))
 
   def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
     if (!cond) Stream.empty

@@ -39,7 +39,7 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.json4s', name: 'json4s-core_2.11', version: json4s_version
-    compile group: 'org.json4s', name: 'json4s-native_2.11', version: json4s_version
-    compile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
+    testCompile group: 'org.json4s', name: 'json4s-native_2.11', version: json4s_version
+    testCompile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
 }
 

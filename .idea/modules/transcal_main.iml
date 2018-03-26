@@ -12,21 +12,15 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="bellmaniac_main" />
     <orderEntry type="library" name="Gradle: com.typesafe.scala-logging:scala-logging-slf4j_2.11:2.1.2" level="project" />
-    <orderEntry type="library" name="Gradle: org.json4s:json4s-native_2.11:3.5.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.json4s:json4s-core_2.11:3.5.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.json4s:json4s-ast_2.11:3.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.rogach:scallop_2.11:0.9.5" level="project" />
     <orderEntry type="library" name="Gradle: com.typesafe.scala-logging:scala-logging-api_2.11:2.1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang:scala-reflect:2.11.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.json4s:json4s-scalap_2.11:3.5.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.scala-lang.modules:scala-xml_2.11:1.0.6" level="project" />
-    <orderEntry type="library" name="Gradle: org.scala-lang:scala-library:2.11.11" level="project" />
+    <orderEntry type="library" name="Gradle: org.scala-lang:scala-library:2.11.8" level="project" />
     <orderEntry type="library" name="Gradle: org.mongodb:mongo-java-driver:2.13.1" level="project" />
     <orderEntry type="library" name="Gradle: :com.microsoft.z3:" level="project" />
     <orderEntry type="library" name="Gradle: :earley:" level="project" />
     <orderEntry type="library" name="Gradle: ch.qos.logback:logback-classic:0.9.26" level="project" />
     <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.7" level="project" />
     <orderEntry type="library" name="Gradle: ch.qos.logback:logback-core:0.9.26" level="project" />
-    <orderEntry type="library" name="Gradle: com.thoughtworks.paranamer:paranamer:2.8" level="project" />
   </component>
 </module>

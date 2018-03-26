@@ -8,7 +8,7 @@ import org.json4s.native.JsonMethods._
 import org.json4s._
 import org.scalatest.concurrent.{Interruptor, TimeLimitedTests}
 import org.scalatest.time.{Millis, Seconds, Span}
-import relentless.rewriting.Reconstruct
+import relentless.rewriting.{HyperEdge, Reconstruct}
 import relentless.rewriting.Reconstruct.Entry
 import syntax.AstSugar.Term
 
@@ -50,7 +50,7 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
       val init: Tree[Int] = jarrayToTree(parse(test(0)).as[JArray].values)
       val except: Set[Int] = test(2) split " " filter (_.length > 0) map (_ toInt) toSet
       val outs: List[Tree[Int]] = treeArrayToTrees(parse(test(3)).as[JArray]) toList
-      val words: Seq[Array[Int]] = test drop 4 map ((line: String) => line split " " map (_.toInt))
+      val words: Seq[HyperEdge[Int]] = test drop 4 map ((line: String) => line split " " map (_.toInt)) map (HyperEdge(_))
       val newOuts: List[Tree[Int]] = (new Reconstruct(init.root, words) ++ (finals zip Stream.continually(null)).toMap) (except) toList
     }
   }
@@ -181,10 +181,10 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
 13 52 30
 19 38 52 51
      */
-    val words = Seq(Seq(2, 5).toArray, Seq(1, 8, 5, 3, 4).toArray).toStream
+    val words = Seq(Seq(2, 5), Seq(1, 8, 5, 3, 4)) map (HyperEdge(_)) toStream
     val im: Map[Int, Term] = Map(3 -> null, 4 -> null)
-    val expected = Reconstruct.tupleToTree(Seq(1, -1, 2, 3, 4).toArray)
-    val reconstruct = new Reconstruct(Seq(1, -1, 5, 3, 4).toArray, words) ++ im
+    val expected = Reconstruct.tupleToTree(Seq(1, -1, 2, 3, 4))
+    val reconstruct = new Reconstruct(HyperEdge(1, -1, Seq(5, 3, 4)), words) ++ im
     val resultTree: Tree[Int] = reconstruct(Set[Int]()).head
     resultTree should equal (expected)
   }
@@ -308,10 +308,10 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
 7 99 125
 59 103 121 75
 59 106 122 75"""
-    val words = rewrites.split("\n") map ((s) => s.split(" ") map (_.toInt) toArray)
+    val words = rewrites.split("\n") map ((s) => HyperEdge(s.split(" ") map (_.toInt)))
     val im: Map[Int, Term] = Set(69, 138, 56, 37, 25, 57, 61, 132, 133, 74, 60, 28, 38, 137, 65, 129, 134, 73, 128, 2, 34, 64, 71, 54, 39, 66, 130, 135, 35, 63, 31, 72, 40, 55, 139, 75, 58, 36, 30, 136, 79, 131, 68, 62).zip(Stream.continually(null)).toMap
     val expected = Reconstruct.tupleToTree(Seq(44, -1 , 83).toArray)
-    val reconstruct = new Reconstruct(Seq(44, 81, 82).toArray, words.toStream) ++ im
+    val reconstruct = new Reconstruct(HyperEdge(44, 81, Seq(82)), words.toStream) ++ im
     val resultTree: Tree[Int] = reconstruct(Set[Int]()).head
     resultTree should equal (expected)
   }
