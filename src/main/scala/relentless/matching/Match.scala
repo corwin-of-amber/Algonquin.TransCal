@@ -1,6 +1,6 @@
 package relentless.matching
 
-import syntax.AstSugar.Term
+import relentless.rewriting.HyperEdge
 
 
 class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
@@ -15,7 +15,7 @@ class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
     */
-  def unify(word: Array[Int], pattern: Array[Int], valuation: Array[Int]): Option[Array[Int]] =
+  def unify(word: HyperEdge[Int], pattern: Array[Int], valuation: Array[Int]): Option[Array[Int]] =
     if (word.length != pattern.length)
       None
     else {
@@ -38,7 +38,7 @@ class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
       Some(`valuation'`)
     }
 
-  def lookup(pattern: Array[Int], valuation: Array[Int]): Seq[Array[Int]] = {
+  def lookup(pattern: Array[Int], valuation: Array[Int]): Seq[HyperEdge[Int]] = {
     var t = trie
     try {
       for ((ph, idx) <- pattern.zipWithIndex) {
@@ -67,7 +67,7 @@ class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
     }
   }
 
-  def matchLookupUnify_*(pattern: List[Array[Int]], first: Array[Int], valuation: Array[Int]): Stream[Array[Int]] = {
+  def matchLookupUnify_*(pattern: List[Array[Int]], first: HyperEdge[Int], valuation: Array[Int]): Stream[Array[Int]] = {
     unify(first, pattern.head, valuation) match {
       case Some(valuation) => lookupUnify_*(pattern.tail, valuation)
       case _ => Stream.empty

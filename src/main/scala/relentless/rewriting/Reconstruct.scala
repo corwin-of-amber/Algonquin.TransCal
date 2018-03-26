@@ -2,16 +2,13 @@ package relentless.rewriting
 
 //import com.typesafe.scalalogging.slf4j.{LazyLogging, Logger}
 //import org.slf4j.LoggerFactory
-import syntax.Tree
-import syntax.Identifier
+import relentless.matching.{Encoding, Trie}
 import syntax.AstSugar._
-import relentless.matching.Trie
-import relentless.matching.Encoding
+import syntax.{Identifier, Tree}
 
-import scala.collection.immutable
 import scala.collection.immutable.HashSet
 import scala.collection.immutable.Stream.cons
-import scala.collection.mutable
+import scala.collection.{immutable, mutable}
 
 /**
   * Reconstruction of terms from tuples stored in the trie.
@@ -21,20 +18,20 @@ import scala.collection.mutable
   * @param indexMapping associates some term identifiers with existing terms -- these will not
   *                     be traversed, instead the value in the mapping will be taken as is.
   */
-class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
+class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
   //  class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) extends LazyLogging {
 
-  import collection.mutable
-  import math.Ordering
   import Reconstruct._
+
+  import collection.mutable
 
   def this(root: Int, trie: Trie[Int]) = this(new Tree(root), trie.words.toStream)
 
-  def this(root: Int, words: Seq[Array[Int]]) = this(new Tree(root), words.toStream)
+  def this(root: Int, words: Seq[HyperEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: Array[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: HyperEdge[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
 
-  def this(tuple: Array[Int], words: Seq[Array[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
+  def this(tuple: HyperEdge[Int], words: Seq[HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
 
   def ++(mapping: Map[Int, Term]): Reconstruct = {
     indexMapping ++= mapping
@@ -67,7 +64,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMappi
     mutable.Map[Int, HashSet[HyperEdge[Int]]]().withDefaultValue(HashSet.empty)
 
   // input
-  val edges: Stream[HyperEdge[Int]] = words map ((word) => HyperEdge[Int](word))
+  val edges: Stream[HyperEdge[Int]] = words
 
   // each step keep calculating to get a depth calculation
   val nextStep: mutable.Queue[Entry[Int]] = mutable.Queue.empty
@@ -220,23 +217,13 @@ object Reconstruct {
     }
   }
 
-  case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) {
-    def isFinal: Boolean = params.isEmpty
-
-    override def toString: String = s"type: $edgeType target: $target params: ${params mkString " "}"
-  }
-
-  case object HyperEdge {
-    def apply[T](seq: Seq[T]): HyperEdge[T] = HyperEdge[T](seq(0), seq(1), seq drop 2)
-  }
-
   def edgeToTree[T](edge: HyperEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
 
   def onlyIf[A](cond: Boolean, op: => Seq[A]) = if (cond) op else Seq.empty
 
   def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
 
-  def tupleToTree(tuple: Array[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
+  def tupleToTree(tuple: HyperEdge[Int]) = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
 
   def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
     if (!cond) Stream.empty

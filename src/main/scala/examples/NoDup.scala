@@ -1,21 +1,13 @@
 package examples
 
-import syntax._
-import syntax.AstSugar._
-import relentless.matching.Trie
-import relentless.matching.Bundle
-import relentless.matching.Match
-import relentless.matching.Encoding
-import relentless.rewriting.CompiledRule
-import relentless.rewriting.Rewrite
-import java.io.FileOutputStream
-import java.io.FileWriter
-import relentless.rewriting.Reconstruct
-import report.data.DisplayContainer
-import relentless.rewriting.Revision
+import java.io.{FileWriter, PrintWriter}
+
+import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RuleBasedTactic.Markers
-import relentless.rewriting.RuleBasedTactic
-import java.io.PrintWriter
+import relentless.rewriting._
+import report.data.DisplayContainer
+import syntax.AstSugar._
+import syntax._
 
 
 
@@ -43,7 +35,7 @@ object NoDup {
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
   }
 
-  import RuleBasedTactic.{⇢, CompiledGoal, CompiledPattern, mkGoal, mkLocator, mkLocator_simple}
+  import RuleBasedTactic.{CompiledGoal, CompiledPattern, mkGoal, mkLocator, mkLocator_simple, ⇢}
   
   def main(args: Array[String]) {
     import BasicSignature._
@@ -114,15 +106,15 @@ object NoDup {
   val _phmMarker = Markers.placeholderEx
   
   val start = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
     
     Rewrite.compileRules(List(_x, y), List((_x & y) =:> _phMarker(TI(1))))
   }
   
   val goal1 = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
 
     Rewrite.compileRules(List(x, y, z, w, v),
         List((_phMarker(TI(1)) ||| (x & y & z & w)) =:> _goalMarker(x, y, z, w))
@@ -131,8 +123,8 @@ object NoDup {
   val goal1scheme = { import BasicSignature._; new Scheme.Template(x, y, z, w)(x & y & z & w) }
   
   val anchor2 = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
 
     Rewrite.compileRules(List(),
         List((not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> (_phMarker(TI(2)) ||| _phmMarker(TI(2), x, `x'`, `xs'`)))
@@ -141,8 +133,8 @@ object NoDup {
   val anchor2scheme = { import BasicSignature._; new Scheme.Template(x, `x'`, `xs'`)(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) }
   
   val goal2 = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
 
     Rewrite.compileRules(List(x, `x'`, `xs'`, y, z, w, v),
         List(//(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> _phMarker(TI(2)),
@@ -152,8 +144,8 @@ object NoDup {
   val goal2scheme = { import BasicSignature._; new Scheme.Template(y, z)(set_disj(y, z)) }
   
   val goal3 = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
 
     Rewrite.compileRules(List(x, y, z, w, v),
       List(((set_disj(set_union(y, z), w)) & v) =:> _phMarker(TI(3)),
@@ -163,8 +155,8 @@ object NoDup {
   val goal3scheme = { import BasicSignature._; new Scheme.Template(y, z)(`_nodup'`:@(y, z)) }
   
   val anchor4 = {
-    import Rewrite.RuleOps
     import BasicSignature._
+    import Rewrite.RuleOps
 
     Rewrite.compileRules(List(x,y),
         List(set_disj(x, y) =:> _phMarker(TI(4))))
@@ -196,7 +188,7 @@ object NoDup {
       uniques(subtrie, 2)
     }
     if (equiv.nonEmpty) {
-      def subst(w: Array[Int]) = w map (x => equiv getOrElse (x,x))
+      def subst(w: HyperEdge[Int]): HyperEdge[Int] = HyperEdge(w map (x => equiv getOrElse (x,x)))
       val work = new Rewrite(trie.words.toStream map subst, List.empty, trie.directory)
       work()
       compaction(work)
@@ -365,7 +357,7 @@ object NoDup {
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
 
 
-  def showem(matches: Seq[Array[Int]], trie: Trie[Int])(implicit enc: Encoding) {
+  def showem(matches: Seq[HyperEdge[Int]], trie: Trie[Int])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       println(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
@@ -374,7 +366,7 @@ object NoDup {
     }
   }
   
-  def pickFirst(match_ : Array[Int], trie: Trie[Int]) = {
+  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int]) = {
     new Reconstruct(match_, trie)(enc).head
   }
   

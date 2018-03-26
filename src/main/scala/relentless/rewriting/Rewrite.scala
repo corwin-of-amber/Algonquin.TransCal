@@ -55,7 +55,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
         newSubterms += wv(1) -> wv1
         wv(1) = wv1
       }
-      wv
+      HyperEdge(wv)
     }
   }
   
@@ -71,23 +71,23 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   * The rewriting is done by building a Trie of terms.
   * The full term can be recreated using reconstruct
   */
-class Rewrite(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
+class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
 
   import collection.mutable
   import Rewrite._
 
-  def this(init: Seq[Array[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+  def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
     this(init, compiledRules, new Trie[Int](directory))
 
   val match_ = new Match(trie)(enc)
 
-  val wq = mutable.Queue.empty[Array[Int]] ++ init
-  val ws = mutable.Set.empty[List[Int]]
+  val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
+  val ws = mutable.Set.empty[HyperEdge[Int]]
 
   def apply() {
     while (!wq.isEmpty && !exceeded) {
       val w = wq.dequeue()
-      if (ws add (w toList)) {
+      if (ws add w) {
         work(w)
       }
     }
@@ -97,7 +97,7 @@ class Rewrite(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie
     var i = 0
     Reconstruct.whileYield(!wq.isEmpty) {
       val w = wq.dequeue()
-      if (ws add (w toList)) {
+      if (ws add w) {
         work(w)
       }
       val gm = matches(RuleBasedTactic.Markers.goal.leaf) // perhaps generalize to other markers?
@@ -107,7 +107,7 @@ class Rewrite(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie
     }
   }
 
-  def work(w: Array[Int]) {
+  def work(w: HyperEdge[Int]) {
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
 
     if (trie.words.contains(w))
@@ -127,7 +127,7 @@ class Rewrite(init: Seq[Array[Int]], compiledRules: List[CompiledRule], val trie
     (trie.words map (_(1)) toSet).size > 1000
   }
 
-  def processRule(rule: CompiledRule, w: Array[Int]) {
+  def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
     val valuation = new Array[Int](rule.nHoles)
     for (s <- rule.shards) {
       for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
@@ -190,7 +190,7 @@ object Rewrite {
   def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
-  def nonMatches(words: Seq[Array[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
+  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
     val heads = headSymbols map (enc.ntor -->)
     words filterNot (heads contains _(0))
   }
@@ -199,7 +199,7 @@ object Rewrite {
    * Used for misc debugging
    */
   object trace {
-    def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[Array[Int]]) {
+    def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[HyperEdge[Int]]) {
       for (w <- conclusion)
         productions += w.toList -> (rule, valuation)
     }

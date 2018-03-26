@@ -1,8 +1,10 @@
 package relentless.matching
 
+import relentless.rewriting.HyperEdge
+import report.data.NumeratorWithMap
 import syntax.AstSugar._
 import syntax.Tree
-import report.data.NumeratorWithMap
+
 import scala.collection.mutable.ListBuffer
 
 
@@ -13,12 +15,12 @@ class Encoding {
   
   val ntor = new NumeratorWithMap { }
   
-  def toTuples(term: Term) : List[Array[Int]] = toTuples(term, term)
+  def toTuples(term: Term) : List[HyperEdge[Int]] = toTuples(term, term)
   
   /**
    * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term.
    */
-  def toTuples(term: Term, equateWith: Term) : List[Array[Int]] = {
+  def toTuples(term: Term, equateWith: Term) : List[HyperEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
     toTuple(Seq(head, top) ++ rest.toSeq) :: (rest flatMap toTuples)
@@ -27,10 +29,12 @@ class Encoding {
   /**
    * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term (int version).
    */
-  def toTuples(term: Term, equateWith: Int) : List[Array[Int]] = {
+  def toTuples(term: Term, equateWith: Int) : List[HyperEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
-    ((ntor --> head) +: top +: toTuple(rest.toSeq)) :: (rest flatMap toTuples)
+    val tail = rest flatMap toTuples
+    val firstHalf = HyperEdge((ntor --> head) +: top +: toTuple(rest.toSeq))
+    firstHalf :: tail
   }
 
   def toTuples(term: Term, alt: Map[Term, Int], nholes: Int, atRoot: Boolean = true) : List[Array[Int]] = {
@@ -47,7 +51,6 @@ class Encoding {
    * The roots of the terms in the bundle are special: they are all encoded as ~0.
    */
   def toBundle(holes: Term*)(terms: Term*) = {
-    import syntax.Piping._
     def dbg(x: List[Array[Int]]) { println(x map (_ map (x => if (x < 0) x else (ntor <-- x)) mkString " ")) }
     
     val altsq = terms.head :: holes.toList ++ (terms flatMap (term => term.nodes filterNot (n => (n eq term) || n.isLeaf)))
@@ -83,7 +86,7 @@ class Encoding {
     }
   }
   
-  def toTuple(sq: Seq[AnyRef]) = sq map (ntor -->) toArray
+  def toTuple(sq: Seq[AnyRef]) = HyperEdge(sq map (ntor -->))
   def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, ntor --> k)) toArray
 
   def asTerm(n: Int) = (ntor <-- n) match {
