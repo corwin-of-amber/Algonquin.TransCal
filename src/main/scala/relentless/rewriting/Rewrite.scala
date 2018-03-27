@@ -31,14 +31,9 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   private def fresh(wv: Array[Int]) =
     enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
-  private def lookup(ivs: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] = ivs match {
-    case Nil => Some(t.words.head(1))
-    case (i, v) +: ivs => t.get(i, v) match {
-      case None => None
-      case Some(t) => lookup(ivs, t)
-    }
-  }
-  
+  private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] =
+    t.sparseLookup(sparsePattern).map(_.target)
+
   def conclude(valuation: Array[Int], trie: Trie[Int, HyperEdge[Int]]) = {
     assert(valuation.length >= nHoles)
     

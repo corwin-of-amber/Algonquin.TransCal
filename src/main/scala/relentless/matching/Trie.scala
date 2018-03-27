@@ -41,7 +41,21 @@ class Trie[E, HE <: immutable.IndexedSeq[E]](val directory: Tree[Trie.DirectoryE
                            None }
     else subtrie get letter
   }
-  
+
+  /** Lookup by pattern.
+    * comparing each letter in the relevant index and return first word conforming to given pattern.
+    *
+    * @param sparsePattern index value pairs to find in trie.
+    * @return optional word conforming sparse pattern
+    */
+  def sparseLookup(sparsePattern: Seq[(Int, E)]): Option[HE] = sparsePattern match {
+    case Nil => Some(words.head)
+    case (i, v) +: ivs => get(i, v) match {
+      case None => None
+      case Some(t) => t.sparseLookup(ivs)
+    }
+  }
+
   def addAll(words: Iterable[HE]): Trie[E, HE] = { words foreach add ; this }
   def ++=(words: Iterable[HE]) = addAll(words)
 
