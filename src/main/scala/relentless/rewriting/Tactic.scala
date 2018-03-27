@@ -17,7 +17,7 @@ abstract class Tactic {
 case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[HyperEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
   def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toTuples(program))
 
-  lazy val trie = new Trie[Int](directory) ++= tuples
+  lazy val trie = new Trie[Int, HyperEdge[Int]](directory) ++= tuples
 
   def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
 
@@ -152,7 +152,7 @@ object RuleBasedTactic {
    * then all their neighbors (incident to those words' letters) recursively,
    * while not traversing across the boundary.
    */
-  def spanning(trie: Trie[Int], init: Iterable[Int], boundary: Iterable[Int]) = {
+  def spanning(trie: Trie[Int, HyperEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]) = {
     import collection.mutable
     val ws = mutable.Set.empty ++ boundary
     val wq = mutable.Queue.empty ++ init
@@ -187,7 +187,7 @@ trait Compaction extends RuleBasedTactic {
      * then declares _(1) to be equivalent for all words in each group.
      * Output is into equiv.
      */
-    def uniques(trie: Trie[Int], index: Int) {
+    def uniques(trie: Trie[Int, HyperEdge[Int]], index: Int) {
       if (index >= trie.subtries.length || trie.subtries(index) == null) {
         if (trie.words.length > 1) {
           val equals = trie.words map (_(1))
@@ -314,7 +314,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = spanning(new Trie[Int](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
+    val tuples = spanning(new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
     (RevisionDiff(Some(subterms), List(), elab, List(), marks ++ tuples toList), Rules.empty)
   }
 
@@ -331,7 +331,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 
     // ad-hoc trie for context resolution
     lazy val dir = new Tree[Trie.DirectoryEntry](-1, 2 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    lazy val trie = new Trie[Int](dir) ++= work0.trie.words
+    lazy val trie = new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words
 
     implicit val enc = s.enc
 
@@ -364,7 +364,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 
   import syntax.AstSugar.↦
 
-  def grabContext(anchor: Int, trie: Trie[Int])(implicit enc: Encoding) = {
+  def grabContext(anchor: Int, trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) = {
     import collection.mutable
     val ws = mutable.Set.empty[Int]
     val wq = mutable.Queue.empty ++ Seq(anchor)
@@ -439,7 +439,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
     }
   }
 
-  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int])(implicit enc: Encoding) = {
+  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
     new Reconstruct(match_, trie)(enc, except).head
   }

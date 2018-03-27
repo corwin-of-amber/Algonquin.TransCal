@@ -3,7 +3,7 @@ package relentless.matching
 import relentless.rewriting.HyperEdge
 
 
-class Match(val trie: Trie[Int])(implicit val enc: Encoding) {
+class Match(val trie: Trie[Int, HyperEdge[Int]])(implicit val enc: Encoding) {
 
 
   /**

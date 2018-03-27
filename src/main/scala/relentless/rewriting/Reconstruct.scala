@@ -25,11 +25,11 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
 
   import collection.mutable
 
-  def this(root: Int, trie: Trie[Int]) = this(new Tree(root), trie.words.toStream)
+  def this(root: Int, trie: Trie[Int, HyperEdge[Int]]) = this(new Tree(root), trie.words.toStream)
 
   def this(root: Int, words: Seq[HyperEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: HyperEdge[Int], trie: Trie[Int]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
 
   def this(tuple: HyperEdge[Int], words: Seq[HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
 

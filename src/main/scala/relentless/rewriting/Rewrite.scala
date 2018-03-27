@@ -31,7 +31,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   private def fresh(wv: Array[Int]) =
     enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
-  private def lookup(ivs: Seq[(Int, Int)], t: Trie[Int]): Option[Int] = ivs match {
+  private def lookup(ivs: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] = ivs match {
     case Nil => Some(t.words.head(1))
     case (i, v) +: ivs => t.get(i, v) match {
       case None => None
@@ -39,7 +39,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     }
   }
   
-  def conclude(valuation: Array[Int], trie: Trie[Int]) = {
+  def conclude(valuation: Array[Int], trie: Trie[Int, HyperEdge[Int]]) = {
     assert(valuation.length >= nHoles)
     
     def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)  // --- introduces an existential
@@ -71,13 +71,13 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   * The rewriting is done by building a Trie of terms.
   * The full term can be recreated using reconstruct
   */
-class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int])(implicit enc: Encoding) extends LazyLogging {
+class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
 
   import collection.mutable
   import Rewrite._
 
   def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
-    this(init, compiledRules, new Trie[Int](directory))
+    this(init, compiledRules, new Trie[Int, HyperEdge[Int]](directory))
 
   val match_ = new Match(trie)(enc)
 

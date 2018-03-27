@@ -171,7 +171,7 @@ object NoDup {
      * uniques() group words in given trie by values at locations >= index,
      * then declares _(1) to be equivalent for all words in each group.
      */
-    def uniques(trie: Trie[Int], index: Int) {
+    def uniques(trie: Trie[Int, HyperEdge[Int]], index: Int) {
       if (index >= trie.subtries.length || trie.subtries(index) == null) {
         if (trie.words.length > 1) {
           val equals = trie.words map (_(1))
@@ -239,7 +239,7 @@ object NoDup {
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = RuleBasedTactic.spanning(new Trie[Int](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
+    val tuples = RuleBasedTactic.spanning(new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
     s ++ marks ++ elab ++ tuples at subterms
   }
   
@@ -357,7 +357,7 @@ object NoDup {
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
 
 
-  def showem(matches: Seq[HyperEdge[Int]], trie: Trie[Int])(implicit enc: Encoding) {
+  def showem(matches: Seq[HyperEdge[Int]], trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       println(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
@@ -366,7 +366,7 @@ object NoDup {
     }
   }
   
-  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int]) = {
+  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]]) = {
     new Reconstruct(match_, trie)(enc).head
   }
   
