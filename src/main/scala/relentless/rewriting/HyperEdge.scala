@@ -1,12 +1,12 @@
 package relentless.rewriting
 
-import scala.collection.IndexedSeq
+import scala.collection.immutable
 
 /**
   * @author tomer
   * @since 3/25/18
   */
-case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) extends IndexedSeq[T] {
+case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) extends immutable.IndexedSeq[T] {
   def isFinal: Boolean = params.isEmpty
 
   override def toString: String = s"type: $edgeType target: $target params: ${params mkString " "}"
