@@ -182,27 +182,10 @@ trait Compaction extends RuleBasedTactic {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
     val except = Markers.all map (enc.ntor --> _.leaf)
-    /**
-     * uniques() groups words in given trie by values at locations >= index,
-     * then declares _(1) to be equivalent for all words in each group.
-     * Output is into equiv.
-     */
-    def uniques(trie: Trie[Int, HyperEdge[Int]], index: Int) {
-      if (index >= trie.subtries.length || trie.subtries(index) == null) {
-        if (trie.words.length > 1) {
-          val equals = trie.words map (_(1))
-          val rep = equals.min  /* the representative is chosen to be the lowest indexed element */
-          equals foreach (equiv += _ -> rep)
-        }
-      }
-      else {
-        for ((k, subtrie) <- trie.subtries(index)) uniques(subtrie, index+1)
-      }
-    }
 
     // for each edge type, compare words by parameters and add to equiv by target.
     for ((k, subtrie) <- trie.subtries(0) if !(except contains k)) {
-      uniques(subtrie, 2)
+      equiv ++= subtrie.uniques(2)
     }
     /*--------------------
      * a meek effort to eliminate id() terms by equating the argument with the result
