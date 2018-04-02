@@ -15,8 +15,20 @@ case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immu
 
   type TermId = Int
 
-  private def translate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else -placeholder - 1
-  private def evaluate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else evaluate(-placeholder - 1)
+  /** Also ~pointer - the logic not on integer.
+   *
+   * @param pointer Points to valuation.
+   * @return Translation for the pointer.
+   */
+  private def translate(pointer: TermId): TermId = -pointer - 1
+
+  /**
+   * Taking the value - if needed going to  valuation
+    * TODO: Replace this with Option - it more logical to use it here.
+   * @param placeholder The placeholder from pattern.
+   * @return The value of the placeholder if any. (bigger than 0).
+   */
+  private def evaluate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else valuation(translate(-placeholder - 1))
 
   /**
     * Matches a word against a pattern. The word has concrete letters, whereas the pattern
@@ -31,7 +43,7 @@ case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immu
     if (word.length != pattern.length)
       None
     else {
-      def matches(letter: TermId, placeholder: TermId): Option[(TermId, TermId)] = {
+      def matches(letter: TermId, placeholder: TermId): Option[(Int, TermId)] = {
         if (placeholder >= 0) { // If its a real value
           if (letter == placeholder) Some((-1, -1)) else None
         } else { // if its a pointer to value
@@ -40,7 +52,8 @@ case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immu
           if (otherLetter == 0) { //  Unassigned holes
             Some((vidx, letter)) // positive vidx
           } else {
-            if (letter == otherLetter) Some((-1, -1)) else None
+            if (letter == otherLetter)  // if we got bad value.
+              Some((-1, -1)) else None
           }
         }
       }
@@ -48,8 +61,9 @@ case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immu
       val `valuation'`: Array[Int] = valuation.clone()
       for ((letter, placeholder) <- word zip pattern) {
         matches(letter, placeholder) match {
-          case None => return None
-          case Some((vidx, letter)) => if (vidx >= 0) `valuation'`(vidx) = letter //  a new valuation, possibly with more assignments set. vidx can be only -1 here.
+          case None => return None // TODO: Should we throw an error and catch it letter?
+          case Some((vidx, newLetter)) => if (vidx >= 0)  //  a new valuation, possibly with more assignments set.
+            `valuation'`(vidx) = newLetter
         }
       }
       Some(`valuation'`)
