@@ -7,13 +7,16 @@ import scala.collection.immutable
 /**
   * @author user
   * @since 4/2/2018
+  * @param pattern is negative when pointing to valuation, otherwise its the real value.
+  * @param valuation it positive when has a real value, othwewise its empty
   */
 case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immutable.IndexedSeq[Int] {
   override def length: Int = pattern.length
 
   type TermId = Int
 
-  def translate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else -placeholder - 1
+  private def translate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else -placeholder - 1
+  private def evaluate(placeholder: TermId): TermId = if (placeholder >= 0) placeholder else evaluate(-placeholder - 1)
 
   /**
     * Matches a word against a pattern. The word has concrete letters, whereas the pattern
@@ -28,41 +31,42 @@ case class Pattern(pattern: IndexedSeq[Int], valuation: Array[Int]) extends immu
     if (word.length != pattern.length)
       None
     else {
-      def matches(letter: TermId, placeholder: TermId) = {
-        if (placeholder < 0) {
+      def matches(letter: TermId, placeholder: TermId): Option[(TermId, TermId)] = {
+        if (placeholder >= 0) { // If its a real value
+          if (letter == placeholder) Some((-1, -1)) else None
+        } else { // if its a pointer to value
           val vidx = translate(placeholder)
-          valuation(vidx) match {
-            case 0 => Some((vidx, letter))
-            case otherLetter => if (letter == otherLetter) Some((-1, -1)) else None
+          val otherLetter = valuation(vidx)
+          if (otherLetter == 0) { //  Unassigned holes
+            Some((vidx, letter)) // positive vidx
+          } else {
+            if (letter == otherLetter) Some((-1, -1)) else None
           }
         }
-        else if (letter == placeholder) Some((-1, -1))
-        else None
       }
 
-      val `valuation'` = valuation.clone()
+      val `valuation'`: Array[Int] = valuation.clone()
       for ((letter, placeholder) <- word zip pattern) {
         matches(letter, placeholder) match {
           case None => return None
-          case Some((vidx, letter)) => if (vidx >= 0) `valuation'`(vidx) = letter
+          case Some((vidx, letter)) => if (vidx >= 0) `valuation'`(vidx) = letter //  a new valuation, possibly with more assignments set. vidx can be only -1 here.
         }
       }
       Some(`valuation'`)
     }
   }
 
-  def lookup(hyperTerm: Trie[TermId, HyperEdge[TermId]): Seq[HyperEdge[TermId]] = {
+  def lookup(hyperTerm: Trie[TermId, HyperEdge[TermId]]): Seq[HyperEdge[TermId]] = {
     var t = hyperTerm
     try {
       for ((ph, idx) <- pattern.zipWithIndex) {
-        val c = if (ph >= 0) ph else valuation(translate(ph))
+        val c = evaluate(ph)
         if (c > 0) t = t.get(idx, c) getOrElse {
           return Seq.empty
         }
       }
       return t.words
-    }
-    catch {
+    } catch {
       case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
     }
   }
