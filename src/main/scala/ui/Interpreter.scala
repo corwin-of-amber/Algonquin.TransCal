@@ -176,7 +176,7 @@ class Interpreter(implicit val enc: Encoding) {
   
   import Interpreter._
   import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
-  
+
   val BasicRules = new examples.BasicRules
   val AssocRules = new examples.AssocRules
   
