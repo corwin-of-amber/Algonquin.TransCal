@@ -13,7 +13,7 @@ object HyperTerm {
   type HyperTermId = Int
 }
 
-case class RealHyperTerm(realVaHyperlue: HyperTerm.HyperTermId) extends HyperTerm {
+case class RealHyperTerm(realValue: HyperTerm.HyperTermId) extends HyperTerm {
   override def value: Option[HyperTermId] = Option(realValue)
 }
 
