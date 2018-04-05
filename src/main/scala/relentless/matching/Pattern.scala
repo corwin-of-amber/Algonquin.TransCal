@@ -4,30 +4,10 @@ import relentless.rewriting.HyperEdge
 
 import scala.collection.immutable
 
-abstract class HyperTerm {
-  type HyperTermId = Int
+trait BaseHyperTerm
+case class HyperTerm(v: Int) extends BaseHyperTerm { }
+case class Placeholder(v: Int) extends BaseHyperTerm  { }
 
-  def value: Option[HyperTermId]
-}
-
-object HyperTerm {
-  type HyperTermId = Int
-}
-
-case class RealHyperTerm(realValue: HyperTerm.HyperTermId) extends HyperTerm {
-  override def value: Option[HyperTermId] = Option(realValue)
-}
-
-case class ValuationHyperTerm(index:Int,  valuation: IndexedSeq[Int]) extends HyperTerm {
-  override def value: Option[HyperTermId] = {
-    val c = valuation(index)
-    if (c == 0) {
-      Option.empty
-    } else {
-      Option(c)
-    }
-  }
-}
 
 /**
   * @author user
@@ -39,8 +19,6 @@ class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[I
   override def length: Int = transformedPattern.length
   override def apply(idx: Int): HyperTerm = transformedPattern.apply(idx)
 
-  import HyperTerm.HyperTermId
-
   /**
     * Matches a word against a pattern. The word has concrete letters, whereas the pattern
     * can have holes (negative integers). The valuation assigns concrete letters to some of
@@ -50,16 +28,16 @@ class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[I
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
     */
-  def unify(word: HyperEdge[HyperTermId]): Option[IndexedSeq[HyperTermId]] = {
+  def unify(word: HyperEdge[HyperTerm]): Option[IndexedSeq[HyperTerm]] = {
     if (word.length != transformedPattern.length)
       None
     else {
-      def matches(letter: HyperTermId, term: HyperTerm): Option[(Int, HyperTermId)] = {
+      def matches(letter: HyperTerm, term: HyperTerm): Option[(Int, HyperTerm)] = {
         term match {
           case RealHyperTerm(placeholder) => if (letter == placeholder) // if we got bad value.
             Some((-1, -1))
           else None
-          case ValuationHyperTerm(vidx, _) => {
+          case Placeholder(vidx, _) => {
             term.value match {
               case None => Some((vidx, letter)) // Unassigned holes. positive vidx
               case Some(otherLetter) => if (letter == otherLetter) // if we got bad value.
@@ -82,7 +60,7 @@ class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[I
     }
   }
 
-  def lookup(hyperTerm: Trie[HyperTermId, HyperEdge[HyperTermId]]): Seq[HyperEdge[HyperTermId]] = {
+  def lookup(hyperTerm: Trie[HyperTerm, HyperEdge[HyperTerm]]): Seq[HyperEdge[HyperTerm]] = {
     var t = hyperTerm
     try {
       for ((term, idx) <- transformedPattern.zipWithIndex) {
@@ -105,5 +83,5 @@ object Pattern {
     * @param pattern is negative when pointing to valuation, otherwise its the real value.
     * @param valuation it positive when has a real value, othwewise its empty
     */
-  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map(ph=>if (ph>=0) RealHyperTerm(ph) else ValuationHyperTerm(~ph, valuation)), valuation)
+  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map(ph=>if (ph>=0) RealHyperTerm(ph) else Placeholder(~ph, valuation)), valuation)
 }
