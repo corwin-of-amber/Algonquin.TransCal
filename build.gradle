@@ -1,4 +1,5 @@
 apply plugin: 'scala'
+apply plugin: 'application'
 
 group 'org.algonquin'
 version '1.0-SNAPSHOT'
@@ -43,3 +44,9 @@ dependencies {
     testCompile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
 }
 
+task profilingRunNoDup(type: JavaExec) {
+    classpath sourceSets.main.runtimeClasspath
+    main = "ui.Interpreter"
+    jvmArgs += '-agentlib:hprof=cpu=times,heap=sites'
+    args 'src/main/scala/examples/NoDup.tc'
+}
