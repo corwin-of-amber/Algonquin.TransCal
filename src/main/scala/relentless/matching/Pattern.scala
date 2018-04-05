@@ -7,8 +7,9 @@ import scala.collection.immutable
 abstract class HyperTerm {
   type HyperTermId = Int
 
-  abstract def value: Option[HyperTermId]
+  def value: Option[HyperTermId]
 }
+
 object HyperTerm {
   type HyperTermId = Int
 }
@@ -31,11 +32,12 @@ case class ValuationHyperTerm(index:Int,  valuation: IndexedSeq[Int]) extends Hy
 /**
   * @author user
   * @since 4/2/2018
-  * @param transformetdPattern The pattern with terms
+  * @param transformedPattern The pattern with terms
   */
-case class Pattern(transformetdPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[Int]) extends immutable.IndexedSeq[Int] {
+class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[Int]) extends immutable.IndexedSeq[HyperTerm] {
 
-  override def length: Int = transformetdPattern.length
+  override def length: Int = transformedPattern.length
+  override def apply(idx: Int): HyperTerm = transformedPattern.apply(idx)
 
   import HyperTerm.HyperTermId
 
@@ -49,7 +51,7 @@ case class Pattern(transformetdPattern: IndexedSeq[HyperTerm], valuation: Indexe
     *         otherwise None.
     */
   def unify(word: HyperEdge[HyperTermId]): Option[IndexedSeq[HyperTermId]] = {
-    if (word.length != transformetdPattern.length)
+    if (word.length != transformedPattern.length)
       None
     else {
       def matches(letter: HyperTermId, term: HyperTerm): Option[(Int, HyperTermId)] = {
@@ -69,7 +71,7 @@ case class Pattern(transformetdPattern: IndexedSeq[HyperTerm], valuation: Indexe
       }
 
       val `valuation'`: Array[Int] = valuation.toArray
-      for ((letter, term) <- word zip transformetdPattern) {
+      for ((letter, term) <- word zip transformedPattern) {
         matches(letter, term) match {
           case None => return None // TODO: Should we throw an error and catch it letter?
           case Some((vidx, newLetter)) => if (vidx >= 0)  //  a new valuation, possibly with more assignments set.
@@ -83,7 +85,7 @@ case class Pattern(transformetdPattern: IndexedSeq[HyperTerm], valuation: Indexe
   def lookup(hyperTerm: Trie[HyperTermId, HyperEdge[HyperTermId]]): Seq[HyperEdge[HyperTermId]] = {
     var t = hyperTerm
     try {
-      for ((term, idx) <- transformetdPattern.zipWithIndex) {
+      for ((term, idx) <- transformedPattern.zipWithIndex) {
         term.value match {
           case None => return Seq.empty
           case Some(c) => if (c > 0) t = t.get(idx, c) getOrElse {
@@ -93,15 +95,15 @@ case class Pattern(transformetdPattern: IndexedSeq[HyperTerm], valuation: Indexe
       }
       t.words
     } catch {
-      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${transformetdPattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
+      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${transformedPattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
     }
   }
 }
 
-case object Pattern {
+object Pattern {
   /**
     * @param pattern is negative when pointing to valuation, otherwise its the real value.
     * @param valuation it positive when has a real value, othwewise its empty
     */
-  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]) = Pattern(pattern map(ph=>if (ph>=0) RealHyperTerm(ph) else ValuationHyperTerm(~ph, valuation)), valuation)
+  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map(ph=>if (ph>=0) RealHyperTerm(ph) else ValuationHyperTerm(~ph, valuation)), valuation)
 }

@@ -12,8 +12,10 @@ class Match(val hyperTerm: Trie[Int, HyperEdge[Int]])(implicit val enc: Encoding
       case Nil => Stream(valuation)
       case head :: tail =>
         val pattern = Pattern(head, valuation)
-        for (w <- pattern.lookup(hyperTerm).toStream; `v'` <- pattern.unify(w).toStream; `v''` <- lookupUnify_*(tail, `v'`)) {
-          yield `v''`
+        for (w <- pattern.lookup(hyperTerm).toStream;
+             `v'` <- pattern.unify(w).toStream;
+             `v''` <- lookupUnify_*(tail, `v'`)) yield {
+          `v''`
         }
     }
   }
