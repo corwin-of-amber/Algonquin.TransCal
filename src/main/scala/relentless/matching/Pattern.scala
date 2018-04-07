@@ -1,12 +1,17 @@
 package relentless.matching
 
+import relentless.matching.Pattern.Valuation
 import relentless.rewriting.HyperEdge
 
 import scala.collection.immutable
 
-trait BaseHyperTerm
-case class HyperTerm(v: Int) extends BaseHyperTerm { }
-case class Placeholder(v: Int) extends BaseHyperTerm  { }
+trait BaseHyperTerm extends Any {}
+
+case class HyperTerm(value: Int) extends AnyVal with BaseHyperTerm {}
+case class Placeholder(value: Int) extends AnyVal with BaseHyperTerm {}
+case class ValuationVal(value: Int) extends AnyVal with BaseHyperTerm {
+  def empty: Boolean = value == 0
+}
 
 
 /**
@@ -14,10 +19,39 @@ case class Placeholder(v: Int) extends BaseHyperTerm  { }
   * @since 4/2/2018
   * @param transformedPattern The pattern with terms
   */
-class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[Int]) extends immutable.IndexedSeq[HyperTerm] {
+class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedSeq[Int] {
+
+  lazy val pattern = transformedPattern map(_ match {
+    case Placeholder(v) => -(v+1)
+    case HyperTerm(v) => v
+  })
 
   override def length: Int = transformedPattern.length
-  override def apply(idx: Int): HyperTerm = transformedPattern.apply(idx)
+
+  override def apply(idx: Int): Int = pattern.apply(idx)
+
+  /** depending if the term is a placeholder or a hyperterm
+    * placeholder: take the valuation from that index.
+    * if it is empty return the index and value for it
+    * if it is not empty verify the letter at that index
+    * hyperterm: verify the letter at that index
+    *
+    * @param letter the term from the word being matched
+    * @param term the current pattern being matched
+    * @param valuation the partial assignment to pattern
+    * @return None if there is no match. (None, _) if it is a constant and match. (index, value) if we need to assign
+    */
+  private def matches(letter: Int, term: BaseHyperTerm, valuation: Valuation): Option[(Option[Int], HyperTerm)] = {
+    term match {
+      case HyperTerm(value) =>
+        if (letter == value) Some((None, HyperTerm(0))) // if we got bad value.
+        else None
+      case Placeholder(valuationIndex) => valuation(valuationIndex) match {
+        case None => Some((Some(valuationIndex), HyperTerm(letter))) // Unassigned holes. positive vidx
+        case Some(otherLetter) => if (letter == otherLetter.value) Some((None, HyperTerm(0))) else None
+      }
+    }
+  }
 
   /**
     * Matches a word against a pattern. The word has concrete letters, whereas the pattern
@@ -28,47 +62,33 @@ class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[I
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
     */
-  def unify(word: HyperEdge[HyperTerm]): Option[IndexedSeq[HyperTerm]] = {
+  def unify(word: HyperEdge[Int], valuation: Array[Option[HyperTerm]]): Option[Array[Option[HyperTerm]]] = {
     if (word.length != transformedPattern.length)
       None
     else {
-      def matches(letter: HyperTerm, term: HyperTerm): Option[(Int, HyperTerm)] = {
-        term match {
-          case RealHyperTerm(placeholder) => if (letter == placeholder) // if we got bad value.
-            Some((-1, -1))
-          else None
-          case Placeholder(vidx, _) => {
-            term.value match {
-              case None => Some((vidx, letter)) // Unassigned holes. positive vidx
-              case Some(otherLetter) => if (letter == otherLetter) // if we got bad value.
-                Some((-1, -1))
-              else None
-            }
-          }
-        }
-      }
-
-      val `valuation'`: Array[Int] = valuation.toArray
       for ((letter, term) <- word zip transformedPattern) {
-        matches(letter, term) match {
-          case None => return None // TODO: Should we throw an error and catch it letter?
-          case Some((vidx, newLetter)) => if (vidx >= 0)  //  a new valuation, possibly with more assignments set.
-            `valuation'`(vidx) = newLetter
+        matches(letter, term, valuation) match {
+          case None => return None
+          case Some((Some(vidx), newLetter)) => valuation(vidx) = Some(newLetter)
+          case Some((None, _)) =>
         }
       }
-      Some(`valuation'`)
+      Some(valuation)
     }
   }
 
-  def lookup(hyperTerm: Trie[HyperTerm, HyperEdge[HyperTerm]]): Seq[HyperEdge[HyperTerm]] = {
+  def lookup(hyperTerm: Trie[Int, HyperEdge[Int]], valuation: Valuation): Seq[HyperEdge[Int]] = {
     var t = hyperTerm
     try {
+      val exit = () => { return Seq.empty }
       for ((term, idx) <- transformedPattern.zipWithIndex) {
-        term.value match {
-          case None => return Seq.empty
-          case Some(c) => if (c > 0) t = t.get(idx, c) getOrElse {
-            return Seq.empty
+        // In case match fails we exit the whole lookup function with an empty seq
+        term match {
+          case Placeholder(v) => {
+            if (valuation(v).nonEmpty) t = t.get(idx, valuation(v).get.value) getOrElse exit()
+            else exit()
           }
+          case HyperTerm(v) => t = t.get(idx, v) getOrElse exit()
         }
       }
       t.words
@@ -79,9 +99,15 @@ class Pattern(transformedPattern: IndexedSeq[HyperTerm], valuation: IndexedSeq[I
 }
 
 object Pattern {
-  /**
-    * @param pattern is negative when pointing to valuation, otherwise its the real value.
-    * @param valuation it positive when has a real value, othwewise its empty
-    */
-  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map(ph=>if (ph>=0) RealHyperTerm(ph) else Placeholder(~ph, valuation)), valuation)
+  type Valuation = Array[Option[HyperTerm]]
+  implicit def toValuation(arr: Array[Int]): Valuation =
+    arr map ((x: Int) => if (x == 0) None else Some(HyperTerm(x)));
+  def toHyperTermBase(p: IndexedSeq[Int]): IndexedSeq[BaseHyperTerm] =
+    p map ((x: Int) => if (x>=0) HyperTerm(x) else Placeholder(-x - 1))
+//
+//  /**
+//    * @param pattern   is negative when pointing to valuation, otherwise its the real value.
+//    * @param valuation it positive when has a real value, othwewise its empty
+//    */
+//  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map (ph => if (ph >= 0) RealHyperTerm(ph) else Placeholder(~ph, valuation)), valuation)
 }

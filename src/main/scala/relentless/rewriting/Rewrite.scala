@@ -7,10 +7,7 @@ import syntax.Tree
 import syntax.Scheme
 import syntax.AstSugar._
 import syntax.Identifier
-import relentless.matching.Bundle
-import relentless.matching.Encoding
-import relentless.matching.Trie
-import relentless.matching.Match
+import relentless.matching._
 
 
 class CompiledRule(val shards: List[Bundle], val conclusion: Bundle, 
@@ -123,9 +120,9 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
   }
 
   def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
-    val valuation = new Array[Int](rule.nHoles)
+    val valuation: Array[Option[HyperTerm]] = Stream.continually(None) take rule.nHoles toArray;
     for (s <- rule.shards) {
-      for (valuation <- match_.matchLookupUnify_*(s.tuples, w, valuation)) {
+      for (valuation <- match_.matchLookupUnify_*(s.tuples map (_.toIndexedSeq), w, valuation)) {
         //println(s"valuation = ${valuation mkString " "}")
         val add = rule.conclude(valuation, trie)
         trace(rule, valuation, add)
