@@ -38,7 +38,7 @@ dependencies {
     compile name: 'com.microsoft.z3'
     compile name: 'earley'
     compile group: 'org.algonquin', name: 'bellmaniac'
-    compile group: 'com.typesafe.scala-logging', name: 'scala-logging-slf4j_2.11', version: '2.1.2'
+    compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.11', version: '3.8.0'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
     testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.0.5'
