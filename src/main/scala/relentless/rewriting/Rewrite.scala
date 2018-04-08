@@ -8,54 +8,12 @@ import syntax.Scheme
 import syntax.AstSugar._
 import syntax.Identifier
 import relentless.matching._
+import relentless.rewriting.Rewrite.trace
+
+import scala.collection.immutable
 
 
-class CompiledRule(val shards: List[Bundle], val conclusion: Bundle, 
-                   val nHoles: Int, val parameterIndexes: List[Int])(implicit enc: Encoding) {
-  
-  def this(pattern: Bundle, conclusion: Bundle, parameterIndexes: List[Int])(implicit enc: Encoding) =
-    this(pattern.shuffles, conclusion, pattern.minValuationSize, parameterIndexes)
 
-  def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) = {
-    this(enc.toBundles(pattern.vars map (T(_)):_*)(pattern.template.split(Rewrite.||>) map (_.split(Rewrite.|||))).bare, 
-         enc.toBundle(conclusion.vars map (T(_)):_*)(conclusion.template.split(Rewrite.|||):_*),
-         conclusion.vars map (v => 1 + (pattern.vars indexOf v))) 
-    import Rewrite.RuleOps
-    of (pattern.template =:> conclusion.template)
-  }
-
-  //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
-  private def fresh(wv: Array[Int]) =
-    enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
-
-  private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] =
-    t.sparseLookup(sparsePattern).map(_.target)
-
-  def conclude(valuation: Array[Int], trie: Trie[Int, HyperEdge[Int]]) = {
-    assert(valuation.length >= nHoles)
-    
-    def valuation_(i: Int) = if (i < valuation.length) valuation(i) else enc.ntor --> $TI("?"+i)  // --- introduces an existential
-    val newSubterms = mutable.Map.empty[Int, Int] ++ (0::parameterIndexes map (i => (~i, valuation_(i))))
-        
-    //if (dbg != null) println(s"[rewrite] conclude from ${dbg.toPretty}  with  ${newSubterms mapValues (enc.ntor <--)}");
-    
-    // construct new tuples by replacing holes (negative integers) with valuation elements and fresh terms
-    for (w <- conclusion.tuples.reverse) yield {
-      val wv = w map { case x if x < 0 => newSubterms.getOrElse(x, x) case x => x }
-      if (wv(1) < 0) {
-        val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie) getOrElse fresh(wv)
-        newSubterms += wv(1) -> wv1
-        wv(1) = wv1
-      }
-      HyperEdge(wv)
-    }
-  }
-  
-  /* For debugging and error report */
-  var dbg: Term = null;
-  def of(t: Term) = { dbg = t; this }
-
-}
 
 
 /** Representing the rewrite system
@@ -116,18 +74,19 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
   def exceeded = {
     //trie.subtries(1).size > 1000
     //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
-    (trie.words map (_(1)) toSet).size > 1000
+    (trie.words map (_ (1)) toSet).size > 1000
   }
 
   def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
-    val valuation: Array[Option[HyperTerm]] = Stream.continually(None) take rule.nHoles toArray;
     for (s <- rule.shards) {
-      for (valuation <- match_.matchLookupUnify_*(s.tuples map (_.toIndexedSeq), w, valuation)) {
+      def convertList(l: Array[Int]): IndexedSeq[BaseHyperTerm] = Pattern.toHyperTermBase(l)
+      val patterns: List[Pattern] = s.tuples map convertList map (new Pattern(_))
+      for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
         //println(s"valuation = ${valuation mkString " "}")
         val add = rule.conclude(valuation, trie)
-        trace(rule, valuation, add)
-        logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString(", ")}. words: ${add map (_ mkString " ") mkString ", "}")
-        wq.enqueue (add:_*)
+        trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).value else 0}, add)
+        logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
+        wq.enqueue(add: _*)
       }
     }
   }
@@ -140,37 +99,40 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
   }
 
   def nonMatches(headSymbols: Identifier*) =
-    Rewrite.nonMatches(trie.words, headSymbols:_*)
+    Rewrite.nonMatches(trie.words, headSymbols: _*)
 
 }
 
 
 object Rewrite extends LazyLogging {
-  val `=>` = I("=>", "operator")  // directional rewrite
-  val ||| = I("|||", "operator")  // parallel patterns or conclusions
+  val `=>` = I("=>", "operator") // directional rewrite
+  val ||| = I("|||", "operator") // parallel patterns or conclusions
   val ||> = I("||>", "operator")
-  
+
   implicit class RuleOps(private val t: Term) extends AnyVal {
     def =:>(s: Term) = T(`=>`)(t, s)
+
     def |||(s: Term) = T(Rewrite.|||)(t, s)
+
     def ||>(s: Term) = T(Rewrite.||>)(t, s)
   }
 
   import syntax.Formula
   import syntax.Formula._
+
   Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5));
-  
+
   def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
-    
+
     def varsUsed(t: Term) = vars filter t.leaves.contains
-          
+
     //println(rulesSrc map (_ toPretty))
-    
+
     rulesSrc flatMap {
-      case eqn @ T(`=>`, List(lhs, rhs)) => 
+      case eqn@T(`=>`, List(lhs, rhs)) =>
         val v = varsUsed(eqn) map (_.leaf)
         Seq(new CompiledRule(new Scheme.Template(v, lhs), new Scheme.Template(v, rhs)))
-      case eqn @ T(`=`, List(lhs, rhs)) => 
+      case eqn@T(`=`, List(lhs, rhs)) =>
         val v = varsUsed(eqn) map (_.leaf)
         val (l, r) = (new Scheme.Template(v, lhs), new Scheme.Template(v, rhs))
         Seq(new CompiledRule(l, r), new CompiledRule(r, l))
@@ -178,18 +140,18 @@ object Rewrite extends LazyLogging {
         throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
     }
   }
-  
+
   def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
   def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
     val heads = headSymbols map (enc.ntor -->)
-    words filterNot (heads contains _(0))
+    words filterNot (heads contains _ (0))
   }
 
   /**
-   * Used for misc debugging
-   */
+    * Used for misc debugging
+    */
   object trace {
     def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[HyperEdge[Int]]) {
       for (w <- conclusion)
@@ -198,29 +160,31 @@ object Rewrite extends LazyLogging {
 
     val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
   }
- 
-  
+
+
   def main(args: Array[String]): Unit = {
     implicit val enc = new Encoding
     import examples.BasicSignature._
     //val r = new CompiledRule(new Scheme.Template(x)(`⇒:`(tt, x)), new Scheme.Template(x)(id(x)))
-    val rules = List(new CompiledRule(new Scheme.Template(x,y)(f:@(y,x)), new Scheme.Template(x,y)(y:@x)),
-        new CompiledRule(new Scheme.Template(x,y)(y:@x), new Scheme.Template(x,y)(tt)),
-        new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x,y)(ff)))
+    val rules = List(new CompiledRule(new Scheme.Template(x, y)(f :@ (y, x)), new Scheme.Template(x, y)(y :@ x)),
+      new CompiledRule(new Scheme.Template(x, y)(y :@ x), new Scheme.Template(x, y)(tt)),
+      new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x, y)(ff)))
     for (r <- rules) {
       for (v <- r.shards) logger.info(s"""{v.tuples map (_.mkString(" "))}""")
       logger.info("")
       logger.info(s"""{r.conclusion.tuples map (_.mkString(" "))}""")
       logger.info("-" * 60)
     }
-    
+
     import java.io.FileWriter
     val encf = new FileWriter("enc")
-    val pairs = enc.ntor.mapped.toList map { case (x,y) => (y,x) } sortBy (_._1);
-    for ((k, v) <- pairs) { encf.write(s"${k} ${v}  (${v.getClass().getName()})\n"); }
+    val pairs = enc.ntor.mapped.toList map { case (x, y) => (y, x) } sortBy (_._1);
+    for ((k, v) <- pairs) {
+      encf.write(s"${k} ${v}  (${v.getClass().getName()})\n");
+    }
     encf.close()
-    
-    
+
+
   }
 }
 
