@@ -30,7 +30,7 @@ def json4s_version = '3.5.3'
 
 dependencies {
     compile "org.scala-lang:scala-library:2.11.8"
-    testCompile "org.scalatest:scalatest_2.11:3.0.0"
+    testCompile "org.scalatest:scalatest_2.11:3.0.1"
     compile group: "org.mongodb", name: "mongo-java-driver", version: "2.13.1"
     compile name: "com.microsoft.z3"
     compile name: "earley"
