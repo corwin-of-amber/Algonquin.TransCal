@@ -1,8 +1,6 @@
 package relentless.rewriting
 
-//import com.typesafe.scalalogging.slf4j.{LazyLogging, Logger}
-//import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}

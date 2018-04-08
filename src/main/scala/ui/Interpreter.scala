@@ -5,7 +5,7 @@ import java.io.FileReader
 import java.io.InputStreamReader
 import java.io.FileWriter
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme

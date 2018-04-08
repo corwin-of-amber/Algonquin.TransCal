@@ -2,7 +2,7 @@ package ui
 
 import java.io.{BufferedReader, Reader}
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import examples.BasicSignature
 import ontopt.pen.{EarleyParser, Grammar, SimpleSentence, Word}
 import syntax.AstSugar._

@@ -1,6 +1,6 @@
 package relentless.matching
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import relentless.rewriting.HyperEdge
 import report.data.NumeratorWithMap
 import syntax.AstSugar._
@@ -13,7 +13,7 @@ import scala.collection.mutable.ListBuffer
 class Encoding extends LazyLogging {
   
   import semantics.LambdaCalculus.isApp
-  
+
   val ntor = new NumeratorWithMap { }
   
   def toTuples(term: Term) : List[HyperEdge[Int]] = toTuples(term, term)

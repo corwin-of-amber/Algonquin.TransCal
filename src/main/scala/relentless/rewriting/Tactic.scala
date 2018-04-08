@@ -1,6 +1,6 @@
 package relentless.rewriting
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import relentless.matching.Trie.Directory
 import semantics.LambdaCalculus

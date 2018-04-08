@@ -1,6 +1,6 @@
 package examples
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import relentless.rewriting.{Revision, Rewrite}
 import syntax.AstSugar._
 import syntax.Piping._

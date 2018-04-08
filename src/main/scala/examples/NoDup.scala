@@ -2,7 +2,7 @@ package examples
 
 import java.io.{FileWriter, PrintWriter}
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RuleBasedTactic.Markers
 import relentless.rewriting._
