@@ -1,14 +1,15 @@
 package examples
 
+import com.typesafe.scalalogging.slf4j.LazyLogging
+import relentless.rewriting.{Revision, Rewrite}
 import syntax.AstSugar._
 import syntax.Piping._
-import relentless.rewriting.Rewrite
+
 import scala.collection.mutable.ListBuffer
-import relentless.rewriting.Revision
 
 
 
-object Concat {
+object Concat extends LazyLogging {
   
   import BasicSignature._
   
@@ -23,16 +24,15 @@ object Concat {
   
   val concatMapProg = f ↦: l ↦: (_concat:@(_map:@(f, l)))
   
-  import NoDup.{locate, generalize, elaborate, enc, directory, State}
-  
-  import relentless.rewriting.RuleBasedTactic.{⇢, mkLocator, mkGoal}
+  import NoDup.{directory, elaborate, enc, generalize, locate}
+  import relentless.rewriting.RuleBasedTactic.{mkGoal, mkLocator, ⇢}
   
   def main(args: Array[String]) {
-    import BasicSignature._ 
+    import BasicSignature._
     val BasicRules = new BasicRules
     val AssocRules = new AssocRules
     
-    println(concatProg toPretty)
+    logger.info(concatProg toPretty)
     
     val state0 = Revision(concatProg)
     val state1 = locate(state0, BasicRules.rules, mkLocator(x, y)(++(x,y), TI(1)))
@@ -59,7 +59,6 @@ object Concat {
   }
 
   object ConcatRules2 extends Rules {
-    import Rewrite.RuleOps
     val enc = NoDup.enc
 
     val vars = List(x, xs)
@@ -89,10 +88,10 @@ object Concat {
       
       val rep = 1
       
-      profile { (0 until rep) foreach { i => xss flatten } } |> { case(_, tm) => println(s"${tm / 1000000}ms") }
+      profile { (0 until rep) foreach { i => xss flatten } } |> { case(_, tm) => logger.info(s"${tm / 1000000}ms") }
       //profile { (0 until rep) foreach { i => concat(xss) } } |> { case(_, tm) => println(s"${tm / 1000000}ms") }
-      profile { (0 until rep) foreach { i => (xss :\ ListBuffer.empty[Int])(_ ++: _) /*(xss reduce (_ ++ _))*/ } } |> { case(_, tm) => println(s"${tm / 1000000}ms") }
-      profile { (0 until rep) foreach { i => flatten(xss) } } |> { case(_, tm) => println(s"${tm / 1000000}ms") }
+      profile { (0 until rep) foreach { i => (xss :\ ListBuffer.empty[Int])(_ ++: _) /*(xss reduce (_ ++ _))*/ } } |> { case(_, tm) => logger.info(s"${tm / 1000000}ms") }
+      profile { (0 until rep) foreach { i => flatten(xss) } } |> { case(_, tm) => logger.info(s"${tm / 1000000}ms") }
     }
     
     def concat[A](l: List[List[A]]): List[A] = l match { case Nil => Nil case xs :: xss => xs ++ concat(xss)}

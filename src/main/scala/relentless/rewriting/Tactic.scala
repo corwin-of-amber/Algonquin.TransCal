@@ -85,7 +85,7 @@ abstract class RuleBasedTactic(rules: List[CompiledRule]) extends Tactic with La
   def work(s: Revision) = {
     val work0 = new Rewrite(s.tuples, rules, s.directory)(s.enc)
     work0()
-    println("-" * 60)
+    logger.info("-" * 60)
     work0
   }
 
@@ -293,7 +293,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
       case _ => List.empty
     }) collect { case (x, y) if x != y => x ⇢ y }
 
-    for (t <- subterms.values) println("    " + (t toPretty))
+    for (t <- subterms.values) logger.info("    " + (t toPretty))
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
@@ -327,9 +327,9 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
            //x <- Some(println(s"[generalize] ${t.toPretty}"));
            tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
-        println(s"    ${t.toPretty}")
+        logger.info(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
-        println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
+        logger.info(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
 
         (s.focusedSubterm get gm(1) map (_ ⇢ t)) ++
         (name match {
@@ -416,7 +416,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
             case _ =>
               new Reconstruct(m(1), s.tuples)(s.enc, except).headOption getOrElse TI("?")
           }
-        println(s"${original toPretty} --> ${elaborated toPretty}")
+        logger.info(s"${original toPretty} --> ${elaborated toPretty}")
         (RevisionDiff(None, List(), List(original ⇢ elaborated), List(), List()), Rules.empty)
       case _ => (RevisionDiff(None, List(), List(), List(), List()), Rules.empty)
     }

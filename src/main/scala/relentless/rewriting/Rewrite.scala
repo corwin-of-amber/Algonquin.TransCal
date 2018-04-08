@@ -145,7 +145,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
 }
 
 
-object Rewrite {
+object Rewrite extends LazyLogging {
   val `=>` = I("=>", "operator")  // directional rewrite
   val ||| = I("|||", "operator")  // parallel patterns or conclusions
   val ||> = I("||>", "operator")
@@ -208,10 +208,10 @@ object Rewrite {
         new CompiledRule(new Scheme.Template(x,y)(y:@x), new Scheme.Template(x,y)(tt)),
         new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x,y)(ff)))
     for (r <- rules) {
-      for (v <- r.shards) println(v.tuples map (_.mkString(" ")))
-      println
-      println(r.conclusion.tuples map (_.mkString(" ")))
-      println("-" * 60)
+      for (v <- r.shards) logger.info(s"""{v.tuples map (_.mkString(" "))}""")
+      logger.info("")
+      logger.info(s"""{r.conclusion.tuples map (_.mkString(" "))}""")
+      logger.info("-" * 60)
     }
     
     import java.io.FileWriter

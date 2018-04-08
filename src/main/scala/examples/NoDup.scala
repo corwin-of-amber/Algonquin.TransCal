@@ -2,6 +2,7 @@ package examples
 
 import java.io.{FileWriter, PrintWriter}
 
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RuleBasedTactic.Markers
 import relentless.rewriting._
@@ -11,7 +12,7 @@ import syntax._
 
 
 
-object NoDup {
+object NoDup extends LazyLogging {
   
   import semantics.Prelude._
   
@@ -43,7 +44,7 @@ object NoDup {
     val BasicRules = new BasicRules
     val AssocRules = new AssocRules
     
-    println(nodupProg toPretty)
+    logger.info(nodupProg toPretty)
     
     val state0 = Revision(nodupProg)
     
@@ -210,7 +211,7 @@ object NoDup {
     // Apply rules to find the pattern
     val work0 = new Rewrite(s.tuples, rules, directory)
     work0()
-    println("-" * 60)
+    logger.info("-" * 60)
 
     val anchor_# = enc.ntor --> anchor
     val marks = work0.matches(_phMarker.leaf) filter (_(2) == anchor_#)
@@ -235,7 +236,7 @@ object NoDup {
       case _ => List.empty
     }) collect { case (x, y) if x != y => (x ⇢ y) }
     
-    for (t <- subterms.values) println("    " + (t toPretty))
+    for (t <- subterms.values) logger.info("    " + (t toPretty))
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
@@ -246,8 +247,8 @@ object NoDup {
   def explore(s: State, rules: List[CompiledRule], anchor: Term) = {
     // Apply rules to find the pattern
     val work = new Rewrite(s.tuples, rules, directory)
-    work.stream() foreach (_ map println)
-    println("-" * 60)
+    work.stream() foreach (_ map (x=>logger.info(s"{x}")))
+    logger.info("-" * 60)
 
     val anchor_# = enc.ntor --> anchor
     val matches = work.matches(_phMarker.leaf) filter (_(2) == anchor_#)
@@ -255,14 +256,14 @@ object NoDup {
     
     for (gm <- matches if gm(2) == anchor_#;
          t <- new Reconstruct(gm(1), nonMatches)(enc))
-      println("    " + (t toPretty))
+      logger.info("    " + (t toPretty))
   }
   
   def generalize(s: State, rules: List[CompiledRule], leaves: List[Term], name: Option[Term], context: List[Term]): State = {
     // Apply rewrite rules until saturated    
     val work = new Rewrite(s.tuples, rules, directory)
     work()
-    println("-" * 60)
+    logger.info("-" * 60)
     val work0 = compaction(work)
     
     // Reconstruct and generalize
@@ -270,9 +271,9 @@ object NoDup {
       for (gm <- work0.matches(_phMarker.leaf);
            t <- new Reconstruct(gm(1), work0.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
            tg <- generalize(t, leaves, context)) yield {
-        println(s"    ${t.toPretty}")
+        logger.info(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
-        println(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}") // ${leaves map (_.toPretty) mkString " "}")
+        logger.info(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}") // ${leaves map (_.toPretty) mkString " "}")
         //tg
         (s.focusedSubterm get gm(1) map (_ ⇢ t)) ++
         (name match {
@@ -292,7 +293,7 @@ object NoDup {
     val work = new Rewrite(s.tuples, rules, directory)
     val nonMatches = work.nonMatches(_phMarker.leaf, _phmMarker.leaf, _goalMarker.leaf)
     work()
-    println("-" * 60)
+    logger.info("-" * 60)
     val work0 = compaction(work)
     
     showem(work0.matches(Markers.goal.leaf), work.trie)
@@ -306,7 +307,7 @@ object NoDup {
             case _ => 
               new Reconstruct(m(1), nonMatches)(enc).headOption getOrElse TI("?")
           }
-        println(s"${original toPretty} --> ${elaborated toPretty}")
+        logger.info(s"${original toPretty} --> ${elaborated toPretty}")
         s ++ List(original ⇢ elaborated)
       case _ => s
     }
@@ -360,9 +361,9 @@ object NoDup {
   def showem(matches: Seq[HyperEdge[Int]], trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
-      println(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
+      logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
       for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc, except).toList), B))
-        println("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
+        logger.info("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }
   
