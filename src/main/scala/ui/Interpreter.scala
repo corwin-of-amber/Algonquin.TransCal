@@ -5,8 +5,7 @@ import java.io.FileReader
 import java.io.InputStreamReader
 import java.io.FileWriter
 
-import com.typesafe.scalalogging.slf4j.Logger
-import org.slf4j.LoggerFactory
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme
@@ -17,8 +16,6 @@ import semantics.LambdaCalculus
 import synth.pods.TacticalError
 import report.data.DisplayContainer
 import report.data.SerializationContainer
-import relentless.rewriting.CompiledRule
-import relentless.rewriting.Rewrite
 import relentless.matching.Encoding
 import relentless.rewriting.Revision
 import relentless.rewriting.RevisionDiff
@@ -32,7 +29,7 @@ import ui.Parser.DeductionHints
 
 
 
-object Interpreter {
+object Interpreter extends LazyLogging {
   
   import Parser._
   
@@ -106,18 +103,17 @@ object Interpreter {
                        |x ∉ _ /\ x' ∉ _ -> _ ‖ _
                        |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; " */
 
-    val logger = Logger(LoggerFactory.getLogger("main"))
     logger.info("Starting new run")
 		val cmd = new CommandLineArgs(args)
 		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
-		
-		println(program)
+
+    logger.info(program)
 		
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
     logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
-		println(tokens)
+		logger.info(s"{tokens}")
 		
 		implicit val enc = new Encoding
 		implicit val directory = examples.NoDup.directory
@@ -129,7 +125,7 @@ object Interpreter {
 		
 		singleOption(p(tokens)) match {
 		  case Some(prog) => for (t <- prog) {
-		    println("-" * 65)
+        logger.info("-" * 65)
 		    /* First statement has to be an equality, and it sets the focused term */
 		    if (state == null) {
 		      if (t.root != `=`) throw new TacticalError(s"Must start with an equality; found ${t.toPretty}")
@@ -143,21 +139,21 @@ object Interpreter {
   		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) }) // causes leaf nodes with the same identifier to become aliased
   		    val patv = interp.varify(t)
   		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
-  		    println(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
-  		    for (a <- t.get[DeductionHints]) println(s"  ${a}")
+          logger.info(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
+  		    for (a <- t.get[DeductionHints]) logger.info(s"  ${a}")
   		    implicit val ann = t.get[Annotation]
   		    implicit val dh = t.get[DeductionHints]
   		    state = state +<>+ interp.interpretDerivation(state, pat).apply
 		    }
 		  }
-		  case None => 
-		    println(s"oops! parse error; ${p.error}")
+		  case None =>
+        logger.info(s"oops! parse error; ${p.error}")
 		}
 		
 		for (state <- out :+ state) {
-  		println("=" * 65)
-  		for (r <- state.rules.src) println(s"• ${r.template.toPretty}")
-  		for (e <- state.prog.elaborate) println(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
+      logger.info("=" * 65)
+  		for (r <- state.rules.src) logger.info(s"• ${r.template.toPretty}")
+  		for (e <- state.prog.elaborate) logger.info(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
   		
   		dump(state.prog)
 		}
@@ -165,18 +161,18 @@ object Interpreter {
 	
 	def singleOption[A](l: List[A]): Option[A] = l match {
 	  case x :: xs => 
-	    if (xs.nonEmpty) println(">>> warning: ambiguous parse")
+	    if (xs.nonEmpty) logger.info(">>> warning: ambiguous parse")
 	    Some(x)
 	  case _ => None
 	}
 
 }
 	
-class Interpreter(implicit val enc: Encoding) {
+class Interpreter(implicit val enc: Encoding) extends LazyLogging {
   
   import Interpreter._
   import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
-  
+
   val BasicRules = new examples.BasicRules
   val AssocRules = new examples.AssocRules
   
@@ -190,15 +186,15 @@ class Interpreter(implicit val enc: Encoding) {
       /**/ assume(t.subtrees.length == 2) /**/
       val List(from, to) = t.subtrees
       if (isAnchorName(to)) {
-        println("  locate")
+        logger.info("  locate")
         new Locate(rules,
                    mkLocator(vars map (T(_)):_*)(from, to))
       }
       else {
-        if (!isAnchorName(from)) println("  locate &")
+        if (!isAnchorName(from)) logger.info("  locate &")
         LambdaCalculus.isApp(to) match {
           case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
-            println(s"  generalize ${f} ${args}")
+            logger.info(s"  generalize ${f} ${args}")
             if (isAnchorName(from))
               new Generalize(rules, args, Some(f), None)
             else {
@@ -206,8 +202,8 @@ class Interpreter(implicit val enc: Encoding) {
               new Generalize(rules, args, Some(f), None)
               
             }
-          case _ => 
-            println("  elaborate")
+          case _ =>
+            logger.info("  elaborate")
             if (isAnchorName(from))
               new Elaborate(rules,
                             mkGoal(vars map (T(_)):_*)(to, Some(from)))
@@ -223,7 +219,7 @@ class Interpreter(implicit val enc: Encoding) {
       }
     }
     else if (t.root == `=`) {
-      println("  let")
+      logger.info("  let")
       new Let(List(scheme), incorporate = hints exists (_.options contains "++"))
     }
     else {

@@ -1,5 +1,6 @@
 package relentless.matching
 
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import relentless.rewriting.HyperEdge
 import report.data.NumeratorWithMap
 import syntax.AstSugar._
@@ -9,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 
 
 
-class Encoding {
+class Encoding extends LazyLogging {
   
   import semantics.LambdaCalculus.isApp
   
@@ -51,7 +52,7 @@ class Encoding {
    * The roots of the terms in the bundle are special: they are all encoded as ~0.
    */
   def toBundle(holes: Term*)(terms: Term*) = {
-    def dbg(x: List[Array[Int]]) { println(x map (_ map (x => if (x < 0) x else (ntor <-- x)) mkString " ")) }
+    def dbg(x: List[Array[Int]]) { logger.info(s"${x map (_ map (x => if (x < 0) x else (ntor <-- x)) mkString " ")}") }
     
     val altsq = terms.head :: holes.toList ++ (terms flatMap (term => term.nodes filterNot (n => (n eq term) || n.isLeaf)))
     val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.tail map ((_, ~0)))
