@@ -1,16 +1,9 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
-
-import collection.mutable
-import syntax.Tree
-import syntax.Scheme
-import syntax.AstSugar._
-import syntax.Identifier
 import relentless.matching._
-import relentless.rewriting.Rewrite.trace
-
-import scala.collection.immutable
+import syntax.AstSugar._
+import syntax.{Identifier, Scheme, Tree}
 
 
 
@@ -23,8 +16,9 @@ import scala.collection.immutable
   */
 class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
 
-  import collection.mutable
   import Rewrite._
+
+  import collection.mutable
 
   def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
     this(init, compiledRules, new Trie[Int, HyperEdge[Int]](directory))
@@ -79,13 +73,12 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
 
   def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
     for (s <- rule.shards) {
-      def convertList(l: Array[Int]): IndexedSeq[BaseHyperTerm] = Pattern.toHyperTermBase(l)
-      val patterns: List[Pattern] = s.tuples map convertList map (new Pattern(_))
+      val patterns: List[Pattern] = s.patterns
       for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
         //println(s"valuation = ${valuation mkString " "}")
         val add = rule.conclude(valuation, trie)
         trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).value else 0}, add)
-        logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
+        logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
         wq.enqueue(add: _*)
       }
     }

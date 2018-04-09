@@ -7,7 +7,8 @@ import scala.collection.mutable.ListBuffer
  * A sequence of tuples, possibly with holes denoted by negative integers.
  */
 class Bundle(val tuples: List[Array[Int]]) {
-  
+  val patterns: List[Pattern] = tuples map (Pattern.toHyperTermBase(_)) map (new Pattern(_))
+
   def this(tuples: List[Array[Int]], holes: Int*) = //this(tuples)
     this(Bundle.puncture(tuples, holes.toList))
   
