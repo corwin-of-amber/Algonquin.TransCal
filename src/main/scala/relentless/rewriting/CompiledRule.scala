@@ -29,13 +29,13 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   }
 
   //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
-  private def fresh(wv: Array[Int]) =
+  private def fresh(wv: Array[Int]): Int =
     enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
   private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] =
     t.sparseLookup(sparsePattern).map(_.target)
 
-  def conclude(valuation: Valuation, trie: Trie[Int, HyperEdge[Int]]) = {
+  def conclude(valuation: Valuation, trie: Trie[Int, HyperEdge[Int]]): List[HyperEdge[Int]] = {
     assert(valuation.length >= nHoles)
 
     def valuation_(i: Int) = {
@@ -61,9 +61,9 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   }
 
   /* For debugging and error report */
-  var dbg: Term = null;
+  private var dbg: Term = null;
 
-  def of(t: Term) = {
+  private def of(t: Term) = {
     dbg = t;
     this
   }

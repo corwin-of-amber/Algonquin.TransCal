@@ -6,9 +6,6 @@ import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Tree}
 
 
-
-
-
 /** Representing the rewrite system
   *
   * The rewriting is done by building a Trie of terms.
@@ -23,13 +20,13 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
   def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
     this(init, compiledRules, new Trie[Int, HyperEdge[Int]](directory))
 
-  val match_ = new Match(trie)(enc)
+  private val match_ = new Match(trie)(enc)
 
-  val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
-  val ws = mutable.Set.empty[HyperEdge[Int]]
+  private val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
+  private val ws = mutable.Set.empty[HyperEdge[Int]]
 
-  def apply() {
-    while (!wq.isEmpty && !exceeded) {
+  def apply(): Unit = {
+    while (wq.nonEmpty && !trie.exceeded) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
@@ -37,9 +34,9 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def stream() = {
+  def stream(): Stream[Seq[HyperEdge[Int]]] = {
     var i = 0
-    Reconstruct.whileYield(!wq.isEmpty) {
+    Reconstruct.whileYield(wq.nonEmpty) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
@@ -51,7 +48,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def work(w: HyperEdge[Int]) {
+  def work(w: HyperEdge[Int]): Unit = {
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
 
     if (trie.words.contains(w))
@@ -65,13 +62,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     //for (g <- goal) processRule(g, w)
   }
 
-  def exceeded = {
-    //trie.subtries(1).size > 1000
-    //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
-    (trie.words map (_ (1)) toSet).size > 1000
-  }
-
-  def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
+  private def processRule(rule: CompiledRule, w: HyperEdge[Int]): Unit = {
     for (s <- rule.shards) {
       val patterns: List[Pattern] = s.patterns
       for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
@@ -84,14 +75,11 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def matches(headSymbol: Identifier) = {
-    trie.get(0, enc.ntor --> headSymbol) match {
-      case Some(t) => t.words
-      case _ => Seq.empty
-    }
+  def matches(headSymbol: Identifier): Seq[HyperEdge[Int]] = {
+    trie.realGet(0, enc.ntor --> headSymbol)
   }
 
-  def nonMatches(headSymbols: Identifier*) =
+  def nonMatches(headSymbols: Identifier*): Seq[HyperEdge[Int]] =
     Rewrite.nonMatches(trie.words, headSymbols: _*)
 
 }
@@ -103,19 +91,19 @@ object Rewrite extends LazyLogging {
   val ||> = I("||>", "operator")
 
   implicit class RuleOps(private val t: Term) extends AnyVal {
-    def =:>(s: Term) = T(`=>`)(t, s)
+    def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
 
-    def |||(s: Term) = T(Rewrite.|||)(t, s)
+    def |||(s: Term): Tree[Identifier] = T(Rewrite.|||)(t, s)
 
-    def ||>(s: Term) = T(Rewrite.||>)(t, s)
+    def ||>(s: Term): Tree[Identifier] = T(Rewrite.||>)(t, s)
   }
 
   import syntax.Formula
   import syntax.Formula._
 
-  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5));
+  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5))
 
-  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
+  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding): List[CompiledRule] = {
 
     def varsUsed(t: Term) = vars filter t.leaves.contains
 
@@ -134,10 +122,10 @@ object Rewrite extends LazyLogging {
     }
   }
 
-  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
+  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding): List[CompiledRule] =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
-  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
+  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HyperEdge[Int]] = {
     val heads = headSymbols map (enc.ntor -->)
     words filterNot (heads contains _ (0))
   }
@@ -176,8 +164,6 @@ object Rewrite extends LazyLogging {
       encf.write(s"${k} ${v}  (${v.getClass().getName()})\n");
     }
     encf.close()
-
-
   }
 }
 

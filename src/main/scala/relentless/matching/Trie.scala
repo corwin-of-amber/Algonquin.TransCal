@@ -2,9 +2,9 @@ package relentless.matching
 
 import syntax.Tree
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 /**
@@ -13,13 +13,13 @@ import scala.collection.mutable
  * are indexed by more than one letter.
  */
 class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
- 
+
   import Trie._
-  
+
   private val DEFAULT_CAPACITY = 5
   
   var words: ListBuffer[HE] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
-  /*private*/ var subtries: Array[Map[E,Trie[E, HE]]] = new Array(DEFAULT_CAPACITY)
+  var subtries: Array[Map[E,Trie[E, HE]]] = new Array(DEFAULT_CAPACITY)
 
   def add(word: HE): Unit = {
     for (t <- directory.subtrees) {
@@ -42,6 +42,13 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
     if (subtrie == null) { /** for debugging **/ if (!(directory.subtrees exists (_.root.letterIndex == index))) throw new RuntimeException(s"trie not indexed by position ${index}");
                            None }
     else subtrie get letter
+  }
+
+  def realGet(index: Int, letter: E): Seq[HE] = {
+    get(index, letter) match {
+      case Some(t) => t.words
+      case None => Seq.empty
+    }
   }
 
   /** Lookup by pattern.
@@ -81,8 +88,14 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
   def addAll(words: Iterable[HE]): Trie[E, HE] = { words foreach add ; this }
   def ++=(words: Iterable[HE]) = addAll(words)
 
+  def exceeded:Boolean = {
+    //trie.subtries(1).size > 1000
+    //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
+    (words map (_ (1)) toSet).size > 1000
+  }
+
   /* this is so it can be overridden easily */
-  def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E, HE](subdirectory)
+  private def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E, HE](subdirectory)
 }
 
 
