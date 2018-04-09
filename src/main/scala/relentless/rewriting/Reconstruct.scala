@@ -45,7 +45,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
     * an entry to continue working on the finshed leaf.
     * Using leaves to find first is ok as it is ordered (at least for now from bellmaniac. should have a test for it).
     */
-  val targetToEntries: mutable.Map[Int, immutable.LinearSeq[Entry[Int]]] = {
+  private val targetToEntries: mutable.Map[Int, immutable.LinearSeq[Entry[Int]]] = {
     val first = Entry(init, List.empty)
     val result = mutable.Map[Int, immutable.LinearSeq[Entry[Int]]]().withDefaultValue(immutable.LinearSeq.empty)
     for (entry <- first #:: first.advance(indexMapping.contains)) {
@@ -54,21 +54,21 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
     result
   }
 
-  def updateTrees(entry: Entry[Int]): Unit = {
+  private def updateTrees(entry: Entry[Int]): Unit = {
     targetToEntries(entry.nextTarget) = targetToEntries(entry.nextTarget) :+ entry
   }
 
   // From target to rules
-  val targetToRewrites: mutable.Map[Int, HashSet[HyperEdge[Int]]] =
+  private val targetToRewrites: mutable.Map[Int, HashSet[HyperEdge[Int]]] =
     mutable.Map[Int, HashSet[HyperEdge[Int]]]().withDefaultValue(HashSet.empty)
 
   // input
-  val edges: Stream[HyperEdge[Int]] = words
+  private val edges: Stream[HyperEdge[Int]] = words
 
   // each step keep calculating to get a depth calculation
-  val nextStep: mutable.Queue[Entry[Int]] = mutable.Queue.empty
+  private val nextStep: mutable.Queue[Entry[Int]] = mutable.Queue.empty
 
-  def apply(except: Set[Int] = Set.empty): Stream[Tree[Int]] = {
+  private def apply(except: Set[Int] = Set.empty): Stream[Tree[Int]] = {
     // TODO: Keep trees in a short format and only concat on demand to save memory or build a trie during run
     // TODO: Maybe keep leaves foreach tree to save runtime
     val identifiers: mutable.Set[Int] = mutable.Set.empty
@@ -132,7 +132,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
     for (t <- apply(except map (enc.ntor -->))) yield decode(t)(enc)
   }
 
-  def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
+  private def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
     //println(s"decode ${t} ${enc.ntor <-- t.root}")
     enc.ntor <-- t.root match {
       case r: Identifier =>
@@ -150,12 +150,12 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
 
 object Reconstruct {
 
-  def nodeDepth[T](tree: Tree[T], node: Tree[T]): Int = {
+  private def nodeDepth[T](tree: Tree[T], node: Tree[T]): Int = {
     if (tree eq node) 0
     else tree.subtrees.map(nodeDepth(_, node) + 1).filter(_ > -1).headOption.getOrElse(-2)
   }
 
-  def leastMutual[T](tree: Tree[T], nodes: Set[Tree[T]]): Tree[T] = {
+  private def leastMutual[T](tree: Tree[T], nodes: Set[Tree[T]]): Tree[T] = {
     val sub: Option[Tree[T]] = tree.subtrees.filter((sub: Tree[T]) => nodes forall (sub hasDescendant)).headOption
     if (sub.isDefined) leastMutual(sub.get, nodes) else tree
   }
@@ -216,22 +216,22 @@ object Reconstruct {
     }
   }
 
-  def edgeToTree[T](edge: HyperEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
+  private def edgeToTree[T](edge: HyperEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
 
-  def onlyIf[A](cond: Boolean, op: => Seq[A]) = if (cond) op else Seq.empty
+  private def onlyIf[A](cond: Boolean, op: => Seq[A]) = if (cond) op else Seq.empty
 
   def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
 
-  def tupleToTree[A](tuple: HyperEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
-  def tupleToTree[A](tuple: Seq[A]): Tree[A] = tupleToTree(HyperEdge(tuple))
+  private def tupleToTree[A](tuple: HyperEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
+  private def tupleToTree[A](tuple: Seq[A]): Tree[A] = tupleToTree(HyperEdge(tuple))
 
-  def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
+  private def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
     if (!cond) Stream.empty
     else it.next #:: takeWhileLeft(cond, it)
   }
 
   // TODO: calculate item item and not stream stream
-  def halfLazyFlatten[A](s: Stream[Stream[A]]): Stream[A] = {
+  private def halfLazyFlatten[A](s: Stream[Stream[A]]): Stream[A] = {
     Stream.empty #:: s
     for (s1 <- s;
          a <- s1) yield a
