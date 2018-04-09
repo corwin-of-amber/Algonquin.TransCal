@@ -1,5 +1,6 @@
 package examples
 
+import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar._
 import syntax.Formula
 import relentless.rewriting.Rewrite
@@ -68,7 +69,7 @@ object BasicSignature {
 }
 
 
-trait Rules
+trait Rules extends LazyLogging
 {
   implicit val enc: Encoding
   

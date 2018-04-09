@@ -1,18 +1,9 @@
 package relentless.rewriting
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
-
-import collection.mutable
-import syntax.Tree
-import syntax.Scheme
-import syntax.AstSugar._
-import syntax.Identifier
+import com.typesafe.scalalogging.LazyLogging
 import relentless.matching._
-
-import scala.collection.immutable
-
-
-
+import syntax.AstSugar._
+import syntax.{Identifier, Scheme, Tree}
 
 
 /** Representing the rewrite system
@@ -22,19 +13,20 @@ import scala.collection.immutable
   */
 class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
 
-  import collection.mutable
   import Rewrite._
+
+  import collection.mutable
 
   def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
     this(init, compiledRules, new Trie[Int, HyperEdge[Int]](directory))
 
-  val match_ = new Match(trie)(enc)
+  private val match_ = new Match(trie)(enc)
 
-  val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
-  val ws = mutable.Set.empty[HyperEdge[Int]]
+  private val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
+  private val ws = mutable.Set.empty[HyperEdge[Int]]
 
-  def apply() {
-    while (!wq.isEmpty && !exceeded) {
+  def apply(): Unit = {
+    while (wq.nonEmpty && !trie.exceeded) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
@@ -42,9 +34,9 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def stream() = {
+  def stream(): Stream[Seq[HyperEdge[Int]]] = {
     var i = 0
-    Reconstruct.whileYield(!wq.isEmpty) {
+    Reconstruct.whileYield(wq.nonEmpty) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
@@ -56,7 +48,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def work(w: HyperEdge[Int]) {
+  def work(w: HyperEdge[Int]): Unit = {
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
 
     if (trie.words.contains(w))
@@ -70,58 +62,48 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     //for (g <- goal) processRule(g, w)
   }
 
-  def exceeded = {
-    //trie.subtries(1).size > 1000
-    //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
-    (trie.words map (_ (1)) toSet).size > 1000
-  }
-
-  def processRule(rule: CompiledRule, w: HyperEdge[Int]) {
+  private def processRule(rule: CompiledRule, w: HyperEdge[Int]): Unit = {
     for (s <- rule.shards) {
-      def convertList(l: Array[Int]): IndexedSeq[BaseHyperTerm] = Pattern.toHyperTermBase(l)
-      val patterns: List[Pattern] = s.tuples map convertList map (new Pattern(_))
+      val patterns: List[Pattern] = s.patterns
       for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
         //println(s"valuation = ${valuation mkString " "}")
         val add = rule.conclude(valuation, trie)
         trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).value else 0}, add)
-        logger.trace(s"added new words using ${s.tuples.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
+        logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
         wq.enqueue(add: _*)
       }
     }
   }
 
-  def matches(headSymbol: Identifier) = {
-    trie.get(0, enc.ntor --> headSymbol) match {
-      case Some(t) => t.words
-      case _ => Seq.empty
-    }
+  def matches(headSymbol: Identifier): Seq[HyperEdge[Int]] = {
+    trie.realGet(0, enc.ntor --> headSymbol)
   }
 
-  def nonMatches(headSymbols: Identifier*) =
+  def nonMatches(headSymbols: Identifier*): Seq[HyperEdge[Int]] =
     Rewrite.nonMatches(trie.words, headSymbols: _*)
 
 }
 
 
-object Rewrite {
+object Rewrite extends LazyLogging {
   val `=>` = I("=>", "operator") // directional rewrite
   val ||| = I("|||", "operator") // parallel patterns or conclusions
   val ||> = I("||>", "operator")
 
   implicit class RuleOps(private val t: Term) extends AnyVal {
-    def =:>(s: Term) = T(`=>`)(t, s)
+    def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
 
-    def |||(s: Term) = T(Rewrite.|||)(t, s)
+    def |||(s: Term): Tree[Identifier] = T(Rewrite.|||)(t, s)
 
-    def ||>(s: Term) = T(Rewrite.||>)(t, s)
+    def ||>(s: Term): Tree[Identifier] = T(Rewrite.||>)(t, s)
   }
 
   import syntax.Formula
   import syntax.Formula._
 
-  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5));
+  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5))
 
-  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding) = {
+  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding): List[CompiledRule] = {
 
     def varsUsed(t: Term) = vars filter t.leaves.contains
 
@@ -140,10 +122,10 @@ object Rewrite {
     }
   }
 
-  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding) =
+  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding): List[CompiledRule] =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
-  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding) = {
+  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HyperEdge[Int]] = {
     val heads = headSymbols map (enc.ntor -->)
     words filterNot (heads contains _ (0))
   }
@@ -169,10 +151,10 @@ object Rewrite {
       new CompiledRule(new Scheme.Template(x, y)(y :@ x), new Scheme.Template(x, y)(tt)),
       new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x, y)(ff)))
     for (r <- rules) {
-      for (v <- r.shards) println(v.tuples map (_.mkString(" ")))
-      println
-      println(r.conclusion.tuples map (_.mkString(" ")))
-      println("-" * 60)
+      for (v <- r.shards) logger.info(s"""{v.tuples map (_.mkString(" "))}""")
+      logger.info("")
+      logger.info(s"""{r.conclusion.tuples map (_.mkString(" "))}""")
+      logger.info("-" * 60)
     }
 
     import java.io.FileWriter
@@ -182,8 +164,6 @@ object Rewrite {
       encf.write(s"${k} ${v}  (${v.getClass().getName()})\n");
     }
     encf.close()
-
-
   }
 }
 

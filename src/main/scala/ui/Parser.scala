@@ -1,23 +1,21 @@
 package ui
 
-import java.util.regex.Pattern
-import ontopt.pen.Word
-import scala.collection.mutable.ListBuffer
-import ontopt.pen.SimpleSentence
-import ontopt.pen.EarleyParser
-import ontopt.pen.Grammar
-import collection.JavaConversions._
-import scala.util.matching.Regex
-import syntax.Tree
-import syntax.AstSugar._
+import java.io.{BufferedReader, Reader}
+
+import com.typesafe.scalalogging.LazyLogging
 import examples.BasicSignature
+import ontopt.pen.{EarleyParser, Grammar, SimpleSentence, Word}
+import syntax.AstSugar._
+import syntax.Tree
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import java.io.BufferedReader
-import java.io.Reader
+import scala.util.matching.Regex
 
 
   
-object Parser {
+object Parser extends LazyLogging {
 
   val GRAMMAR = 
 		raw"""P -> | S | C | P ; S | P ; C | P ;
@@ -141,8 +139,8 @@ object Parser {
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
 		val tokens = lex.tokenize(program)
-		println(tokens)
-		for (prog <- p(tokens); t <- prog) println(t toPretty)
+    logger.info(s"{tokens}")
+		for (prog <- p(tokens); t <- prog) logger.info(t toPretty)
 	}
   
 	class BabyLexer(val patterns: List[(Regex, String)])

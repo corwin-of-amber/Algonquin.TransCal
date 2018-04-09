@@ -1,7 +1,6 @@
 package relentless.rewriting
 
-//import com.typesafe.scalalogging.slf4j.{LazyLogging, Logger}
-//import org.slf4j.LoggerFactory
+import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
@@ -162,7 +161,7 @@ object Reconstruct {
   }
 
   // In this case tree can be source because it is a subtree (leaf) so hash makes sens and so does equals
-  case class Entry[T](tree: Tree[T], usedEdges: List[HyperEdge[T]], nextIndex: Int = 0) {
+  case class Entry[T](tree: Tree[T], usedEdges: List[HyperEdge[T]], nextIndex: Int = 0) extends LazyLogging {
 
     // TODO: implement or delete
     def edgeEquals(other: Entry[T]): Boolean = true
@@ -205,7 +204,7 @@ object Reconstruct {
       // Replace Descendants only works because all targets are leaves.
       // Rerunning the tree function each time to make sure eq will work correctly
       if (edge.target != nextTarget) {
-        println(s"Error on $edge and $tree. Wrong target.")
+        logger.error(s"Error on $edge and $tree. Wrong target.")
         Stream.empty
       } else if (usedEdges contains edge) {
         Stream.empty
