@@ -11,11 +11,6 @@ import scala.collection.immutable
   */
 class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedSeq[BaseHyperTerm] {
 
-  lazy val pattern = transformedPattern map(_ match {
-    case Placeholder(v) => -(v+1)
-    case HyperTerm(v) => v
-  })
-
   override def length: Int = transformedPattern.length
 
   override def apply(idx: Int): BaseHyperTerm = transformedPattern.apply(idx)
@@ -40,10 +35,4 @@ class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.I
 object Pattern {
   def toHyperTermBase(p: IndexedSeq[Int]): IndexedSeq[BaseHyperTerm] =
     p map ((x: Int) => if (x>=0) HyperTerm(x) else Placeholder(-x - 1))
-//
-//  /**
-//    * @param pattern   is negative when pointing to valuation, otherwise its the real value.
-//    * @param valuation it positive when has a real value, othwewise its empty
-//    */
-//  def apply(pattern: IndexedSeq[Int], valuation: IndexedSeq[Int]): Pattern = Pattern(pattern map (ph => if (ph >= 0) RealHyperTerm(ph) else Placeholder(~ph, valuation)), valuation)
 }
