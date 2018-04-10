@@ -139,7 +139,7 @@ object Parser extends LazyLogging {
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
 		val tokens = lex.tokenize(program)
-    logger.info(s"{tokens}")
+    logger.info(s"${tokens}")
 		for (prog <- p(tokens); t <- prog) logger.info(t toPretty)
 	}
   

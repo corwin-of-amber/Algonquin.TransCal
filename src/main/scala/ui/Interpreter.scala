@@ -113,7 +113,7 @@ object Interpreter extends LazyLogging {
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
     logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
-		logger.info(s"{tokens}")
+		logger.info(s"${tokens}")
 		
 		implicit val enc = new Encoding
 		implicit val directory = examples.NoDup.directory
