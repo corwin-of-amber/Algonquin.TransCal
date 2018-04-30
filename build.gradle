@@ -51,5 +51,5 @@ task profilingRunNoDup(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = "ui.Interpreter"
     jvmArgs += '-agentlib:hprof=cpu=times,heap=sites'
-    args 'src/main/scala/examples/NoDup.tc'
+    args 'src/main/resources/examples/NoDup.tc'
 }
