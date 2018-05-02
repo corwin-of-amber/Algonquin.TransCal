@@ -17,20 +17,20 @@ import scala.collection.{immutable, mutable}
   * @param indexMapping associates some term identifiers with existing terms -- these will not
   *                     be traversed, instead the value in the mapping will be taken as is.
   */
-class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
+class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
   //  class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) extends LazyLogging {
 
   import Reconstruct._
 
   import collection.mutable
 
-  def this(root: Int, trie: Trie[Int, HyperEdge[Int]]) = this(new Tree(root), trie.words.toStream)
+  def this(root: Int, trie: Trie[Int, BaseRewriteEdge[Int]]) = this(new Tree(root), trie.words.toStream)
 
-  def this(root: Int, words: Seq[HyperEdge[Int]]) = this(new Tree(root), words.toStream)
+  def this(root: Int, words: Seq[BaseRewriteEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
 
-  def this(tuple: HyperEdge[Int], words: Seq[HyperEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
+  def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
 
   def ++(mapping: Map[Int, Term]): Reconstruct = {
     indexMapping ++= mapping
@@ -59,11 +59,11 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
   }
 
   // From target to rules
-  private val targetToRewrites: mutable.Map[Int, HashSet[HyperEdge[Int]]] =
-    mutable.Map[Int, HashSet[HyperEdge[Int]]]().withDefaultValue(HashSet.empty)
+  private val targetToRewrites: mutable.Map[Int, HashSet[BaseRewriteEdge[Int]]] =
+    mutable.Map[Int, HashSet[BaseRewriteEdge[Int]]]().withDefaultValue(HashSet.empty)
 
   // input
-  private val edges: Stream[HyperEdge[Int]] = words
+  private val edges: Stream[BaseRewriteEdge[Int]] = words
 
   // each step keep calculating to get a depth calculation
   private val nextStep: mutable.Queue[Entry[Int]] = mutable.Queue.empty
@@ -76,7 +76,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
     //    println("applying reconstruct")
 
     // when updating identifiers might need to finish a leaf that was not considered finished
-    def advanceStep(newEdge: HyperEdge[Int]): Stream[Entry[Int]] = {
+    def advanceStep(newEdge: BaseRewriteEdge[Int]): Stream[Entry[Int]] = {
       if (!isFinal(newEdge.edgeType)) {
         identifiers += newEdge.edgeType
         val relevantEntries = targetToEntries(newEdge.edgeType).toStream filter (_.nextTarget == newEdge.edgeType)
@@ -88,7 +88,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
       } else Stream.empty
     }
 
-    def edgeStep(newEdge: HyperEdge[Int]): Stream[Entry[Int]] = {
+    def edgeStep(newEdge: BaseRewriteEdge[Int]): Stream[Entry[Int]] = {
       val target = newEdge.target
       targetToRewrites(target) += newEdge
       // replace the leaf with the new edge.
@@ -116,7 +116,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[HyperEdge[Int]], indexM
       }).takeWhile((_) => nextStep.nonEmpty))
     }
 
-    val legalEdges: Stream[HyperEdge[Int]] = edges filter ((e) => !except.contains(e.edgeType))
+    val legalEdges: Stream[BaseRewriteEdge[Int]] = edges filter ((e) => !except.contains(e.edgeType))
     val edgesToTrees: Stream[Entry[Int]] = legalEdges flatMap ((e) => edgeStep(e) append advanceStep(e) append developStep)
     // need to filter out entries that have same index. can do so by validating that index is on last leaf.
     val treeStream = edgesToTrees filter
@@ -161,7 +161,7 @@ object Reconstruct {
   }
 
   // In this case tree can be source because it is a subtree (leaf) so hash makes sens and so does equals
-  case class Entry[T](tree: Tree[T], usedEdges: List[HyperEdge[T]], nextIndex: Int = 0) extends LazyLogging {
+  case class Entry[T](tree: Tree[T], usedEdges: List[BaseRewriteEdge[T]], nextIndex: Int = 0) extends LazyLogging {
 
     // TODO: implement or delete
     def edgeEquals(other: Entry[T]): Boolean = true
@@ -200,7 +200,7 @@ object Reconstruct {
       else Stream.empty
     }
 
-    def extend(edge: HyperEdge[T], isFinal: T => Boolean): Stream[Entry[T]] = {
+    def extend(edge: BaseRewriteEdge[T], isFinal: T => Boolean): Stream[Entry[T]] = {
       // Replace Descendants only works because all targets are leaves.
       // Rerunning the tree function each time to make sure eq will work correctly
       if (edge.target != nextTarget) {
@@ -216,14 +216,13 @@ object Reconstruct {
     }
   }
 
-  private def edgeToTree[T](edge: HyperEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
+  private def edgeToTree[T](edge: BaseRewriteEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
 
   private def onlyIf[A](cond: Boolean, op: => Seq[A]) = if (cond) op else Seq.empty
 
   def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
 
-  private def tupleToTree[A](tuple: HyperEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
-  private def tupleToTree[A](tuple: Seq[A]): Tree[A] = tupleToTree(HyperEdge(tuple))
+  private def tupleToTree[A](tuple: BaseRewriteEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
 
   private def takeWhileLeft[A](cond: => Boolean, it: Iterator[A]): Stream[A] = {
     if (!cond) Stream.empty

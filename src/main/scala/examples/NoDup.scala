@@ -5,7 +5,7 @@ import java.io.{FileWriter, PrintWriter}
 import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RuleBasedTactic.Markers
-import relentless.rewriting._
+import relentless.rewriting.{BaseRewriteEdge, _}
 import report.data.DisplayContainer
 import syntax.AstSugar._
 import syntax._
@@ -108,16 +108,16 @@ object NoDup extends LazyLogging {
   
   val start = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     
-    Rewrite.compileRules(List(_x, y), List((_x & y) =:> _phMarker(TI(1))))
+    Rewriter.compileRules(List(_x, y), List((_x & y) =:> _phMarker(TI(1))))
   }
   
   val goal1 = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
 
-    Rewrite.compileRules(List(x, y, z, w, v),
+    Rewriter.compileRules(List(x, y, z, w, v),
         List((_phMarker(TI(1)) ||| (x & y & z & w)) =:> _goalMarker(x, y, z, w))
       )
   }
@@ -125,9 +125,9 @@ object NoDup extends LazyLogging {
   
   val anchor2 = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
 
-    Rewrite.compileRules(List(),
+    Rewriter.compileRules(List(),
         List((not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> (_phMarker(TI(2)) ||| _phmMarker(TI(2), x, `x'`, `xs'`)))
       )
   }
@@ -135,9 +135,9 @@ object NoDup extends LazyLogging {
   
   val goal2 = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
 
-    Rewrite.compileRules(List(x, `x'`, `xs'`, y, z, w, v),
+    Rewriter.compileRules(List(x, `x'`, `xs'`, y, z, w, v),
         List(//(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> _phMarker(TI(2)),
             (_phMarker(TI(2)) ||| (set_disj(y, z))) =:> _goalMarker(y, z))
       )
@@ -146,9 +146,9 @@ object NoDup extends LazyLogging {
   
   val goal3 = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
 
-    Rewrite.compileRules(List(x, y, z, w, v),
+    Rewriter.compileRules(List(x, y, z, w, v),
       List(((set_disj(set_union(y, z), w)) & v) =:> _phMarker(TI(3)),
            (_phMarker(TI(3)) ||| ((`_nodup'`:@(y, z)))) =:> _goalMarker(y, z))
       )
@@ -157,14 +157,14 @@ object NoDup extends LazyLogging {
   
   val anchor4 = {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
 
-    Rewrite.compileRules(List(x,y),
+    Rewriter.compileRules(List(x,y),
         List(set_disj(x, y) =:> _phMarker(TI(4))))
   }
   //val goal4scheme = { import BasicSignature._; new Scheme.Template(y)(y) }
   
-  def compaction(work: Rewrite): Rewrite = {
+  def compaction(work: Rewriter): Rewriter = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
     val except = List(_goalMarker, _phMarker, _phmMarker) map (enc.ntor --> _.leaf)
@@ -172,7 +172,7 @@ object NoDup extends LazyLogging {
      * uniques() group words in given trie by values at locations >= index,
      * then declares _(1) to be equivalent for all words in each group.
      */
-    def uniques(trie: Trie[Int, HyperEdge[Int]], index: Int) {
+    def uniques(trie: Trie[Int, BaseRewriteEdge[Int]], index: Int) {
       if (index >= trie.subtries.length || trie.subtries(index) == null) {
         if (trie.words.length > 1) {
           val equals = trie.words map (_(1))
@@ -189,8 +189,12 @@ object NoDup extends LazyLogging {
       uniques(subtrie, 2)
     }
     if (equiv.nonEmpty) {
-      def subst(w: HyperEdge[Int]): HyperEdge[Int] = HyperEdge(w map (x => equiv getOrElse (x,x)))
-      val work = new Rewrite(trie.words.toStream map subst, List.empty, trie.directory)
+      def subst(w: BaseRewriteEdge[Int]): BaseRewriteEdge[Int] = OriginalEdge(
+        equiv getOrElse (w.edgeType, w.edgeType),
+        equiv getOrElse (w.target, w.target),
+        w map (x => equiv getOrElse(x, x))
+      )
+      val work = new Rewriter(trie.words.toStream map subst, List.empty, trie.directory)
       work()
       compaction(work)
     }
@@ -209,7 +213,7 @@ object NoDup extends LazyLogging {
 
   def locate(s: State, rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) = {
     // Apply rules to find the pattern
-    val work0 = new Rewrite(s.tuples, rules, directory)
+    val work0 = new Rewriter(s.tuples, rules, directory)
     work0()
     logger.info("-" * 60)
 
@@ -240,13 +244,13 @@ object NoDup extends LazyLogging {
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = RuleBasedTactic.spanning(new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
+    val tuples = RuleBasedTactic.spanning(new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
     s ++ marks ++ elab ++ tuples at subterms
   }
   
   def explore(s: State, rules: List[CompiledRule], anchor: Term) = {
     // Apply rules to find the pattern
-    val work = new Rewrite(s.tuples, rules, directory)
+    val work = new Rewriter(s.tuples, rules, directory)
     work.stream() foreach (_ map (x=>logger.info(s"{x}")))
     logger.info("-" * 60)
 
@@ -261,7 +265,7 @@ object NoDup extends LazyLogging {
   
   def generalize(s: State, rules: List[CompiledRule], leaves: List[Term], name: Option[Term], context: List[Term]): State = {
     // Apply rewrite rules until saturated    
-    val work = new Rewrite(s.tuples, rules, directory)
+    val work = new Rewriter(s.tuples, rules, directory)
     work()
     logger.info("-" * 60)
     val work0 = compaction(work)
@@ -290,7 +294,7 @@ object NoDup extends LazyLogging {
   }
 
   def elaborate(s: State, rules: List[CompiledRule], goalScheme: Scheme) = {
-    val work = new Rewrite(s.tuples, rules, directory)
+    val work = new Rewriter(s.tuples, rules, directory)
     val nonMatches = work.nonMatches(_phMarker.leaf, _phmMarker.leaf, _goalMarker.leaf)
     work()
     logger.info("-" * 60)
@@ -358,7 +362,7 @@ object NoDup extends LazyLogging {
     l map (_.toString) map (s => s ++ (" " * (colWidth - s.length))) mkString " "
 
 
-  def showem(matches: Seq[HyperEdge[Int]], trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) {
+  def showem(matches: Seq[BaseRewriteEdge[Int]], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
@@ -367,7 +371,7 @@ object NoDup extends LazyLogging {
     }
   }
   
-  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]]) = {
+  def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = {
     new Reconstruct(match_, trie)(enc).head
   }
   
@@ -382,7 +386,7 @@ object NoDup extends LazyLogging {
   
   object NoDupRules1 extends Rules {
     import BasicSignature._
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     val enc = NoDup.enc
 
     val ys = TI("ys")

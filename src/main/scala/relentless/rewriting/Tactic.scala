@@ -14,10 +14,10 @@ abstract class Tactic {
 }
 
 
-case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[HyperEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
+case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[BaseRewriteEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
   def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toTuples(program))
 
-  lazy val trie = new Trie[Int, HyperEdge[Int]](directory) ++= tuples
+  lazy val trie = new Trie[Int, BaseRewriteEdge[Int]](directory) ++= tuples
 
   def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
 
@@ -29,7 +29,7 @@ case class Revision(val program: Term, val env: Revision.Environment, val focuse
   def ++(e: Environment) = Revision(program, Environment(env.vars ++ e.vars), focusedSubterm, elaborate, tuples)
   def +(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el.rhs, el.lhs))
   def ++(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el.rhs, el.lhs))))
-  def ++(l: Iterable[HyperEdge[Int]])(implicit d: DummyImplicit) = Revision(program, env, focusedSubterm, elaborate, tuples ++ l)
+  def ++(l: Iterable[BaseRewriteEdge[Int]])(implicit d: DummyImplicit) = Revision(program, env, focusedSubterm, elaborate, tuples ++ l)
 
   def +-(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
   def ++-(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples)
@@ -48,7 +48,7 @@ case class RevisionDiff(
     val env_++        : List[Term],                  /* corresponds to ++(Environment) */
     val elaborate_++  : List[Revision.Equivalence],  /* corresponds to ++(List[Equivalence]) */
     val elaborate_++- : List[Revision.Equivalence],  /* corresponds to ++-(List[Equivalence]) */
-    val tuples_++     : List[HyperEdge[Int]]             /* corresponds to ++(List[Array[Int]]) */
+    val tuples_++     : List[BaseRewriteEdge[Int]]             /* corresponds to ++(List[Array[Int]]) */
     ) {
 
   def ++:(rev: Revision) = {
@@ -61,7 +61,7 @@ case class RevisionDiff(
 case class Rules(src: List[Scheme.Template], compiled: List[CompiledRule])(implicit val enc: Encoding) {
   def +(ruledef: Scheme.Template) = {
     /**/ assert(enc ne Rules.dummyEncoding) /**/   /* the dummy encoding should never be changed */
-    Rules(src :+ ruledef, compiled ++ Rewrite.compileRule(ruledef))
+    Rules(src :+ ruledef, compiled ++ Rewriter.compileRule(ruledef))
   }
 
   def ++(other: Rules) = {
@@ -76,14 +76,14 @@ object Rules {
   def empty(implicit enc: Encoding = dummyEncoding) = Rules(List.empty, List.empty)
 
   def apply(src: List[Scheme.Template])(implicit enc: Encoding) =
-    new Rules(src, src flatMap Rewrite.compileRule)
+    new Rules(src, src flatMap Rewriter.compileRule)
 }
 
 
 abstract class RuleBasedTactic(rules: List[CompiledRule]) extends Tactic with LazyLogging {
 
   def work(s: Revision) = {
-    val work0 = new Rewrite(s.tuples, rules, s.directory)(s.enc)
+    val work0 = new Rewriter(s.tuples, rules, s.directory)(s.enc)
     work0()
     logger.info("-" * 60)
     work0
@@ -122,8 +122,8 @@ object RuleBasedTactic {
    */
 
   def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None)(implicit enc: Encoding) = {
-    import Rewrite.RuleOps
-    val rules = Rewrite.compileRules(vars toList, List(anchor match {
+    import Rewriter.RuleOps
+    val rules = Rewriter.compileRules(vars toList, List(anchor match {
       case None => pattern =:> Markers.goal(vars toList)
       case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
     }))
@@ -132,18 +132,18 @@ object RuleBasedTactic {
   }
 
   def mkLocator(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
     // ⨀⋯(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
-    val rules = Rewrite.compileRules(vars toList, List(pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList))))
+    val rules = Rewriter.compileRules(vars toList, List(pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList))))
     val tmpl = new Scheme.Template(vars:_*)(pattern)
     new CompiledPattern(rules, Some(tmpl), anchor)
   }
 
   def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
-    val rules = Rewrite.compileRules(vars toList, List(pattern =:> Markers.placeholder(anchor)))
+    val rules = Rewriter.compileRules(vars toList, List(pattern =:> Markers.placeholder(anchor)))
     new CompiledPattern(rules, None, anchor)
   }
 
@@ -152,7 +152,7 @@ object RuleBasedTactic {
    * then all their neighbors (incident to those words' letters) recursively,
    * while not traversing across the boundary.
    */
-  def spanning(trie: Trie[Int, HyperEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]) = {
+  def spanning(trie: Trie[Int, BaseRewriteEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]) = {
     import collection.mutable
     val ws = mutable.Set.empty ++ boundary
     val wq = mutable.Queue.empty ++ init
@@ -176,9 +176,9 @@ trait Compaction extends RuleBasedTactic {
 
   override def work(s: Revision) = compaction(super.work(s))(s.enc)
 
-  def compaction(work: Rewrite)(implicit enc: Encoding): Rewrite = compaction0(work)
+  def compaction(work: Rewriter)(implicit enc: Encoding): Rewriter = compaction0(work)
 
-  private def compaction0(work: Rewrite)(implicit enc: Encoding): Rewrite = {
+  private def compaction0(work: Rewriter)(implicit enc: Encoding): Rewriter = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
     val except = Markers.all map (enc.ntor --> _.leaf)
@@ -202,8 +202,8 @@ trait Compaction extends RuleBasedTactic {
     }
     /*--------------------*/
     if (equiv.nonEmpty) {
-      def subst(w: HyperEdge[Int]): HyperEdge[Int] = HyperEdge(w map (x => equiv getOrElse (x,x)))
-      val work = new Rewrite(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
+      def subst(w: BaseRewriteEdge[Int]): BaseRewriteEdge[Int] = OriginalEdge(w map (x => equiv getOrElse (x,x)))
+      val work = new Rewriter(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
       work()
       compaction0(work)
     }
@@ -297,7 +297,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
 
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = spanning(new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
+    val tuples = spanning(new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
     (RevisionDiff(Some(subterms), List(), elab, List(), marks ++ tuples toList), Rules.empty)
   }
 
@@ -314,7 +314,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 
     // ad-hoc trie for context resolution
     lazy val dir = new Tree[Trie.DirectoryEntry](-1, 2 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    lazy val trie = new Trie[Int, HyperEdge[Int]](dir) ++= work0.trie.words
+    lazy val trie = new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words
 
     implicit val enc = s.enc
 
@@ -422,7 +422,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
     }
   }
 
-  def pickFirst(match_ : HyperEdge[Int], trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) = {
+  def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
     new Reconstruct(match_, trie)(enc, except).head
   }

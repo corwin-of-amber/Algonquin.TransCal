@@ -5,25 +5,27 @@ import relentless.matching._
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Tree}
 
+import scala.collection.immutable
+
 
 /** Representing the rewrite system
   *
   * The rewriting is done by building a Trie of terms.
   * The full term can be recreated using reconstruct
   */
-class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
+class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
 
-  import Rewrite._
+  import Rewriter._
 
   import collection.mutable
 
-  def this(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
-    this(init, compiledRules, new Trie[Int, HyperEdge[Int]](directory))
+  def this(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+    this(init, compiledRules, new Trie[Int, BaseRewriteEdge[Int]](directory))
 
   private val match_ = new Match(trie)(enc)
 
-  private val wq = mutable.Queue.empty[HyperEdge[Int]] ++ init
-  private val ws = mutable.Set.empty[HyperEdge[Int]]
+  private val wq = mutable.Queue.empty[BaseRewriteEdge[Int]] ++ init
+  private val ws = mutable.Set.empty[BaseRewriteEdge[Int]]
 
   def apply(): Unit = {
     while (wq.nonEmpty && !trie.exceeded) {
@@ -34,7 +36,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def stream(): Stream[Seq[HyperEdge[Int]]] = {
+  def stream(): Stream[Seq[BaseRewriteEdge[Int]]] = {
     var i = 0
     Reconstruct.whileYield(wq.nonEmpty) {
       val w = wq.dequeue()
@@ -48,7 +50,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def work(w: HyperEdge[Int]): Unit = {
+  def work(w: BaseRewriteEdge[Int]): Unit = {
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
 
     if (trie.words.contains(w))
@@ -62,7 +64,7 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     //for (g <- goal) processRule(g, w)
   }
 
-  private def processRule(rule: CompiledRule, w: HyperEdge[Int]): Unit = {
+  private def processRule(rule: CompiledRule, w: BaseRewriteEdge[Int]): Unit = {
     for (s <- rule.shards) {
       val patterns: List[Pattern] = s.patterns
       for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
@@ -75,17 +77,17 @@ class Rewrite(init: Seq[HyperEdge[Int]], compiledRules: List[CompiledRule], val 
     }
   }
 
-  def matches(headSymbol: Identifier): Seq[HyperEdge[Int]] = {
+  def matches(headSymbol: Identifier): Seq[BaseRewriteEdge[Int]] = {
     trie.realGet(0, enc.ntor --> headSymbol)
   }
 
-  def nonMatches(headSymbols: Identifier*): Seq[HyperEdge[Int]] =
-    Rewrite.nonMatches(trie.words, headSymbols: _*)
+  def nonMatches(headSymbols: Identifier*): Seq[BaseRewriteEdge[Int]] =
+    Rewriter.nonMatches(trie.words, headSymbols: _*)
 
 }
 
 
-object Rewrite extends LazyLogging {
+object Rewriter extends LazyLogging {
   val `=>` = I("=>", "operator") // directional rewrite
   val ||| = I("|||", "operator") // parallel patterns or conclusions
   val ||> = I("||>", "operator")
@@ -93,9 +95,9 @@ object Rewrite extends LazyLogging {
   implicit class RuleOps(private val t: Term) extends AnyVal {
     def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
 
-    def |||(s: Term): Tree[Identifier] = T(Rewrite.|||)(t, s)
+    def |||(s: Term): Tree[Identifier] = T(Rewriter.|||)(t, s)
 
-    def ||>(s: Term): Tree[Identifier] = T(Rewrite.||>)(t, s)
+    def ||>(s: Term): Tree[Identifier] = T(Rewriter.||>)(t, s)
   }
 
   import syntax.Formula
@@ -125,7 +127,7 @@ object Rewrite extends LazyLogging {
   def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding): List[CompiledRule] =
     compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
 
-  def nonMatches(words: Seq[HyperEdge[Int]], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HyperEdge[Int]] = {
+  def nonMatches[HE <: BaseHyperEdge[Int]](words: Seq[HE], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HE] = {
     val heads = headSymbols map (enc.ntor -->)
     words filterNot (heads contains _ (0))
   }
@@ -134,7 +136,7 @@ object Rewrite extends LazyLogging {
     * Used for misc debugging
     */
   object trace {
-    def apply(rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[HyperEdge[Int]]) {
+    def apply[HE <: BaseHyperEdge[Int]](rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[HE]) {
       for (w <- conclusion)
         productions += w.toList -> (rule, valuation)
     }
@@ -167,3 +169,18 @@ object Rewrite extends LazyLogging {
   }
 }
 
+// Note: need to inherit base class to gain the ability to define a case class
+abstract class BaseRewriteEdge[T](edgeType: T, target: T, params: Seq[T]) extends
+  BaseHyperEdge[T](edgeType, target, params) {}
+
+case class OriginalEdge[T](override val edgeType: T, override val target: T, override val params: Seq[T]) extends
+  BaseRewriteEdge[T](edgeType, target, params) {}
+case object OriginalEdge {
+    def apply[T](seq: Seq[T]): OriginalEdge[T] = OriginalEdge[T](seq(0), seq(1), seq drop 2)
+}
+
+case class RewriteEdge[T](override val edgeType: T, override val target: T, override val params: Seq[T]) extends
+  BaseRewriteEdge[T](edgeType, target, params) {}
+case object RewriteEdge {
+  def apply[T](seq: Seq[T]): RewriteEdge[T] = RewriteEdge[T](seq(0), seq(1), seq drop 2)
+}

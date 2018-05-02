@@ -21,10 +21,10 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     this(pattern.shuffles, conclusion, pattern.minValuationSize, parameterIndexes)
 
   def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) = {
-    this(enc.toBundles(pattern.vars map (T(_)): _*)(pattern.template.split(Rewrite.||>) map (_.split(Rewrite.|||))).bare,
-      enc.toBundle(conclusion.vars map (T(_)): _*)(conclusion.template.split(Rewrite.|||): _*),
+    this(enc.toBundles(pattern.vars map (T(_)): _*)(pattern.template.split(Rewriter.||>) map (_.split(Rewriter.|||))).bare,
+      enc.toBundle(conclusion.vars map (T(_)): _*)(conclusion.template.split(Rewriter.|||): _*),
       conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     of(pattern.template =:> conclusion.template)
   }
 
@@ -32,10 +32,10 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   private def fresh(wv: Array[Int]): Int =
     enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
-  private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, HyperEdge[Int]]): Option[Int] =
-    t.sparseLookup(sparsePattern).map(_.target)
+  private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
+    t.sparseLookup(sparsePattern).map(_(1))
 
-  def conclude(valuation: Valuation, trie: Trie[Int, HyperEdge[Int]]): List[HyperEdge[Int]] = {
+  def conclude(valuation: Valuation, trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
     assert(valuation.length >= nHoles)
 
     def valuation_(i: Int) = {
@@ -56,7 +56,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
         newSubterms += wv(1) -> wv1
         wv(1) = wv1
       }
-      HyperEdge(wv)
+      RewriteEdge(wv)
     }
   }
 

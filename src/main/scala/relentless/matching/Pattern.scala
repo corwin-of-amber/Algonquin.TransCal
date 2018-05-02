@@ -1,6 +1,6 @@
 package relentless.matching
 
-import relentless.rewriting.HyperEdge
+import relentless.rewriting.BaseHyperEdge
 
 import scala.collection.immutable
 
@@ -15,7 +15,7 @@ class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.I
 
   override def apply(idx: Int): BaseHyperTerm = transformedPattern.apply(idx)
 
-  def lookup(hyperTerm: Trie[Int, HyperEdge[Int]], valuation: Valuation): Seq[HyperEdge[Int]] = {
+  def lookup[HE <: BaseHyperEdge[Int]](hyperTerm: Trie[Int, HE], valuation: Valuation): Seq[HE] = {
     var t = hyperTerm
     try {
       for ((term, idx) <- transformedPattern.zipWithIndex) {

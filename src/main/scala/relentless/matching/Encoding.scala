@@ -1,7 +1,7 @@
 package relentless.matching
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.rewriting.HyperEdge
+import relentless.rewriting.{BaseHyperEdge, OriginalEdge}
 import report.data.NumeratorWithMap
 import syntax.AstSugar.Term
 import syntax.Tree
@@ -13,12 +13,12 @@ class Encoding extends LazyLogging {
 
   val ntor = new NumeratorWithMap { }
 
-  def toTuples(term: Term) : List[HyperEdge[Int]] = toTuples(term, term)
+  def toTuples(term: Term) : List[OriginalEdge[Int]] = toTuples(term, term)
 
   /**
     * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term.
     */
-  def toTuples(term: Term, equateWith: Term) : List[HyperEdge[Int]] = {
+  def toTuples(term: Term, equateWith: Term) : List[OriginalEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
     toTuple(Seq(head, top) ++ rest.toSeq) :: (rest flatMap toTuples)
@@ -27,11 +27,11 @@ class Encoding extends LazyLogging {
   /**
     * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term (int version).
     */
-  def toTuples(term: Term, equateWith: Int) : List[HyperEdge[Int]] = {
+  def toTuples(term: Term, equateWith: Int) : List[OriginalEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
     val tail = rest flatMap toTuples
-    val firstHalf = HyperEdge((ntor --> head) +: top +: toTuple(rest.toSeq))
+    val firstHalf = OriginalEdge(ntor --> head, top, toTuple(rest.toSeq))
     firstHalf :: tail
   }
 
@@ -84,7 +84,7 @@ class Encoding extends LazyLogging {
     }
   }
 
-  def toTuple(sq: Seq[AnyRef]) = HyperEdge(sq map (ntor -->))
+  def toTuple(sq: Seq[AnyRef]) = OriginalEdge(sq map (ntor -->))
   def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, ntor --> k)) toArray
 
   def asTerm(n: Int) = (ntor <-- n) match {

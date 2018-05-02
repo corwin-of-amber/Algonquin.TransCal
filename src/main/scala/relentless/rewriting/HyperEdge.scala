@@ -6,7 +6,7 @@ import scala.collection.immutable
   * @author tomer
   * @since 3/25/18
   */
-case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) extends immutable.IndexedSeq[T] {
+abstract class BaseHyperEdge[T](val edgeType: T, val target: T, val params: Seq[T]) extends immutable.IndexedSeq[T] {
   def isFinal: Boolean = params.isEmpty
 
   override def toString: String = s"type: $edgeType target: $target params: ${params mkString " "}"
@@ -15,6 +15,9 @@ case class HyperEdge[T](edgeType: T, target: T, params: Seq[T]) extends immutabl
 
   def apply(idx: Int): T = if (idx == 0) edgeType else if (idx == 1) target else params(idx-2)
 }
+
+case class HyperEdge[T](override val edgeType: T, override val target: T, override val params: Seq[T]) extends
+  BaseHyperEdge[T](edgeType, target, params) {}
 
 case object HyperEdge {
   def apply[T](seq: Seq[T]): HyperEdge[T] = HyperEdge[T](seq(0), seq(1), seq drop 2)
