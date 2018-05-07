@@ -1,6 +1,7 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.BasicSignature
 import relentless.matching.{Encoding, Trie}
 import relentless.matching.Trie.Directory
 import semantics.LambdaCalculus
@@ -190,7 +191,7 @@ trait Compaction extends RuleBasedTactic {
     /*--------------------
      * a meek effort to eliminate id() terms by equating the argument with the result
      */
-    val id = enc.ntor --> examples.BasicSignature._id.leaf
+    val id = enc.ntor --> BasicSignature._id.leaf
     // get all words with type id and find eqalities between target and single param
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
       if (word(1) != word(2)) {

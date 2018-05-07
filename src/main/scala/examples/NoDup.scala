@@ -3,6 +3,7 @@ package examples
 import java.io.{FileWriter, PrintWriter}
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.{AssocRules, BasicRules}
 import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RuleBasedTactic.Markers
 import relentless.rewriting.{BaseRewriteEdge, _}
@@ -23,7 +24,7 @@ object NoDup extends LazyLogging {
   val _nodup = TV("nodup")
   val `_nodup'` = TV("nodup'")
   
-  import BasicSignature.{_nil, cons}
+  import relentless.BasicSignature.{_nil, cons}
   val nodupProg = (_nil ↦ TRUE) /: ((cons(_x, _xs)) ↦ (~(_elem:@(_x, _xs)) & _nodup:@_xs))
  
   val `_x'` = TV("x'")
@@ -39,7 +40,7 @@ object NoDup extends LazyLogging {
   import RuleBasedTactic.{CompiledGoal, CompiledPattern, mkGoal, mkLocator, mkLocator_simple, ⇢}
   
   def main(args: Array[String]) {
-    import BasicSignature._
+    import relentless.BasicSignature._
 
     val BasicRules = new BasicRules
     val AssocRules = new AssocRules
@@ -92,8 +93,8 @@ object NoDup extends LazyLogging {
     */
   }
   
-  class QuantifiedRules(implicit val enc: Encoding) extends Rules {
-    import BasicSignature._
+  class QuantifiedRules(implicit val enc: Encoding) extends relentless.Rules {
+    import relentless.BasicSignature._
     
     val vars = List(x, y, z, `x'`, xs, `xs'`)
     
@@ -107,34 +108,34 @@ object NoDup extends LazyLogging {
   val _phmMarker = Markers.placeholderEx
   
   val start = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
     
     Rewriter.compileRules(List(_x, y), List((_x & y) =:> _phMarker(TI(1))))
   }
   
   val goal1 = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
 
     Rewriter.compileRules(List(x, y, z, w, v),
         List((_phMarker(TI(1)) ||| (x & y & z & w)) =:> _goalMarker(x, y, z, w))
       )
   }
-  val goal1scheme = { import BasicSignature._; new Scheme.Template(x, y, z, w)(x & y & z & w) }
+  val goal1scheme = { import relentless.BasicSignature._; new Scheme.Template(x, y, z, w)(x & y & z & w) }
   
   val anchor2 = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
 
     Rewriter.compileRules(List(),
         List((not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) =:> (_phMarker(TI(2)) ||| _phmMarker(TI(2), x, `x'`, `xs'`)))
       )
   }
-  val anchor2scheme = { import BasicSignature._; new Scheme.Template(x, `x'`, `xs'`)(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) }
+  val anchor2scheme = { import relentless.BasicSignature._; new Scheme.Template(x, `x'`, `xs'`)(not_in(x, elems(`xs'`)) & not_in(`x'`, elems(`xs'`))) }
   
   val goal2 = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
 
     Rewriter.compileRules(List(x, `x'`, `xs'`, y, z, w, v),
@@ -142,10 +143,10 @@ object NoDup extends LazyLogging {
             (_phMarker(TI(2)) ||| (set_disj(y, z))) =:> _goalMarker(y, z))
       )
   }
-  val goal2scheme = { import BasicSignature._; new Scheme.Template(y, z)(set_disj(y, z)) }
+  val goal2scheme = { import relentless.BasicSignature._; new Scheme.Template(y, z)(set_disj(y, z)) }
   
   val goal3 = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
 
     Rewriter.compileRules(List(x, y, z, w, v),
@@ -153,10 +154,10 @@ object NoDup extends LazyLogging {
            (_phMarker(TI(3)) ||| ((`_nodup'`:@(y, z)))) =:> _goalMarker(y, z))
       )
   }
-  val goal3scheme = { import BasicSignature._; new Scheme.Template(y, z)(`_nodup'`:@(y, z)) }
+  val goal3scheme = { import relentless.BasicSignature._; new Scheme.Template(y, z)(`_nodup'`:@(y, z)) }
   
   val anchor4 = {
-    import BasicSignature._
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
 
     Rewriter.compileRules(List(x,y),
@@ -384,8 +385,8 @@ object NoDup extends LazyLogging {
   def T_?(root: Identifier)(subtrees: List[Option[Term]]) = 
     if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
   
-  object NoDupRules1 extends Rules {
-    import BasicSignature._
+  object NoDupRules1 extends relentless.Rules {
+    import relentless.BasicSignature._
     import Rewriter.RuleOps
     val enc = NoDup.enc
 
@@ -398,8 +399,8 @@ object NoDup extends LazyLogging {
     )
   }
   
-  object NoDupRules2 extends Rules {
-    import BasicSignature._
+  object NoDupRules2 extends relentless.Rules {
+    import relentless.BasicSignature._
     val enc = NoDup.enc
 
     val vars = List(x, xs)

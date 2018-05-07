@@ -1,7 +1,8 @@
 package examples
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.rewriting.{Revision, Rewrite}
+import relentless.{AssocRules, BasicRules, Rules}
+import relentless.rewriting.{Revision, Rewriter}
 import syntax.AstSugar._
 import syntax.Piping._
 
@@ -11,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 
 object Concat extends LazyLogging {
   
-  import BasicSignature._
+  import relentless.BasicSignature._
   
   val _concat = TV("concat")
   val `_concat'` = TV("concat'")
@@ -28,7 +29,7 @@ object Concat extends LazyLogging {
   import relentless.rewriting.RuleBasedTactic.{mkGoal, mkLocator, ⇢}
   
   def main(args: Array[String]) {
-    import BasicSignature._
+    import relentless.BasicSignature._
     val BasicRules = new BasicRules
     val AssocRules = new AssocRules
     
@@ -48,7 +49,7 @@ object Concat extends LazyLogging {
   }
   
   object ConcatRules1 extends Rules {
-    import Rewrite.RuleOps
+    import Rewriter.RuleOps
     val enc = NoDup.enc
 
     val vars = List(x, xs)

@@ -1,6 +1,7 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.RewriteRule
 import relentless.matching._
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Tree}
@@ -147,7 +148,7 @@ object Rewriter extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
     implicit val enc = new Encoding
-    import examples.BasicSignature._
+    import relentless.BasicSignature._
     //val r = new CompiledRule(new Scheme.Template(x)(`⇒:`(tt, x)), new Scheme.Template(x)(id(x)))
     val rules = List(new CompiledRule(new Scheme.Template(x, y)(f :@ (y, x)), new Scheme.Template(x, y)(y :@ x)),
       new CompiledRule(new Scheme.Template(x, y)(y :@ x), new Scheme.Template(x, y)(tt)),

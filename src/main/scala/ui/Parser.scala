@@ -3,8 +3,8 @@ package ui
 import java.io.{BufferedReader, Reader}
 
 import com.typesafe.scalalogging.LazyLogging
-import examples.BasicSignature
 import ontopt.pen.{EarleyParser, Grammar, SimpleSentence, Word}
+import relentless.BasicSignature
 import syntax.AstSugar._
 import syntax.Tree
 

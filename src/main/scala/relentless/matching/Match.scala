@@ -3,7 +3,7 @@ package relentless.matching
 import relentless.rewriting.BaseHyperEdge
 
 
-class Match[HE <: BaseHyperEdge[Int]](val hyperTerm: Trie[Int, HE])(implicit val enc: Encoding) {
+class Match[HE <: IndexedSeq[Int]](val hyperTerm: Trie[Int, HE])(implicit val enc: Encoding) {
 
   /**
     * Returns a stream of possible valuations for given pattern tuples.

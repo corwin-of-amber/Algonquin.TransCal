@@ -6,6 +6,7 @@ import java.io.InputStreamReader
 import java.io.FileWriter
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.{AssocRules, BasicRules}
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme
@@ -173,8 +174,8 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
   import Interpreter._
   import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
 
-  val BasicRules = new examples.BasicRules
-  val AssocRules = new examples.AssocRules
+  val BasicRules = new BasicRules
+  val AssocRules = new AssocRules
   
   def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]) = {
     val t = scheme.template
