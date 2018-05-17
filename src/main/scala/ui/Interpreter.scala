@@ -117,7 +117,7 @@ object Interpreter extends LazyLogging {
 		logger.info(s"${tokens}")
 		
 		implicit val enc = new Encoding
-		implicit val directory = examples.NoDup.directory
+		implicit val directory = new BasicRules directory
 		
 		val interp = new Interpreter
 		var state: State = null

@@ -1,10 +1,11 @@
 package relentless
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.matching.Encoding
+import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.Rewriter
 import syntax.AstSugar._
-import syntax.{Formula, Identifier, Tree}
+import syntax.Formula.O
+import syntax.{Formula, Identifier, Scheme, Tree}
 
 
 object BasicSignature {
@@ -88,6 +89,11 @@ object BasicSignature {
 
 
 trait Rules extends LazyLogging {
+  lazy implicit val directory = {
+    def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
+    D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
+  }
+
   implicit val enc: Encoding
 
   val vars: List[Term]

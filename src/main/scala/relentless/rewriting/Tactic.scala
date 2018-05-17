@@ -7,7 +7,7 @@ import relentless.matching.Trie.Directory
 import semantics.LambdaCalculus
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Strip, Tree}
-
+import relentless.Utils
 
 
 abstract class Tactic {
@@ -16,14 +16,14 @@ abstract class Tactic {
 
 
 case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[BaseRewriteEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
-  def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toTuples(program))
+  def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toOriginalEdges(program))
 
   lazy val trie = new Trie[Int, BaseRewriteEdge[Int]](directory) ++= tuples
 
   def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
 
   def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_.rhs.nodes)) map (t => (enc.ntor --> t, t)) toMap
-  def incorporate(term: Term, as: Term) = enc.toTuples(term, as)
+  def incorporate(term: Term, as: Term) = enc.toOriginalEdges(term, as)
 
   import Revision._
 
@@ -59,8 +59,8 @@ case class RevisionDiff(
 }
 
 
-case class Rules(src: List[Scheme.Template], compiled: List[CompiledRule])(implicit val enc: Encoding) {
-  def +(ruledef: Scheme.Template) = {
+case class Rules(src: List[RewriteRule], compiled: List[CompiledRule])(implicit val enc: Encoding) {
+  def +(ruledef: RewriteRule) = {
     /**/ assert(enc ne Rules.dummyEncoding) /**/   /* the dummy encoding should never be changed */
     Rules(src :+ ruledef, compiled ++ Rewriter.compileRule(ruledef))
   }
@@ -76,7 +76,7 @@ object Rules {
 
   def empty(implicit enc: Encoding = dummyEncoding) = Rules(List.empty, List.empty)
 
-  def apply(src: List[Scheme.Template])(implicit enc: Encoding) =
+  def apply(src: List[RewriteRule])(implicit enc: Encoding) =
     new Rules(src, src flatMap Rewriter.compileRule)
 }
 
@@ -123,28 +123,38 @@ object RuleBasedTactic {
    */
 
   def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None)(implicit enc: Encoding) = {
-    import Rewriter.RuleOps
-    val rules = Rewriter.compileRules(vars toList, List(anchor match {
+    import relentless.RewriteRule.RuleOps
+    val term = anchor match {
       case None => pattern =:> Markers.goal(vars toList)
       case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
-    }))
+    }
+    val rewriteRule = RewriteRule(term, vars toList, RewriteRule.Goal)
+    val rules = Rewriter.compileRules(rewriteRule toList)
     val tmpl = new Scheme.Template(vars:_*)(pattern)
     new CompiledGoal(rules, tmpl)
   }
 
   def mkLocator(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import Rewriter.RuleOps
+    import relentless.RewriteRule.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
     // ⨀⋯(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
-    val rules = Rewriter.compileRules(vars toList, List(pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList))))
+    val rules = Rewriter.compileRules(
+      RewriteRule(
+        pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList)),
+        vars toList,
+        RewriteRule.Locator
+      )
+    )
     val tmpl = new Scheme.Template(vars:_*)(pattern)
     new CompiledPattern(rules, Some(tmpl), anchor)
   }
 
   def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import Rewriter.RuleOps
+    import relentless.RewriteRule.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
-    val rules = Rewriter.compileRules(vars toList, List(pattern =:> Markers.placeholder(anchor)))
+    val rules = Rewriter.compileRules(
+      RewriteRule(pattern =:> Markers.placeholder(anchor), vars toList, RewriteRule.Locator)
+    )
     new CompiledPattern(rules, None, anchor)
   }
 
@@ -404,7 +414,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
     implicit val enc = s.enc
     val except = Markers.all map (_.leaf) toSet
 
-    examples.NoDup.showem(work.matches(Markers.goal.leaf), work.trie)
+    Utils.showem(work.matches(Markers.goal.leaf), work.trie)
 
     //lazy val nonMatches = WorkLoop.nonMatches(s.tuples, Markers.all map (_.leaf):_*)
 
