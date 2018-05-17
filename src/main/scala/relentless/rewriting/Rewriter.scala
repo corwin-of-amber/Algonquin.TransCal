@@ -89,44 +89,14 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 
 
 object Rewriter extends LazyLogging {
-  val `=>` = I("=>", "operator") // directional rewrite
-  val ||| = I("|||", "operator") // parallel patterns or conclusions
-  val ||> = I("||>", "operator")
-
-  implicit class RuleOps(private val t: Term) extends AnyVal {
-    def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
-
-    def |||(s: Term): Tree[Identifier] = T(Rewriter.|||)(t, s)
-
-    def ||>(s: Term): Tree[Identifier] = T(Rewriter.||>)(t, s)
-  }
-
   import syntax.Formula
   import syntax.Formula._
 
-  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5))
+  def compileRules(rulesSrc: List[RewriteRule])(implicit enc: Encoding): List[CompiledRule] =
+    rulesSrc map ((rule: RewriteRule) => new CompiledRule(rule.src, rule.target))
 
-  def compileRules(vars: List[Term], rulesSrc: List[Term])(implicit enc: Encoding): List[CompiledRule] = {
-
-    def varsUsed(t: Term) = vars filter t.leaves.contains
-
-    //println(rulesSrc map (_ toPretty))
-
-    rulesSrc flatMap {
-      case eqn@T(`=>`, List(lhs, rhs)) =>
-        val v = varsUsed(eqn) map (_.leaf)
-        Seq(new CompiledRule(new Scheme.Template(v, lhs), new Scheme.Template(v, rhs)))
-      case eqn@T(`=`, List(lhs, rhs)) =>
-        val v = varsUsed(eqn) map (_.leaf)
-        val (l, r) = (new Scheme.Template(v, lhs), new Scheme.Template(v, rhs))
-        Seq(new CompiledRule(l, r), new CompiledRule(r, l))
-      case other =>
-        throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
-    }
-  }
-
-  def compileRule(ruleSrc: Scheme.Template)(implicit enc: Encoding): List[CompiledRule] =
-    compileRules(ruleSrc.vars map (T(_)), List(ruleSrc.template))
+  def compileRule(ruleSrc: RewriteRule)(implicit enc: Encoding): List[CompiledRule] =
+    compileRules(List(ruleSrc))
 
   def nonMatches[HE <: BaseHyperEdge[Int]](words: Seq[HE], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HE] = {
     val heads = headSymbols map (enc.ntor -->)

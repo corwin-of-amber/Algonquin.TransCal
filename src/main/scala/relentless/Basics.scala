@@ -99,21 +99,58 @@ trait Rules extends LazyLogging {
   val vars: List[Term]
   val rulesSrc: List[RewriteRule]
 
-  lazy val rules = Rewriter.compileRules(vars, rulesSrc)
+  lazy val rules = Rewriter.compileRules(rulesSrc)
 }
 
-class RewriteRule(val rule: Tree[Identifier]) {
+object RewriteRule extends Enumeration {
+  type RuleType = Value
+  val Basic, Associative, Goal, Locator, Definition = Value
 
+  val `=>` = I("=>", "operator") // directional rewrite
+  val ||| = I("|||", "operator") // parallel patterns or conclusions
+  val ||> = I("||>", "operator")
+
+  implicit class RuleOps(private val t: Term) extends AnyVal {
+    def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
+
+    def |||(s: Term): Tree[Identifier] = T(RewriteRule.|||)(t, s)
+
+    def ||>(s: Term): Tree[Identifier] = T(RewriteRule.||>)(t, s)
+  }
+
+  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5))
+
+  def apply(template: Scheme.Template, ruleType: RewriteRule.RuleType): List[RewriteRule] = {
+    RewriteRule(template.template, template.vars map (T(_)), ruleType)
+  }
+
+  def apply(rule: Tree[Identifier], vars: List[Tree[Identifier]], ruleType: RewriteRule.RuleType): List[RewriteRule] = {
+    def varsUsed(t: Term) = vars filter t.leaves.contains
+
+    rule match {
+      case eqn@T(`=>`, List(lhs, rhs)) =>
+        val v = varsUsed(eqn) map (_.leaf)
+        List(new RewriteRule(new Scheme.Template(v, lhs), new Scheme.Template(v, rhs), ruleType))
+      case eqn@T(`=`, List(lhs, rhs)) =>
+        val v = varsUsed(eqn) map (_.leaf)
+        val (l, r) = (new Scheme.Template(v, lhs), new Scheme.Template(v, rhs))
+        List(new RewriteRule(l, r, ruleType), new RewriteRule(r, l, ruleType))
+      case other =>
+        throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
+    }
+  }
 }
+
+class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val ruleType: RewriteRule.RuleType) { }
 
 class BasicRules(implicit val enc: Encoding) extends Rules {
 
   import BasicSignature._
-  import Rewriter.RuleOps
+  import RewriteRule.RuleOps
 
   val vars = List(x, y, z, `x'`, xs, `xs'`)
 
-  val rulesSrc = List(
+  val ruleTemplates = List(
     (`⇒:`(tt, y)) =:> id(y),
     (`⇒:`(ff, y)) =:> ff,
     ~tt =:= ff,
@@ -137,6 +174,10 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     elems(cons(`x'`, `xs'`)) =:= (set_union(`{}`(`x'`), elems(`xs'`))), // <-- this one is somewhat superfluous?
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
   )
+
+  val rulesSrc : List[RewriteRule] =
+    ruleTemplates zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
+      RewriteRule.apply(t, v, RewriteRule.Basic)).tupled
 }
 
 class AssocRules(implicit val enc: Encoding) extends Rules {
@@ -147,5 +188,6 @@ class AssocRules(implicit val enc: Encoding) extends Rules {
 
   val rulesSrc = List(
     (x & (y & z)) =:= (x & y & z)
-  )
+  ) zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
+    RewriteRule.apply(t, v, RewriteRule.Associative)).tupled
 }

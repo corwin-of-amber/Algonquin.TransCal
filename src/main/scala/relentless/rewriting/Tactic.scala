@@ -2,6 +2,8 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
+import relentless.RewriteRule
+
 import relentless.matching.{Encoding, Trie}
 import relentless.matching.Trie.Directory
 import semantics.LambdaCalculus
@@ -231,7 +233,10 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
   import syntax.AstSugar._
 
   val vars = equalities flatMap (_.vars) map (T(_))
-  def rules(implicit enc: Encoding) = Rules((equalities ++ derivedFrom(equalities)) map skolemize)
+  def rules(implicit enc: Encoding) = {
+    val rewrites: List[RewriteRule] = (equalities ++ derivedFrom(equalities)) map skolemize flatMap (RewriteRule(_, RewriteRule.Definition))
+    Rules(rewrites)
+  }
     //{ val d = derivedFrom(equalities) ; Rules(if (d.isEmpty) equalities else d.toList) }
   val elab = equalities map (_.template) collect { case T(`=`, List(lhs, rhs)) => lhs ⇢ rhs }
 
@@ -353,7 +358,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
     val elab = gen.headOption.toSeq.flatten
     val rules = elab collect { case (f ⇢ F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
 
-    (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList))
+    (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList flatMap (RewriteRule(_, RewriteRule.Definition))))
   }
 
   import syntax.AstSugar.↦

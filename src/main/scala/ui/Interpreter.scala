@@ -153,7 +153,7 @@ object Interpreter extends LazyLogging {
 		
 		for (state <- out :+ state) {
       logger.info("=" * 65)
-  		for (r <- state.rules.src) logger.info(s"• ${r.template.toPretty}")
+  		for (r <- state.rules.src) logger.info(s"• ${r.src.template.toPretty}")
   		for (e <- state.prog.elaborate) logger.info(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
   		
   		dump(state.prog)

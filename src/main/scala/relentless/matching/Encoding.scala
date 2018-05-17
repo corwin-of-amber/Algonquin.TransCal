@@ -1,7 +1,7 @@
 package relentless.matching
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.rewriting.{BaseHyperEdge, OriginalEdge}
+import relentless.rewriting.{BaseHyperEdge, HyperEdge, OriginalEdge}
 import report.data.NumeratorWithMap
 import syntax.AstSugar.Term
 import syntax.Tree
@@ -13,33 +13,33 @@ class Encoding extends LazyLogging {
 
   val ntor = new NumeratorWithMap { }
 
-  def toTuples(term: Term) : List[OriginalEdge[Int]] = toTuples(term, term)
+  def toOriginalEdges(term: Term) : List[OriginalEdge[Int]] = toOriginalEdges(term, term)
 
   /**
     * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term.
     */
-  def toTuples(term: Term, equateWith: Term) : List[OriginalEdge[Int]] = {
+  def toOriginalEdges(term: Term, equateWith: Term) : List[OriginalEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
-    toTuple(Seq(head, top) ++ rest.toSeq) :: (rest flatMap toTuples)
+    OriginalEdge(toTuple(Seq(head, top) ++ rest.toSeq)) :: (rest flatMap toOriginalEdges)
   }
 
   /**
     * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term (int version).
     */
-  def toTuples(term: Term, equateWith: Int) : List[OriginalEdge[Int]] = {
+  def toOriginalEdges(term: Term, equateWith: Int) : List[OriginalEdge[Int]] = {
     val top = equateWith
     val (head, rest) = headRest(term)
-    val tail = rest flatMap toTuples
+    val tail = rest flatMap toOriginalEdges
     val firstHalf = OriginalEdge(ntor --> head, top, toTuple(rest.toSeq))
     firstHalf :: tail
   }
 
-  def toTuples(term: Term, alt: Map[Term, Int], nholes: Int, atRoot: Boolean = true) : List[Array[Int]] = {
+  def toHyperEdges(term: Term, alt: Map[Term, Int], nholes: Int, atRoot: Boolean = true) : List[HyperEdge[Int]] = {
     if (!atRoot && alt.contains(term) && alt(term) >= ~nholes && term.isLeaf) List.empty
     else {
       val (head, rest) = headRest(term)
-      ((ntor --> head) +: toTuple(Seq(term) ++ rest.toSeq, alt)) :: (rest flatMap (toTuples(_, alt, nholes, false)))
+      HyperEdge((ntor --> head) +: toTuple(Seq(term) ++ rest.toSeq, alt)) :: (rest flatMap (toHyperEdges(_, alt, nholes, false)))
     }
   }
 
@@ -53,7 +53,7 @@ class Encoding extends LazyLogging {
 
     val altsq = terms.head :: holes.toList ++ (terms flatMap (term => term.nodes filterNot (n => (n eq term) || n.isLeaf)))
     val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.tail map ((_, ~0)))
-    new Bundle((terms flatMap (toTuples(_, alt, holes.length)) toList))// |-- dbg)
+    new Bundle(terms flatMap (toHyperEdges(_, alt, holes.length)) toList) // |-- dbg)
   }
 
   /**
@@ -74,7 +74,7 @@ class Encoding extends LazyLogging {
       (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n) /* (*) */ /*n.isLeaf*/)))
     val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.head.tail map ((_, ~0))) ++
       (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, ~(altsq.length + i))) })
-    new Bundle((terms.flatten flatMap (toTuples(_, alt, holes.length)) toList))// |-- dbg)
+    new Bundle(terms.flatten flatMap (toHyperEdges(_, alt, holes.length)) toList)// |-- dbg)
   }
 
   def headRest(term: Term) = {
@@ -84,8 +84,8 @@ class Encoding extends LazyLogging {
     }
   }
 
-  def toTuple(sq: Seq[AnyRef]) = OriginalEdge(sq map (ntor -->))
-  def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, ntor --> k)) toArray
+  def toTuple(sq: Seq[AnyRef]) = sq map (ntor -->)
+  def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, ntor --> k))
 
   def asTerm(n: Int) = (ntor <-- n) match {
     case t: Tree[_] => t.asInstanceOf[Term] // hopefully there are no other trees

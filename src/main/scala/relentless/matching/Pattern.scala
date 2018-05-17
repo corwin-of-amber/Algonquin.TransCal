@@ -15,8 +15,8 @@ class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.I
 
   override def apply(idx: Int): BaseHyperTerm = transformedPattern.apply(idx)
 
-  def lookup[HE <: BaseHyperEdge[Int]](hyperTerm: Trie[Int, HE], valuation: Valuation): Seq[HE] = {
-    var t = hyperTerm
+  def lookup[HE <: immutable.IndexedSeq[Int]](trie: Trie[Int, HE], valuation: Valuation): Seq[HE] = {
+    var t = trie
     try {
       for ((term, idx) <- transformedPattern.zipWithIndex) {
         // In case match fails we exit the whole lookup function with an empty seq

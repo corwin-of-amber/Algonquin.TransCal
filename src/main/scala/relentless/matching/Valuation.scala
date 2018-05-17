@@ -28,7 +28,7 @@ class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.Index
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
     */
-  def unify[HE <: BaseHyperEdge[Int]](word: HE, pattern: Pattern): Option[Valuation] = {
+  def unify[HE <: IndexedSeq[Int]](word: HE, pattern: Pattern): Option[Valuation] = {
     if (word.length != pattern.length)
       None
     else {

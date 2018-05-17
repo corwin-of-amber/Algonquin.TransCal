@@ -1,9 +1,10 @@
 package relentless.matching
 
+import collection.immutable
 import relentless.rewriting.BaseHyperEdge
 
 
-class Match[HE <: IndexedSeq[Int]](val hyperTerm: Trie[Int, HE])(implicit val enc: Encoding) {
+class Match[HE <: immutable.IndexedSeq[Int]](val trie: Trie[Int, HE])(implicit val enc: Encoding) {
 
   /**
     * Returns a stream of possible valuations for given pattern tuples.
@@ -12,7 +13,7 @@ class Match[HE <: IndexedSeq[Int]](val hyperTerm: Trie[Int, HE])(implicit val en
     patterns match {
       case Nil => Stream(valuation)
       case head :: tail =>
-        for (w <- head.lookup(hyperTerm, valuation).toStream;
+        for (w <- head.lookup(trie, valuation).toStream;
              `v'` <- valuation.unify(w, head).toStream;
              `v''` <- lookupUnify_*(tail, `v'`)) yield {
           `v''`

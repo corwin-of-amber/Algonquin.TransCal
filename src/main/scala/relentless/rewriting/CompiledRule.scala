@@ -1,10 +1,12 @@
 package relentless.rewriting
 
+import relentless.RewriteRule
 import relentless.matching.{Bundle, Encoding, Trie, Valuation}
 import syntax.AstSugar.{$TI, T, Term}
 import syntax.{Identifier, Scheme}
 
 import scala.collection.mutable
+import scala.collection.immutable
 
 /**  Dont know yet
   *
@@ -21,15 +23,15 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     this(pattern.shuffles, conclusion, pattern.minValuationSize, parameterIndexes)
 
   def this(pattern: Scheme.Template, conclusion: Scheme.Template)(implicit enc: Encoding) = {
-    this(enc.toBundles(pattern.vars map (T(_)): _*)(pattern.template.split(Rewriter.||>) map (_.split(Rewriter.|||))).bare,
-      enc.toBundle(conclusion.vars map (T(_)): _*)(conclusion.template.split(Rewriter.|||): _*),
+    this(enc.toBundles(pattern.vars map (T(_)): _*)(pattern.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))).bare,
+      enc.toBundle(conclusion.vars map (T(_)): _*)(conclusion.template.split(RewriteRule.|||): _*),
       conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
-    import Rewriter.RuleOps
+    import RewriteRule.RuleOps
     of(pattern.template =:> conclusion.template)
   }
 
   //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
-  private def fresh(wv: Array[Int]): Int =
+  private def fresh(wv: immutable.IndexedSeq[Int]): Int =
     enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
 
   private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
@@ -54,9 +56,8 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
       if (wv(1) < 0) {
         val wv1 = lookup((0, wv(0)) +: (for (i <- 2 until wv.length) yield (i, wv(i))), trie) getOrElse fresh(wv)
         newSubterms += wv(1) -> wv1
-        wv(1) = wv1
-      }
-      RewriteEdge(wv)
+        RewriteEdge(wv.updated(1, wv1))
+      } else RewriteEdge(wv)
     }
   }
 
