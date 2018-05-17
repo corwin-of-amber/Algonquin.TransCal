@@ -22,6 +22,7 @@ sourceSets {
     main {
         scala {
             output.resourcesDir = "build/classes/scala/main"
+            exclude "examples/**"
         }
     }
     test {
