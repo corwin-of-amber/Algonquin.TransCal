@@ -1,9 +1,6 @@
 package ui
 
-import java.io.File
-import java.io.FileReader
-import java.io.InputStreamReader
-import java.io.FileWriter
+import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.{AssocRules, BasicRules}
@@ -88,7 +85,10 @@ object Interpreter extends LazyLogging {
   class CommandLineArgs(args: Array[String]) {
     val filename = () => if (args.length > 0) args(0) else "-"
     
-    def file() = filename() match { case "-" => new InputStreamReader(System.in) case fn => new FileReader(new File(fn)) }
+    def file() = filename() match {
+      case "-" => new InputStreamReader(System.in)
+      case fn => new InputStreamReader(new FileInputStream(fn), "UTF-8")
+    }
   }
 	
 	
