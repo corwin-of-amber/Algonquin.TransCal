@@ -1,6 +1,9 @@
 rootProject.name = 'transcal'
 
-includeBuild('../bellmaniac')
+boolean inComposite = gradle.parent != null
+if (!inComposite) {
+    includeBuild('../bellmaniac')
+}
 //        {
 //    dependencySubstitution {
 //        substitute module('org.algonquin.') with project(':')
