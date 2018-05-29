@@ -70,8 +70,6 @@ object Interpreter extends LazyLogging {
     implicit val cc = new DisplayContainer
     progf.write(toJson(rev).toString)
     progf.close()
-    val pick = new FileWriter("pickle.json")
-    JSON.write(rev.pickle)
   }
 	
 	/* -- scallop is super slow to load? -- *
