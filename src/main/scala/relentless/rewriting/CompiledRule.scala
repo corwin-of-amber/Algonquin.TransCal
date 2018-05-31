@@ -43,7 +43,7 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     def valuation_(i: Int) = {
       if (i < valuation.length && valuation.isDefined(i)) valuation(i).value
       else if (i < valuation.length) 0
-      else enc.ntor --> $TI("?" + i) // --- introduces an existential
+      else enc.ntor --> $TI("ex?" + i) // --- introduces an existential
     }
 
     val newSubterms = mutable.Map.empty[Int, Int] ++ (0 :: parameterIndexes map (i => (~i, valuation_(i))))

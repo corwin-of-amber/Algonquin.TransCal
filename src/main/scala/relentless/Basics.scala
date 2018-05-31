@@ -1,6 +1,7 @@
 package relentless
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.RewriteRule.RuleType
 import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.Rewriter
 import syntax.AstSugar._
@@ -39,6 +40,8 @@ object BasicSignature {
   val _elems = TI("elems")
 
   val `_++` = TV("++")
+  val _take = TV("take")
+  val _drop = TV("drop")
 
   val _ne = TI("≠")
   val _in = TI("∈")
@@ -69,6 +72,10 @@ object BasicSignature {
 
   def ++(x: Term, y: Term) = `_++` :@ (x, y)
 
+  def take(xs: Term, y: Term) = _take :@ (xs, y)
+
+  def drop(xs: Term, y: Term) = _drop :@ (xs, y)
+
   class Brackets(left: String, right: String) extends Formula.Notation {
 
     import Formula._
@@ -98,13 +105,19 @@ trait Rules extends LazyLogging {
 
   val vars: List[Term]
   val rulesSrc: List[RewriteRule]
+  val ruleTemplates: List[Tree[Identifier]]
 
   lazy val rules = Rewriter.compileRules(rulesSrc)
+
+  def templatesToRewriteRules(ruleType: RuleType) : List[RewriteRule] = {
+    ruleTemplates zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
+      RewriteRule.apply(t, v, ruleType)).tupled
+  }
 }
 
 object RewriteRule extends Enumeration {
   type RuleType = Value
-  val Basic, Associative, Goal, Locator, Definition = Value
+  val Basic, Associative, Goal, Locator, Definition, Existential = Value
 
   val `=>` = I("=>", "operator") // directional rewrite
   val ||| = I("|||", "operator") // parallel patterns or conclusions
@@ -148,6 +161,8 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
   import BasicSignature._
   import RewriteRule.RuleOps
 
+  private val assocRules = new AssocRules()
+
   val vars = List(x, y, z, `x'`, xs, `xs'`)
 
   val ruleTemplates = List(
@@ -158,6 +173,7 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     (x /: ff) =:> id(x),
     (ff /: x) =:> id(x),
     id(id(x)) =:> id(x),
+    xs =:> ++(take(xs, y), drop(xs, y)),
 
     (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
     elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
@@ -167,7 +183,6 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     set_disj(xs, `{}`(x)) =:> not_in(x, xs),
     ~(x | y) =:= (~x & ~y),
     ~(x & y) =:= (~x | ~y),
-    (x & (y & z)) =:= (x & y & z),
     (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
     (set_disj(xs, x) & set_disj(xs, y)) =:= (set_disj(xs, set_union(x, y))),
     elem(x, xs) =:= in(x, elems(xs)),
@@ -175,9 +190,7 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
   )
 
-  val rulesSrc : List[RewriteRule] =
-    ruleTemplates zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
-      RewriteRule.apply(t, v, RewriteRule.Basic)).tupled
+  val rulesSrc : List[RewriteRule] = assocRules.rulesSrc ++ templatesToRewriteRules(RewriteRule.Basic)
 }
 
 class AssocRules(implicit val enc: Encoding) extends Rules {
@@ -186,8 +199,23 @@ class AssocRules(implicit val enc: Encoding) extends Rules {
 
   val vars = List(x, y, z, `x'`, xs, `xs'`)
 
-  val rulesSrc = List(
-    (x & (y & z)) =:= (x & y & z)
-  ) zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
-    RewriteRule.apply(t, v, RewriteRule.Associative)).tupled
+  override val ruleTemplates: List[Tree[Identifier]] = List((x & (y & z)) =:= (x & y & z))
+
+  val rulesSrc = templatesToRewriteRules(RewriteRule.Associative)
+}
+
+class ExistentialRules(implicit val enc: Encoding) extends Rules {
+
+  import BasicSignature._
+  import RewriteRule.RuleOps
+
+  private val basicRules = new BasicRules()
+
+  val vars = List(x, y, z, `x'`, xs, `xs'`)
+
+  val ruleTemplates = List(
+    xs =:> ++(take(xs, y), drop(xs, y))
+  )
+
+  val rulesSrc : List[RewriteRule] = basicRules.rulesSrc ++ templatesToRewriteRules(RewriteRule.Existential)
 }

@@ -1,0 +1,7 @@
+id = ?xs   [++]
+
+_ -> 1⃝                              [allow existential]
+1⃝ -> ?split xs  [above]
+1⃝ -> _ ++ _  [above]
+
+_ ++ _ -> add2list' _

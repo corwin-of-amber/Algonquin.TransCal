@@ -3,7 +3,7 @@ package ui
 import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.{AssocRules, BasicRules}
+import relentless.{AssocRules, BasicRules, ExistentialRules}
 import syntax.AstSugar._
 import syntax.Identifier
 import syntax.Scheme
@@ -24,6 +24,7 @@ import relentless.rewriting.Elaborate
 import relentless.rewriting.Rules
 import relentless.rewriting.Let
 import ui.Parser.DeductionHints
+
 import scala.pickling.json._
 
 
@@ -70,8 +71,6 @@ object Interpreter extends LazyLogging {
     implicit val cc = new DisplayContainer
     progf.write(toJson(rev).toString)
     progf.close()
-    val pick = new FileWriter("pickle.json")
-    JSON.write(rev.pickle)
   }
 	
 	/* -- scallop is super slow to load? -- *
@@ -178,12 +177,14 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
 
   val BasicRules = new BasicRules
   val AssocRules = new AssocRules
+  val ExistentialRules = new ExistentialRules
   
   def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]) = {
     val t = scheme.template
     val vars = scheme.vars
     val rules =
       if (hints contains "only assoc") AssocRules.rules
+      else if(hints contains "allow existentials") ExistentialRules.rules ++ s.rules.compiled
       else BasicRules.rules ++ s.rules.compiled
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/

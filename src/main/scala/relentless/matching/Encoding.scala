@@ -89,6 +89,6 @@ class Encoding extends LazyLogging {
 
   def asTerm(n: Int) = (ntor <-- n) match {
     case t: Tree[_] => t.asInstanceOf[Term] // hopefully there are no other trees
-    //case _ => T(I("some error", "marker"))
+    case _ => throw new RuntimeException("Trying to translate an identifier to a term")
   }
 }
