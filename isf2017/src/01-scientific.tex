@@ -1,0 +1,146 @@
+\section{Scientific Background}
+
+It is definitely the Age of Software.
+After having infiltrated our homes, our cars, our pockets and wrists,
+after startup engineers have seemingly launched every app imaginable,
+the demand for software refuses to decline.
+Its success in the private space catalyzes its application to the public
+space as well: clinics and offices shift toward Web-based appointment
+scheduling and information delivery, and even government agencies are
+inclined to offer their services online.
+The thirst for information causes more data stores to open up to the
+public, and the flow of data requires organization, searching and sorting
+to make sense of it.
+Soon enough our wallets will be filled with electronic currency and
+manage trade contracts for us.
+In this new economy it will become hard to imagine we could ever
+shop for groceries without software.
+
+To cope with ever-increasing need to create more software, developers
+will have to adopt new practices.
+Today's development tools limit code reuse and collaboration in larger
+scales, \eg in an open source community setting.
+Software modules are being rewritten and old code ages quickly and becomes
+unusable due to rapidly changing APIs, unless it is routinely maintained,
+incurring high overheads.
+Over time, code bases become harder to understand, maintain, and reuse.
+Accompanying design documents and other documentation are written, but
+they are hard to keep up-to-date with the code, and at any rate, it does
+not seem that the right way to understand a computer program is to read
+a book about it.
+
+\begin{subparagraph}{Clearly distinguishing semantics from implementation}
+Most software starts its life as clean, elegant code, thoughtfully designed.
+What happens then is that concerns such as portability, performance,
+and integration with other software arise, and the developers are forced
+to revise their code.
+Code that has been subject to many changes is notorious for becoming
+obfuscated, and also starts to deviate from the original design and
+documentation.
+A particular syndrome we wish to address is that the \emph{meaning} of
+the software, often called its \emph{semantics}, sometimes \emph{formal specification},
+and colloquially \emph{"The What"}, is intertwined and mixed with all
+other aspects of programming within the code --- its \emph{implementation},
+\emph{"The How"}~\cite{CACM2012/Bodik}.
+Creating software layers for software semantics and its implementation,
+in conjunction with a corresponding compiler that knows about the connection
+between the two, can help manage the risks from changes by
+\begin{enumerate*}[label=(\textit{\roman*})]
+\item only changing the
+specification when requirements actually change, 
+\item keeping the specification smaller than the whole program, making it easier to review, and
+\item making sure, mechanically, that the correlation between the layers is maintained.
+\end{enumerate*}
+\end{subparagraph}
+
+\begin{subparagraph}{Not repeating oneself}
+The previous point is very much addressed by software engineering approaches
+like design-by-contract and by formal methods such as model checking and Hoare-Floyd
+style verification.
+What these techniques generally lack is the transference of information across
+abstraction layers:
+after writing a contract, a programmer has to provide an implementation,
+which repeats many of the details of the contract in code form;
+after writing a procedure, to verify it, a programmer has to provide a formal
+specification in some logic, repeating many of the implementation details.
+To avoid repetitiveness, some form of synthesis is required, backed up by some
+form of formal reasoning that tells the system which parts can be re-used when
+refining and which parts change and need to be specified.
+Kuncak \etal~\cite{CACM2012/Kuncak} argue that the task resembles that of
+constructing a specialized \emph{constraint solver} for a set of constraints
+at hand; this is in contrast with generic constraint solvers, which are
+either not available for a particular domain (due to inherent undecidability)
+or are not efficient enough.
+\end{subparagraph}
+
+\begin{paragraph}{Related Work}
+Work on semi-automated programming began quite long ago at Kestrel Institute~\cite{AI1985/Smith},
+which led to the development of several prototype projects,
+KIDS~\cite{TSE1990/Smith}, DTRE~\cite{CPS1991/Blaine}, 
+and Specware~\cite{2001/McDonald:specware}.
+These systems are built on the concept of an algorithmic knowledge base encoded
+as a library, and matched against program specifications to apply the
+right transformation and obtain a correct-by-construction implementation.
+KIDS contains one of the early interactive proof assistants, to support
+fulfillment of pre-conditions required for some algorithmic solutions.
+
+The same concepts inspired the creation of the Refinement Calculator~\cite{TPHOLs1996/Butler};
+it provides an interactive environment where expressions are replaced with
+new ones that subsist in some transitive relation, such that multiple steps
+can be combined to a proof that the same relation holds between the first
+revision and the last.
+The relation can be some order on values ($\leq$), or a more complicated relation
+on programs such as \emph{behavioral refinement}, in which the proposed substitution
+exhibits the same set of run-time behaviors or fewer compared to the original
+term.
+This asserts that any safety property satisfied by the original program is held
+on the revised.
+
+AutoBayes~\cite{JFP2003/Fischer} is an example for a domain-specific automatic programming system
+developed by NASA.
+It contains a large database of statistical algorithms for constructing and
+analyzing models.
+A solver tries different \emph{schemas}, allowing backtracking to find
+a computationally optimal combination, and derives a specialized algorithm
+for learning a specific model supplied by the user.
+
+In Scala\textsuperscript{Z3}, similar guidelines were followed by match-making
+constraints written in the Scala programming language with a palette of
+solving techniques encoded in first-order logic and implemented on top of
+Z3, a leading SMT solver. SMT (Satisfiability Modulo Theory) is a term used
+to describe a family of solvers that can check satisfiability of a logical
+formula under some intended interpretation of the domain (\eg natural numbers).
+Such solvers have been used excessively for verification in the past,
+but less so for synthesis purposes.
+
+A more recent system, Fiat~\cite{POPL2015/Delaware}, is what can be described
+as a glorified domain-specific language compiler.
+Instead of the usual code generation--optimization phases, it employs a set
+of domain tactics that transform the input program, and then use an extraction
+mechanism implemented in Coq to generate the code.
+Transformations are done in a high-level theory, but a library for creating
+tactics allows a language designer to describe implementation-specific details
+that are crucial for some performance benefits.
+
+Generally speaking, early approaches to transformational synthesis relied on
+manual guidance, while automation was mainly limited by available computational
+power. Later systems allow for greater automation in exploring the program space
+but inhabit domain niches, since the general problem is still considered computationally hard.
+
+The concept of refinement as used by \cite{TPHOLs1996/Butler,POPL2015/Delaware} mentioned above
+is not constrained to synthesis, but has applications in formal verification
+as well. In \cite{CAV2015/Hawblitzel}, researchers from Microsoft Research laboratories
+show that abstracting concurrent code into several layers can greatly simplify the task of generating
+a machine-checkable correctness proof.
+While it takes advantage of SMT technology, this approach does require a rather
+large amount of annotations and ghost code.
+Domain-specific abstractions were also shown useful in analysis and,
+surprisingly, debugging, by Bod\'ik \etal~\cite{SNAPL2107/Bodik}.
+
+\emph{Interactive} synthesis, not necessarily deductive,
+is trending, and several papers have been disseminated on the subject
+\cite{SYNASC2012/Gulwani,CACM2012/Gulwani,CAV2011/Gvero,Onward2015/Barman}.
+These revolve mostly around programming by demonstration or via examples.
+Still, syntax plays a role~\cite{NATOSec2015/Alur} and the user can restrict the resulting program
+to a particular API or control structure, thus guiding the search.
+\end{paragraph}

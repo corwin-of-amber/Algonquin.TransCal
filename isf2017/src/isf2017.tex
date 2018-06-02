@@ -1,0 +1,50 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{xspace}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{titlesec}
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage[inline]{enumitem}
+
+\onehalfspacing
+
+\include{macros}
+
+
+%% Header customization
+\pagestyle{fancy}
+\lhead{}
+\rhead{\small Application no. 582/18 | Shachar Itzhaky}
+
+\fancypagestyle{firstpage}{%
+  \lhead{\small Detailed description of the research program}
+}
+
+%% Subparagraph customization
+\titleformat{\subparagraph}[runin]
+    {\normalfont\normalsize\bfseries\itshape}{\thesubparagraph}{1em}{}
+\titlespacing*{\subparagraph}{0pt}{3.25ex plus 1ex minus .2ex}{2.5ex plus .1ex}
+
+
+
+\begin{document}
+
+
+%\section*{TransCal (ISF 2017)}
+
+\thispagestyle{firstpage}
+
+\input{01-scientific}
+\input{02-research}
+\input{03-detailed}
+\input{04-preliminary}
+\input{05-summary}
+
+\clearpage
+\bibliographystyle{plain}
+\bibliography{isf2017}
+
+\end{document}

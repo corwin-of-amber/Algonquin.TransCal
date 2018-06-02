@@ -1,0 +1,14 @@
+#TeXlipse project settings
+#Thu Aug 03 11:50:16 IDT 2017
+markTmpDer=true
+builderNum=2
+outputDir=out
+makeIndSty=
+bibrefDir=
+outputFormat=pdf
+tempDir=tmp
+mainTexFile=isf2017.tex
+outputFile=isf2017.pdf
+langSpell=en
+markDer=true
+srcDir=src
