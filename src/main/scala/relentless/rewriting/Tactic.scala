@@ -130,7 +130,7 @@ object RuleBasedTactic {
       case None => pattern =:> Markers.goal(vars toList)
       case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
     }
-    val rewriteRule = RewriteRule(term, vars toList, RewriteRule.Goal)
+    val rewriteRule = RewriteRule(term, vars toList, RewriteRule.Category.Goal)
     val rules = Rewriter.compileRules(rewriteRule toList)
     val tmpl = new Scheme.Template(vars:_*)(pattern)
     new CompiledGoal(rules, tmpl)
@@ -143,8 +143,8 @@ object RuleBasedTactic {
     val rules = Rewriter.compileRules(
       RewriteRule(
         pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList)),
-        vars toList,
-        RewriteRule.Locator
+        vars.toList,
+        RewriteRule.Category.Locator
       )
     )
     val tmpl = new Scheme.Template(vars:_*)(pattern)
@@ -155,7 +155,7 @@ object RuleBasedTactic {
     import relentless.RewriteRule.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
     val rules = Rewriter.compileRules(
-      RewriteRule(pattern =:> Markers.placeholder(anchor), vars toList, RewriteRule.Locator)
+      RewriteRule(pattern =:> Markers.placeholder(anchor), vars toList, RewriteRule.Category.Locator)
     )
     new CompiledPattern(rules, None, anchor)
   }
@@ -234,7 +234,7 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
 
   val vars = equalities flatMap (_.vars) map (T(_))
   def rules(implicit enc: Encoding) = {
-    val rewrites: List[RewriteRule] = (equalities ++ derivedFrom(equalities)) map skolemize flatMap (RewriteRule(_, RewriteRule.Definition))
+    val rewrites: List[RewriteRule] = (equalities ++ derivedFrom(equalities)) map skolemize flatMap (RewriteRule(_, RewriteRule.Category.Definition))
     Rules(rewrites)
   }
     //{ val d = derivedFrom(equalities) ; Rules(if (d.isEmpty) equalities else d.toList) }
@@ -358,7 +358,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
     val elab = gen.headOption.toSeq.flatten
     val rules = elab collect { case (f ⇢ F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
 
-    (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList flatMap (RewriteRule(_, RewriteRule.Definition))))
+    (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList flatMap (RewriteRule(_, RewriteRule.Category.Definition))))
   }
 
   import syntax.AstSugar.↦
