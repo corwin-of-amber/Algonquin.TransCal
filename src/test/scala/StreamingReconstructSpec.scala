@@ -3,12 +3,13 @@ import java.io.{File, InputStream}
 import org.json4s.DefaultReaders.{JArrayReader, JObjectReader}
 import org.json4s.JsonAST.{JArray, JObject}
 import org.scalatest.{FlatSpec, Matchers}
-import syntax.Tree
+import syntax.{Identifier, Tree}
 import org.json4s.native.JsonMethods._
 import org.json4s._
 import org.scalatest.concurrent.{Interruptor, TimeLimitedTests}
 import org.scalatest.time.{Millis, Seconds, Span}
-import relentless.rewriting.{HyperEdge, Reconstruct}
+import relentless.matching.Encoding
+import relentless.rewriting.{HyperEdge, OriginalEdge, Reconstruct, RewriteEdge}
 import relentless.rewriting.Reconstruct.Entry
 import syntax.AstSugar.Term
 
@@ -16,25 +17,25 @@ import scala.collection.mutable
 
 
 class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
-  def jarrayToTree(arr: Iterable[Any]): Tree[Int] = {
-    val root: Int = arr.head.toString.toInt
+  def jarrayToTree(arr: Iterable[Any], encoding: Encoding): Term = {
+    val root: Identifier = (encoding.ntor --> arr.head.toString).asInstanceOf[Identifier]
     val subtrees = for (obj <- arr.tail) yield {
       obj match {
-        case JInt(x) => new Tree[Int](x.toInt)
-        case l: JArray => jarrayToTree(l.values)
-        case a: List[JValue] => jarrayToTree(a)
-        case num: BigInt => new Tree[Int](num.toInt)
+        case JInt(x) => new Tree(encoding.ntor.-->(x.toString).asInstanceOf[Identifier])
+        case l: JArray => jarrayToTree(l.values, encoding)
+        case a: List[JValue] => jarrayToTree(a, encoding)
+        case num: BigInt => new Tree((encoding.ntor.-->(num.toString)).asInstanceOf[Identifier])
         case x => throw new RuntimeException(x.getClass toString)
       }
     }
-    new Tree[Int](root, subtrees toList)
+    new Tree[Identifier](root, subtrees toList)
   }
 
-  def treeArrayToTrees(arr: JArray): Seq[Tree[Int]] = {
+  def treeArrayToTrees(arr: JArray, encoding: Encoding): Seq[Term] = {
     for (obj <- arr.values) yield {
       obj match {
-        case l: List[JValue] => jarrayToTree(l)
-        case a: JArray => jarrayToTree(a.values)
+        case l: List[JValue] => jarrayToTree(l, encoding)
+        case a: JArray => jarrayToTree(a.values, encoding)
         case x => throw new RuntimeException(x.getClass toString)
       }
     }
@@ -46,12 +47,19 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
     test.length should be > 0
     new {
       val name: String = fileName
-      val finals: Array[Int] = test(1) split " " map (_.toInt)
-      val init: Tree[Int] = jarrayToTree(parse(test(0)).as[JArray].values)
-      val except: Set[Int] = test(2) split " " filter (_.length > 0) map (_ toInt) toSet
-      val outs: List[Tree[Int]] = treeArrayToTrees(parse(test(3)).as[JArray]) toList
-      val words: Seq[HyperEdge[Int]] = test drop 4 map ((line: String) => line split " " map (_.toInt)) map (HyperEdge(_))
-      val newOuts: List[Tree[Int]] = (new Reconstruct(init.root, words) ++ (finals zip Stream.continually(null)).toMap) (except) toList
+      val finals: Array[Identifier] = test(1) split " " map (new Identifier(_))
+      val encoding = new Encoding
+      for (f <- finals) {
+        encoding.ntor --> f.toString
+      }
+      val init: Int = test(0).toInt
+      val except: Set[Identifier] = test(2) split " " filter (_.length > 0) map (new Identifier(_)) toSet
+      val outs: List[Term] = treeArrayToTrees(parse(test(3)).as[JArray], encoding) toList
+      val words: Seq[OriginalEdge[Int]] = test drop 4 map ((line: String) => line split " " map (_.toInt)) map (OriginalEdge(_))
+      val newOuts: List[Term] = {
+        val reconstruct = new Reconstruct(init, words) ++ (encoding.ntor.mapped.values zip Stream.continually(null)).toMap
+        reconstruct(encoding, except).toList
+      }
     }
   }
 
@@ -92,11 +100,11 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
   "Streaming reconstruct" should "return the full set of possibilities" in {
     val test = readFile("/full.txt")
     // Test structure is defined in Test Creator
-    for (tree: Tree[Int] <- test.outs) {
+    for (tree: Term <- test.outs) {
       test.newOuts should contain(tree)
     }
 
-    for (tree: Tree[Int] <- test.newOuts) {
+    for (tree: Term <- test.newOuts) {
       test.outs should contain(tree)
     }
     println("results for full set are:")
@@ -106,11 +114,11 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
   it should "ignore edges in except" in {
     val test = readFile("/except.txt")
     // Test structure is defined in Test Creator
-    for (tree: Tree[Int] <- test.outs) {
+    for (tree: Term <- test.outs) {
       test.newOuts should contain(tree)
     }
 
-    for (tree: Tree[Int] <- test.newOuts) {
+    for (tree: Term <- test.newOuts) {
       test.outs should contain(tree)
     }
 
@@ -121,11 +129,11 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
   it should "be able to distinguish branches in circle checks" in {
     val test = readFile("/branches.txt")
     // Test structure is defined in Test Creator
-    for (tree: Tree[Int] <- test.outs) {
+    for (tree: Term <- test.outs) {
       test.newOuts should contain(tree)
     }
 
-    for (tree: Tree[Int] <- test.newOuts) {
+    for (tree: Term <- test.newOuts) {
       test.outs should contain(tree)
     }
 
@@ -181,12 +189,13 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
 13 52 30
 19 38 52 51
      */
-    val words = Seq(Seq(2, 5), Seq(1, 8, 5, 3, 4)) map (HyperEdge(_)) toStream
-    val im: Map[Int, Term] = Map(3 -> null, 4 -> null)
-    val expected = Reconstruct.tupleToTree(Seq(1, -1, 2, 3, 4))
-    val reconstruct = new Reconstruct(HyperEdge(1, -1, Seq(5, 3, 4)), words) ++ im
-    val resultTree: Tree[Int] = reconstruct(Set[Int]()).head
-    resultTree should equal (expected)
+//    val words = Seq(Seq(2, 5), Seq(1, 8, 5, 3, 4)) map (OriginalEdge(_)) toStream
+//    val im: Map[Int, Term] = Map(3 -> null, 4 -> null)
+//    val expected = new Tree[Int](1, List(2, 3, 4).map(new Tree(_)))
+//    val reconstruct = new Reconstruct(OriginalEdge(1, -1, Seq(5, 3, 4)), words) ++ im
+//    val resultTree: Tree[Int] = reconstruct(Set[Int]())
+//    resultTree should equal (expected)
+    fail("commented out the test as constructors changed")
   }
 
   it should "return entries where the final target is updated late" in {
@@ -310,10 +319,11 @@ class StreamingReconstructSpec extends FlatSpec with Matchers with TimeLimitedTe
 59 106 122 75"""
     val words = rewrites.split("\n") map ((s) => HyperEdge(s.split(" ") map (_.toInt)))
     val im: Map[Int, Term] = Set(69, 138, 56, 37, 25, 57, 61, 132, 133, 74, 60, 28, 38, 137, 65, 129, 134, 73, 128, 2, 34, 64, 71, 54, 39, 66, 130, 135, 35, 63, 31, 72, 40, 55, 139, 75, 58, 36, 30, 136, 79, 131, 68, 62).zip(Stream.continually(null)).toMap
-    val expected = Reconstruct.tupleToTree(Seq(44, -1 , 83).toArray)
-    val reconstruct = new Reconstruct(HyperEdge(44, 81, Seq(82)), words.toStream) ++ im
-    val resultTree: Tree[Int] = reconstruct(Set[Int]()).head
-    resultTree should equal (expected)
+    val expected = new Tree(44, List(new Tree(83)))
+//    val reconstruct = new Reconstruct(OriginalEdge(44, 81, Seq(82)), words.toStream) ++ im
+//    val resultTree: Tree[Int] = reconstruct(Set[Int]()).head
+//    resultTree should equal (expected)
+    fail("Commented out the test for compilation reasons.")
   }
 
 }
