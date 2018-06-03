@@ -173,7 +173,6 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     (x /: ff) =:> id(x),
     (ff /: x) =:> id(x),
     id(id(x)) =:> id(x),
-    xs =:> ++(take(xs, y), drop(xs, y)),
 
     (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
     elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
