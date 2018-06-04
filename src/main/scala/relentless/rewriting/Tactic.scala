@@ -334,8 +334,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 
     implicit val enc = s.enc
 
-    logger.info(s"Showing encoding values")
-    logger.info(s"${enc.ntor.mapped.toStream.sortBy(_._2).mkString(", ")}")
+    logger.debug(s"Showing encoding values: ${enc.ntor.mapped.toStream.sortBy(_._2).mkString(", ")}")
 
     // Reconstruct and generalize
     val gen =
