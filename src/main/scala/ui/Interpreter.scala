@@ -105,17 +105,16 @@ object Interpreter extends LazyLogging {
                        |x ∉ _ /\ x' ∉ _ -> _ ‖ _
                        |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; " */
 
-    logger.info("Starting new run")
+    logger.debug("Starting new run")
 		val cmd = new CommandLineArgs(args)
 		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
 
-    logger.info(program)
+    logger.info(s"The given input:\n$program")
 		
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
-    logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
-		logger.info(s"${tokens}")
+    logger.debug("Tokens:\n" + (tokens map (_.toString()) mkString " "))
 		
 		implicit val enc = new Encoding
 		implicit val directory = new BasicRules directory

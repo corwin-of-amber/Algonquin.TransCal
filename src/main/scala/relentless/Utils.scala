@@ -27,9 +27,9 @@ object Utils extends LazyLogging {
   def showem(matches: Seq[BaseRewriteEdge[Int]], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
-      logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
+      logger.debug(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
       for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc, except).toList), B))
-        logger.info("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
+        logger.debug("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }
 }
