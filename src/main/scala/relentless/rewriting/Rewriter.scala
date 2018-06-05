@@ -114,30 +114,6 @@ object Rewriter extends LazyLogging {
 
     val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
   }
-
-
-  def main(args: Array[String]): Unit = {
-    implicit val enc = new Encoding
-    import relentless.BasicSignature._
-    //val r = new CompiledRule(new Scheme.Template(x)(`⇒:`(tt, x)), new Scheme.Template(x)(id(x)))
-    val rules = List(new CompiledRule(new Scheme.Template(x, y)(f :@ (y, x)), new Scheme.Template(x, y)(y :@ x)),
-      new CompiledRule(new Scheme.Template(x, y)(y :@ x), new Scheme.Template(x, y)(tt)),
-      new CompiledRule(new Scheme.Template()(~tt), new Scheme.Template(x, y)(ff)))
-    for (r <- rules) {
-      for (v <- r.shards) logger.info(s"""{v.tuples map (_.mkString(" "))}""")
-      logger.info("")
-      logger.info(s"""{r.conclusion.tuples map (_.mkString(" "))}""")
-      logger.info("-" * 60)
-    }
-
-    import java.io.FileWriter
-    val encf = new FileWriter("enc")
-    val pairs = enc.ntor.mapped.toList map { case (x, y) => (y, x) } sortBy (_._1);
-    for ((k, v) <- pairs) {
-      encf.write(s"${k} ${v}  (${v.getClass().getName()})\n");
-    }
-    encf.close()
-  }
 }
 
 // Note: need to inherit base class to gain the ability to define a case class
