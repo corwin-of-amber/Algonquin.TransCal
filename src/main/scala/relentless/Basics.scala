@@ -40,6 +40,7 @@ object BasicSignature {
   val _elems = TI("elems")
 
   val `_++` = TV("++")
+  val _snoc = TV(":+")
   val _take = TV("take")
   val _drop = TV("drop")
 
@@ -76,6 +77,8 @@ object BasicSignature {
 
   def drop(xs: Term, y: Term) = _drop :@ (xs, y)
 
+  def snoc(x: Term, xs: Term) = _snoc:@(x, xs)
+
   class Brackets(left: String, right: String) extends Formula.Notation {
 
     import Formula._
@@ -91,7 +94,7 @@ object BasicSignature {
 
   import Formula.{M, O}
 
-  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
+  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O(":+", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
 }
 
 
@@ -183,10 +186,15 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     set_disj(xs, `{}`(x)) =:> not_in(x, xs),
     ~(x | y) =:= (~x & ~y),
     ~(x & y) =:= (~x | ~y),
+    (x & (y & z)) =:= (x & y & z),
     (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
     (set_disj(xs, x) & set_disj(xs, y)) =:= (set_disj(xs, set_union(x, y))),
     elem(x, xs) =:= in(x, elems(xs)),
     elems(cons(`x'`, `xs'`)) =:= (set_union(`{}`(`x'`), elems(`xs'`))), // <-- this one is somewhat superfluous?
+    snoc(y, x) =:= ++(y, cons(x, nil)),
+    ++(nil, `xs'`) =:= id(`xs'`),
+    ++(`xs'`, nil) =:= id(`xs'`),
+    ++(x, ++(y, z)) =:= ++(++(x, y), z),
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
   )
 

@@ -15,14 +15,7 @@ import synth.pods.TacticalError
 import report.data.DisplayContainer
 import report.data.SerializationContainer
 import relentless.matching.Encoding
-import relentless.rewriting.Revision
-import relentless.rewriting.RevisionDiff
-import relentless.rewriting.Locate
-import relentless.rewriting.RuleBasedTactic
-import relentless.rewriting.Generalize
-import relentless.rewriting.Elaborate
-import relentless.rewriting.Rules
-import relentless.rewriting.Let
+import relentless.rewriting._
 import ui.Parser.DeductionHints
 
 import scala.pickling.json._
@@ -119,7 +112,7 @@ object Interpreter extends LazyLogging {
 		
 		implicit val enc = new Encoding
 		implicit val directory = new BasicRules directory
-		
+
 		val interp = new Interpreter
 		var state: State = null
 		val stack = collection.mutable.Stack.empty[State]
@@ -196,15 +189,19 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
       }
       else {
         if (!isAnchorName(from)) logger.info("  locate &")
-        LambdaCalculus.isApp(to) match {
-          case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
-            logger.info(s"  generalize ${f} ${args}")
-            if (isAnchorName(from))
+        import semantics.LambdaCalculus._
+        val `@[]` = TI("@[]") // What is this?!
+        to match {
+            // Sugar syntax of isApp
+          case f @: args if f.isLeaf && (vars contains f.leaf) =>
+                    logger.info(s"  generalize ${f} ${args}")
+                    assert(isAnchorName(from)) // TODO
               new Generalize(rules, args, Some(f), None)
-            else {
-              // TODO
-              new Generalize(rules, args, Some(f), None)
-              
+          case T(`@[]`, given :: disallowed) => { // Split the tree
+              assert(isAnchorName(from)) // TODO
+              //val given::disallowed = to.subtrees
+            logger.info(s"  recurse ${given.toPretty}    (disallowed: ${disallowed.map(_.toPretty)})")
+              new FindRecursion(rules, new Scheme.Template(vars, given), disallowed.toSet)
             }
           case _ =>
             logger.info("  elaborate")
@@ -230,7 +227,7 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
       throw new TacticalError(s"unknown root '${t.root}'")
     }
   }
-  
+
   def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
     case _: Int => true
     case s: String => s.contains("⃝")

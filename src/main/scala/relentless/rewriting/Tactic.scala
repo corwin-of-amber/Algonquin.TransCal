@@ -342,7 +342,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
       for (gm <- work0.matches(Markers.placeholder.leaf).toStream;
            t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
            //x <- Some(println(s"[generalize] ${t.toPretty}"));
-           tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
+           tg <- Generalize.generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
         logger.info(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
         logger.info(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
@@ -388,7 +388,9 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
       case _ => t.subtrees flatMap patternLeaves
     }
   }
+}
 
+object Generalize {
   def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {
     //println(s"[generalize] ${t.toPretty}  with context  ${context}")
 
@@ -443,4 +445,62 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
     new Reconstruct(match_, trie)(enc, except).head
   }
 
+}
+
+class FindRecursion(rules: List[CompiledRule], given: Scheme.Template, disallowed: Set[Term]) extends RuleBasedTactic(rules) with Compaction {
+
+  class UnifyHole(given: Scheme.Template) extends syntax.Unify {
+    override def isVar(x: Tree[Identifier]) = x.isLeaf && given.vars.contains(x.leaf)
+
+    def apply(t: Term): Boolean = {
+      try {
+        makeMgu(given.template, t, List())
+        true
+      } catch  {
+        case ex : syntax.Unify.CannotUnify => false
+      }
+    }
+  }
+
+  import RuleBasedTactic._
+
+  def apply(s: Revision): (RevisionDiff, Rules) = {
+    val work0 = this.work(s)
+
+    implicit val enc = s.enc
+
+    val gen =
+      for (a <- work0.matches(Markers.placeholder.leaf);
+           t <- new Reconstruct(a, work0.nonMatches(Markers.all map (_.leaf):_*))(enc);
+           //x <- Some(println(s"[generalize] ${t.toPretty}"));
+           generalized <- Generalize.generalize(t, List(), s.env.vars.toSet);
+           (context, matched) <- findrec(t) if matched.nonEmpty) yield {
+        println(s"    Context: ${context.toPretty}")
+        println(s"    Matched: ${matched.map(_.toPretty).mkString("\n            ")}")
+        println(s"    TG: ${generalized.toPretty}\n")
+        val Some(original) = s.focusedSubterm get a.target
+        original ⇢ t
+      }
+    (RevisionDiff(None, List(), List(gen.head), List(), List()), Rules.empty)
+  }
+
+  private def matches = new UnifyHole(given)
+  private val hole = TI("□")
+
+  def findrec(t: Term) : Option[(Term, List[Term])] = {
+    if (matches(t)) {
+      Some (hole, List(t))
+    }
+    else if (disallowed.contains(t))
+      None
+    else {
+      val submatches: List[Option[(Term, List[Term])]] = t.subtrees.map(findrec)
+      if (submatches.contains(None)) {
+        None
+      } else {
+        val (lefts, rights) = submatches.flatten.unzip
+        Some (new Tree(t.root, lefts), rights.flatten)
+      }
+    }
+  }
 }

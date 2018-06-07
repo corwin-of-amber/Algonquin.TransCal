@@ -30,9 +30,11 @@ object Parser extends LazyLogging {
               N:   -> E99 : E100
               N/   -> E99 / E100
               N↦   -> E99 ↦ E100
-          E99      -> N→ | N⇒ | E95
-              N→  -> E95 -> E99
-              N⇒  -> E95 => E99
+          E99      -> N→ | N⇒ | E98
+              N→  -> E98 -> E99
+              N⇒  -> E98 => E99
+          E98      -> N@[] | E95
+              N@[]  -> @ E w/o VARS
           E95      -> N↔︎ | E85
               N↔︎  -> E95 <-> E85
           E85      -> N∨ | E80
@@ -47,8 +49,9 @@ object Parser extends LazyLogging {
               N∈   -> E70 ∈ E60
               N∉   -> E70 ∉ E60
               N‖   -> E70 || E60 | E70 ‖ E60
-          E60      -> N:: | E50
+          E60      -> N:: | N:+ | E50
               N::  -> E50 :: E60
+              N:+  -> E60 :+ E50
           E50      -> N+ | N- | N∪ | N++ | E10
               N+   -> E50 + E10
               N-   -> E50 - E10
@@ -61,13 +64,17 @@ object Parser extends LazyLogging {
               N{}  -> { E100 }
               N⟨⟩   -> ⟨ ⟩
               N⊤   -> ⊤
-              N⊥   -> ⊥"""
+              N⊥   -> ⊥
+          VARS     -> § | VARS §
+"""
 	
 	val TOKENS = List(raw"\d+".r -> "#",              // numeral
 	                  raw"[?]?[\w'_1⃝]+".r -> "§",    // identifier
+                    raw"\d⃝".r -> "§",              // anchor name (circled numeral)
 	                  raw"\[.+?\]".r -> "[...]",      // hints
-	                  "[(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
-	                  raw"\\/|/\\|\|\||<-|->|<->|=>|\[\]|::|\+\+".r -> "",
+                  "[@(){}+-=≠~<>:∈∉∪‖⟨⟩↦⊤⊥]".r -> "",
+                  raw"\\/|/\\|\|\||<-|->|<->|=>|\[\]|::|\+\+|:\+".r -> "",
+                    raw"w/o|\\".r -> "",
 	                  raw"/\*[\s\S]*?\*/".r -> null,
 	                  raw"\s+".r -> null)
 
@@ -75,7 +82,7 @@ object Parser extends LazyLogging {
 	def op(op: => Term) = ((l: List[Term]) => op)
 	def op(op: Term => Term) = ((l: List[Term]) => op(l(0)))
   def op(op: (Term, Term) => Term) = ((l: List[Term]) => op(l(0), l(1)))
-  
+
   val NOTATIONS: Map[String, List[Term] => Term] = Map(
       "N:"   -> op(_ :- _),
       "N→"   -> op(_ -> _),
@@ -89,6 +96,7 @@ object Parser extends LazyLogging {
       "N↦"   -> op(_ ↦ _),
       "N≠"   -> op(BasicSignature.!=:= _),
       "N::"  -> op(BasicSignature.cons _),
+      "N:+"  -> op(BasicSignature.snoc _),
       "N‖"   -> op(BasicSignature.set_disj _),
       "N∈"   -> op(BasicSignature.in _),
       "N∉"   -> op(BasicSignature.not_in _),
@@ -100,6 +108,7 @@ object Parser extends LazyLogging {
       "N⟨⟩"   -> op(BasicSignature._nil),
       "N⊤"   -> op(BasicSignature.tt),
       "N⊥"   -> op(BasicSignature.ff),
+      "N@[]" -> TI("@[]").apply,
       
       /* command notations */
       "C→"   -> op(TI("→")),
@@ -236,7 +245,7 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
   val E = raw"E\d+".r
  
   def toTerms(t: Tree[Word]): List[Term] = t.root.tag match {
-    case "P" | "C" => t.subtrees flatMap toTerms
+    case "P" | "C" | "VARS" => t.subtrees flatMap toTerms
     //case "C" => List(TI(t.subtrees(0).root.asInstanceOf[Token].text))
     case "S" | "E" | E() => List(collapseAnnotations(t.subtrees flatMap toTerms))
     case "#" => List(TI(Integer.parseInt(t.root.asInstanceOf[Token].text)))
