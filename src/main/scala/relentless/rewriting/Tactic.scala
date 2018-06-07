@@ -299,16 +299,16 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
     val subterms = anchorScheme match {
       case Some(s) =>
         matches map { gm =>
-          val components = (new Reconstruct(gm, work0.trie) ++ im)(enc, except).head.subtrees drop 1
+          val components = new Reconstruct(gm, work0.trie)(enc, except).head.subtrees drop 1
           gm(1) -> s(components.toList)
         } toMap
       case _ =>
-        marks flatMap (gm => (new Reconstruct(gm(1), work0.trie) ++ im)(enc, except).headOption map (gm(1) -> _)) toMap;
+        marks flatMap (gm => new Reconstruct(gm(1), work0.trie)(enc, except).headOption map (gm(1) -> _)) toMap;
     }
 
     val elab = (anchorScheme match {
       case Some(s) =>
-        marks flatMap (gm => (new Reconstruct(gm(1), work0.trie) ++ im)(enc, except).headOption map ((_, subterms(gm(1))))) toList
+        marks flatMap (gm => new Reconstruct(gm(1), work0.trie)(enc, except).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
     }) collect { case (x, y) if x != y => x ⇢ y }
 

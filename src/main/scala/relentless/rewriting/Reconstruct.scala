@@ -29,17 +29,6 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
 
   def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
 
-
-  //TODO: Remove index mapping from reconstruct
-  /** indexMapping associates some term identifiers with existing terms -- these will not
-    * be traversed, instead the value in the mapping will be taken as is. */
-  private val indexMapping: mutable.Map[Int, Term] = mutable.Map.empty
-
-  def ++(mapping: Map[Int, Term]): Reconstruct = {
-    indexMapping ++= mapping
-    this
-  }
-
   /**
     * mapping from a target of the edge to an entry
     *
@@ -51,9 +40,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
   private val targetToEntries: mutable.Map[Int, immutable.LinearSeq[Entry[Int]]] = {
     val first = Entry(init, List.empty)
     val result = mutable.Map[Int, immutable.LinearSeq[Entry[Int]]]().withDefaultValue(immutable.LinearSeq.empty)
-    for (entry <- first #:: first.advance(indexMapping.contains)) {
-      result(entry.nextTarget) = entry +: result(entry.nextTarget)
-    }
+    result(first.nextTarget) = first +: result(first.nextTarget)
     result
   }
 
@@ -75,8 +62,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
     // TODO: Keep trees in a short format and only concat on demand to save memory or build a trie during run
     // TODO: Maybe keep leaves foreach tree to save runtime
     val identifiers: mutable.Set[Int] = mutable.Set.empty
-    val isFinal = (num: Int) => (indexMapping contains num) || (identifiers contains num)
-    //    println("applying reconstruct")
+    val isFinal = (num: Int) => identifiers contains num
 
     // when updating identifiers might need to finish a leaf that was not considered finished
     def advanceStep(newEdge: BaseRewriteEdge[Int]): Stream[Entry[Int]] = {
@@ -137,21 +123,19 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
 
   private def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
     //println(s"decode ${t} ${enc.ntor <-- t.root}")
-    indexMapping.getOrElse(t.root,
-      enc <-- t.root match {
-        case Some(r) =>
-          r.kind match {
-            case "operator" | "connective" | "quantifier" | "marker" => T(r)(t.subtrees map decode)
-            case _ =>
-              //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
-              T(r) :@ (t.subtrees map decode)
-          }
-        case None => {
-          logger.warn(s"Identifier not found in encoding for hyperterm: ${t.root}")
-          T(new Identifier(s"error on ${t.root}", "marker"))
+    enc <-- t.root match {
+      case Some(r) =>
+        r.kind match {
+          case "operator" | "connective" | "quantifier" | "marker" => T(r)(t.subtrees map decode)
+          case _ =>
+            //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
+            T(r) :@ (t.subtrees map decode)
         }
+      case None => {
+        logger.warn(s"Identifier not found in encoding for hyperterm: ${t.root}")
+        T(new Identifier(s"error on ${t.root}", "marker"))
       }
-    )
+    }
   }
 }
 
