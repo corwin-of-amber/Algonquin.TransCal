@@ -79,7 +79,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
   }
 
   def matches(headSymbol: Identifier): Seq[BaseRewriteEdge[Int]] = {
-    trie.realGet(0, enc.ntor --> headSymbol)
+    trie.realGet(0, enc --> headSymbol)
   }
 
   def nonMatches(headSymbols: Identifier*): Seq[BaseRewriteEdge[Int]] =
@@ -99,7 +99,7 @@ object Rewriter extends LazyLogging {
     compileRules(List(ruleSrc))
 
   def nonMatches[HE <: BaseHyperEdge[Int]](words: Seq[HE], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HE] = {
-    val heads = headSymbols map (enc.ntor -->)
+    val heads = headSymbols map (enc -->)
     words filterNot (heads contains _ (0))
   }
 

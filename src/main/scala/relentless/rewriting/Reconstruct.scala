@@ -129,22 +129,26 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]], 
   def apply(enc: Encoding): Stream[Term] = apply(enc, Set.empty)
 
   def apply(enc: Encoding, except: Set[Identifier]): Stream[Term] = {
-    for (t <- apply(except map (enc.ntor -->))) yield decode(t)(enc)
+    for (t <- apply(except map (enc -->))) yield decode(t)(enc)
   }
 
   private def decode(t: Tree[Int])(implicit enc: Encoding): Term = {
     //println(s"decode ${t} ${enc.ntor <-- t.root}")
-    enc.ntor <-- t.root match {
-      case r: Identifier =>
-        r.kind match {
-          case "operator" | "connective" | "quantifier" | "marker" => T(r)(t.subtrees map decode)
-          case _ =>
-            //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
-            T(r) :@ (t.subtrees map decode)
+    indexMapping.getOrElse(t.root,
+      enc <-- t.root match {
+        case Some(r) =>
+          r.kind match {
+            case "operator" | "connective" | "quantifier" | "marker" => T(r)(t.subtrees map decode)
+            case _ =>
+              //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
+              T(r) :@ (t.subtrees map decode)
+          }
+        case None => {
+          logger.warn(s"Identifier not found in encoding for hyperterm: ${t.root}")
+          T(new Identifier(s"error on ${t.root}", "marker"))
         }
-      case t: Tree[_] => t.asInstanceOf[Term] // hope there are no other trees
-      case _ => T(new Identifier("some error", "marker"))
-    }
+      }
+    )
   }
 }
 

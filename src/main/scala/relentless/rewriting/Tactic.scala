@@ -24,7 +24,7 @@ case class Revision(val program: Term, val env: Revision.Environment, val focuse
 
   def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
 
-  def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_.rhs.nodes)) map (t => (enc.ntor --> t, t)) toMap
+  def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_.rhs.nodes)) map (t => (enc --> t, t)) toMap
   def incorporate(term: Term, as: Term) = enc.toOriginalEdges(term, as)
 
   import Revision._
@@ -194,7 +194,7 @@ trait Compaction extends RuleBasedTactic {
   private def compaction0(work: Rewriter)(implicit enc: Encoding): Rewriter = {
     val trie = work.trie
     val equiv = collection.mutable.Map.empty[Int, Int]
-    val except = Markers.all map (enc.ntor --> _.leaf)
+    val except = Markers.all map (enc --> _.leaf)
 
     // for each edge type, compare words by parameters and add to equiv by target.
     for ((k, subtrie) <- trie.subtries(0) if !(except contains k)) {
@@ -203,7 +203,7 @@ trait Compaction extends RuleBasedTactic {
     /*--------------------
      * a meek effort to eliminate id() terms by equating the argument with the result
      */
-    val id = enc.ntor --> BasicSignature._id.leaf
+    val id = enc --> BasicSignature._id.leaf
     // get all words with type id and find eqalities between target and single param
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
       if (word(1) != word(2)) {
@@ -276,7 +276,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
   def apply(s: Revision) = {
     val work0 = work(s)
 
-    val anchor_# = s.enc.ntor --> anchor
+    val anchor_# = s.enc --> anchor
     /** All places with placeholder where first parameter is anchor_# */
     val marks = work0.matches(Markers.placeholder.leaf) filter (_(2) == anchor_#)
     val matches = work0.matches(Markers.placeholderEx.leaf) filter (_(2) == anchor_#)
@@ -337,7 +337,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 
     implicit val enc = s.enc
 
-    logger.debug(s"Showing encoding values: ${enc.ntor.mapped.toStream.sortBy(_._2).mkString(", ")}")
+//    logger.debug(s"Showing encoding values: ${enc.ntor.mapped.toStream.sortBy(_._2).mkString(", ")}")
 
     // Reconstruct and generalize
     val gen =
@@ -361,34 +361,6 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
     val rules = elab collect { case (f ⇢ F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
 
     (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList flatMap (RewriteRule(_, RewriteRule.Category.Definition))))
-  }
-
-  import syntax.AstSugar.↦
-
-  def grabContext(anchor: Int, trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) = {
-    import collection.mutable
-    val ws = mutable.Set.empty[Int]
-    val wq = mutable.Queue.empty ++ Seq(anchor)
-    val `↦_#` = enc.ntor --> ↦
-    Reconstruct.whileYield(wq.nonEmpty) {
-      val u = wq.dequeue
-      if (ws add u) {
-        val incident = 2 until trie.subtries.length flatMap (i => trie.get(i, u).toList flatMap (_.words))
-        for (e <- incident; v <- Some(e(1)) if !(ws contains v)) wq enqueue v
-        for (e <- incident if e(0) == `↦_#`) yield e(2)
-      }
-      else Seq.empty
-    }
-    .flatten
-    .toSet map enc.asTerm flatMap patternLeaves
-  }
-
-  def patternLeaves(t: Term): Seq[Term] = {
-    if (t.isLeaf) Seq(t)
-    else LambdaCalculus.isApp(t) match {
-      case Some((_, args)) => args flatMap patternLeaves
-      case _ => t.subtrees flatMap patternLeaves
-    }
   }
 
   def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {

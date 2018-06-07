@@ -2,7 +2,7 @@ package relentless.rewriting
 
 import relentless.RewriteRule
 import relentless.matching.{Bundle, Encoding, Trie, Valuation}
-import syntax.AstSugar.{$TI, T, Term}
+import syntax.AstSugar.{$TI, T, Term, Uid}
 import syntax.{Identifier, Scheme}
 
 import scala.collection.mutable
@@ -31,8 +31,9 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
   }
 
   //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
-  private def fresh(wv: immutable.IndexedSeq[Int]): Int =
-    enc.ntor --> T((enc.ntor <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
+  // For debuging this might be better: T((enc <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
+  // It i sbetter to just write tests
+  private def fresh(wv: immutable.IndexedSeq[Int]): Int = enc.reserveIndex()
 
   private def lookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
     t.sparseLookup(sparsePattern).map(_(1))
@@ -43,7 +44,9 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     def valuation_(i: Int) = {
       if (i < valuation.length && valuation.isDefined(i)) valuation(i).value
       else if (i < valuation.length) 0
-      else enc.ntor --> $TI("ex?" + i) // --- introduces an existential
+      // --- introduces an existential
+      // TODO: Add namespace and kind
+      else enc --> new Identifier("ex?" + i,"variable", new Uid)
     }
 
     val newSubterms = mutable.Map.empty[Int, Int] ++ (0 :: parameterIndexes map (i => (~i, valuation_(i))))
