@@ -12,13 +12,10 @@ import scala.collection.{immutable, mutable}
 /**
   * Reconstruction of terms from tuples stored in the trie.
   *
-  * @param init         is the starting term (inner nodes are encoded symbols; leaves are term identifiers)
-  * @param words        is a stream of tuples
-  * @param indexMapping associates some term identifiers with existing terms -- these will not
-  *                     be traversed, instead the value in the mapping will be taken as is.
+  * @param init  is the starting term (inner nodes are encoded symbols; leaves are term identifiers)
+  * @param words is a stream of tuples
   */
-class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) {
-  //  class Reconstruct private(init: Tree[Int], words: Stream[Array[Int]], indexMapping: mutable.Map[Int, Term] = mutable.Map.empty) extends LazyLogging {
+class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) extends LazyLogging {
 
   import Reconstruct._
 
@@ -31,6 +28,12 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]], 
   def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
 
   def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
+
+
+  //TODO: Remove index mapping from reconstruct
+  /** indexMapping associates some term identifiers with existing terms -- these will not
+    * be traversed, instead the value in the mapping will be taken as is. */
+  private val indexMapping: mutable.Map[Int, Term] = mutable.Map.empty
 
   def ++(mapping: Map[Int, Term]): Reconstruct = {
     indexMapping ++= mapping
@@ -156,11 +159,11 @@ object Reconstruct {
 
   private def nodeDepth[T](tree: Tree[T], node: Tree[T]): Int = {
     if (tree eq node) 0
-    else tree.subtrees.map(nodeDepth(_, node) + 1).filter(_ > -1).headOption.getOrElse(-2)
+    else tree.subtrees.map(nodeDepth(_, node) + 1).find(_ > -1).getOrElse(-2)
   }
 
   private def leastMutual[T](tree: Tree[T], nodes: Set[Tree[T]]): Tree[T] = {
-    val sub: Option[Tree[T]] = tree.subtrees.filter((sub: Tree[T]) => nodes forall (sub hasDescendant)).headOption
+    val sub: Option[Tree[T]] = tree.subtrees.find((sub: Tree[T]) => nodes forall sub.hasDescendant)
     if (sub.isDefined) leastMutual(sub.get, nodes) else tree
   }
 

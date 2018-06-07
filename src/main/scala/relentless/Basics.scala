@@ -122,6 +122,8 @@ object RewriteRule {
   }
   type Category = Category.Value
 
+  // TODO: make sure all literals are in encoding (for example elems, head, take)
+
   val `=>` = I("=>", "operator") // directional rewrite
   val ||| = I("|||", "operator") // parallel patterns or conclusions
   val ||> = I("||>", "operator")

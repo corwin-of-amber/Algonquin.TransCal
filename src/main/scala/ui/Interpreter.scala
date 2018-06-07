@@ -137,14 +137,18 @@ object Interpreter extends LazyLogging {
 		    else if (t == TI("□")) out += state
 		    else {
   		    /* Apply tactic */
-  		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) }) // causes leaf nodes with the same identifier to become aliased
+
+          // causes leaf nodes with the same identifier to become aliased
+  		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) })
   		    val patv = interp.varify(t)
   		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
           logger.info(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
   		    for (a <- t.get[DeductionHints]) logger.info(s"  ${a}")
   		    implicit val ann = t.get[Annotation]
   		    implicit val dh = t.get[DeductionHints]
-  		    state = state +<>+ interp.interpretDerivation(state, pat).apply
+          val tactic = interp.interpretDerivation(state, pat)
+          // get new state by applying the tactic
+  		    state = state +<>+ tactic.apply
 		    }
 		  }
 		  case None =>
