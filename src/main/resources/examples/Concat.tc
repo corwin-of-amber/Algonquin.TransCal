@@ -3,4 +3,8 @@ concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]
 _ ++ _ ->  1⃝ 
 1⃝ -> ?concat' xs xss
 xs = x' :: xs'
-1⃝ -> _ :: _
+1⃝ -> @ x' \ concat' xs' _ w/o concat concat'
+
+/* _ ++ _ -> _ :: _
+result: xs ++ concat xss  ⇢  x' :: concat' xs' xss   []
+*/

@@ -11,11 +11,11 @@ l = ?x :: ?xs
 ->
 p (f x) = ⊤
 
-filter _ _  -> 1
-1 -> _ :: filterMap _ _ _
+filter _ _  -> 1⃝
+1⃝ -> _ :: filterMap _ _ _
 []
 <-
 p (f x) = ⊥
 
-filter _ _ -> 1
-1 -> ?f2 p f xs
+filter _ _ -> 1⃝
+1⃝ -> ?f2 p f xs
