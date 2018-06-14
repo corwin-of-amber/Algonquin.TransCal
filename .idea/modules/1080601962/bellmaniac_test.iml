@@ -10,9 +10,9 @@
     <orderEntry type="library" name="Gradle: org.rogach:scallop_2.11:0.9.5" level="project" />
     <orderEntry type="library" name="Gradle: org.scalatest:scalatest_2.11:3.0.0" level="project" />
     <orderEntry type="library" name="Gradle: org.scalactic:scalactic_2.11:3.0.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.scala-lang:scala-reflect:2.11.8" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang.modules:scala-xml_2.11:1.0.5" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4" level="project" />
-    <orderEntry type="library" name="Gradle: org.scala-lang:scala-reflect:2.11.8" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang:scala-library:2.11.8" level="project" />
     <orderEntry type="library" name="Gradle: org.mongodb:mongo-java-driver:2.13.1" level="project" />
     <orderEntry type="library" name="Gradle: :com.microsoft.z3:" level="project" />

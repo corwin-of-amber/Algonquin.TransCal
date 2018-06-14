@@ -132,8 +132,8 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
             T(r) :@ (t.subtrees map decode)
         }
       case None => {
-        logger.warn(s"Identifier not found in encoding for hyperterm: ${t.root}")
-        T(new Identifier(s"error on ${t.root}", "marker"))
+        logger.error(s"Identifier not found in encoding for hyperterm: ${t.root}")
+        throw new RuntimeException("Missing identifier in encoding")
       }
     }
   }

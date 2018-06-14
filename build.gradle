@@ -59,11 +59,11 @@ dependencies {
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.23.1'
 
-    testCompile group: 'com.typesafe.play', name: 'play-json_2.11', version: '2.6.9'
     testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.0.5'
     testCompile group: 'org.json4s', name: 'json4s-core_2.11', version: json4s_version
     testCompile group: 'org.json4s', name: 'json4s-native_2.11', version: json4s_version
     testCompile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
+    testCompile group: 'com.typesafe.play', name: 'play-json_2.11', version: '2.6.9'
 }
 
 task profilingRunNoDup(type: JavaExec) {

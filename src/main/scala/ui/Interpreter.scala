@@ -25,8 +25,6 @@ import relentless.rewriting.Rules
 import relentless.rewriting.Let
 import ui.Parser.DeductionHints
 
-import scala.pickling.json._
-
 
 object Interpreter extends LazyLogging {
   
