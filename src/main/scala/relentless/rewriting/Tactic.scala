@@ -277,6 +277,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
     val work0 = work(s)
 
     val anchor_# = s.enc --> anchor
+    val anchordef = work0.matches(anchor.root)
     /** All places with placeholder where first parameter is anchor_# */
     val marks = work0.matches(Markers.placeholder.leaf) filter (_(2) == anchor_#)
     val matches = work0.matches(Markers.placeholderEx.leaf) filter (_(2) == anchor_#)
@@ -317,7 +318,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
     // Get the associated tuples for any newly introduced terms
     val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
     val tuples = spanning(new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
-    (RevisionDiff(Some(subterms), List(), elab, List(), marks ++ tuples toList), Rules.empty)
+    (RevisionDiff(Some(subterms), List(), elab, List(), anchordef ++ marks ++ tuples toList), Rules.empty)
   }
 
 }
