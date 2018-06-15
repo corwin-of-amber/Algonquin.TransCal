@@ -88,12 +88,6 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
   def addAll(words: Iterable[HE]): Trie[E, HE] = { words foreach add ; this }
   def ++=(words: Iterable[HE]) = addAll(words)
 
-  def exceeded:Boolean = {
-    //trie.subtries(1).size > 1000
-    //println(s"size of PEG  ${(trie.words map (_(1)) toSet).size}")
-    (words map (_ (1)) toSet).size > 1000
-  }
-
   /* this is so it can be overridden easily */
   private def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E, HE](subdirectory)
 }

@@ -28,8 +28,11 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
   private val wq = mutable.Queue.empty[BaseRewriteEdge[Int]] ++ init
   private val ws = mutable.Set.empty[BaseRewriteEdge[Int]]
 
+  private val targets = mutable.Set.empty[Int]
+  private def exceeded: Boolean = targets.size >= 1000
+
   def apply(): Unit = {
-    while (wq.nonEmpty && !trie.exceeded) {
+    while (wq.nonEmpty && !exceeded) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
@@ -53,9 +56,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 
   def work(w: BaseRewriteEdge[Int]): Unit = {
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
-
-    if (trie.words.contains(w))
-      logger.debug(s"Readding a word to trie. word: $w")
+    targets.add(w.target)
     trie add w
     logger.trace(s"working on word ${w mkString " "}")
     for (r <- compiledRules) {

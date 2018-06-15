@@ -69,6 +69,6 @@ dependencies {
 task profilingRunNoDup(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = "ui.Interpreter"
-    jvmArgs += '-agentlib:hprof=cpu=times,heap=sites'
+    jvmArgs += '-agentlib:hprof=cpu=samples,heap=sites,depth=20'
     args 'src/main/resources/examples/NoDup.tc'
 }
