@@ -152,7 +152,7 @@ object Reconstruct {
   }
 
   // In this case tree can be source because it is a subtree (leaf) so hash makes sens and so does equals
-  case class Entry[T](tree: Tree[T], usedEdges: List[BaseRewriteEdge[T]], nextIndex: Int = 0) extends LazyLogging {
+  private case class Entry[T](tree: Tree[T], usedEdges: List[BaseRewriteEdge[T]], nextIndex: Int = 0) extends LazyLogging {
 
     // TODO: implement or delete
     def edgeEquals(other: Entry[T]): Boolean = true
