@@ -9,8 +9,10 @@ import org.scalatest._
 import org.slf4j.LoggerFactory
 import ui.Interpreter
 import ch.qos.logback.classic.Level
+import org.scalatest
 
 import scala.collection.JavaConverters._
+import scala.util.matching.Regex
 
 
 class NoDupEnd2EndSpec extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfter {
@@ -93,10 +95,52 @@ class NoDupEnd2EndSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     // The pattern has 4 holes so the requested term has 4 vars
     getVars(elabInput.getFormattedMessage).length should be (4)
     elabOutput.length should be > 0
-    // TODO: finish test once we have output
+    verifyElaborateIO(elabOutput, elabVerifier = right => {
+      val elaborated = raw"(.*)(?:/\\|∧)(.*)(?:/\\|∧)(.*)(?:/\\|∧)(.*)".r.findFirstMatchIn(right).get
+      for (i <- 1 to 4) {
+        val text = elaborated.group(i)
+        defaultVerifier(text)
+      }})
+    // TODO: Logic testing that the found program is equivalent to nodup
+  }
+
+  it should "locate pattern and transform term into the first requested pattern (locate and elaborate commnad)" in {
+    val elabIndexes = logs.zipWithIndex.filter(_._1.getFormattedMessage.trim.startsWith("elaborate")).map(_._2)
+    elabIndexes should not be empty
+    // We will have only the new function name as a var bgecause x/xs are defined
+    val elabInput = getInput(logs, elabIndexes.drop(1).head)
+    val elabOutput = getOutput(logs, elabIndexes.drop(1).head)
+    // The pattern has 4 holes so the requested term has 4 vars
+    getVars(elabInput.getFormattedMessage).length should be (4)
+    elabOutput.length should be > 0
+    verifyElaborateIO(elabOutput,
+      locateVerifier = left => {
+    val located = raw"x\s*∉\s*(.*)\s*(?:/\\|∧)\s*x'\s*∉\s*(.*)".r.findFirstMatchIn(left)
+    located should not be None
+    },
+    elabVerifier = right => {
+      val elaborated = raw"(.*)\s*‖\s*(.*)".r.findFirstMatchIn(right)
+      elaborated should not be None
+    })
   }
 
   // TODO: finish rest of app;ied tactics
+
+  private def defaultVerifier(text: String): Unit = {
+    text.trim should not equal "?"
+    text.trim should not equal "_"
+    text.trim should not equal ""
+  }
+
+  private def verifyElaborateIO(elabOutput: Seq[ILoggingEvent],
+                                locateVerifier: String => Unit = defaultVerifier,
+                                elabVerifier: String => Unit = defaultVerifier): Unit = {
+    val matches = "(.*)-->(.*)".r.findFirstMatchIn(elabOutput.last.getFormattedMessage).get
+    val left = matches.group(1)
+    val right = matches.group(2)
+    locateVerifier(left)
+    elabVerifier(right)
+  }
 }
 
 object NoDupEnd2EndSpec {
