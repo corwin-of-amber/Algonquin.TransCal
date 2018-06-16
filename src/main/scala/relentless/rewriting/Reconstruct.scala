@@ -38,7 +38,15 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
     * Using leaves to find first is ok as it is ordered (at least for now from bellmaniac. should have a test for it).
     */
   private val targetToEntries: mutable.Map[Int, immutable.LinearSeq[Entry[Int]]] = {
-    val first = Entry(init, List.empty)
+    // There is one problamatic case where we are initialized from an edge. We need to add the edge to the used edges.
+    // As we cannot know what the target was we will use negative numbers. To not confuse patterns we will use -999.
+    val first = {
+      if (init.subtrees.size > 0)
+        Entry(init, List(new OriginalEdge[Int](init.root, -999, init.subtrees map(_.root))))
+      else
+        Entry(init, List.empty)
+    }
+
     val result = mutable.Map[Int, immutable.LinearSeq[Entry[Int]]]().withDefaultValue(immutable.LinearSeq.empty)
     result(first.nextTarget) = first +: result(first.nextTarget)
     result
