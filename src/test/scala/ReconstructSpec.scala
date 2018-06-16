@@ -19,17 +19,17 @@ import scala.collection.mutable
 class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
   // TODO use fixtures
 
-  "Entries" should "work well in hashset" in {
-    val entry: Reconstruct.Entry[Int] = Entry(new Tree[Int](1, List.empty), List.empty)
-    val set: mutable.HashSet[Reconstruct.Entry[Int]] = new mutable.HashSet[Entry[Int]]();
-    set shouldNot contain(entry)
-    set.add(entry)
-    set should contain(entry)
-    val entry2: Reconstruct.Entry[Int] = Entry(new Tree[Int](1, List.empty), List.empty)
-    set should contain(entry2)
-    val entry3: Reconstruct.Entry[Int] = Entry(new Tree[Int](2, List.empty), List.empty)
-    set shouldNot contain(entry3)
-  }
+//  "Entries" should "work well in hashset" in {
+//    val entry: Reconstruct.Entry[Int] = Entry(new Tree[Int](1, List.empty), List.empty)
+//    val set: mutable.HashSet[Reconstruct.Entry[Int]] = new mutable.HashSet[Entry[Int]]();
+//    set shouldNot contain(entry)
+//    set.add(entry)
+//    set should contain(entry)
+//    val entry2: Reconstruct.Entry[Int] = Entry(new Tree[Int](1, List.empty), List.empty)
+//    set should contain(entry2)
+//    val entry3: Reconstruct.Entry[Int] = Entry(new Tree[Int](2, List.empty), List.empty)
+//    set shouldNot contain(entry3)
+//  }
 
   val timeLimit: Span = Span(20000000, Millis)
   val defaultTestInterruptor: Interruptor =
@@ -100,4 +100,17 @@ class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
     assertEqualContents(test)
   }
 
+  it should "manage to replace same leaf twice" in {
+    val test = ReconstructData.twoRepeatingLeaves
+    // Ugly way for lazy people to make init an edge and not an int. Important for recreating the bug
+    val reconstruct = new Reconstruct(test.words.head, test.words.drop(1))
+    val outs = reconstruct(test.encoding, test.except).toList
+    for (tree: Term <- test.expectedOuts) {
+      outs should contain(tree)
+    }
+
+    for (tree: Term <- outs) {
+      test.expectedOuts should contain(tree)
+    }
+  }
 }

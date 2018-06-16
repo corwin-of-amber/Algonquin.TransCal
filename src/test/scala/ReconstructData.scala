@@ -382,5 +382,35 @@ object ReconstructData {
     ReconstructData(encoding, init, except, expectedOuts, words)
   }
 
-  val tests = Seq(full, except, branches, small, constsOnStart, lateFinal)
+  val twoRepeatingLeaves: ReconstructData = {
+    val fn = "repeating"
+    val encoding = new Encoding
+    val identifiers: Seq[Identifier] = for (i <- 1 to 6) yield {
+      val ident: Identifier = Ident(i)
+      encoding.-->(ident)
+      ident
+    }
+    val init = 1
+    val except: Set[Identifier] = Set.empty
+    val expectedOuts: Seq[Tree[Identifier]] = Seq(
+      new Tree(Ident(2), List(TreeIdent(5), TreeIdent(6), TreeIdent(5), TreeIdent(6)))
+    )
+
+    val words = Seq(
+      Seq(2, 1, 3, 4, 3, 4),
+      Seq(6, 4),
+      Seq(5, 3)
+
+    ) map (OriginalEdge(_))
+
+
+    val json = Json.toJson(ReconstructData(encoding, init, except, expectedOuts, words))
+    new PrintWriter(s"$fn.json") {
+      write(json.toString());
+      close()
+    }
+    ReconstructData(encoding, init, except, expectedOuts, words)
+  }
+
+  val tests = Seq(full, except, branches, small, constsOnStart, lateFinal, twoRepeatingLeaves)
 }

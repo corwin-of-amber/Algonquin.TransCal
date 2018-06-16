@@ -73,6 +73,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
         nextStep ++= newEntries
         for (entry <- newEntries)
           updateTrees(entry)
+        // TODO: why am i returning relevant entries as they are surely not final?
         relevantEntries append newEntries
       } else Stream.empty
     }
