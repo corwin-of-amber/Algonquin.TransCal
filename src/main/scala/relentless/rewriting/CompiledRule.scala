@@ -26,8 +26,6 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
     this(enc.toBundles(pattern.vars map (T(_)): _*)(pattern.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))).bare,
       enc.toBundle(conclusion.vars map (T(_)): _*)(conclusion.template.split(RewriteRule.|||): _*),
       conclusion.vars map (v => 1 + (pattern.vars indexOf v)))
-    import RewriteRule.RuleOps
-    of(pattern.template =:> conclusion.template)
   }
 
   //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
@@ -51,8 +49,6 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
 
     val newSubterms = mutable.Map.empty[Int, Int] ++ (0 :: parameterIndexes map (i => (~i, valuation_(i))))
 
-    //if (dbg != null) println(s"[rewrite] conclude from ${dbg.toPretty}  with  ${newSubterms mapValues (enc.ntor <--)}");
-
     // construct new tuples by replacing holes (negative integers) with valuation elements and fresh terms
     for (w <- conclusion.tuples.reverse) yield {
       val wv = w map { case x if x < 0 => newSubterms.getOrElse(x, x) case x => x }
@@ -63,13 +59,4 @@ class CompiledRule(val shards: List[Bundle], val conclusion: Bundle,
       } else RewriteEdge(wv)
     }
   }
-
-  /* For debugging and error report */
-  private var dbg: Term = null;
-
-  private def of(t: Term) = {
-    dbg = t;
-    this
-  }
-
 }
