@@ -119,7 +119,7 @@ object Interpreter extends LazyLogging {
 		
 		val interp = new Interpreter
 		var state: State = null
-		val stack = collection.mutable.Stack.empty[State]
+		val stack: collection.mutable.Stack[State] = collection.mutable.Stack[State]()
 		val out = collection.mutable.ListBuffer.empty[State]
 		
 		singleOption(p(tokens)) match {
