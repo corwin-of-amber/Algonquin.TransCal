@@ -184,8 +184,8 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     val t = scheme.template
     val vars = scheme.vars
     val rules =
-      if (hints contains "only assoc") AssocRules.rules
-      else if(hints contains "allow existentials") ExistentialRules.rules ++ s.rules.compiled
+      if (hints exists (p => p.options.mkString(" ") == "only assoc")) AssocRules.rules
+      else if (hints exists (p => p.options.mkString(" ") == "allow existentials")) ExistentialRules.rules ++ s.rules.compiled
       else BasicRules.rules ++ s.rules.compiled
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
