@@ -28,7 +28,7 @@ object Utils extends LazyLogging {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       logger.debug(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
-      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc, except).toList), B))
+      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstructer(x, trie)(enc, except).toList), B))
         logger.debug("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }

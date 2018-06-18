@@ -9,14 +9,14 @@ import org.json4s._
 import org.scalatest.concurrent.{Interruptor, TimeLimitedTests}
 import org.scalatest.time.{Millis, Seconds, Span}
 import relentless.matching.Encoding
-import relentless.rewriting.{HyperEdge, OriginalEdge, Reconstruct, RewriteEdge}
-import relentless.rewriting.Reconstruct.Entry
+import relentless.rewriting.{HyperEdge, OriginalEdge, Reconstructer, RewriteEdge}
+import relentless.rewriting.Reconstructer.Entry
 import syntax.AstSugar.Term
 
 import scala.collection.mutable
 
 
-class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
+class ReconstructerSpec extends FlatSpec with Matchers with TimeLimitedTests {
   // TODO use fixtures
 
 //  "Entries" should "work well in hashset" in {
@@ -53,7 +53,7 @@ class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   def toNewOuts(test: ReconstructData): List[Term] = {
-    val reconstruct = new Reconstruct(test.init, test.words)
+    val reconstruct = new Reconstructer(test.init, test.words)
     reconstruct(test.encoding, test.except).toList
   }
 
@@ -82,7 +82,7 @@ class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
     for (test <- tests) {
       println(s"Starting test")
       val newOuts: Stream[Term] = {
-        val reconstruct = new Reconstruct(test.init, test.words)
+        val reconstruct = new Reconstructer(test.init, test.words)
         reconstruct(test.encoding, test.except)
       }
       val treeSet = newOuts toSet;
@@ -103,7 +103,7 @@ class ReconstructSpec extends FlatSpec with Matchers with TimeLimitedTests {
   it should "manage to replace same leaf twice" in {
     val test = ReconstructData.twoRepeatingLeaves
     // Ugly way for lazy people to make init an edge and not an int. Important for recreating the bug
-    val reconstruct = new Reconstruct(test.words.head, test.words.drop(1))
+    val reconstruct = new Reconstructer(test.words.head, test.words.drop(1))
     val outs = reconstruct(test.encoding, test.except).toList
     for (tree: Term <- test.expectedOuts) {
       outs should contain(tree)

@@ -15,9 +15,9 @@ import scala.collection.{immutable, mutable}
   * @param init  is the starting term (inner nodes are encoded symbols; leaves are term identifiers)
   * @param words is a stream of tuples
   */
-class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) extends LazyLogging {
+class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) extends LazyLogging {
 
-  import Reconstruct._
+  import Reconstructer._
 
   import collection.mutable
 
@@ -25,9 +25,9 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
 
   def this(root: Int, words: Seq[BaseRewriteEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), trie.words.toStream)
 
-  def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstruct.tupleToTree(tuple), words.toStream)
+  def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), words.toStream)
 
   /**
     * mapping from a target of the edge to an entry
@@ -148,7 +148,7 @@ class Reconstruct private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]) 
   }
 }
 
-object Reconstruct {
+object Reconstructer {
 
   private def nodeDepth[T](tree: Tree[T], node: Tree[T]): Int = {
     if (tree eq node) 0

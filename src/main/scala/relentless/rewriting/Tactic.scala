@@ -24,7 +24,6 @@ case class Revision(val program: Term, val env: Revision.Environment, val focuse
 
   def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
 
-  def indexMapping: Map[Int, Term] = program.nodes ++ (elaborate flatMap (_.rhs.nodes)) map (t => (enc --> t, t)) toMap
   def incorporate(term: Term, as: Term) = enc.toOriginalEdges(term, as)
 
   import Revision._
@@ -169,7 +168,7 @@ object RuleBasedTactic {
     import collection.mutable
     val ws = mutable.Set.empty ++ boundary
     val wq = mutable.Queue.empty ++ init
-    Reconstruct.whileYield(wq.nonEmpty) {
+    Reconstructer.whileYield(wq.nonEmpty) {
       val u = wq.dequeue
       if (ws add u) {
         val incident = 1 until trie.subtries.length flatMap (i => trie.get(i, u).toList flatMap (_.words))
@@ -207,7 +206,7 @@ trait Compaction extends RuleBasedTactic {
     // get all words with type id and find eqalities between target and single param
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
       if (word(1) != word(2)) {
-        logger.trace(s"addin ${word(1)} and ${word(2)} to equiv")
+        logger.trace(s"adding ${word(1)} and ${word(2)} to equiv")
         val rep = Seq(word(2), word(1)).min
         val source = Seq(word(2), word(1)).max
         equiv += source -> rep
@@ -296,20 +295,19 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
     }*/
 
     // choose the first term for each match
-    val im = s.indexMapping
     val subterms = anchorScheme match {
       case Some(s) =>
         matches map { gm =>
-          val components = new Reconstruct(gm, work0.trie)(enc, except).head.subtrees drop 1
+          val components = new Reconstructer(gm, work0.trie)(enc, except).head.subtrees drop 1
           gm(1) -> s(components.toList)
         } toMap
       case _ =>
-        marks flatMap (gm => new Reconstruct(gm(1), work0.trie)(enc, except).headOption map (gm(1) -> _)) toMap;
+        marks flatMap (gm => new Reconstructer(gm(1), work0.trie)(enc, except).headOption map (gm(1) -> _)) toMap;
     }
 
     val elab = (anchorScheme match {
       case Some(s) =>
-        marks flatMap (gm => new Reconstruct(gm(1), work0.trie)(enc, except).headOption map ((_, subterms(gm(1))))) toList
+        marks flatMap (gm => new Reconstructer(gm(1), work0.trie)(enc, except).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
     }) collect { case (x, y) if x != y => x ⇢ y }
 
@@ -343,7 +341,7 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
     // Reconstruct and generalize
     val gen =
       for (gm <- work0.matches(Markers.placeholder.leaf).toStream;
-           t <- new Reconstruct(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
+           t <- new Reconstructer(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
            //x <- Some(println(s"[generalize] ${t.toPretty}"));
            tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
         logger.info(s"    ${t.toPretty}")
@@ -405,7 +403,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
           s.focusedSubterm get m(1) match {
             case Some(original) => original
             case _ =>
-              new Reconstruct(m(1), s.tuples)(s.enc, except).headOption getOrElse TI("?")
+              new Reconstructer(m(1), s.tuples)(s.enc, except).headOption getOrElse TI("?")
           }
         logger.info(s"${original toPretty} --> ${elaborated toPretty}")
         (RevisionDiff(None, List(), List(original ⇢ elaborated), List(), List()), Rules.empty)
@@ -415,7 +413,7 @@ class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBased
 
   def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
-    new Reconstruct(match_, trie)(enc, except).head
+    new Reconstructer(match_, trie)(enc, except).head
   }
 
 }

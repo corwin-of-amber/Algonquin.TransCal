@@ -42,7 +42,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 
   def stream(): Stream[Seq[BaseRewriteEdge[Int]]] = {
     var i = 0
-    Reconstruct.whileYield(wq.nonEmpty) {
+    Reconstructer.whileYield(wq.nonEmpty) {
       val w = wq.dequeue()
       if (ws add w) {
         work(w)
