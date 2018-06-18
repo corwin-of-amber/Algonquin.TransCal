@@ -14,9 +14,9 @@ class Match[HE <: immutable.IndexedSeq[Int]](val trie: Trie[Int, HE])(implicit v
       case Nil => Stream(valuation)
       case head :: tail =>
         for (w <- head.lookup(trie, valuation).toStream;
-             `v'` <- valuation.unify(w, head).toStream;
-             `v''` <- lookupUnify_*(tail, `v'`)) yield {
-          `v''`
+             v <- valuation.unify(w, head).toStream;
+             vv <- lookupUnify_*(tail, v)) yield {
+          vv
         }
     }
   }
