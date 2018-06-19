@@ -90,9 +90,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 
 
 object Rewriter extends LazyLogging {
-  import syntax.Formula
-  import syntax.Formula._
-
+  // TODO: reorder vars such that existentials are last
   def compileRules(rulesSrc: List[RewriteRule])(implicit enc: Encoding): List[CompiledRule] =
     rulesSrc map ((rule: RewriteRule) => new CompiledRule(rule.src, rule.target))
 

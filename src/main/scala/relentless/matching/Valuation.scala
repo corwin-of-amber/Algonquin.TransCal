@@ -1,5 +1,6 @@
 package relentless.matching
 
+import javax.swing.undo.AbstractUndoableEdit
 import relentless.rewriting.BaseHyperEdge
 
 import scala.collection.immutable
@@ -10,20 +11,19 @@ class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.Index
 
   override def length: Int = array.length
 
-  override def apply(idx: Int): HyperTerm = array(idx) getOrElse (
-    throw new RuntimeException(s"No hyper term at $idx")
-    )
+  override def apply(idx: Int): HyperTerm = array(idx) getOrElse (throw new RuntimeException(s"No hyper term at $idx"))
 
   def isDefined(idx: Int): Boolean = array(idx) isDefined;
 
   def isEmpty(idx: Int): Boolean = array(idx) isEmpty;
 
+  override def toString(): String = 0 until length map (x => if (isDefined(x)) this(x) else 0) mkString " "
 
   /**
-    * Matches a word against a pattern. The word has concrete letters, whereas the pattern
-    * can have holes (negative integers). The valuation assigns concrete letters to some of
-    * the holes, such that if h is a hole placeholder (a negative integer), it is assigned
-    * valuation(~h). Unassigned holes have valuation(~h) == 0.
+    * Matches a word against a pattern. The word has concrete letters (int of type HyperTerm), whereas the pattern
+    * can have holes (int of type Placeholder). The valuation assigns concrete letters to some of
+    * the holes, such that if h is a hole placeholder, it is assigned
+    * the value valuation(placeholder.value). Unassigned holes have valuation(placeholder.value) == 0.
     *
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
