@@ -30,6 +30,7 @@ object BasicSignature {
   val xs = TV("xs");
   val `xs'` = TV("xs'")
   val xss = TV("xss")
+  val exist = TV("exist")
 
   val f = TV("f")
   val l = TV("l")
@@ -215,10 +216,10 @@ class ExistentialRules(implicit val enc: Encoding) extends Rules {
 
   private val basicRules = new BasicRules()
 
-  val vars = List(x, y, z, `x'`, xs, `xs'`)
+  val vars = List(x, y, z, `x'`, xs, `xs'`, exist)
 
   val ruleTemplates = List(
-    xs =:> ++(take(xs, y), drop(xs, y))
+    xs =:> ++(take(xs, exist), drop(xs, exist))
   )
 
   val rulesSrc : List[RewriteRule] = basicRules.rulesSrc ++ templatesToRewriteRules(RewriteRule.Category.Existential)
