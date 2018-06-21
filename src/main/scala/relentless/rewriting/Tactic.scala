@@ -216,7 +216,7 @@ trait Compaction extends RuleBasedTactic {
     if (equiv.nonEmpty) {
       def subst(w: BaseRewriteEdge[Int]): BaseRewriteEdge[Int] = w match {
         case x: OriginalEdge[Int] => OriginalEdge(w map (x => equiv getOrElse (x,x)))
-        case x: RewriteEdge[Int] => RewriteEdge(w map (x => equiv getOrElse (x,x)))
+        case x: RewriteEdge[Int] => RewriteEdge(x.origin, w map (x => equiv getOrElse (x,x)))
       }
       val work = new Rewriter(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
       work()

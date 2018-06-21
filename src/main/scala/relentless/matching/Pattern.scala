@@ -7,32 +7,39 @@ import scala.collection.immutable
 /**
   * @author user
   * @since 4/2/2018
-  * @param transformedPattern The pattern with terms
+  * @param pattern The pattern with terms
   */
-class Pattern(transformedPattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedSeq[BaseHyperTerm] {
+class Pattern(pattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedSeq[BaseHyperTerm] {
 
-  override def length: Int = transformedPattern.length
+  override def length: Int = pattern.length
 
-  override def apply(idx: Int): BaseHyperTerm = transformedPattern.apply(idx)
+  override def apply(idx: Int): BaseHyperTerm = pattern.apply(idx)
+
+  lazy val indexedPlaceholders: IndexedSeq[(Placeholder, Int)] = pattern.zipWithIndex.filter(_._1.isInstanceOf[Placeholder]).
+    map(a => (a._1.asInstanceOf[Placeholder], a._2))
+  lazy val indexedHyperterms: IndexedSeq[(HyperTerm, Int)] = pattern.zipWithIndex.filter(_._1.isInstanceOf[HyperTerm]).
+    map(a => (a._1.asInstanceOf[HyperTerm], a._2))
+  lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
+  lazy val hyperterms: IndexedSeq[HyperTerm] = indexedHyperterms.map(_._1)
 
   def lookup[HE <: immutable.IndexedSeq[Int]](trie: Trie[Int, HE], valuation: Valuation): Seq[HE] = {
     var t = trie
     try {
-      for ((term, idx) <- transformedPattern.zipWithIndex) {
+      for ((term, idx) <- pattern.zipWithIndex) {
         // In case match fails we exit the whole lookup function with an empty seq
         term match {
-          case Placeholder(v) => if (valuation.isDefined(v)) t = t.get(idx, valuation(v).value) getOrElse { return Seq.empty }
+          case Placeholder(v) => if (valuation.isDefined(v)) t = t.get(idx, valuation(v).get.value) getOrElse { return Seq.empty }
           case HyperTerm(v) => t = t.get(idx, v) getOrElse { return Seq.empty }
         }
       }
       t.words
     } catch {
-      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${transformedPattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
+      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
     }
   }
 }
 
 object Pattern {
-  def toHyperTermBase(p: IndexedSeq[Int]): IndexedSeq[BaseHyperTerm] =
-    p map ((x: Int) => if (x>=0) HyperTerm(x) else Placeholder(-x - 1))
+  def toHyperTermBase(x: Int): BaseHyperTerm = if (x>=0) HyperTerm(x) else Placeholder(-x - 1)
+  def toHyperTermBase(p: IndexedSeq[Int]): IndexedSeq[BaseHyperTerm] = p map toHyperTermBase
 }

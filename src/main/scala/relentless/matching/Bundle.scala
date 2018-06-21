@@ -1,19 +1,17 @@
 package relentless.matching
 
 import relentless.rewriting.HyperEdge
-
 import scala.collection.mutable.ListBuffer
-
+import collection.mutable
 
 /**
- * A sequence of tuples, possibly with holes denoted by negative integers.
- */
-class Bundle(val tuples: List[HyperEdge[Int]]) {
-  val patterns: List[Pattern] = tuples map (Pattern.toHyperTermBase(_)) map (new Pattern(_))
+  * A sequence of tuples, possibly with holes denoted by negative integers.
+  */
+class Bundle(val patterns: List[Pattern]) {
 
   def this(patterns: List[Array[Int]], holes: Int*) = //this(tuples)
-    this(Bundle.puncture(patterns, holes.toList))
-  
+    this(Bundle.puncture(patterns, holes.toList) map (Pattern.toHyperTermBase(_)) map (new Pattern(_)))
+
   private def fillIn(pattern: Pattern, args: Int*): IndexedSeq[Int] =
     pattern map {
       case Placeholder(v) => args(v)
@@ -21,70 +19,75 @@ class Bundle(val tuples: List[HyperEdge[Int]]) {
     }
 
   private def fillIn(args: Int*): List[IndexedSeq[Int]] =
-    patterns map (pattern => fillIn(pattern, args:_*))
+    patterns map (pattern => fillIn(pattern, args: _*))
 
-  lazy val minValuationSize = tuples.flatten.min match {
-    case x if x < 0 => ~x + 1
-    case _ => 0
+  lazy val minValuationSize: Int = {
+    val places = patterns.flatMap(a => a.placeholders)
+    if (places.nonEmpty) places.map(_.value).max + 1 else 0
   }
-  
-  def bare: Bundle = new Bundle(tuples filter (_ exists (_ < 0)))
-  
-  import collection.mutable
-  import collection.immutable
+
+  // If this became slow manually do exists
+  def bare: Bundle = new Bundle(patterns filter (_.placeholders.nonEmpty))
 
   def shuffles: List[Bundle] = {
-    tuples.indices map { i =>
-      val inb = new ListBuffer ++ tuples
-      val outb = new ListBuffer[HyperEdge[Int]]
-      val covered = mutable.Set.empty[Int]  // set of placeholders already encountered
-    var j = i
-      while (inb.nonEmpty) {
-        val next = inb(j)
-        inb.remove(j)
-        covered ++= next filter (_ < 0)
-        outb += next
+    patterns.indices map { i =>
+      val inputBuffer = new ListBuffer ++ patterns
+      val outputBuffer = new ListBuffer[Pattern]
+
+      // set of placeholders already encountered
+      val covered = mutable.Set.empty[Placeholder]
+      var j = i
+      while (inputBuffer.nonEmpty) {
+        val next = inputBuffer(j)
+        inputBuffer.remove(j)
+        covered ++= next.placeholders
+        outputBuffer += next
         // - find the next spot that shares at least one value with covered
-        if (inb.nonEmpty) {
-          j = inb indexWhere (_ exists covered.contains)
+        if (inputBuffer.nonEmpty) {
+          j = inputBuffer indexWhere (_.placeholders exists covered.contains)
           if (j < 0) j = 0
           //throw new RuntimeException("bundle is not connected: " + (tuples map (_ mkString ",") mkString " "))
         }
       }
-      new Bundle(outb.toList)
+      new Bundle(outputBuffer.toList)
     } toList
   }
 
   def shuffles2: List[Bundle] = {
-    0 until patterns.length map { i =>
-      val inb = new ListBuffer ++ tuples
-      val outb = new ListBuffer[HyperEdge[Int]]
-      val covered = mutable.Set.empty[Int]  // set of placeholders already encountered
-      var j = i
-      while (inb.nonEmpty) {
-        val next = inb(j)
-        inb.remove(j)
-        covered ++= next filter (_ < 0)
-        outb += next
+    patterns.indices map { i =>
+      val inputBuffer = new ListBuffer ++ patterns
+      val outputBuffer = new ListBuffer[Pattern]
+      val covered = mutable.Set.empty[Placeholder] // set of placeholders already encountered
+    var j = i
+      while (inputBuffer.nonEmpty) {
+        val next = inputBuffer(j)
+        inputBuffer.remove(j)
+        covered ++= next.placeholders
+        outputBuffer += next
         // - find the next spot that shares at least one value with covered
-        if (inb.nonEmpty) {
-          j = inb indexWhere (_ exists covered.contains)
+        if (inputBuffer.nonEmpty) {
+          j = inputBuffer indexWhere (_.placeholders exists covered.contains)
           if (j < 0) j = 0
-            //throw new RuntimeException("bundle is not connected: " + (tuples map (_ mkString ",") mkString " "))
+          //throw new RuntimeException("bundle is not connected: " + (tuples map (_ mkString ",") mkString " "))
         }
       }
-      new Bundle(outb.toList)
+      new Bundle(outputBuffer.toList)
     } toList
   }
 }
 
 object Bundle {
-  
+
   def puncture(patterns: List[Array[Int]], holes: List[Int]): List[HyperEdge[Int]] =
-    patterns map (tp => puncture(tp, holes)) filterNot (_(1) <= -2)
-    // drop hole leaves (_(1) <= -2)
-  
+    patterns map (tp => puncture(tp, holes)) filterNot (_ (1) <= -2)
+
+  // drop hole leaves (_(1) <= -2)
+
   private def puncture(pattern: Array[Int], holes: List[Int]): HyperEdge[Int] =
-    HyperEdge(pattern map (x => holes.indexOf(x) match { case i if i >= 0 => -i - 2 case _ => x }))
-    // note: -1 is reserved, holes are -2 and below
+    HyperEdge(pattern map (x => holes.indexOf(x) match {
+      case i if i >= 0 => -i - 2
+      case _ => x
+    }))
+
+  // note: -1 is reserved, holes are -2 and below
 }

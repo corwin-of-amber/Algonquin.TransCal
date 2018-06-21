@@ -60,11 +60,21 @@ class Encoding extends LazyLogging {
     firstHalf :: tail
   }
 
-  def toHyperEdges(term: Term, alt: Map[Term, Int], nholes: Int, atRoot: Boolean = true): List[HyperEdge[Int]] = {
-    if (!atRoot && alt.contains(term) && alt(term) >= ~nholes && term.isLeaf) List.empty
+  /** Convert a term to a bunch of Patterns. Each pattern represents a connection between a parent and its children in
+    * the @term.
+    *
+    * @param term the term to translate
+    * @param termToPlaceholder convert terms to
+    * @param nholes number of holes expected?
+    * @param atRoot for recursive purposes
+    * @return
+    */
+  def toPatterns(term: Term, termToPlaceholder: Map[Term, Placeholder], nholes: Int, atRoot: Boolean = true): List[Pattern] = {
+    if (!atRoot && termToPlaceholder.contains(term) && termToPlaceholder(term).value <= nholes && term.isLeaf) List.empty
     else {
       val (head, rest) = headRest(term)
-      HyperEdge((this --> head) +: toTuple(Seq(term) ++ rest.toSeq, alt)) :: (rest flatMap (toHyperEdges(_, alt, nholes, false)))
+      new Pattern(Pattern.toHyperTermBase(this --> head) +: toTuple(Seq(term) ++ rest.toSeq, termToPlaceholder) toIndexedSeq) ::
+        (rest flatMap (toPatterns(_, termToPlaceholder, nholes, false)))
     }
   }
 
@@ -78,9 +88,15 @@ class Encoding extends LazyLogging {
       logger.info(s"${x map (_ map (x => if (x < 0) x else this <-- x) mkString " ")}")
     }
 
-    val altsq = terms.head :: holes.toList ++ (terms flatMap (term => term.nodes filterNot (n => (n eq term) || n.isLeaf)))
-    val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.tail map ((_, ~0)))
-    new Bundle(terms flatMap (toHyperEdges(_, alt, holes.length)) toList) // |-- dbg)
+    assert(holes.forall(_.isLeaf))
+    val allHoles = {
+      // All terms other then the holes and the root need to become holes (they need a new hyper term)
+      def internalSubterms(root: Term): Stream[Term] = root.nodes filter (subterm => !((subterm eq root) || subterm.isLeaf))
+      terms.head :: holes.toList ++ (terms flatMap internalSubterms)
+    }
+
+    val termToPlaceholder = allHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (terms.tail map ((_, Placeholder(0))))
+    new Bundle(terms flatMap (toPatterns(_, termToPlaceholder, holes.length)) toList) // |-- dbg)
   }
 
   /**
@@ -97,12 +113,13 @@ class Encoding extends LazyLogging {
     * Be aware of this small difference when calling them.
     */
   def toBundles(holes: Term*)(terms: List[List[Term]]) = {
-    val altsq = terms.head.head :: holes.toList ++
+    val allHoles = terms.head.head :: holes.toList ++
       (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n) /* (*) */
         /*n.isLeaf*/)))
-    val alt = altsq.zipWithIndex.toMap.mapValues(~_) ++ (terms.head.tail map ((_, ~0))) ++
-      (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, ~(altsq.length + i))) })
-    new Bundle(terms.flatten flatMap (toHyperEdges(_, alt, holes.length)) toList) // |-- dbg)
+    val termToPlaceholder: Map[Term, Placeholder] =
+      allHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (terms.head.tail map ((_, Placeholder(0)))) ++
+      (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allHoles.length + i))) })
+    new Bundle(terms.flatten flatMap (toPatterns(_, termToPlaceholder, holes.length)) toList) // |-- dbg)
   }
 
   private def headRest(term: Term) = {
@@ -114,5 +131,6 @@ class Encoding extends LazyLogging {
 
   private def toTuple(sq: Seq[Term]) = sq map (this --> _)
 
-  private def toTuple(sq: Seq[Term], alt: Map[Term, Int]) = sq map (k => alt.getOrElse(k, this --> k))
+  private def toTuple(sq: Seq[Term], termToPlaceholder: Map[Term, Placeholder]): Seq[BaseHyperTerm] =
+    sq map (k => termToPlaceholder.getOrElse(k, HyperTerm(this --> k)))
 }

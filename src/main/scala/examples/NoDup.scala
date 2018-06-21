@@ -228,16 +228,16 @@ object NoDup extends LazyLogging {
     val subterms = anchorScheme match {
       case Some(s) =>
         matches map { gm =>
-          val components = (new Reconstruct(gm, nonMatches) ++ im)(enc).head.subtrees drop 1
+          val components = new Reconstructer(gm, nonMatches)(enc).head.subtrees drop 1
           gm(1) -> s(components.toList)
         } toMap
       case _ =>
-        marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map (gm(1) -> _)) toMap;
+        marks flatMap (gm => (new Reconstructer(gm(1), nonMatches) ++ im)(enc).headOption map (gm(1) -> _)) toMap;
     }
     
     val elab = (anchorScheme match {
       case Some(s) =>
-        marks flatMap (gm => (new Reconstruct(gm(1), nonMatches) ++ im)(enc).headOption map ((_, subterms(gm(1))))) toList
+        marks flatMap (gm => (new Reconstructer(gm(1), nonMatches) ++ im)(enc).headOption map ((_, subterms(gm(1))))) toList
       case _ => List.empty
     }) collect { case (x, y) if x != y => (x ⇢ y) }
     
@@ -260,7 +260,7 @@ object NoDup extends LazyLogging {
     val nonMatches = work.nonMatches(_phMarker.leaf, _goalMarker.leaf)
     
     for (gm <- matches if gm(2) == anchor_#;
-         t <- new Reconstruct(gm(1), nonMatches)(enc))
+         t <- new Reconstructer(gm(1), nonMatches)(enc))
       logger.info("    " + (t toPretty))
   }
   
@@ -274,7 +274,7 @@ object NoDup extends LazyLogging {
     // Reconstruct and generalize
     val gen =
       for (gm <- work0.matches(_phMarker.leaf);
-           t <- new Reconstruct(gm(1), work0.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
+           t <- new Reconstructer(gm(1), work0.nonMatches(_phMarker.leaf, _goalMarker.leaf))(enc);
            tg <- generalize(t, leaves, context)) yield {
         logger.info(s"    ${t.toPretty}")
         val vas = 0 until leaves.length map Strip.greek map (TV(_))
@@ -310,7 +310,7 @@ object NoDup extends LazyLogging {
           s.focusedSubterm get m(1) match {
             case Some(original) => original
             case _ => 
-              new Reconstruct(m(1), nonMatches)(enc).headOption getOrElse TI("?")
+              new Reconstructer(m(1), nonMatches)(enc).headOption getOrElse TI("?")
           }
         logger.info(s"${original toPretty} --> ${elaborated toPretty}")
         s ++ List(original ⇢ elaborated)
@@ -367,13 +367,13 @@ object NoDup extends LazyLogging {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
       logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
-      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstruct(x, trie)(enc, except).toList), B))
+      for (ln <- transposeAll(gm.toList drop 2 map (x => new Reconstructer(x, trie)(enc, except).toList), B))
         logger.info("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }
   
   def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = {
-    new Reconstruct(match_, trie)(enc).head
+    new Reconstructer(match_, trie)(enc).head
   }
   
   def generalize(t: Term, leaves: List[Term], context: List[Term]): Option[Term] =

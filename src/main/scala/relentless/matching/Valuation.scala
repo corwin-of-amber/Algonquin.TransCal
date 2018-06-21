@@ -5,14 +5,15 @@ import relentless.rewriting.BaseHyperEdge
 
 import scala.collection.immutable
 
-class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.IndexedSeq[HyperTerm] {
+class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.IndexedSeq[Option[HyperTerm]] {
 
   def this(n: Int) = this(Array.fill[Option[HyperTerm]](n) {None})
 
   override def length: Int = array.length
 
-  override def apply(idx: Int): HyperTerm = array(idx) getOrElse (throw new RuntimeException(s"No hyper term at $idx"))
+  override def apply(idx: Int): Option[HyperTerm] = array(idx)
 
+  // TODO: remove unnecessary functions
   def isDefined(idx: Int): Boolean = array(idx) isDefined;
 
   def isEmpty(idx: Int): Boolean = array(idx) isEmpty;

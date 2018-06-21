@@ -72,7 +72,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
       for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
         //println(s"valuation = ${valuation mkString " "}")
         val add = rule.conclude(valuation, trie)
-        trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).value else 0}, add)
+        trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).get.value else 0}, add)
         logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
         wq.enqueue(add: _*)
       }
@@ -92,7 +92,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 object Rewriter extends LazyLogging {
   // TODO: reorder vars such that existentials are last
   def compileRules(rulesSrc: List[RewriteRule])(implicit enc: Encoding): List[CompiledRule] =
-    rulesSrc map ((rule: RewriteRule) => new CompiledRule(rule.src, rule.target))
+    rulesSrc map ((rule: RewriteRule) => new CompiledRule(rule))
 
   def compileRule(ruleSrc: RewriteRule)(implicit enc: Encoding): List[CompiledRule] =
     compileRules(List(ruleSrc))
@@ -125,8 +125,8 @@ case object OriginalEdge {
     def apply[T](seq: Seq[T]): OriginalEdge[T] = OriginalEdge[T](seq(0), seq(1), seq drop 2)
 }
 
-case class RewriteEdge[T](override val edgeType: T, override val target: T, override val params: Seq[T]) extends
+case class RewriteEdge[T](origin: RewriteRule, override val edgeType: T, override val target: T, override val params: Seq[T]) extends
   BaseRewriteEdge[T](edgeType, target, params) {}
 case object RewriteEdge {
-  def apply[T](seq: Seq[T]): RewriteEdge[T] = RewriteEdge[T](seq(0), seq(1), seq drop 2)
+  def apply[T](rewriteRule: RewriteRule, seq: Seq[T]): RewriteEdge[T] = RewriteEdge[T](rewriteRule, seq(0), seq(1), seq drop 2)
 }
