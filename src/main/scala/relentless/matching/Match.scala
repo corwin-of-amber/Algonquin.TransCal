@@ -21,6 +21,15 @@ class Match[HE <: immutable.IndexedSeq[Int]](val trie: Trie[Int, HE])(implicit v
     }
   }
 
+  /** Recursively unify patterns with words until all holes in valuation\patterns were filled or a miss match on a
+    * literal was found in which case return None. Considering Bundle this means that all holes for vars were filled and
+    * also all holes for the new subterms (a new hyper term from the conclusion patterns) were filled.
+    *
+    * @param patterns The patterns from the Bundle source to match with
+    * @param first A HyperEdge to match with
+    * @param valuation The valuation we are trying to fill
+    * @return The found valuations.
+    */
   def matchLookupUnify_*(patterns: List[Pattern], first: BaseHyperEdge[Int], valuation: Valuation): Stream[Valuation] = {
     // TODO: why does this one fail on empty patterns?
     valuation.unify(first, patterns.head) match {

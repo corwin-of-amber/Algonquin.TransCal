@@ -11,12 +11,12 @@ import scala.collection.immutable
 /** Dont know yet
   *
   * @param shards
-  * @param conclusion
+  * @param conclusion The original rules target converted into a bundle
   * @param nHoles
   * @param enc
   */
-class CompiledRule private (val shards: List[Bundle], val conclusion: Bundle, val nHoles: Int,
-                   val origin: RewriteRule)(implicit enc: Encoding) {
+class CompiledRule private(val shards: List[Bundle], val conclusion: Bundle, val nHoles: Int,
+                           val origin: RewriteRule)(implicit enc: Encoding) {
 
   private def this(pattern: Bundle, conclusion: Bundle, origin: RewriteRule)(implicit enc: Encoding) =
     this(pattern.shuffles, conclusion, pattern.minValuationSize, origin)
@@ -33,7 +33,7 @@ class CompiledRule private (val shards: List[Bundle], val conclusion: Bundle, va
   private def fresh(wv: immutable.IndexedSeq[Int]): Int = enc.reserveIndex()
 
   private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
-    t.sparseLookup(sparsePattern).map(_(1))
+    t.sparseLookup(sparsePattern).map(_ (1))
 
   // x-0 -> 1  xs-3 -> 4
   private val parameterIndexes: List[Int] = origin.target.vars map (v => 1 + (origin.src.vars indexOf v))

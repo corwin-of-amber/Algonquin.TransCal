@@ -1,6 +1,5 @@
 package relentless.matching
 
-import javax.swing.undo.AbstractUndoableEdit
 import relentless.rewriting.BaseHyperEdge
 
 import scala.collection.immutable
