@@ -217,7 +217,12 @@ trait Compaction extends RuleBasedTactic {
 
 }
 
-
+/** Creates rules such that the given (by user) equality between terms will be represented in our
+  * rewrite system.
+  *
+  * @param equalities Templates that represent the terms that are equal
+  * @param incorporate
+  */
 class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) extends Tactic {
 
   import LambdaCalculus.↦⁺
@@ -255,6 +260,12 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
 }
 
 
+/** Find a [[Term]] to focus on
+  *
+  * @param rules
+  * @param anchor
+  * @param anchorScheme
+  */
 class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
@@ -312,6 +323,13 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
 }
 
 
+/** Creates a new function in the program.
+  *
+  * @param rules
+  * @param leaves
+  * @param name
+  * @param context
+  */
 class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term], context: Option[Set[Term]]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
@@ -368,6 +386,11 @@ class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term
 }
 
 
+/** Trying to reach a goal from given rules.
+  * 
+  * @param rules
+  * @param goalScheme
+  */
 class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
