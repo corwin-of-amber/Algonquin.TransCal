@@ -1,7 +1,6 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.RewriteRule
 import relentless.matching._
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Tree}
@@ -14,14 +13,11 @@ import scala.collection.immutable
   * The rewriting is done by building a Trie of terms.
   * The full term can be recreated using reconstruct
   */
-class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule], val trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
-
-  import Rewriter._
-
+class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], val trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
   import collection.mutable
 
-  def this(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
-    this(init, compiledRules, new Trie[Int, BaseRewriteEdge[Int]](directory))
+  def this(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+    this(init, rewriteRules, new Trie[Int, BaseRewriteEdge[Int]](directory))
 
   private val match_ = new Match(trie)(enc)
 
@@ -59,25 +55,13 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
     targets.add(w.target)
     trie add w
     logger.trace(s"working on word ${w mkString " "}")
-    for (r <- compiledRules) {
-      processRule(r, w)
+    for (r <- rewriteRules) {
+      wq.enqueue(r.proccess(w, trie): _*)
     }
 
     //for (g <- goal) processRule(g, w)
   }
 
-  private def processRule(rule: CompiledRule, w: BaseRewriteEdge[Int]): Unit = {
-    for (s <- rule.shards) {
-      val patterns: List[Pattern] = s.patterns
-      for (valuation <- match_.matchLookupUnify_*(patterns, w, new Valuation(rule.nHoles))) {
-        //println(s"valuation = ${valuation mkString " "}")
-        val add = rule.conclude(valuation, trie)
-        trace(rule, for(i <- (0 until valuation.length).toArray) yield {if (valuation.isDefined(i)) valuation(i).get.value else 0}, add)
-        logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
-        wq.enqueue(add: _*)
-      }
-    }
-  }
 
   def matches(headSymbol: Identifier): Seq[BaseRewriteEdge[Int]] = {
     trie.realGet(0, enc --> headSymbol)
@@ -91,12 +75,6 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], compiledRules: List[CompiledRule
 
 object Rewriter extends LazyLogging {
   // TODO: reorder vars such that existentials are last
-  def compileRules(rulesSrc: List[RewriteRule])(implicit enc: Encoding): List[CompiledRule] =
-    rulesSrc map ((rule: RewriteRule) => new CompiledRule(rule))
-
-  def compileRule(ruleSrc: RewriteRule)(implicit enc: Encoding): List[CompiledRule] =
-    compileRules(List(ruleSrc))
-
   def nonMatches[HE <: BaseHyperEdge[Int]](words: Seq[HE], headSymbols: Identifier*)(implicit enc: Encoding): Seq[HE] = {
     val heads = headSymbols map (enc -->)
     words filterNot (heads contains _ (0))
@@ -106,12 +84,12 @@ object Rewriter extends LazyLogging {
     * Used for misc debugging
     */
   object trace {
-    def apply[HE <: BaseHyperEdge[Int]](rule: CompiledRule, valuation: Array[Int], conclusion: Iterable[HE]) {
+    def apply[HE <: BaseHyperEdge[Int]](rule: RewriteRule, valuation: Array[Int], conclusion: Iterable[HE]) {
       for (w <- conclusion)
         productions += w.toList -> (rule, valuation)
     }
 
-    val productions: collection.mutable.Map[List[Int], (CompiledRule, Array[Int])] = collection.mutable.Map.empty
+    val productions: collection.mutable.Map[List[Int], (RewriteRule, Array[Int])] = collection.mutable.Map.empty
   }
 }
 

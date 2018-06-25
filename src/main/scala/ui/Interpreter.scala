@@ -155,7 +155,7 @@ object Interpreter extends LazyLogging {
 		
 		for (state <- out :+ state) {
       logger.info("=" * 65)
-  		for (r <- state.rules.src) logger.info(s"• ${r.src.template.toPretty}")
+  		for (r <- state.rules.rules) logger.info(s"• ${r.src.template.toPretty}")
   		for (e <- state.prog.elaborate) logger.info(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
   		
   		dump(state.prog)
@@ -185,8 +185,8 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     val vars = scheme.vars
     val rules =
       if (hints exists (p => p.options.mkString(" ") == "only assoc")) AssocRules.rules
-      else if (hints exists (p => p.options.mkString(" ") == "allow existentials")) ExistentialRules.rules ++ s.rules.compiled
-      else BasicRules.rules ++ s.rules.compiled
+      else if (hints exists (p => p.options.mkString(" ") == "allow existentials")) ExistentialRules.rules ++ s.rules.rules
+      else BasicRules.rules ++ s.rules.rules
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
       val List(from, to) = t.subtrees

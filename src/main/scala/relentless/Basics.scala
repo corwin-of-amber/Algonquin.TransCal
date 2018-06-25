@@ -1,11 +1,10 @@
 package relentless
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.RewriteRule.Category
+import relentless.rewriting.RewriteRule.Category
 import relentless.matching.{Encoding, Trie}
-import relentless.rewriting.Rewriter
+import relentless.rewriting.RewriteRule
 import syntax.AstSugar._
-import syntax.Formula.O
 import syntax.{Formula, Identifier, Scheme, Tree}
 
 
@@ -105,62 +104,16 @@ trait Rules extends LazyLogging {
   implicit val enc: Encoding
 
   val vars: List[Term]
-  val rulesSrc: List[RewriteRule]
   val ruleTemplates: List[Tree[Identifier]]
-
-  lazy val rules = Rewriter.compileRules(rulesSrc)
 
   def templatesToRewriteRules(ruleType: Category) : List[RewriteRule] = {
     ruleTemplates zip Stream.continually(vars) flatMap ((t: Tree[Identifier], v: List[Tree[Identifier]]) =>
       RewriteRule.apply(t, v, ruleType)).tupled
   }
+
+  val rules: List[RewriteRule]
 }
 
-object RewriteRule {
-
-  object Category extends Enumeration {
-    val Basic, Associative, Goal, Locator, Definition, Existential = Value
-  }
-  type Category = Category.Value
-
-  // TODO: make sure all literals are in encoding (for example elems, head, take)
-
-  val `=>` = I("=>", "operator") // directional rewrite
-  val ||| = I("|||", "operator") // parallel patterns or conclusions
-  val ||> = I("||>", "operator")
-
-  implicit class RuleOps(private val t: Term) extends AnyVal {
-    def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
-
-    def |||(s: Term): Tree[Identifier] = T(RewriteRule.|||)(t, s)
-
-    def ||>(s: Term): Tree[Identifier] = T(RewriteRule.||>)(t, s)
-  }
-
-  Formula.INFIX ++= List(`=>` -> O("=>", 5), `|||` -> O("|||", 5))
-
-  def apply(template: Scheme.Template, ruleType: RewriteRule.Category): List[RewriteRule] = {
-    RewriteRule(template.template, template.vars map (T(_)), ruleType)
-  }
-
-  def apply(rule: Tree[Identifier], vars: List[Tree[Identifier]], ruleType: RewriteRule.Category): List[RewriteRule] = {
-    def varsUsed(t: Term) = vars filter t.leaves.contains
-
-    rule match {
-      case eqn@T(`=>`, List(lhs, rhs)) =>
-        val v = varsUsed(eqn) map (_.leaf)
-        List(new RewriteRule(new Scheme.Template(v, lhs), new Scheme.Template(v, rhs), ruleType))
-      case eqn@T(`=`, List(lhs, rhs)) =>
-        val v = varsUsed(eqn) map (_.leaf)
-        val (l, r) = (new Scheme.Template(v, lhs), new Scheme.Template(v, rhs))
-        List(new RewriteRule(l, r, ruleType), new RewriteRule(r, l, ruleType))
-      case other =>
-        throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
-    }
-  }
-}
-
-class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val ruleType: RewriteRule.Category) { }
 
 class BasicRules(implicit val enc: Encoding) extends Rules {
 
@@ -195,7 +148,7 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
   )
 
-  val rulesSrc : List[RewriteRule] = assocRules.rulesSrc ++ templatesToRewriteRules(RewriteRule.Category.Basic)
+  val rules : List[RewriteRule] = assocRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Basic)
 }
 
 class AssocRules(implicit val enc: Encoding) extends Rules {
@@ -206,7 +159,7 @@ class AssocRules(implicit val enc: Encoding) extends Rules {
 
   override val ruleTemplates: List[Tree[Identifier]] = List((x & (y & z)) =:= (x & y & z))
 
-  val rulesSrc = templatesToRewriteRules(RewriteRule.Category.Associative)
+  val rules = templatesToRewriteRules(RewriteRule.Category.Associative)
 }
 
 class ExistentialRules(implicit val enc: Encoding) extends Rules {
@@ -222,5 +175,5 @@ class ExistentialRules(implicit val enc: Encoding) extends Rules {
     xs =:> ++(take(xs, exist), drop(xs, exist))
   )
 
-  val rulesSrc : List[RewriteRule] = basicRules.rulesSrc ++ templatesToRewriteRules(RewriteRule.Category.Existential)
+  val rules : List[RewriteRule] = basicRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Existential)
 }

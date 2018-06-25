@@ -29,6 +29,10 @@ class Bundle(val patterns: List[Pattern]) {
   // If this became slow manually do exists
   def bare: Bundle = new Bundle(patterns filter (_.placeholders.nonEmpty))
 
+  /**
+    *
+    * @return
+    */
   def shuffles: List[Bundle] = {
     patterns.indices map { i =>
       val inputBuffer = new ListBuffer ++ patterns

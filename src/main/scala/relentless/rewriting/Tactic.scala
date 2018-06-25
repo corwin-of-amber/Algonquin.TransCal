@@ -2,8 +2,6 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
-import relentless.RewriteRule
-
 import relentless.matching.{Encoding, Trie}
 import relentless.matching.Trie.Directory
 import semantics.LambdaCalculus
@@ -60,29 +58,26 @@ case class RevisionDiff(
 }
 
 
-case class Rules(src: List[RewriteRule], compiled: List[CompiledRule])(implicit val enc: Encoding) {
+case class Rules(rules: List[RewriteRule])(implicit val enc: Encoding) {
   def +(ruledef: RewriteRule) = {
     /**/ assert(enc ne Rules.dummyEncoding) /**/   /* the dummy encoding should never be changed */
-    Rules(src :+ ruledef, compiled ++ Rewriter.compileRule(ruledef))
+    Rules(rules :+ ruledef)
   }
 
   def ++(other: Rules) = {
-    /**/ assume(compiled.isEmpty || other.compiled.isEmpty || (enc eq other.enc)) /**/   /* seems like it doesn't make sense otherwise? */
-    Rules(src ++ other.src, compiled ++ other.compiled)(if (compiled.isEmpty) other.enc else enc)
+    /**/ assume(rules.isEmpty || other.rules.isEmpty || (enc eq other.enc)) /**/   /* seems like it doesn't make sense otherwise? */
+    Rules(rules ++ other.rules)(if (rules.isEmpty) other.enc else enc)
   }
 }
 
 object Rules {
   lazy val dummyEncoding = new Encoding
 
-  def empty(implicit enc: Encoding = dummyEncoding) = Rules(List.empty, List.empty)
-
-  def apply(src: List[RewriteRule])(implicit enc: Encoding) =
-    new Rules(src, src flatMap Rewriter.compileRule)
+  def empty(implicit enc: Encoding = dummyEncoding) = Rules(List.empty)
 }
 
 
-abstract class RuleBasedTactic(rules: List[CompiledRule]) extends Tactic with LazyLogging {
+abstract class RuleBasedTactic(rules: List[RewriteRule]) extends Tactic with LazyLogging {
 
   def work(s: Revision) = {
     val work0 = new Rewriter(s.tuples, rules, s.directory)(s.enc)
@@ -106,9 +101,9 @@ object RuleBasedTactic {
     val all = List(goal, placeholder, placeholderEx)
   }
 
-  class CompiledGoal(val rules: List[CompiledRule], val scheme: Scheme)
+  class CompiledGoal(val rules: List[RewriteRule], val scheme: Scheme)
 
-  class CompiledPattern(val rules: List[CompiledRule], val scheme: Option[Scheme], val anchor: Term) {
+  class CompiledPattern(val rules: List[RewriteRule], val scheme: Option[Scheme], val anchor: Term) {
     def ++(goal: CompiledGoal) = new CompiledGoal(rules ++ goal.rules, goal.scheme)  // note: omits this.scheme
   }
 
@@ -124,39 +119,34 @@ object RuleBasedTactic {
    */
 
   def mkGoal(vars: Term*)(pattern: Term, anchor: Option[Term] = None)(implicit enc: Encoding) = {
-    import relentless.RewriteRule.RuleOps
+    import relentless.rewriting.RewriteRule.RuleOps
     val term = anchor match {
       case None => pattern =:> Markers.goal(vars toList)
       case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
     }
     val rewriteRule = RewriteRule(term, vars toList, RewriteRule.Category.Goal)
-    val rules = Rewriter.compileRules(rewriteRule toList)
     val tmpl = new Scheme.Template(vars:_*)(pattern)
-    new CompiledGoal(rules, tmpl)
+    new CompiledGoal(rewriteRule, tmpl)
   }
 
   def mkLocator(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import relentless.RewriteRule.RuleOps
+    import relentless.rewriting.RewriteRule.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
     // ⨀⋯(anchor, vars...) is for locate() to be able to reconstruct the term using tmpl
-    val rules = Rewriter.compileRules(
-      RewriteRule(
+    val rewriteRule = RewriteRule(
         pattern =:> (Markers.placeholder(anchor) ||| Markers.placeholderEx(anchor :: vars.toList)),
         vars.toList,
         RewriteRule.Category.Locator
       )
-    )
     val tmpl = new Scheme.Template(vars:_*)(pattern)
-    new CompiledPattern(rules, Some(tmpl), anchor)
+    new CompiledPattern(rewriteRule, Some(tmpl), anchor)
   }
 
   def mkLocator_simple(vars: Term*)(pattern: Term, anchor: Term)(implicit enc: Encoding) = {
-    import relentless.RewriteRule.RuleOps
+    import relentless.rewriting.RewriteRule.RuleOps
     // ⨀(anchor) is to mark the matched term as the goal
-    val rules = Rewriter.compileRules(
-      RewriteRule(pattern =:> Markers.placeholder(anchor), vars toList, RewriteRule.Category.Locator)
-    )
-    new CompiledPattern(rules, None, anchor)
+    val rewriteRule = RewriteRule(pattern =:> Markers.placeholder(anchor), vars toList, RewriteRule.Category.Locator)
+    new CompiledPattern(rewriteRule, None, anchor)
   }
 
   /**
@@ -265,11 +255,11 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
 }
 
 
-class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) with Compaction {
+class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
 
-  def this(rules: List[CompiledRule], pattern: RuleBasedTactic.CompiledPattern) =
+  def this(rules: List[RewriteRule], pattern: RuleBasedTactic.CompiledPattern) =
     this(rules ++ pattern.rules, pattern.anchor, pattern.scheme)
 
   def apply(s: Revision) = {
@@ -322,7 +312,7 @@ class Locate(rules: List[CompiledRule], anchor: Term, anchorScheme: Option[Schem
 }
 
 
-class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Term], context: Option[Set[Term]]) extends RuleBasedTactic(rules) with Compaction {
+class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term], context: Option[Set[Term]]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
   import syntax.AstSugar._
@@ -378,12 +368,12 @@ class Generalize(rules: List[CompiledRule], leaves: List[Term], name: Option[Ter
 }
 
 
-class Elaborate(rules: List[CompiledRule], goalScheme: Scheme) extends RuleBasedTactic(rules) with Compaction {
+class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
   import syntax.AstSugar.TI
 
-  def this(rules: List[CompiledRule], goal: RuleBasedTactic.CompiledGoal) =
+  def this(rules: List[RewriteRule], goal: RuleBasedTactic.CompiledGoal) =
     this(rules ++ goal.rules, goal.scheme)
 
   def apply(s: Revision) = {

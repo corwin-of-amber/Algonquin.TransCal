@@ -61,11 +61,11 @@ class Encoding extends LazyLogging {
   }
 
   /** Convert a term to a bunch of Patterns. Each pattern represents a connection between a parent and its children in
-    * the @term.
+    * the @term. So head is the edge type, rest is params and term is the target.
     *
     * @param term the term to translate
-    * @param termToPlaceholder convert terms to
-    * @param nholes number of holes expected?
+    * @param termToPlaceholder convert known terms (actually hyper terms with holes) to their corresponding placeholders
+    * @param nholes number of holes expected
     * @param atRoot for recursive purposes
     * @return
     */
@@ -113,9 +113,10 @@ class Encoding extends LazyLogging {
     * Be aware of this small difference when calling them.
     */
   def toBundles(holes: Term*)(terms: List[List[Term]]) = {
+    // All holes including the addition of hyperterms for the subterms in the bundle
     val allHoles = terms.head.head :: holes.toList ++
-      (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n) /* (*) */
-        /*n.isLeaf*/)))
+      (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n)/* (*) */
+        /*n.isLeaf*/))) distinct
     val termToPlaceholder: Map[Term, Placeholder] =
       allHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (terms.head.tail map ((_, Placeholder(0)))) ++
       (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allHoles.length + i))) })
