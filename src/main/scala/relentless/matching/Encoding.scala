@@ -78,50 +78,6 @@ class Encoding extends LazyLogging {
     }
   }
 
-  /**
-    * Encodes a term with "holes": these are assigned negative integers ~1 through ~holes.length.
-    * Subterms are considered implicit holes, so they are assigned distinct negative values.
-    * The roots of the terms in the bundle are special: they are all encoded as ~0.
-    */
-  def toBundle(holes: Term*)(terms: Term*) = {
-    def dbg(x: List[Array[Int]]) {
-      logger.info(s"${x map (_ map (x => if (x < 0) x else this <-- x) mkString " ")}")
-    }
-
-    assert(holes.forall(_.isLeaf))
-    val allHoles = {
-      // All terms other then the holes and the root need to become holes (they need a new hyper term)
-      def internalSubterms(root: Term): Stream[Term] = root.nodes filter (subterm => !((subterm eq root) || subterm.isLeaf))
-      terms.head :: holes.toList ++ (terms flatMap internalSubterms)
-    }
-
-    val termToPlaceholder = allHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (terms.tail map ((_, Placeholder(0))))
-    new Bundle(terms flatMap (toPatterns(_, termToPlaceholder, holes.length)) toList) // |-- dbg)
-  }
-
-  /**
-    * Encodes several bundles together in a way that does not induce encoding collisions
-    * for the placeholder elements.
-    *
-    * The first bundle is translated normally with its root encoded as ~0.
-    * The holes are encoded ~1 through ~holes.length.
-    * Remaining inner terms and bundle roots are encoded as ~(holes.length+1) onward.
-    *
-    * NOTICE BIG This function is currently used for rule patterns, whereas toBundle is used
-    * for regular terms and conclusion schemes. As a result, the `alt` set of terms mapped
-    * to negative integers include (non-hole) leaves such as "tt" and "nil"; see (*) below.
-    * Be aware of this small difference when calling them.
-    */
-  def toBundles(holes: Term*)(terms: List[List[Term]]) = {
-    // All holes including the addition of hyperterms for the subterms in the bundle
-    val allHoles = terms.head.head :: holes.toList ++
-      (terms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (holes contains n)/* (*) */
-        /*n.isLeaf*/))) distinct
-    val termToPlaceholder: Map[Term, Placeholder] =
-      allHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (terms.head.tail map ((_, Placeholder(0)))) ++
-      (terms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allHoles.length + i))) })
-    new Bundle(terms.flatten flatMap (toPatterns(_, termToPlaceholder, holes.length)) toList) // |-- dbg)
-  }
 
   private def headRest(term: Term) = {
     isApp(term) match {

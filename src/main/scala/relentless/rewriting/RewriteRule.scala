@@ -7,11 +7,62 @@ import syntax.Formula.O
 import syntax.{Formula, Identifier, Scheme, Tree}
 import com.typesafe.scalalogging.LazyLogging
 import relentless.matching._
+
 import scala.collection.mutable
 import scala.collection.immutable
+import scala.collection.mutable.ListBuffer
 
-class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val ruleType: RewriteRule.Category) {
-  var compiled: Option[CompiledRule] = None
+class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val ruleType: RewriteRule.Category) extends LazyLogging {
+  private var compiled: Option[CompiledRule] = None
+
+  /** The first bundle is translated normally with its root encoded as ~0.
+    * The holes are encoded ~1 through ~holes.length.
+    * Remaining inner terms and bundle roots are encoded as ~(holes.length+1) onward.
+    *
+    * NOTICE BIG This function is currently used for rule patterns, whereas toBundle is used
+    * for regular terms and conclusion schemes. As a result, the `alt` set of terms mapped
+    * to negative integers include (non-hole) leaves such as "tt" and "nil"; see (*) below.
+    * Be aware of this small difference when calling them.
+    */
+  /**
+    * Encodes a term with "holes": these are assigned negative integers ~1 through ~holes.length.
+    * Subterms are considered implicit holes, so they are assigned distinct negative values.
+    * The roots of the terms in the bundle are special: they are all encoded as ~0.
+    */
+  def toBundles(implicit enc: Encoding) = {
+    val srcHoles = src.vars map (T(_))
+    val srcTerms = src.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))
+
+    // All holes including the addition of hyperterms for the subterms in the bundle
+    val allSrcHoles = srcTerms.head.head :: srcHoles.toList ++
+      (srcTerms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (srcHoles contains n)/* (*) */
+        /*n.isLeaf*/))) distinct
+    val srcTermToPlaceholder: Map[Term, Placeholder] =
+      allSrcHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (srcTerms.head.tail map ((_, Placeholder(0)))) ++
+        (srcTerms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allSrcHoles.length + i))) })
+    val srcBundle = new Bundle(srcTerms.flatten flatMap (enc.toPatterns(_, srcTermToPlaceholder, srcHoles.length)) toList) // |-- dbg)
+
+    val targetHoles = target.vars map (T(_))
+    val targetTerms = target.template.split(RewriteRule.|||)
+
+    def dbg(x: List[Array[Int]]) {
+      logger.info(s"${x map (_ map (x => if (x < 0) x else enc <-- x) mkString " ")}")
+    }
+
+    assert(targetHoles.forall(_.isLeaf))
+    val allTargetHoles = {
+      // All terms other then the holes and the root need to become holes (they need a new hyper term)
+      def internalSubterms(root: Term): Stream[Term] = root.nodes filter (subterm => !((subterm eq root) || subterm.isLeaf))
+      targetTerms.head :: targetHoles.toList ++ (targetTerms flatMap internalSubterms)
+    }
+
+    val targetTermToPlaceholder = allTargetHoles.zipWithIndex.filterNot(kv => srcTermToPlaceholder.contains(kv._1)).
+      toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0))))
+    val targetBundle = new Bundle(targetTerms flatMap (enc.toPatterns(_, targetTermToPlaceholder, targetHoles.length)) toList) // |-- dbg)
+
+    (srcBundle, targetBundle)
+  }
+
 
   def proccess(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit encoding: Encoding): List[BaseRewriteEdge[Int]] = {
     if (compiled.isEmpty)
@@ -23,22 +74,12 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val rul
 object RewriteRule {
   /** Dont know yet
     *
-    * @param shards
-    * @param conclusion The original rules target converted into a bundle
-    * @param nHoles
     * @param enc
     */
-  class CompiledRule private(shards: List[Bundle], conclusion: Bundle, val nHoles: Int,
-                             origin: RewriteRule)(implicit enc: Encoding) extends LazyLogging {
-
-    private def this(pattern: Bundle, conclusion: Bundle, origin: RewriteRule)(implicit enc: Encoding) =
-      this(pattern.shuffles, conclusion, pattern.minValuationSize, origin)
-
-    def this(origin: RewriteRule)(implicit enc: Encoding) = {
-      this(enc.toBundles(origin.src.vars map (T(_)): _*)(origin.src.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))).bare,
-        enc.toBundle(origin.target.vars map (T(_)): _*)(origin.target.template.split(RewriteRule.|||): _*),
-        origin)
-    }
+  private class CompiledRule (origin: RewriteRule)(implicit enc: Encoding) extends LazyLogging {
+    private val (pattern, conclusion): (Bundle, Bundle) = origin.toBundles
+    val shards = pattern.shuffles
+    val nHoles = pattern.minValuationSize
 
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     // For debuging this might be better: T((enc <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
@@ -85,19 +126,27 @@ object RewriteRule {
     private def conclude(valuation: Valuation, trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
       assert(valuation.length >= nHoles)
 
+      val uid = new Uid
+      val existentailEdges: ListBuffer[BaseRewriteEdge[Int]] = mutable.ListBuffer.empty
+
       def valuation_(i: Int): Option[HyperTerm] = {
         if (i < valuation.length && valuation.isDefined(i)) valuation(i)
         else if (i < valuation.length) None
         // --- introduces an existential
-        else Some(HyperTerm(enc --> new Identifier("ex?" + i, "variable", new Uid)))
+        else {
+          val ident = new Identifier("ex?" + i, "variable", uid)
+          val term = T(ident)
+          existentailEdges.append(RewriteEdge(origin, Seq(enc --> ident, enc --> term)))
+          Some(HyperTerm(enc --> term))
+        }
       }
 
       // 0 1 4 -> -1 -2 -5 / 0 1 4 map Placeholder  | valuation(i)/0/existential
       val newSubterms: mutable.Map[Placeholder, Option[HyperTerm]] = mutable.Map.empty[Placeholder, Option[HyperTerm]] ++
-        ((0 :: parameterIndexes) map (i => (Placeholder(i), valuation_(i))))
+        ((0 :: parameterIndexes) map (i => {(Placeholder(i), valuation_(i))}))
 
       // construct new hyperedges by replacing holes (undefined) with valuation elements and fresh hyperterms
-      for (pattern <- conclusion.patterns.reverse) yield {
+      val f = for (pattern <- conclusion.patterns.reverse) yield {
         val updatedPattern: Pattern = new Pattern(pattern map {
           case x: Placeholder => newSubterms.get(x).map(_.getOrElse(x)).getOrElse(x)
           case x => x
@@ -115,6 +164,7 @@ object RewriteRule {
         assert(res.forall(_ > 0))
         res
       }
+      f ++ existentailEdges
     }
   }
 

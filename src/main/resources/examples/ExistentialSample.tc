@@ -1,7 +1,4 @@
-id = ?xs   [++]
+same = ?xs   [++]
 
-_ -> 1⃝                              [allow existential]
-1⃝ -> ?split xs  [above]
-1⃝ -> _ ++ _  [above]
-
-_ ++ _ -> add2list' _
+xs -> 1⃝
+1⃝ -> _ ++ _  [allow existentials]
