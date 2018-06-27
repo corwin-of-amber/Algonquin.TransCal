@@ -57,7 +57,7 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val rul
     }
 
     val targetTermToPlaceholder = allTargetHoles.zipWithIndex.filterNot(kv => srcTermToPlaceholder.contains(kv._1)).
-      toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0))))
+      toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0)))) ++ srcTermToPlaceholder
     val targetBundle = new Bundle(targetTerms flatMap (enc.toPatterns(_, targetTermToPlaceholder, targetHoles.length)) toList) // |-- dbg)
 
     (srcBundle, targetBundle)
