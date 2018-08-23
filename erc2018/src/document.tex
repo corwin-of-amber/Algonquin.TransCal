@@ -1,0 +1,342 @@
+
+\section{Quest for the Missing Link}
+
+Beginning with the 1980's, the computer science community has accepted
+that computer programs and logical proofs are made of the same fabric.
+They are both based on a rigorous formal language, characterized by a grammar,
+and they both rely heavily on tree-like structures for defining their semantics,
+via syntax-directed derivations.
+By now, it has become widely accepted that the task of writing a program can be
+reduced to that of finding a proof to a conjecture, and conversely, the task of
+proving a theorem can be reduced to producing a program with some specific
+characteristics.
+In addition to that, logic is at the core of software verification, as a basis
+for specifications, loop invariants, rely-guarantee properties, and more.
+The task of checking adherence to a program's specification is also reduced, in
+more than one way, to deciding the validity of a logical formula.
+
+This research is based on a fundamental understanding, that breaking existing
+barriers in automated theorem proving is a key ingredient that will lead to
+much more powerful software construction and certification mechanisms.
+By powerful we mean both scalable to the sizes of realistic software modules
+and requiring less user effort thanks to an increased level of automation.
+
+Prominent reasoning techniques of our time are placed mostly in these two camps:
+
+\paragraph{Theorem Provers} A family of tools and techniques based on proof
+theory of logical deduction.
+A logic in this setting is characterized by a vocabulary and a system of
+inference rules; provers are tasked with searching the space of proofs, which
+are essentially trees (more generally, DAGs) constructed from repeated
+application of the inference rules.
+The expected result is a proof leading to a desired statement (closed formula)
+$\varphi$, that can be used as a certificate to the logical validity of
+$\varphi$ --- that is, it can be checked mechanically to confirm the soundness
+of each inference step.
+While proof search can be a very costly process, due to the inherent complexity
+of the search space, checking a proof is usually swift and done with linear
+cost with respect to its size.
+
+\paragraph{SMT Solvers} A somewhat newer approach based on extending the
+Boolean satisfiability problem (SAT) with first-order theories, leading to
+Satisfiability Modulo Theory (SMT).
+SAT solvers accept Boolean formulas and construct a satisfying assignment, or
+declare that none exists.
+Since SAT is NP-complete (in fact, usually referred to as \emph{the} canonical
+NP-complete problem), finding the solution may be time consuming, but eventual
+termination is guaranteed.
+SMT solvers take first-order formulas and attempt to find a first-order
+\emph{model} for them, that is consistent with and underlying theory --- the
+theory is built into the solver.
+The theories generally put no bound on the size of the models they admit
+(\eg numerical theories are typically defined over the domain of integers),
+and as expected, the problem is generally undecidable.
+However, despite the inherent complexity of SAT and undecidability of SMT,
+solver technology as become extremely successful, especially in applications
+relating to software verification.
+In this context, proving a verification condition (``theorem'') $\varphi$
+amounts to finding its negation $\lnot\varphi$ unsatisfiable --- which is the root
+of the connection, and contention, between SMT solvers and theorem provers.
+For many software verification conditions, SMT solvers have been shown to be
+more effective in proving the validity of verification conditions than
+contemporary proof theory-based theorem provers.
+
+It is worth mentioning a third camp, that has, so far, received less
+attention from the programming languages and automated reasoning crowd.
+
+\paragraph{CSP Solvers} Constraint Satisfaction Problems (CSP) are ubiquitous
+in planning, AI, and various other fields of computer science.
+The ultimate goal of CSP is to find parameters that satisfy a set of (mostly
+numerical) constraints. The solutions can be useful for scheduling tasks,
+motion planning, \etc.
+CSP solvers excel at solving puzzles such as the $N$-queen problem or Sudoku.
+Their use in automated theorem proving is insofar limited.
+
+\medskip
+The primary goal of this research is to overcome the gap between the two camps,
+one that currently prevents adoption of results from one approach into use in
+the other.
+We will strive to construct a unified framework for reasoning, where proving
+and solving techniques can cooperate.
+This will allow to leverage the power of SMT into proving the more complex
+conjectures required for software verification and synthesis.
+When it comes to applying SMT, one major obstacle in many problem domains, is
+that SMT solvers are generally restricted to first-order logic; at the same time,
+the properties one wishes to prove require the use of induction.
+Theorem provers can more easily be equipped with induction-oriented inference
+rules.
+Still, sub-problems arising in the course of resolving the induction step can
+and should benefit from SAT capabilities.
+
+Another obstacle, which plagues both approaches, is the use of quantification
+in assumptions and theorems.
+One generally wishes to take advantage of the inherent modularity in proving
+most kinds of properties, be those math theorems in algebra or combinatorics,
+and definitely when it comes to correctness properties of computer programs.
+% it is possible that the whole discussion of software modularity should be
+% moved to the main body
+Software is modular by nature, since modularity is what makes it possible
+for human programmers to cope with its ever-growing complexity.
+It is much desirable to adopt the same contributing factor to reasoning about
+these programs.
+This means that instead of constructing one monolithic proof of the ``ultimate
+theorem'', one identifies and proves \emph{lemmas} that abstract and generalize
+domain knowledge and understanding of the underlying program --- layering them
+up until the final goal is met.
+This is definitely how it is done in academic papers, and, more recently, in
+large software verification projects.
+Going back to the challenge at hand, these auxiliary lemmas typically include
+quantified formulas, which are logic's way of expressing generalized conjectures.
+Applying these lemmas, \eg in the context of proving the next-step lemma,
+ultimately requires to instantiate universal quantifiers with logical terms.
+Since the space of available terms is large (or even infinite), this becomes
+a task that is daunting to automate and requires the employment of heuristics
+to select the right instances.
+We will move to consolidate instantiation strategies into one that more closely
+matches the search for proof --- thus being goal-directed rather then origin-directed.
+
+
+\section{Some later section}
+
+\subsection{Inductive-Deductive Reasoning Hybrid}
+
+\subsubsection{...}
+
+Deductive reasoning is the practice of applying general rules or statements to
+individual, concrete cases; conversely, inductive reasoning is one of inferring,
+from a set of observations, a unifying generalization.
+Deductive reasoning can be thought of as a ``top-down'' application of logical
+thinking, whereas inductive reasoning works ``bottom-up''.
+While inferring a special case from a general case is always logically sound,
+generalizing from examples can only guarantee soundness up to the set of
+instances observed.
+Still, even in the course of proving theorems, where soundness is of utmost
+importance, humans habitually make use of inductive reasoning to guide their
+deduction:
+just a handful of examples can give rise to a useful generalization, a lemma,
+which can then be proven deductively.
+
+While there is no perfect analogue in the prover/solver setting as portrayed
+in this document, it is quite obvious that theorem provers employ deductive
+reasoning almost exclusively.
+It would not be correct to say that SMT solvers employ inductive reasoning in
+the same sense; a lot of their mechanics is still based on deduction.
+However, state-of-the-art SMT solvers do make use of models generated in the
+course of the search to guide deductive reasoning as this search progresses.
+One notable example for this is Model-Based Quantifier Instantiation (MBQI),
+a technique implemented in Z3.
+In Sketch, a software synthesis tool, the system observes a set of inputs (and
+outputs), proposes a generalization (a program), and then attempts to verify it
+using a deductive method (in their case, reduction to SAT).
+A growing number of examples is needed for the generalization to yield a correct
+program, so this process repeats in a loop.
+
+The idea of accumulating models of formulas or sub-formulas in the course of
+a dialog between a deductive component and an inductive one can be lifted to
+any type of reasoning.
+When constructing proofs, existing models can be used to quickly vet possible
+branching choices and discard ``obviously wrong'' ones: it is clearly futile
+to try to prove a formula that is not valid, and any instance that does not
+satisfy it can serve as a witness for that.
+This is very much the process that a human mathematician may undergo when
+considering which conjecture to prove next.
+Clearly, having a representative set of models is essential for it, since
+most intermediate statements have the form ``if $A_1$ and $A_2$ and $A_3$, then
+$B$'', and models not satisfying one of the premises $A_i$ contribute no
+relevant information.
+It is thus desirable to identify ``pivot'' atomic formulas and keep around
+models for various subsets of them.
+
+
+\subsection{Feasible Induction Through Transitive Closure}
+
+\subsubsection{...}
+
+\subsubsection{A TC Solver}
+
+In the spirit of the mechanics of SMT solvers, where different \emph{theory solvers}
+can be combined using methods such as DPLL(T), CDCL(T), and Nelson-Oppen, we
+propose an important module would be a solver specifically capable of reasoning
+about transitive closure properties.
+Particularly, this solver will be able to construct models of quantifier-free
+FO(TC) formulas.
+Atomic TC formulas of the form $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$ imply that
+the model would have to contain a path $s=x_0,x_1,\ldots,x_n=t$ with $\varphi(x,y)$
+holding between successive elements; this notion can be built into the solver
+while constructing the model, as is the core property of transitivity, or,
+more concretely, being a \emph{partial order}.
+Solvers for the theory of equality (EUF) employ congruence closure as a core
+algorithm; this can be generalized to partial orders and applied to this
+context.
+
+
+\subsubsection{Using Implicit Induction}
+
+Most theorem provers, as well as some SMT solvers and systems using them,
+prove inductive properties by the introduction of an \emph{induction scheme} ---
+a specialized inference rule, whose premises comprise the induction base case
+and step.
+For example, given $P(0)$ and $\forall k.~ P(k)\rightarrow P(k+1)$,
+one can infer $P(n)$ for any natural $n$.
+In this way, the induction step effectively ``hides'' several application of
+the induction hypothesis $P(k)$ inside a single inference step.
+This is much different from the way humans approach the problem: they may set
+out simplifying $P(k)$, realizing at some point that it may follow from $P(k-1)$,
+justifying such reasoning based on the natural numbers being a wellfounded set.
+
+We conjecture that this \emph{implicit} induction approach is suitable for
+automatic proof discovery as well.
+The formal implementation in this context is that of \emph{cyclic proof systems};
+the cyclic framework admits proofs where some premises are satisfied by
+conjectures occurring \emph{later} in the goal.
+Of course, for such proofs to be sound some side conditions are imposed to assure
+that a wellfounded order can be established.
+
+
+\subsubsection{Overcome the Frame Problem with Frame Properties}
+
+A prevalent difficulty of reasoning in logic is the \emph{frame problem}:
+a constant need to specify not only effects we are interested to reason about,
+but the entire environment surrounding it, which was not directly affected.
+In the context of reasoning about computer systems, a program me effect a change
+by storing or removing some data, causing a change in the system's state.
+In order to prove properties of the system, and in particular, of such
+accumulated changes, logic dictates that we formulate precisely what has
+\emph{not} change in the system's state, including memory locations, database
+tables, network communication packets \etc, that the program did not touch.
+This is a huge hinderance to effective reasoning since properties that were
+assumed or already proven with regard to the input state, have to be
+re-stated and proven respective to the new state.
+Such proofs are mundane and daunting, but there are many such properties
+popping up in the course of a proof and they may very well require more work to
+discharge than the ``insightful'' part.
+
+A classical example for the severity of the problem is analysis of the program
+\textsf{reverse}, which reverses the order of nodes in a singly-linked list.
+The program flips one edge at a time, and the effect of each iteration is
+very local; however, to prove even a most basic property, that the program does
+not introduce cycles in the list, the programmer has to include properties of
+the prefix and suffix of the list, which have not changed --- the ``frame''.
+The bookkeeping difficulty was so intense, that it led John C. Reynolds to the
+conclusion that reasoning about pointer paths using transitive closure (heap
+reachability) is not practical, and to found a new logic for dealing with
+programs with dynamic heaps.
+This logic is known as Separation Logic and is still the state-of-the-art in
+reasoning about heaps.
+
+\begin{figure}
+\includegraphics[width=5cm]{standalone}
+\end{figure}
+
+We claim that transitive closure \emph{can} be made effective by harnessing
+\emph{frame properties} arising from the theory of transitive closure.
+Frame properties are theorems and lemmas that assert the preservation of
+certain properties, across consecutive program states, subject to the more
+fine-grained properties preserved by the transition between them.
+Frame properties can be generic or specific; \emph{generic} frame properties are
+schemas that can apply to any $\varphi$ formula occurring within a transitive
+closure $\big(\mathrm{TC}_{x,y}\varphi\big)$.
+\emph{Specific} frame properties pertain to concrete programs and their respective
+state transition semantics expressed as formulas.
+An example of a generic property is: if there is a $\varphi$-path between some
+two individuals $u, v$, and if for any $x,y$ $\varphi$-reachable from $u$, it
+holds that $\varphi(x,y) \leftrightarrow \psi(x,y)$, then there is also a
+$\psi$-path between $u, v$.
+A derived, specific frame property could be the following: assume $n$ is a
+function symbol representing the pointer links of a linked list, and assume
+$n'$ is another function symbol representing the links of the same list after
+a \emph{single iteration} of the program \textsf{reverse}.
+Then all nodes reachable from the \emph{successor} of the loop iterator in the
+former list, are still reachable from it in the second list.
+This follows from the fact that the location of the modified pointer is not
+reachable from any of the nodes in question, so the link paths in that area of
+the list (the suffix) could not be affected.
+
+By developing proof-support tools that ``guess'' specific frame properties
+% xref lemma speculation
+and prove them automatically based on more primitive facts and by applying
+generic frame properties, we expect to greatly improve the efficacy of theorem
+provers and also of interactive proof assistants in handling conjectures
+involving transitive closure.
+While frame properties do not, formally, play any special role compared to
+other formulas occurring throughout the proof, they follow a unique kind of
+``thought pattern'' that serves a mental purpose in abstracting away nitpicky
+details.
+This would allow us to focus human and machine attention alike on the more
+nitty-gritty parts of the proof.
+
+\subsubsection{Next-level Transitive Closure}
+
+The use of transitive closure logic is not restricted to reasoning about heap
+graphs, which mostly involved low-level kind of reasoning.
+Many aspects of computing rely on iteration, \eg when expressing properties of
+aggregate data --- a sum of a column in a database, for instance.
+Indeed, there is a large and interesting space of programs that can be realized
+with the combination of the functional operations \textsf{map}, \textsf{filter},
+and \textsf{reduce}. % cite SPARK
+Sets and sequences can be stored in many ways in memory and in non-volatile
+storage, yet the iteration aspect remains the same and can be characterized by
+a ``next-in-iteration'' function that matches for each element, the following
+element in the iteration order.
+The loopy construct, \eg sum, can then be axiomatized using the transitive
+closure $\big(TC_{\langle a,u\rangle,\langle b,v\rangle}v=n(u) \land b=a+\mathrm{val}(u)\big)$
+With the help of TC support in the theorem prover, and in the presence of a
+library of theorems defining known properties of TC, reasoning about such
+aggregates can be streamlined to be simpler than by using the corresponding
+inductive definition of sum.
+For example, distributivity of sum over sequence concatenation follows (almost)
+for free from the transitivity of TC.
+
+
+
+\subsection{Modular Reasoning with Lemmas}
+
+Mathematical proofs are seldom monolithic.
+Usually, there are some intermediate conjectures --- \emph{lemmas} --- that
+are proved one by one, gradually building toward the culmination of the main
+theorem.
+It is not done out of altruism towards the reader of the paper, though it can
+certainly make a proof easier to understand.
+Mainly, it helps the author overcome the complexity of the proof development
+task: in a formal setting, even a seemingly benign logical step can have many
+inference steps; and the steps are not always sequential, for example when
+a case split is required in order to consider several scenarios.
+
+This kind of modularization has been carried over by computer scientists to the
+realm of interactive proof assistants.
+In Type Theory, the use of lemmas is wired in as they are reduced to function
+calls following the Curry-Howard Correspondence.
+Modular proofs are even more of the essence in automated proof search, due to
+the inherent computational complexity of the tool and poor scalability of
+existing search techniques.
+Breaking a proof task into lemmas also carries the promise of combining different
+approaches to finding the proofs, by applying a portfolio approach in the spirit
+of Why3 \cite{}.
+
+\subsubsection{...}
+
+\subsubsection{Near-match Lemma Speculation}
+
+\subsubsection{Semi-eager Theory Propagation}
+
+\subsubsection{Lemma Patching}
