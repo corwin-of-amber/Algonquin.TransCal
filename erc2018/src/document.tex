@@ -23,7 +23,7 @@ and requiring less user effort thanks to an increased level of automation.
 
 Prominent reasoning techniques of our time are placed mostly in these two camps:
 
-\paragraph{Theorem Provers} A family of tools and techniques based on proof
+\paragraph{Theorem Provers (TP)} A family of tools and techniques based on proof
 theory of logical deduction.
 A logic in this setting is characterized by a vocabulary and a system of
 inference rules; provers are tasked with searching the space of proofs, which
@@ -114,6 +114,16 @@ a task that is daunting to automate and requires the employment of heuristics
 to select the right instances.
 We will move to consolidate instantiation strategies into one that more closely
 matches the search for proof --- thus being goal-directed rather then origin-directed.
+
+As an ultimate artifact, this research will lay foundations for a new discipline
+in automated provers, by way of integrating the camps of TP and SMT and allowing
+cross-fertilization.
+Specifically, it is motivated by provers for the tasks of software verification
+and synthesis; these are characterized by relying almost exclusively on discrete
+mathematics, such as set theory, graphs, automata, the construction of
+natural numbers, and integer arithmetic.
+
+\ldots
 
 
 \section{Some later section}
@@ -231,6 +241,18 @@ Such proofs are mundane and daunting, but there are many such properties
 popping up in the course of a proof and they may very well require more work to
 discharge than the ``insightful'' part.
 
+\begin{figure}
+\begin{lstlisting}
+reverse(h) :=
+  i := h; j := null;
+  while (i != null) {
+    t := i.next;
+    i.next := j; j := i;
+    i := t;
+  }
+\end{lstlisting}
+\end{figure}
+
 A classical example for the severity of the problem is analysis of the program
 \textsf{reverse}, which reverses the order of nodes in a singly-linked list.
 The program flips one edge at a time, and the effect of each iteration is
@@ -245,7 +267,8 @@ This logic is known as Separation Logic and is still the state-of-the-art in
 reasoning about heaps.
 
 \begin{figure}
-\includegraphics[width=5cm]{standalone}
+%\includegraphics[width=5cm]{standalone}
+\embedlatex[width=5cm]{standalone}
 \end{figure}
 
 We claim that transitive closure \emph{can} be made effective by harnessing
@@ -337,6 +360,130 @@ of Why3 \cite{}.
 
 \subsubsection{Near-match Lemma Speculation}
 
+Surely it has happened to everyone: you have a conjecture to prove, and there is
+a theorem that whose fits the conjecture, but the premises don't quite match
+with the assumptions in that particular context.
+As a simple example, suppose the conjecture is $n^*(x,z)$, where $n^*$ is the
+transitive closure (see above) of a unary function $n$.
+Transitivity dictates that this follows from $n^*(x,v), n^*(v,z)$ for some $v$,
+and there is an assumption, or a previously proven conjecture, $n^*(x,y)$;
+however, no assumption $n^*(y,z)$ is available.
+Instead, what you have is $m^*(y,z)$ for a second function $m$.
+This can be overcome by proving that $m^*(y,z) \Rightarrow n^*(y,z)$, as a
+separate lemma.
+To prove such a lemma, one may try to prove that $n=m$, or that $n^*=m^*$,
+or that $\forall u, n^*(y,u)\leftrightarrow m^*(y,u)$, or any other generalization
+of the missing implication.
+
+To mechanize the process, a prover is required to select a suitable version.
+Some alternatives can be vetted out using the model-based approach described
+earlier.
+Proving the auxiliary lemma can also be postponed to a later stage, after the
+prover has concluded the current proof branch and admitted it --- since a failed
+proof branch will be discarded anyway, and all the lemmas used in it become
+moot.
+Hence the term ``speculation'', also used in works on proofs by rippling \cite{}.
+In the original presentation, speculated lemmas are equalities between terms,
+but they can be made far more general and integrate
+into any kind of clause-based inference system such as natural deduction or
+sequent calculus used by modern provers.
+
+
 \subsubsection{Semi-eager Theory Propagation}
 
+The T of SMT stands for \emph{Theory}.
+A theory in this context comprises of a specific vocabulary, inducing a limited
+subset of logical formulas, and a designated interpretation, thus also limiting
+the logical \emph{structures} that can be considered for them.
+One popular example, built into many SMT solvers, is the theory of integer linear
+arithmetic (LIA): it provides the operators ``$+$'', ``$-$'', ``$\cdot$'' as
+well as order relations ``$=$'', ``$\leq$''.
+It imposes a syntactic restriction that two variables may not be multiplied;
+a variable may only be multiplied by a constant numeric literal.
+While a formula such as $5 < 3$ is \emph{logically} satisfiable, it is
+unsatisfiable in the theory of LIA, since it requires all numeric literals to
+be interpreted as the integers they represent and that ``$<$'' be interpreted
+as the order of integers.
+
+Communication between the SAT component and the theory component of the model
+is handled by the theory solver producing \emph{learned clauses} that are valid
+modulo the theory and a logically unsatisfiable when conjoined with the existing
+goal.
+For $5 < 3$, this may be as simple as $\lnot(5 < 3)$; but the clauses get more
+involved as problem sizes and number of variables grow.
+The generation of clauses by the theory solver is called
+\emph{theory propagation}, and can be done in two ways: (i) \emph{eagerly}, by
+observing the formula given to the solver and generating all the theory-valid
+statements containing the terms it contains; and (ii) \emph{lazily}, waiting for
+SAT to produce a Boolean assignment and then contradicting it with
+appropriate clauses when it is inconsistent with the theory.
+
+The eager approach has an inherent flaw: the number of such theory-valid
+statements can grow very large very quickly.
+It can be infinite, in the case of some theories, as most theories are
+represented, conceptually speaking, by quantified formulas, and there is no
+bound on the number of instantiations that may be needed to refute a single
+statement.
+Some theories, in particular those of integers, are not even definable by any
+finite set of first-order formulas, quantified or otherwise.
+Such difficulties cause eager propagation techniques to be all but abandoned.
+
+The lazy approach, despite its popularity, can have severe run-time
+implications.
+It means that a number of SAT assignments have to be observed, and a
+potentially computation intensive procedure consulted, to refute their
+satisfiability in the logic.
+Designers of SMT try to be clever in the way propagation clauses are generated,
+since generating more general clauses will drive the SAT away from more
+inconsistent assignments at an earlier stage, saving calls to theory solver.
+This tactic is limited, however, since the theory solver only gets a glimpse
+of a narrow case each time it is involved, and cannot make global decisions
+based on the structure of the entire input problem.
+
+We propose a middle ground, and that middle ground involves the use of proofs.
+In a combined setting where SAT, theories, and formal proof objects work
+together, intermediate proofs being explored provide ample subformulas to
+fertilize propagation.
+We will define an \emph{integration metric} for propagation clauses, that
+quantitively expresses how tightly coupled a potential clause is with the
+existing set of assumptions and goals present in the proof.
+This can be thought of as a miniature ``page rank'' for logical formulas:
+``hot'' atomic formulas, that is, ones that occur often in the proof, encourage
+clauses that contain them, and these clauses, if accepted, will light up
+more atomic formulas, with rank diminishing as they drift further from the
+core.
+Then, we will construct effective algorithms for finding such clauses that
+optimize this metric.
+We will tune the metric and the algorithms to achieve the fastest convergence
+and compare to existing heuristics.
+
+This semi-eager propagation of clauses from theories hold true potential for
+a breakthrough with respect to handling theories and quantified conjectures
+in unison, as challenged by Voronkov \cite{}.
+
+
 \subsubsection{Lemma Patching}
+
+Again, this is inspired by the way mathematicians work, first proving a
+simplified version of a desired property as a lemma, then inspecting the proof
+to figure out ``what would go wrong'' in the more general case --- using that
+to prove a stronger lemma.
+Intermediate proofs are thus raw material for more proofs: it lends a
+``white-box'' view of lemmas, complementing the more basic use of lemmas in
+their exact literal form, encapsulating their proofs (which can be seen as
+``black-box'').
+In a dual manner, occasionally a lemma is too strong: \eg if its conclusion is
+a conjunction, but one is only interested in one of the conjuncts.
+It is possible that a subset of the premises is sufficient to prove that one
+conjunct.
+Another example is when a conclusion is of the form $a < b$, but a relaxed set
+of premises is enough to obtain $a \leq b$.
+
+Moreover, during proof exploration itself (either by human or by machine), some
+incorrect, dead-end proofs are inevitably encountered.
+These are characterized, indeed identified, by assumptions that cannot be made
+soundly (\eg a proof branch that includes formulas that are not logically valid).
+Normally, a theorem prover simply discards these failed attempts and tries
+another.
+However, these too can be leveraged as raw material; repairing them amounts to
+eliminating the spurious assumptions.
