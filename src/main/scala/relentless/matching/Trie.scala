@@ -70,17 +70,17 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
     * then declares hyperedge.target to be equivalent for all words in each group.
     * Output is into equiv.
     */
-  def uniques(index: Int): mutable.Map[E, E] = {
+  def uniques(index: Int, repFun: Seq[E] => E): mutable.Map[E, E] = {
     val equiv = mutable.Map.empty[E, E]
     if (index >= subtries.length || subtries(index) == null) {
       if (words.lengthCompare(1) > 0) {
         val equals = words map (_(1))
-        val rep = equals.head  /* the representative is chosen to be the lowest indexed element */
-        equals foreach (equiv += _ -> rep)
+        val rep = repFun(equals)    /* repFun should make sure there are no cycles; e.g. impose a full order on E */
+        equals foreach ((u) => if (u != rep) equiv += u -> rep)
       }
     }
     else {
-      for ((k, subtrie) <- subtries(index)) equiv ++= subtrie.uniques(index+1)
+      for ((k, subtrie) <- subtries(index)) equiv ++= subtrie.uniques(index+1, repFun)
     }
     equiv
   }

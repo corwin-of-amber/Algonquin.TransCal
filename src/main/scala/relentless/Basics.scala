@@ -36,6 +36,7 @@ object BasicSignature {
 
   val _nil = TV("⟨⟩")
   val _cons = TV("::")
+  val _snoc = TV(":+")
   val _elem = TV("elem")
   val _elems = TI("elems")
 
@@ -65,6 +66,8 @@ object BasicSignature {
   def nil = _nil
 
   def cons(x: Term, xs: Term) = _cons :@ (x, xs)
+
+  def snoc(x: Term, xs: Term) = _snoc:@(x, xs)
 
   def elem(x: Term, xs: Term) = _elem :@ (x, xs)
 
@@ -145,7 +148,13 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     (set_disj(xs, x) & set_disj(xs, y)) =:= (set_disj(xs, set_union(x, y))),
     elem(x, xs) =:= in(x, elems(xs)),
     elems(cons(`x'`, `xs'`)) =:= (set_union(`{}`(`x'`), elems(`xs'`))), // <-- this one is somewhat superfluous?
+
+    snoc(y, x) =:= ++(y, cons(x, nil)),
+    ++(nil, `xs'`) =:> id(`xs'`),
+    ++(`xs'`, nil) =:> id(`xs'`),
+    ++(x, ++(y, z)) =:= ++(++(x, y), z),
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
+
   )
 
   val rules : List[RewriteRule] = assocRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Basic)

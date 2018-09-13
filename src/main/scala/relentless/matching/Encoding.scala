@@ -41,6 +41,18 @@ class Encoding extends LazyLogging {
   def toOriginalEdges(term: Term): List[OriginalEdge[Int]] = toOriginalEdges(term, term)
 
   /**
+   * Dumps, for debugging
+   */
+  import syntax.AstSugar._
+
+  def dumpIdentifiers = identifierMap.toList map { case (x,y) => (y,x) } sortBy (_._1)
+  def dumpTermHint(index: Int) = termMap find (_._2 == index) match {
+    case Some((term, _)) => term.toPretty
+    case _ => index
+  }
+
+
+  /**
     * Like toTuples(term), but encodes the top-level node according to equateWith, rather than term.
     */
   def toOriginalEdges(term: Term, equateWith: Term): List[OriginalEdge[Int]] = {

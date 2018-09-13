@@ -187,7 +187,7 @@ trait Compaction extends RuleBasedTactic {
 
     // for each edge type, compare words by parameters and add to equiv by target.
     for ((k, subtrie) <- trie.subtries(0) if !(except contains k)) {
-      equiv ++= subtrie.uniques(2)
+      equiv ++= subtrie.uniques(2, (_.min))
     }
     /*--------------------
      * a meek effort to eliminate id() terms by equating the argument with the result
