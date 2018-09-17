@@ -3,7 +3,7 @@ package relentless.matching
 import com.typesafe.scalalogging.LazyLogging
 import relentless.rewriting.{BaseHyperEdge, HyperEdge, OriginalEdge}
 import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
+import syntax.{Identifier, Scheme, Tree}
 
 
 class Encoding extends LazyLogging {
@@ -90,6 +90,23 @@ class Encoding extends LazyLogging {
     }
   }
 
+  /**
+    * Creates patterns from a scheme according to the following mapping:
+    *  - the root is mapped to Placeholder(0).
+    *  - the variable leaves are mapped to Placeholder(1) .. Placeholder(vars.length)
+    *  - other nodes are allocated subsequent placeholders.
+    * @param template
+    * @return
+    */
+  def toPatterns(template: Scheme.Template): List[Pattern] = {
+    val term = template.template
+    val vars = template.vars map (T(_))
+    val rest = term.nodes filterNot (n => (n eq term) || (vars contains n))
+    val allHoles = (term :: vars ++ rest).distinct
+    val holeToPlaceholder: Map[Term, Placeholder] = (for ((u, idx) <- allHoles.zipWithIndex) yield (u, Placeholder(idx))).toMap
+
+    toPatterns(term, holeToPlaceholder, vars.length)
+  }
 
   private def headRest(term: Term) = {
     isApp(term) match {

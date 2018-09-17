@@ -1,9 +1,21 @@
-nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
+nodup ⟨⟩ = true
+nodup (?x :: ?xs) = (~(elem x xs) /\ nodup xs)    [++]
 
-_ /\ _ -> 1⃝                              [only assoc]
-1⃝ -> ?nodup' {x} xs  [above]
+/*
+nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
+*/
+
+
+
+_ /\ _ -> (1)                              [only assoc]
+(1) -> ?nodup' {x} xs
 xs = x' :: xs'
-1⃝ -> _ /\ _ /\ _ /\ _
+(1) -> _ /\ _ /\ _ /\ _
+(1) -> (_ ∉ {x}) /\ nodup' _ xs'
+
+/*
 x ∉ _ /\ x' ∉ _ -> 2⃝
+
 2⃝ -> _ ‖ _
-(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  
+(_ ∪ _ ‖ _) /\ _ -> nodup' _ _
+*/

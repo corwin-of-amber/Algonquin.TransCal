@@ -2,7 +2,7 @@ package relentless
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.rewriting.RewriteRule.Category
-import relentless.matching.{Encoding, Trie}
+import relentless.matching.{Encoding, Pattern, Placeholder, Trie}
 import relentless.rewriting.RewriteRule
 import syntax.AstSugar._
 import syntax.{Formula, Identifier, Scheme, Tree}
@@ -51,6 +51,14 @@ object BasicSignature {
   val _set_disj = TI("‖")
   val _set_union = TI("∪")
 
+  val _lt = TI("<")
+  val _gt = TI(">")
+  val _le = TI("≤")
+  val _ge = TI("≥")
+
+  val _min = TI("min")
+  val _max = TI("max")
+
   def `!=:=`(x: Term, y: Term) = _ne :@ (x, y)
 
   def in(x: Term, xs: Term) = _in :@ (x, xs)
@@ -78,6 +86,14 @@ object BasicSignature {
   def take(xs: Term, y: Term) = _take :@ (xs, y)
 
   def drop(xs: Term, y: Term) = _drop :@ (xs, y)
+
+  def min(x: Term, y: Term) = _min :@ (x, y)
+  def max(x: Term, y: Term) = _max :@ (x, y)
+
+  def <(x: Term, y: Term) = _lt :@ (x, y)
+  def >(x: Term, y: Term) = _gt :@ (x, y)
+  def ≤(x: Term, y: Term) = _le :@ (x, y)
+  def ≥(x: Term, y: Term) = _ge :@ (x, y)
 
   class Brackets(left: String, right: String) extends Formula.Notation {
 
@@ -153,8 +169,9 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     ++(nil, `xs'`) =:> id(`xs'`),
     ++(`xs'`, nil) =:> id(`xs'`),
     ++(x, ++(y, z)) =:= ++(++(x, y), z),
-    ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`))
+    ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`)),
 
+    <(x, y) ||> (min(x, y) =:> id(x))
   )
 
   val rules : List[RewriteRule] = assocRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Basic)

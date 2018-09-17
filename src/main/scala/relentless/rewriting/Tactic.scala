@@ -8,6 +8,7 @@ import semantics.LambdaCalculus
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Strip, Tree}
 import relentless.Utils
+import syntax.Scheme.Arity
 
 
 abstract class Tactic {
@@ -15,24 +16,19 @@ abstract class Tactic {
 }
 
 
-case class Revision(val program: Term, val env: Revision.Environment, val focusedSubterm: Map[Int, Term], val elaborate: List[Revision.Equivalence], val tuples: List[BaseRewriteEdge[Int]])(implicit val enc: Encoding, val directory: Directory) {
-  def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(program, Revision.Environment.empty, Map.empty, List.empty, enc.toOriginalEdges(program))
+case class Revision(program: List[Term], env: Revision.Environment, equivalences: List[Revision.Equivalence])(implicit val enc: Encoding, val directory: Directory) {
+  def this(program: Term)(implicit enc: Encoding, directory: Directory) = this(List(program), Revision.Environment.empty, List.empty)
 
-  lazy val trie = new Trie[Int, BaseRewriteEdge[Int]](directory) ++= tuples
+  def ++(terms: List[Term]) = if (terms.isEmpty) this else new Revision(program ++ terms, env, equivalences)
+  def ++(eqs: List[Revision.Equivalence])(implicit d: DummyImplicit) =
+    if (eqs.isEmpty) this else new Revision(program, env, equivalences ++ eqs)
 
-  def at(subterms: Map[Int, Term]) = Revision(program, env, subterms, elaborate, tuples)
+  def declare(vars: List[Term]) = if (vars.isEmpty) this else {
+    assert(vars.forall(_.isLeaf)); new Revision(program, new Revision.Environment(env.vars ++ vars), equivalences)
+  }
 
-  def incorporate(term: Term, as: Term) = enc.toOriginalEdges(term, as)
-
-  import Revision._
-
-  def ++(e: Environment) = Revision(program, Environment(env.vars ++ e.vars), focusedSubterm, elaborate, tuples)
-  def +(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples ++ incorporate(el.rhs, el.lhs))
-  def ++(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples ++ (els flatMap (el => incorporate(el.rhs, el.lhs))))
-  def ++(l: Iterable[BaseRewriteEdge[Int]])(implicit d: DummyImplicit) = Revision(program, env, focusedSubterm, elaborate, tuples ++ l)
-
-  def +-(el: Equivalence) = Revision(program, env, focusedSubterm, elaborate :+ el, tuples)  // add but not incorporate: this is a bit weird, but makes sense if there is an appropriate rule in place
-  def ++-(els: Iterable[Equivalence]) = Revision(program, env, focusedSubterm, elaborate ++ els, tuples)
+  lazy val asHyperEdges = (program flatMap (enc.toOriginalEdges _)) ++
+    (for (eq <- equivalences) yield enc.toOriginalEdges(eq.lhs) ++ enc.toOriginalEdges(eq.rhs, eq.lhs)).flatten
 }
 
 object Revision {
@@ -43,18 +39,15 @@ object Revision {
 }
 
 
-case class RevisionDiff(
-    val terms: Option[Map[Int, Term]],               /* corresponds to Revision.at */
-    val env_++        : List[Term],                  /* corresponds to ++(Environment) */
-    val elaborate_++  : List[Revision.Equivalence],  /* corresponds to ++(List[Equivalence]) */
-    val elaborate_++- : List[Revision.Equivalence],  /* corresponds to ++-(List[Equivalence]) */
-    val tuples_++     : List[BaseRewriteEdge[Int]]             /* corresponds to ++(List[Array[Int]]) */
-    ) {
+case class RevisionDiff( program_++ : List[Term],
+                         vars_++ : List[Term],
+                         equivalences_++ : List[Revision.Equivalence]) {
 
-  def ++:(rev: Revision) = {
-    val s = rev ++ Revision.Environment(env_++) ++ elaborate_++ ++- elaborate_++- ++ tuples_++
-    terms match { case Some(terms) => s at terms case _ => s }
-  }
+  def ++:(rev: Revision) = (rev ++ program_++ ++ equivalences_++).declare(vars_++)
+}
+
+object RevisionDiff {
+  val empty = RevisionDiff(List(), List(), List())
 }
 
 
@@ -80,7 +73,7 @@ object Rules {
 abstract class RuleBasedTactic(rules: List[RewriteRule]) extends Tactic with LazyLogging {
 
   def work(s: Revision) = {
-    val work0 = new Rewriter(s.tuples, rules, s.directory)(s.enc)
+    val work0 = new Rewriter(s.asHyperEdges, rules, s.directory)(s.enc)
     work0()
     logger.info("-" * 60)
     work0
@@ -93,8 +86,10 @@ object RuleBasedTactic {
 
   import syntax.AstSugar.$TI
 
+  val noop = (RevisionDiff.empty, Rules.empty)
+
   object Markers {
-    val goal = $TI("gem", "marker")
+    val goal = $TI("⊡", "marker")
     val placeholder = $TI("⨀", "marker")
     val placeholderEx = $TI("⨀⋯", "marker")
 
@@ -103,7 +98,7 @@ object RuleBasedTactic {
 
   class CompiledGoal(val rules: List[RewriteRule], val scheme: Scheme)
 
-  class CompiledPattern(val rules: List[RewriteRule], val scheme: Option[Scheme], val anchor: Term) {
+  class CompiledPattern(val rules: List[RewriteRule], val scheme: Option[Scheme with Arity], val anchor: Term) {
     def ++(goal: CompiledGoal) = new CompiledGoal(rules ++ goal.rules, goal.scheme)  // note: omits this.scheme
   }
 
@@ -122,7 +117,7 @@ object RuleBasedTactic {
     import relentless.rewriting.RewriteRule.RuleOps
     val term = anchor match {
       case None => pattern =:> Markers.goal(vars toList)
-      case Some(anchor) => (Markers.placeholder(anchor) ||| pattern) =:> Markers.goal(vars toList)
+      case Some(anchor) => (anchor ||| pattern) =:> Markers.goal(vars toList)
     }
     val rewriteRule = RewriteRule(term, vars toList, RewriteRule.Category.Goal)
     val tmpl = new Scheme.Template(vars:_*)(pattern)
@@ -196,7 +191,6 @@ trait Compaction extends RuleBasedTactic {
     // get all words with type id and find eqalities between target and single param
     for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
       if (word(1) != word(2)) {
-        logger.trace(s"adding ${word(1)} and ${word(2)} to equiv")
         val rep = Seq(word(2), word(1)).min
         val source = Seq(word(2), word(1)).max
         equiv += source -> rep
@@ -208,7 +202,7 @@ trait Compaction extends RuleBasedTactic {
         case x: OriginalEdge[Int] => OriginalEdge(w map (x => equiv getOrElse (x,x)))
         case x: RewriteEdge[Int] => RewriteEdge(x.origin, w map (x => equiv getOrElse (x,x)))
       }
-      val work = new Rewriter(trie.words.toStream /*filter (_(0) != id)*/ map subst, List.empty, trie.directory)
+      val work = new Rewriter(trie.words.toStream filter (_.edgeType != id) map subst, List.empty, trie.directory)
       work()
       compaction0(work)
     }
@@ -217,30 +211,23 @@ trait Compaction extends RuleBasedTactic {
 
 }
 
-/** Creates rules such that the given (by user) equality between terms will be represented in our
-  * rewrite system.
-  *
-  * @param equalities Templates that represent the terms that are equal
-  * @param incorporate
-  */
 class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) extends Tactic {
 
   import LambdaCalculus.↦⁺
   import RuleBasedTactic.⇢
   import syntax.AstSugar._
 
-  val vars = equalities flatMap (_.vars) map (T(_))
+  val declaredVars = equalities flatMap (_.vars) map (T(_))
   def rules(implicit enc: Encoding) = {
     val rewrites: List[RewriteRule] = (equalities ++ derivedFrom(equalities)) map skolemize flatMap (RewriteRule(_, RewriteRule.Category.Definition))
     Rules(rewrites)
   }
-    //{ val d = derivedFrom(equalities) ; Rules(if (d.isEmpty) equalities else d.toList) }
+
   val elab = equalities map (_.template) collect { case T(`=`, List(lhs, rhs)) => lhs ⇢ rhs }
 
   def apply(s: Revision) = (
-      if (incorporate) RevisionDiff(None, vars, elab, List(), List())
-                  else RevisionDiff(None, vars, List(), elab, List()),
-      rules(s.enc)
+    RevisionDiff(if (incorporate) elab map (_.rhs) else List(), declaredVars, List()),
+    rules(s.enc)
   )
 
   object ST { def unapply(s: Scheme.Template) = Some((s.vars, s.template)) }
@@ -248,7 +235,7 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
   def derivedFrom(equalities: Iterable[Scheme.Template]): Iterable[Scheme.Template] = equalities flatMap {
     case ST(vars, T(`=`, List(lhs, rhs@T(/, _)))) =>
       derivedFrom( rhs split / map (lhs =:= _) map (new Scheme.Template(vars, _)) )
-      //rhs split / collect { case T(↦, List(pat, expr)) => (lhs :@ pat) =:= expr } map (new Scheme.Template(vars, _))
+    //rhs split / collect { case T(↦, List(pat, expr)) => (lhs :@ pat) =:= expr } map (new Scheme.Template(vars, _))
     case ST(vars, T(`=`, List(lhs, ↦⁺(va, body)))) => List(new Scheme.Template(vars, (lhs :@ va) =:= body))
     case _ => List()
   }
@@ -260,13 +247,7 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
 }
 
 
-/** Find a [[Term]] to focus on
-  *
-  * @param rules
-  * @param anchor
-  * @param anchorScheme
-  */
-class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme]) extends RuleBasedTactic(rules) with Compaction {
+class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme with Arity]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
 
@@ -277,7 +258,6 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
     val work0 = work(s)
 
     val anchor_# = s.enc --> anchor
-    val anchordef = work0.matches(anchor.root)
     /** All places with placeholder where first parameter is anchor_# */
     val marks = work0.matches(Markers.placeholder.leaf) filter (_(2) == anchor_#)
     val matches = work0.matches(Markers.placeholderEx.leaf) filter (_(2) == anchor_#)
@@ -295,42 +275,57 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
       println("-" * 60)
     }*/
 
-    // choose the first term for each match
-    val subterms = anchorScheme match {
-      case Some(s) =>
-        matches map { gm =>
-          val components = new Reconstructer(gm, work0.trie)(enc, except).head.subtrees drop 1
-          gm(1) -> s(components.toList)
-        } toMap
-      case _ =>
-        marks flatMap (gm => new Reconstructer(gm(1), work0.trie)(enc, except).headOption map (gm(1) -> _)) toMap;
+    Utils.dump(work0.trie.words)
+
+    def reconstruct(root: Int /* hyper-node */) = new Reconstructer(root, work0.trie).apply(enc, except)
+
+    def warnIfEmpty[A](root: Int, s: Stream[A]) = {
+      if (s.isEmpty) logger.warn(s"[internal] warning: in Locate, node has no term representation (${root})")
+      s
     }
 
-    val elab = (anchorScheme match {
-      case Some(s) =>
-        marks flatMap (gm => new Reconstructer(gm(1), work0.trie)(enc, except).headOption map ((_, subterms(gm(1))))) toList
-      case _ => List.empty
-    }) collect { case (x, y) if x != y => x ⇢ y }
+    def selectFirstOfEach[A](alts: Seq[Seq[A]]) =
+      try {
+        alts map (_.head)
+      }
+      catch { case e: NoSuchElementException => assert(false); throw e }
 
-    for (t <- subterms.values) logger.info("    " + (t toPretty))
 
-    // Get the associated tuples for any newly introduced terms
-    val dir = new Tree[Trie.DirectoryEntry](-1, 1 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    val tuples = spanning(new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words, marks map (_(1)), s.tuples map (_(1)))
-    (RevisionDiff(Some(subterms), List(), elab, List(), anchordef ++ marks ++ tuples toList), Rules.empty)
+    anchorScheme match {
+      case Some(scheme) =>
+        // choose the first term for each match for the scheme parameters
+        val allAlternatives =
+          for (edge <- matches) yield {
+            val components = edge.params.drop(1)  // (the first parameter would be the marker)
+            assert(components.length == scheme.arity)
+            val alts = for (root <- components) yield warnIfEmpty(root, reconstruct(root))
+            for (line <- Utils.formatColumnsPretty(alts)) logger.info(s"    ${line}")
+            alts
+          }
+        allAlternatives.headOption match {
+          case None => logger.warn("locate: no match"); noop
+          case Some(h) =>
+            val selected = selectFirstOfEach(h)
+            val equiv = anchor ⇢ scheme(selected.toList)
+            logger.info(equiv.toString)
+            (RevisionDiff(List(), List(), List(equiv)), Rules.empty)
+        }
+      case None =>
+        /* locate w/o a scheme will just display terms, but won't select anything */
+        logger.warn("[internal] warning: in Locate, anchorScheme is missing for pattern. no terms will be returned.")
+        for (edge <- marks) {
+          val terms = reconstruct(edge.target)
+          for (term <- terms)
+            println(s"   ${term.toPretty}")
+        }
+        noop
+    }
   }
 
 }
 
 
-/** Creates a new function in the program.
-  *
-  * @param rules
-  * @param leaves
-  * @param name
-  * @param context
-  */
-class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term], context: Option[Set[Term]]) extends RuleBasedTactic(rules) with Compaction {
+class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], name: Option[Term]) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
   import syntax.AstSugar._
@@ -338,38 +333,77 @@ class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term
   def apply(s: Revision) = {
     val work0 = this.work(s)
 
-    // ad-hoc trie for context resolution
-    lazy val dir = new Tree[Trie.DirectoryEntry](-1, 2 until 5 map (new Tree[Trie.DirectoryEntry](_)) toList)  /* ad-hoc directory */
-    lazy val trie = new Trie[Int, BaseRewriteEdge[Int]](dir) ++= work0.trie.words
+    val roots = work0.matches(anchor.leaf) map (_.target)
 
     implicit val enc = s.enc
+    val except = (Markers.all :+ anchor) map (_.leaf) toSet
 
-//    logger.debug(s"Showing encoding values: ${enc.ntor.mapped.toStream.sortBy(_._2).mkString(", ")}")
+    Utils.dump(work0.trie.words)
+
+    val context = s.env.vars.toSet
 
     // Reconstruct and generalize
     val gen =
-      for (gm <- work0.matches(Markers.placeholder.leaf).toStream;
-           t <- new Reconstructer(gm(1), work0.nonMatches(Markers.all map (_.leaf):_*))(s.enc);
-           //x <- Some(println(s"[generalize] ${t.toPretty}"));
-           tg <- generalize(t, leaves, context getOrElse /*grabContext(gm(1), trie) ++ */s.env.vars.toSet)) yield {
-        logger.info(s"    ${t.toPretty}")
-        val vas = 0 until leaves.length map Strip.greek map (TV(_))
-        logger.info(s"    as  ${((vas ↦: tg) :@ leaves).toPretty}")
+      for (root <- roots;            _ <- Seq(logger.info(root.toString));
+           term <- new Reconstructer(root, work0.trie).apply(enc, except);
+           genTerm <- Generalize.generalize(term, leaves, context)) yield {
+        logger.info(s"    ${term.toPretty}")
+        val vas = leaves.indices map Strip.greek map (TV(_))
+        logger.info(s"    as  ${((vas ↦: genTerm) :@ leaves).toPretty}")
 
-        (s.focusedSubterm get gm(1) map (_ ⇢ t)) ++
-        (name match {
-           case Some(f) => List(t ⇢ (f :@ leaves), f ⇢ (vas ↦: tg))
-           case None => List(t ⇢ ((vas ↦: tg) :@ leaves))
-        })
+        val (equivs, ruleDefs) =
+          name match {
+            case Some(f) => (List(term ⇢ (f :@ leaves), f ⇢ (vas ↦: genTerm)), List((f :@ vas) =:= genTerm))
+            case None =>
+              logger.warn("[internal] warning: in Generalize, name is not specified. no rules will be generated.")
+              (List(term ⇢ ((vas ↦: genTerm) :@ leaves)), List())
+          }
+        Generalize.DerivedDefinition(vas, equivs, ruleDefs)
       }
 
-    object F { def unapply(t: Term) = LambdaCalculus.isAbs(t) }
-    val elab = gen.headOption.toSeq.flatten
-    val rules = elab collect { case (f ⇢ F(vas, body)) => new Scheme.Template(vas map (_.leaf), (f :@ vas) =:= body) }
-
-    (RevisionDiff(None, List(), elab.toList, List(), List()), Rules(rules.toList flatMap (RewriteRule(_, RewriteRule.Category.Definition))))
+    /* select just the first generalization */
+    gen.headOption match {
+      case None => logger.warn("generalize: no match"); noop
+      case Some(derivedDef) =>
+        for (e <- derivedDef.equivs)
+          println(e)
+        val varIds = derivedDef.vars.toList map (_.leaf)
+        val rules = new Let((derivedDef.ruleDefs map (new Scheme.Template(varIds, _))).toList).rules
+        (RevisionDiff(List(), derivedDef.vars.toList, derivedDef.equivs.toList), rules)
+    }
   }
 
+  /*
+  import syntax.AstSugar.↦
+
+  def grabContext(anchor: Int, trie: Trie[Int, HyperEdge[Int]])(implicit enc: Encoding) = {
+    import collection.mutable
+    val ws = mutable.Set.empty[Int]
+    val wq = mutable.Queue.empty ++ Seq(anchor)
+    val `↦_#` = enc.ntor --> ↦
+    Reconstruct.whileYield(wq.nonEmpty) {
+      val u = wq.dequeue
+      if (ws add u) {
+        val incident = 2 until trie.subtries.length flatMap (i => trie.get(i, u).toList flatMap (_.words))
+        for (e <- incident; v <- Some(e(1)) if !(ws contains v)) wq enqueue v
+        for (e <- incident if e(0) == `↦_#`) yield e(2)
+      }
+      else Seq.empty
+    }
+    .flatten
+    .toSet map enc.asTerm flatMap patternLeaves
+  }
+
+  def patternLeaves(t: Term): Seq[Term] = {
+    if (t.isLeaf) Seq(t)
+    else LambdaCalculus.isApp(t) match {
+      case Some((_, args)) => args flatMap patternLeaves
+      case _ => t.subtrees flatMap patternLeaves
+    }
+  }*/
+}
+
+object Generalize {
   def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {
     //println(s"[generalize] ${t.toPretty}  with context  ${context}")
 
@@ -383,14 +417,10 @@ class Generalize(rules: List[RewriteRule], leaves: List[Term], name: Option[Term
   def T_?(root: Identifier)(subtrees: List[Option[Term]]) =
     if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
 
+  case class DerivedDefinition(vars: Seq[Term], equivs: Seq[Revision.Equivalence], ruleDefs: Seq[Term])
 }
 
 
-/** Trying to reach a goal from given rules.
-  * 
-  * @param rules
-  * @param goalScheme
-  */
 class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedTactic(rules) with Compaction {
 
   import RuleBasedTactic._
@@ -405,7 +435,9 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
     implicit val enc = s.enc
     val except = Markers.all map (_.leaf) toSet
 
-    Utils.showem(work.matches(Markers.goal.leaf), work.trie)
+    Utils.dump(work.trie.words)
+
+    showAlternatives(work.matches(Markers.goal.leaf), work.trie)
 
     //lazy val nonMatches = WorkLoop.nonMatches(s.tuples, Markers.all map (_.leaf):_*)
 
@@ -413,16 +445,24 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
       case Some(m) =>
         val elaborated = goalScheme(pickFirst(m, work.trie).subtrees)
         val original =
-          s.focusedSubterm get m(1) match {
-            case Some(original) => original
-            case _ =>
-              new Reconstructer(m(1), s.tuples)(s.enc, except).headOption getOrElse TI("?")
-          }
-        logger.info(s"${original toPretty} --> ${elaborated toPretty}")
-        (RevisionDiff(None, List(), List(original ⇢ elaborated), List(), List()), Rules.empty)
-      case _ => (RevisionDiff(None, List(), List(), List(), List()), Rules.empty)
+          new Reconstructer(m(1), s.asHyperEdges)(s.enc, except).headOption getOrElse TI("?")
+        logger.info(s"${original.toPretty} --> ${elaborated.toPretty}")
+        (RevisionDiff(List(), List(), List(original ⇢ elaborated)), Rules.empty)
+      case _ => (RevisionDiff(List(), List(), List()), Rules.empty)
     }
   }
+
+  def showAlternatives(matches: Seq[BaseRewriteEdge[Int]], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
+    import semantics.Prelude.B
+
+    val except = Markers.all map (_.leaf) toSet;
+    for (gm <- matches) {
+      logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
+      for (ln <- Utils.transposeAll(gm.toList drop 2 map (x => new Reconstructer(x, trie)(enc, except).toList), B))
+        logger.info("    " + Utils.mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
+    }
+  }
+
 
   def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
@@ -430,3 +470,4 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
   }
 
 }
+

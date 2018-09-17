@@ -56,7 +56,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     trie add w
     logger.trace(s"working on word ${w mkString " "}")
     for (r <- rewriteRules) {
-      wq.enqueue(r.proccess(w, trie): _*)
+      wq.enqueue(r.process(w, trie): _*)
     }
 
     //for (g <- goal) processRule(g, w)

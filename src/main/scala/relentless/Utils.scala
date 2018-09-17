@@ -26,9 +26,12 @@ object Utils extends LazyLogging {
 
   def ljust(s: String, n: Int) = s ++ (" " * (n - s.length))
 
+  def rtrim(s: String) = s.replaceAll("\\s+$", "")
+
   def mkStringColumns[A](l: List[A], colWidth: Int) =
     l map (_.toString) map (ljust(_, colWidth)) mkString " "
 
+  /*
   def showem(matches: Seq[BaseRewriteEdge[Int]], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
     val except = Markers.all map (_.leaf) toSet;
     for (gm <- matches) {
@@ -37,14 +40,15 @@ object Utils extends LazyLogging {
         logger.info("    " + mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }
+  */
 
-  def formatColumns[A](columns: Seq[Seq[A]]) = {
+  def formatColumns[A](columns: Seq[Seq[A]], colWidth: Int = 40) = {
     for (line <- transposeAll(columns, ""))
-      yield mkStringColumns(line, 40)
+      yield mkStringColumns(line, colWidth)
   }
 
-  def formatColumnsPretty(columns: Seq[Seq[Term]]) =
-    formatColumns(columns map (_ map (_.toPretty)))
+  def formatColumnsPretty(columns: Seq[Seq[Term]], colWidth: Int = 40) =
+    formatColumns(columns map (_ map (_.toPretty)), colWidth)
 
   /**
     * Dumps some things to files, for debug purposes
@@ -60,7 +64,7 @@ object Utils extends LazyLogging {
     encf.close()
 
     // Dump hyper-edges (PEG)
-    def fmtLabel(lab: Int) = enc <-- lab
+    def fmtLabel(lab: Int) = enc <-- lab match { case Some(id) => id case None => lab}
     def fmtNode(node: Int) = node
     def fmtNodeLong(node: Int) = enc.dumpTermHint(node)
 

@@ -15,15 +15,10 @@ import synth.pods.TacticalError
 import report.data.DisplayContainer
 import report.data.SerializationContainer
 import relentless.matching.Encoding
-import relentless.rewriting.Revision
-import relentless.rewriting.RevisionDiff
-import relentless.rewriting.Locate
-import relentless.rewriting.RuleBasedTactic
-import relentless.rewriting.Generalize
-import relentless.rewriting.Elaborate
-import relentless.rewriting.Rules
-import relentless.rewriting.Let
+import relentless.rewriting.Revision.Environment
+import relentless.rewriting._
 import ui.Parser.DeductionHints
+
 
 
 object Interpreter extends LazyLogging {
@@ -46,22 +41,22 @@ object Interpreter extends LazyLogging {
 	  override def copyWith(e: Equivalence, l: List[Annotation]) =
 	    new Equivalence(e.lhs, e.rhs) with Annotated[Equivalence] { override val annot = l }
 	}
-	
+
   implicit def annotate_(e: Equivalence) = e match {
     case a: Annotated[Equivalence] @unchecked /* it cannot really be anything else because of this: X in Annotated[X] */ => a
     case _ => implicitly[WithAnnotation[Equivalence]].copyWith(e, List.empty)
   }
-	
+
   def decorate(diff: RevisionDiff, annotations: List[Annotation]) = {
     def f(el: List[Revision.Equivalence]) = el map (_ /++ annotations)
     if (annotations.isEmpty) diff /* optimization */
-    else RevisionDiff(diff.terms, diff.env_++, f(diff.elaborate_++), f(diff.elaborate_++-), diff.tuples_++)
+    else RevisionDiff(diff.program_++, diff.vars_++, f(diff.equivalences_++))
   }  
 	
 	def toJson(rev: Revision)(implicit cc: SerializationContainer) = {
 	  def annots(e: Equivalence) = e.get[DeductionHints] flatMap (_.options)
   	cc.map("program" -> rev.program,
-        "elaborate" -> (rev.elaborate map (el => cc.list(List(el.lhs, el.rhs, cc.list(annots(el)))))))
+        "equivalences" -> (rev.equivalences map (el => cc.list(List(el.lhs, el.rhs, cc.list(annots(el)))))))
 	}
 	
 	def dump(rev: Revision) = {
@@ -70,7 +65,16 @@ object Interpreter extends LazyLogging {
     progf.write(toJson(rev).toString)
     progf.close()
   }
-	
+
+  def dumpRules(rules: Seq[RewriteRule])(implicit enc: Encoding): Unit = {
+    val rulef = new FileWriter("rules")
+    for (rule <- rules) {
+      rule.dumpCompiled(rulef)
+      rulef.write("\n")
+    }
+    rulef.close()
+  }
+
 	/* -- scallop is super slow to load? -- *
   import org.rogach.scallop._
 
@@ -103,50 +107,45 @@ object Interpreter extends LazyLogging {
                        |x ∉ _ /\ x' ∉ _ -> _ ‖ _
                        |(_ ∪ _ ‖ _) /\ _ -> nodup' _ _  """.stripMargin.replace("\n", " ; \n") + " ; " */
 
-    logger.debug("Starting new run")
+    logger.info("Starting new run")
 		val cmd = new CommandLineArgs(args)
 		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
 
-    logger.info(s"The given input:\n$program")
+    logger.info(program)
 		
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
-    logger.debug("Tokens:\n" + (tokens map (_.toString()) mkString " "))
+    logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
+		logger.info(s"${tokens}")
 		
 		implicit val enc = new Encoding
-		implicit val directory = new BasicRules directory
-		
+		implicit val directory = (new BasicRules).directory
+
+
 		val interp = new Interpreter
-		var state: State = null
-		val stack: collection.mutable.Stack[State] = collection.mutable.Stack[State]()
+		var state: State = State(Revision(List(), Environment.empty, List()), Rules.empty)
+		val stack = new collection.mutable.Stack[State]  /* using Stack.empty confuses IntelliJ :( */
 		val out = collection.mutable.ListBuffer.empty[State]
-		
-		singleOption(p(tokens)) match {
+
+    dumpRules(interp.BasicRules.rules)
+
+    singleOption(p(tokens)) match {
 		  case Some(prog) => for (t <- prog) {
         logger.info("-" * 65)
-		    /* First statement has to be an equality, and it sets the focused term */
-		    if (state == null) {
-		      if (t.root != `=`) throw new TacticalError(s"Must start with an equality; found ${t.toPretty}")
-		      state = State(Revision(t.subtrees(0)), Rules.empty)
-		    }
-		    if      (t == TI("→")) stack push state
-		    else if (t == TI("←")) state = stack pop
+		    if      (t == TI("→")) stack.push(state)
+		    else if (t == TI("←")) state = stack.pop
 		    else if (t == TI("□")) out += state
 		    else {
   		    /* Apply tactic */
-
-          // causes leaf nodes with the same identifier to become aliased
-  		    val subst = new TreeSubstitution(p.variables.values.toList map { case v => (v, v) })
+  		    val subst = new TreeSubstitution(p.variables.values.toList map (v => (v, v))) // causes leaf nodes with the same identifier to become aliased
   		    val patv = interp.varify(t)
   		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
           logger.info(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
   		    for (a <- t.get[DeductionHints]) logger.info(s"  ${a}")
   		    implicit val ann = t.get[Annotation]
   		    implicit val dh = t.get[DeductionHints]
-          val tactic = interp.interpretDerivation(state, pat)
-          // get new state by applying the tactic
-  		    state = state +<>+ tactic.apply
+  		    state = state +<>+ interp.interpretDerivation(state, pat).apply
 		    }
 		  }
 		  case None =>
@@ -156,7 +155,7 @@ object Interpreter extends LazyLogging {
 		for (state <- out :+ state) {
       logger.info("=" * 65)
   		for (r <- state.rules.rules) logger.info(s"• ${r.src.template.toPretty}")
-  		for (e <- state.prog.elaborate) logger.info(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
+  		for (e <- state.prog.equivalences) logger.info(s"${e.lhs.toPretty}  ⇢  ${e.rhs.toPretty}   [${e.get[DeductionHints] flatMap (_.options)  mkString " "}]")
   		
   		dump(state.prog)
 		}
@@ -175,6 +174,7 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
   
   import Interpreter._
   import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
+  import relentless.rewriting.RewriteRule.RuleOps
 
   val BasicRules = new BasicRules
   val AssocRules = new AssocRules
@@ -184,8 +184,8 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     val t = scheme.template
     val vars = scheme.vars
     val rules =
-      if (hints exists (p => p.options.mkString(" ") == "only assoc")) AssocRules.rules
-      else if (hints exists (p => p.options.mkString(" ") == "allow existentials")) ExistentialRules.rules ++ s.rules.rules
+      if (hints exists (_.options containsSlice Seq("only","assoc"))) AssocRules.rules
+      else if(hints exists (_.options containsSlice "allow existentials")) ExistentialRules.rules ++ s.rules.rules
       else BasicRules.rules ++ s.rules.rules
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
@@ -197,16 +197,13 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
       }
       else {
         if (!isAnchorName(from)) logger.info("  locate &")
-        LambdaCalculus.isApp(to) match {
-          case Some((f, args)) if f.isLeaf && (vars contains f.leaf) =>
-            logger.info(s"  generalize ${f} ${args}")
-            if (isAnchorName(from))
-              new Generalize(rules, args, Some(f), None)
-            else {
-              // TODO
-              new Generalize(rules, args, Some(f), None)
-              
-            }
+        import semantics.LambdaCalculus._
+        to match {
+            // Sugar syntax of isApp
+          case f @: args if f.isLeaf && (vars contains f.leaf) =>
+                    logger.info(s"  generalize ${f} ${args}")
+                    assert(isAnchorName(from)) // TODO
+              new Generalize(rules, from, args, Some(f))
           case _ =>
             logger.info("  elaborate")
             if (isAnchorName(from))
@@ -225,16 +222,19 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     }
     else if (t.root == `=`) {
       logger.info("  let")
-      new Let(List(scheme), incorporate = hints exists (_.options contains "++"))
+      // Make it a directional rule, if a direction option was specified
+      val rule = if (hints exists (_.options contains "->")) new Scheme.Template(scheme.vars, t.subtrees(0) =:> t.subtrees(1))
+                 else scheme
+      new Let(List(rule), incorporate = hints exists (_.options contains "++"))
     }
     else {
       throw new TacticalError(s"unknown root '${t.root}'")
     }
   }
-  
+
   def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
     case _: Int => true
-    case s: String => s.contains("⃝")
+    case s: String => s.contains("⃝") || s.startsWith("(")
     case _ => false
   })
   

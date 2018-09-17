@@ -1,18 +1,27 @@
 package relentless.rewriting
 
+import java.io.Writer
+
 import relentless.matching.{Encoding, Trie, Valuation}
 import relentless.rewriting.RewriteRule.CompiledRule
 import syntax.AstSugar._
 import syntax.Formula.O
 import syntax.{Formula, Identifier, Scheme, Tree}
 import com.typesafe.scalalogging.LazyLogging
+import relentless.Utils
 import relentless.matching._
 
 import scala.collection.mutable
 import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 
-class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val ruleType: RewriteRule.Category) extends LazyLogging {
+
+
+class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val precond: Seq[Scheme.Template], val ruleType: RewriteRule.Category) extends LazyLogging {
+
+  def this(src: Scheme.Template, target: Scheme.Template, ruleType: RewriteRule.Category) =
+    this(src, target, Seq(), ruleType)
+
   private var compiled: Option[CompiledRule] = None
 
   /** The first bundle is translated normally with its root encoded as ~0.
@@ -25,9 +34,9 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val rul
     * Be aware of this small difference when calling them.
     */
   /**
-    * Encodes a term with "holes": these are assigned negative integers ~1 through ~holes.length.
-    * Subterms are considered implicit holes, so they are assigned distinct negative values.
-    * The roots of the terms in the bundle are special: they are all encoded as ~0.
+    * Encodes a term with "holes": these are assigned Placeholders 1 through holes.length.
+    * Subterms are considered implicit holes, so they are assigned distinct placeholders.
+    * The roots of the terms in the bundle are special: they are all encoded as Placeholder(0).
     */
   def toBundles(implicit enc: Encoding) = {
     val srcHoles = src.vars map (T(_))
@@ -40,14 +49,10 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val rul
     val srcTermToPlaceholder: Map[Term, Placeholder] =
       allSrcHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (srcTerms.head.tail map ((_, Placeholder(0)))) ++
         (srcTerms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allSrcHoles.length + i))) })
-    val srcBundle = new Bundle(srcTerms.flatten flatMap (enc.toPatterns(_, srcTermToPlaceholder, srcHoles.length)) toList) // |-- dbg)
+    val srcPats = srcTerms.flatten flatMap (enc.toPatterns(_, srcTermToPlaceholder, srcHoles.length))
 
     val targetHoles = target.vars map (T(_))
     val targetTerms = target.template.split(RewriteRule.|||)
-
-    def dbg(x: List[Array[Int]]) {
-      logger.info(s"${x map (_ map (x => if (x < 0) x else enc <-- x) mkString " ")}")
-    }
 
     assert(targetHoles.forall(_.isLeaf))
     val allTargetHoles = {
@@ -60,14 +65,44 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val rul
       toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0)))) ++ srcTermToPlaceholder
     val targetBundle = new Bundle(targetTerms flatMap (enc.toPatterns(_, targetTermToPlaceholder, targetHoles.length)) toList) // |-- dbg)
 
+    val srcBundle = new Bundle(
+      if (precond.isEmpty) srcPats
+      else {
+        assert(precond.length == 2 && precond.head.template.isLeaf) // TODO for now only this restricted case is allowed
+
+        val precondPat = (for (pc <- precond) yield enc.toPatterns(pc)).flatten
+        val varPhs = src.vars.indices map (i => Placeholder(i + 1))
+
+        val combinedPats = Pattern.combinePatterns(srcPats, precondPat, varPhs.toSet)
+        combinedPats.toList
+      }
+    )
+
     (srcBundle, targetBundle)
   }
 
 
-  def proccess(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit encoding: Encoding): List[BaseRewriteEdge[Int]] = {
-    if (compiled.isEmpty)
-      compiled = Some(new CompiledRule(this))
-    compiled.get.proccess(w, trie)
+  def process(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding): List[BaseRewriteEdge[Int]] = {
+    if (compiled.isEmpty) compile
+    compiled.get.process(w, trie)
+  }
+
+  /**
+    * Compiles the rule to patterns.
+    * It is assumed that the same encoding will be used throughout the rule's lifetime.
+    * @param enc
+    */
+  def compile(implicit enc: Encoding) { compiled = Some(new CompiledRule(this)) }
+
+
+  /** for debugging */
+  def dumpCompiled(w: Writer)(implicit enc: Encoding) {
+    if (precond.isEmpty)
+      w.write(s"${src.template.toPretty} --> ${target.template.toPretty}\n")
+    else
+      w.write(s"${precond map (_.template.toPretty) mkString ", "} ==> ${src.template.toPretty} --> ${target.template.toPretty}\n")
+    if (compiled.isEmpty) compile
+    compiled.get.dump(w)
   }
 }
 
@@ -83,7 +118,7 @@ object RewriteRule {
 
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     // For debuging this might be better: T((enc <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
-    // It i sbetter to just write tests
+    // (but perhaps it is better to just write tests)
     private def fresh(wv: immutable.IndexedSeq[Int]): Int = enc.reserveIndex()
 
     private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
@@ -105,7 +140,7 @@ object RewriteRule {
       }
     }
 
-    def proccess(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
+    def process(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
       val matcher = new Match(trie)(enc)
       val res = for (s <- shards;
                      valuation <- matcher.matchLookupUnify_*(s.patterns, w, new Valuation(nHoles))) yield {
@@ -166,6 +201,29 @@ object RewriteRule {
       }
       f ++ existentailEdges
     }
+
+    /** for debugging */
+    def dump(w: Writer)(implicit enc: Encoding): Unit = {
+      def fmtHead(el: BaseHyperTerm) = el match {
+        case HyperTerm(value) => (enc <-- value) getOrElse value
+        case Placeholder(index) => s"~$index"
+      }
+      def fmtRest(el: BaseHyperTerm) = el match {
+        case HyperTerm(value) => value
+        case Placeholder(index) => s"~$index"
+      }
+
+      val premiseText =
+        for (p <- pattern.patterns)
+          yield s"${fmtHead(p.head)} ${p.tail map fmtRest mkString " "}"
+      val conclusionText =
+        for (p <- conclusion.patterns)
+          yield s"${fmtHead(p.head)} ${p.tail map fmtRest mkString " "}"
+
+
+      for (ln <- Utils.formatColumns(Seq(premiseText, conclusionText), colWidth = 25))
+        w.write(s"    ${Utils.rtrim(ln)}\n")
+    }
   }
 
   object Category extends Enumeration {
@@ -178,6 +236,8 @@ object RewriteRule {
   val `=>` = I("=>", "operator") // directional rewrite
   val ||| = I("|||", "operator") // parallel patterns or conclusions
   val ||> = I("||>", "operator")
+
+  val truth = new Scheme.Template(List(), relentless.BasicSignature.tt)
 
   implicit class RuleOps(private val t: Term) extends AnyVal {
     def =:>(s: Term): Tree[Identifier] = T(`=>`)(t, s)
@@ -206,6 +266,11 @@ object RewriteRule {
         val right_v = varsUsed(rhs) map (_.leaf)
         val (l, r) = (new Scheme.Template(left_v, lhs), new Scheme.Template(right_v, rhs))
         List(new RewriteRule(l, r, ruleType), new RewriteRule(r, l, ruleType))
+      case dvn@T(`||>`, List(precond, body)) =>
+        val precond_v = varsUsed(precond) map (_.leaf)
+        val precond_t = Seq(truth, new Scheme.Template(precond_v, precond))
+        val rules = apply(body, vars, ruleType)
+        rules map (r => new RewriteRule(r.src, r.target, r.precond ++ precond_t, r.ruleType))
       case other =>
         throw new RuntimeException(s"invalid syntax for rule: ${other toPretty}")
     }
