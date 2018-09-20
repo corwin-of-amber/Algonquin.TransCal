@@ -46,7 +46,7 @@ acceptable program, acceptance defined by restricting the allowed subset of the
 vocabulary and/or enforcing semantic restriction such as computational complexity
 of the resulting program.
 We will tackle the computational complexity problem by utilizing Program
-Equivalence Graphs (used \eg in~\cite{PLDI2015/Wilcox}),
+Expression Graphs~\cite{POPL2009/Tate} (used \eg in~\cite{PLDI2015/Panchekha}),
 a data structure capable of compactly representing an exponentially large
 set of equivalent terms;
 since rewrites (generally) preserve equivalence,
@@ -92,6 +92,89 @@ Concrete use cases that we already have in mind for tactics are:
     (\cite{CACM1997/Cocke})
     and in algorithm design methodology (\cite{Book1997/Dijkstra,VHLL1974/Earley}).
 \end{itemize}
+
+The last point can be illustrated with an example: a \emph{prefix sum} of a list
+is defined as a list containing the sums of all (non-empty) prefixes of the
+first list.
+It can be written succinctly as (the syntax is based loosely on Haskell)
+\begin{center}
+\textsf{prefix-sum $\ell$ = map ($\lambda$i. sum (take i $\ell$)) (1..$|\ell|$)}
+\end{center}
+
+This version conveys the meaning precisely but ignores performance, leading to
+quadratic running time, since the \textsf{sum} will be forced to run every prefix
+individually.
+We know, however, that the \textsf{i+1}'th prefix can be obtained from the \textsf{i}'th
+prefix by a single addition of the \textsf{i+1}'th element.
+Consider how several steps of reasoning are required of the programmer to reach such
+conclusion: that \textsf{take (i+1)} differs from \textsf{take i} by just one element;
+that \textsf{sum} can be split at any point in the input list due to the associativity
+of addition; and that \textsf{sum (take i $\ell$)} is itself available since it has
+just been computed.
+Our first challenge will be to display that such reasoning can be done automatically.
+
+
+\subsection{High-performance Application Domains}
+
+The core of this project would be the application of such ideas in the context of
+algorithmic implementations.
+In that aspect, it strives to put into a formal framework the development of such
+implementations, one that is currently done manually and informally.
+
+\begin{paragraph}{Parallelization}
+Parallelizing compilers are not quite able to achieve high-performing code, especially
+with today's complex hardware.
+In their seminal work, Chowdhury el al.~\cite{SODA2006/Chowdhury} have shown how the
+recursive divide-and-conquer approach transcends loop parallelization in the existence
+of memory hierarchy (specifically, hardware caches).
+My work on Bellmania~\cite{OOPSLA2016/Itzhaky} was devoted to putting this method on
+more solid, formal grounds by encoding the conditions in which transformations can
+be applied safely into logical guards that are subsequently checked with an SMT solver.
+In this project, we will pursue other recent techniques from the algorithms community,
+such as listed in~\cite{Thesis/Shun,SPAA2018/Dhulipala}, and strive to encode the
+reasoning behind them in such manner.
+As the first examples to consider, we have a parallel version of the prefix sum~\cite{1993/Blelloch}
+and a parallel DFS~\cite{SC2015/Acar}, which will open the way for more graph
+algorithms.
+\end{paragraph}
+
+\begin{paragraph}{Stream Processing}
+Processing of high-capacity, high-speed data streams is ubiquitous in analytics~\cite{ECOOP2014/Vaziri}.
+For example, a recommendation system for Amazon may be required to deal with a continuous
+stream of transactions, maintaining statistical figures that will direct future outputs.
+It is usually not desirable, or even possible, to store the entire history.
+It may, however, be most natural to represent the functionality as a computation on that history.
+From that, a derivation system will be able to assist the programmer to obtain an implementation
+that does not access history too far in the past, by continuously updating exiting aggregates.
+The use of differencing, mentioned above, will be central to this purpose.
+\end{paragraph}
+
+\begin{paragraph}{Zero-copy Implementations}
+The need to copy data in memory is known to be a source of performance
+degradation in medium to large system, such as those handling communication
+protocols, HTML-based Web frontends and other GUIs, data management software,
+and also low-level device drivers.
+Typically data has to be buffered, in some intermediate data structure,
+before it can be passed to the next processing routine.
+This is done for reasons of software engineering: the module that processes
+the data should not be exposed e.g. to the communication layer primitives,
+so the two modules have to communicate by passing some data between
+them.
+The simplest way to achieve that would be to store the data in memory
+and exchange memory addresses.
+This, however, means that data is assembled in memory only to be promptly
+disassembled (e.g. parsed, or split and sent to a database), resulting in
+memory consumption and slowdown.
+Occasionally, to connect two existing software components, the data
+has to be converted from one data structure to another (e.g., one module
+produces a tree, while a second expects a hash table), so an additional
+copying phase is required.
+Using the synthesis and refinement techniques that we develop, a programmer
+will be able to refer to those memory buffers as ephemeral, that is, used only
+as a means to describe the semantics of the computation,
+and use the synthesizing compiler to fuse the implementation code at data
+transfer points, eliminating unnecessary copying.
+\end{paragraph}
 
 \subsection{Theory of Saturating Rewrite Systems}
 
@@ -168,7 +251,11 @@ it quantifies the distance between a given hypothesis and a desired conjecture
 (typically induction hypothesis and step) and attempts to carry out proof
 steps that will decrease this measure.
 This approach has been implemented in Isabelle/HOL and was included in
-its inventor's doctoral dissertation.
+its inventor's doctoral dissertation.~\cite{Thesis2009/Johansson}.
+Although rippling, in itself, is not sufficient to completely automate
+inductive proofs, its efficacy in mechanizing part of the reasoning
+within an interactive setting has been demonstrated by its inclusion
+in Isabelle/HOL.
 \end{paragraph}
 
 \begin{paragraph}{Resource-aware types.}
@@ -182,8 +269,8 @@ usage properties~\cite{CAV2012/Hoffman} such as time and space complexity.
 While naturally providing some sound approximation rather than a precise
 identification, it can guide the system to stop when the desired level
 of performance has been obtained.
-We will benefit from the expertise Prof. Nadia Polikarpova (listed as a collaborator) with such types, 
-and her specialty, in the design of a suitable type characterization for program derivation.
+We will benefit from the expertise of Prof. Nadia Polikarpova (listed as a collaborator) with such types, 
+and her specialty in the area of deductive synthesis, in the design of a suitable type characterization for program derivation.
 \end{paragraph}
 
 \bigskip

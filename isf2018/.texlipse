@@ -1,14 +1,14 @@
 #TeXlipse project settings
-#Thu Aug 03 11:50:16 IDT 2017
+#Tue Sep 11 11:25:14 IDT 2018
 markTmpDer=true
 builderNum=2
-outputDir=out
+outputDir=out/
 makeIndSty=
 bibrefDir=
 outputFormat=pdf
 tempDir=tmp
-mainTexFile=isf2017.tex
-outputFile=isf2017.pdf
+mainTexFile=isf2018.tex
+outputFile=isf2018.pdf
 langSpell=en
 markDer=true
-srcDir=src
+srcDir=src/
