@@ -53,6 +53,21 @@ object Pattern {
     * @return the joint sequence
     */
   def combinePatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]) = {
+    patterns1 ++ shiftPatterns(patterns2, patterns2, commonPlaceholders)
+  }
+
+  /**
+    *
+    * @param patterns1 a sequence of Patterns
+    * @param patterns2 a second sequence of Patterns
+    * @param commonPlaceholders placeholders specified by commonPlaceholders are preserved and maintain across
+    *                           the joint sequence. Other placeholders from patterns2 are shifted so as to make them
+    *                           fresh relative to patterns1.
+    * @return the patterns in pattern2, where all the placeholders that are not common, are shifted to higher
+    *         indexes.
+    */
+  def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]) = {
+
     val max_ph =         (for (p1 <- patterns1; ph1 <- p1.placeholders) yield ph1.value).max
     val additional_ph =  (for (p2 <- patterns2; ph2 <- p2.placeholders
                                                 if !(commonPlaceholders contains ph2)) yield ph2).distinct
@@ -63,6 +78,6 @@ object Pattern {
       case _ => element
     }
 
-    patterns1 ++ (patterns2 map (_ map subst) map (new Pattern(_)))
+    patterns2 map (_ map subst) map (new Pattern(_))
   }
 }

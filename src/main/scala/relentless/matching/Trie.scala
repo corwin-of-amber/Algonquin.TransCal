@@ -44,7 +44,7 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
     else subtrie get letter
   }
 
-  def realGet(index: Int, letter: E): Seq[HE] = {
+  def getSubwords(index: Int, letter: E): Seq[HE] = {
     get(index, letter) match {
       case Some(t) => t.words
       case None => Seq.empty

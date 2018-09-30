@@ -39,10 +39,16 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
     * The roots of the terms in the bundle are special: they are all encoded as Placeholder(0).
     */
   def toBundles(implicit enc: Encoding) = {
+
+    val allVars = (src.vars ++ (precond flatMap (_.vars)) ++ target.vars).distinct
+
     val srcHoles = src.vars map (T(_))
-    val srcTerms = src.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))
+    //val srcTerms = src.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))
+    val srcTerms = src.template.split(RewriteRule.|||) map (new Scheme.Template(allVars, _))
+    val targetTerms = target.template.split(RewriteRule.|||) map (new Scheme.Template(allVars, _))
 
     // All holes including the addition of hyperterms for the subterms in the bundle
+    /*
     val allSrcHoles = srcTerms.head.head :: srcHoles.toList ++
       (srcTerms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (srcHoles contains n)/* (*) */
         /*n.isLeaf*/))) distinct
@@ -64,19 +70,30 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
     val targetTermToPlaceholder = allTargetHoles.zipWithIndex.filterNot(kv => srcTermToPlaceholder.contains(kv._1)).
       toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0)))) ++ srcTermToPlaceholder
     val targetBundle = new Bundle(targetTerms flatMap (enc.toPatterns(_, targetTermToPlaceholder, targetHoles.length)) toList) // |-- dbg)
+*/
+
+    val rootPh = Placeholder(0)
+    val varPhs = allVars.indices map (i => Placeholder(i + 1))
+
+    def op(p1: Seq[Pattern], p2: Seq[Pattern]): Seq[Pattern] = Pattern.combinePatterns(p1, p2, (rootPh +: varPhs).toSet)
+
+    val srcPats = (srcTerms map enc.toPatterns) reduceLeft op
+
+    val targetPats = Pattern.shiftPatterns(srcPats, (targetTerms map enc.toPatterns) reduceLeft op, (rootPh +: varPhs).toSet)
 
     val srcBundle = new Bundle(
-      if (precond.isEmpty) srcPats
+      if (precond.isEmpty) srcPats.toList
       else {
         assert(precond.length == 2 && precond.head.template.isLeaf) // TODO for now only this restricted case is allowed
 
         val precondPat = (for (pc <- precond) yield enc.toPatterns(pc)).flatten
-        val varPhs = src.vars.indices map (i => Placeholder(i + 1))
 
         val combinedPats = Pattern.combinePatterns(srcPats, precondPat, varPhs.toSet)
         combinedPats.toList
       }
     )
+
+    val targetBundle = new Bundle(targetPats.toList)
 
     (srcBundle, targetBundle)
   }

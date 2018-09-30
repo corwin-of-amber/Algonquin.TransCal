@@ -55,7 +55,7 @@ object Utils extends LazyLogging {
     * @param edges
     * @param enc
     */
-  def dump(edges: Seq[BaseHyperEdge[Int]])(implicit enc: Encoding) {
+  def dump(edges: Seq[BaseHyperEdge[Int]], filename: String = "peg")(implicit enc: Encoding) {
 
     // Dump the encoding
     val encf = new FileWriter("enc")
@@ -68,7 +68,7 @@ object Utils extends LazyLogging {
     def fmtNode(node: Int) = node
     def fmtNodeLong(node: Int) = enc.dumpTermHint(node)
 
-    val tupf = new FileWriter("peg")
+    val tupf = new FileWriter(filename)
     for (w <- edges sortBy (_.target)) {
       tupf.write(s"${ljust(s"${fmtLabel(w.edgeType)} ${w.drop(1) map fmtNode mkString " "}", 20)}  [${w map fmtNodeLong mkString "] ["}]\n");
     }

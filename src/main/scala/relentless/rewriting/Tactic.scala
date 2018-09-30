@@ -76,6 +76,7 @@ abstract class RuleBasedTactic(rules: List[RewriteRule]) extends Tactic with Laz
     val work0 = new Rewriter(s.asHyperEdges, rules, s.directory)(s.enc)
     work0()
     logger.info("-" * 60)
+    Utils.dump(work0.trie.words, "peg-before")(s.enc)
     work0
   }
 
@@ -257,10 +258,11 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
   def apply(s: Revision) = {
     val work0 = work(s)
 
-    val anchor_# = s.enc --> anchor
-    /** All places with placeholder where first parameter is anchor_# */
-    val marks = work0.matches(Markers.placeholder.leaf) filter (_(2) == anchor_#)
-    val matches = work0.matches(Markers.placeholderEx.leaf) filter (_(2) == anchor_#)
+    /** Hyperterms representing the anchor (ideally, there should be exactly one) */
+    val anchor_# = work0.matches(anchor.leaf) map (_.target)
+    /** All placeholder hyperedges where first parameter is in anchor_# */
+    val marks = work0.matches(Markers.placeholder.leaf) filter (anchor_# contains _(2))
+    val matches = work0.matches(Markers.placeholderEx.leaf) filter (anchor_# contains _(2))
     //val nonMatches = work0.nonMatches(Markers.all map (_.leaf):_*)
 
     implicit val enc = s.enc
@@ -329,6 +331,7 @@ class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], nam
 
   import RuleBasedTactic._
   import syntax.AstSugar._
+  import Generalize._
 
   def apply(s: Revision) = {
     val work0 = this.work(s)
@@ -344,25 +347,27 @@ class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], nam
 
     // Reconstruct and generalize
     val gen =
-      for (root <- roots;            _ <- Seq(logger.info(root.toString));
-           term <- new Reconstructer(root, work0.trie).apply(enc, except);
-           genTerm <- Generalize.generalize(term, leaves, context)) yield {
-        logger.info(s"    ${term.toPretty}")
-        val vas = leaves.indices map Strip.greek map (TV(_))
-        logger.info(s"    as  ${((vas ↦: genTerm) :@ leaves).toPretty}")
+      for (root <- roots) yield {
+        logger.info(root.toString)
+        (for (term <- new Reconstructer(root, work0.trie).apply(enc, except);
+             genTerm <- generalize(term, leaves, context)) yield {
+          logger.info(s"    ${term.toPretty}")
+          val vas = leaves.indices map Strip.greek map (TV(_))
+          logger.info(s"    as  ${((vas ↦: genTerm) :@ leaves).toPretty}")
 
-        val (equivs, ruleDefs) =
-          name match {
-            case Some(f) => (List(term ⇢ (f :@ leaves), f ⇢ (vas ↦: genTerm)), List((f :@ vas) =:= genTerm))
-            case None =>
-              logger.warn("[internal] warning: in Generalize, name is not specified. no rules will be generated.")
-              (List(term ⇢ ((vas ↦: genTerm) :@ leaves)), List())
-          }
-        Generalize.DerivedDefinition(vas, equivs, ruleDefs)
+          val (equivs, ruleDefs) =
+            name match {
+              case Some(f) => (List(term ⇢ (f :@ leaves), f ⇢ (vas ↦: genTerm)), List((f :@ vas) =:= genTerm))
+              case None =>
+                logger.warn("[internal] warning: in Generalize, name is not specified. no rules will be generated.")
+                (List(term ⇢ ((vas ↦: genTerm) :@ leaves)), List())
+            }
+          DerivedDefinition(vas, equivs, ruleDefs)
+        }).take(NUM_ALTS_TO_SHOW)
       }
 
     /* select just the first generalization */
-    gen.headOption match {
+    gen.flatten.headOption match {
       case None => logger.warn("generalize: no match"); noop
       case Some(derivedDef) =>
         for (e <- derivedDef.equivs)
@@ -404,6 +409,9 @@ class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], nam
 }
 
 object Generalize {
+
+  final val NUM_ALTS_TO_SHOW = 10
+
   def generalize(t: Term, leaves: List[Term], context: Set[Term]): Option[Term] = {
     //println(s"[generalize] ${t.toPretty}  with context  ${context}")
 
@@ -413,9 +421,9 @@ object Generalize {
     }
   }
 
-  /** Construct Some[Term] only if no subtree is None. Otherwise, None. */
+  /** Construct Some[Term] only if all subtrees are defined. Otherwise, None. */
   def T_?(root: Identifier)(subtrees: List[Option[Term]]) =
-    if (subtrees exists (_ == None)) None else Some(T(root)(subtrees map (_.get)))
+    if (subtrees contains None) None else Some(T(root)(subtrees map (_.get)))
 
   case class DerivedDefinition(vars: Seq[Term], equivs: Seq[Revision.Equivalence], ruleDefs: Seq[Term])
 }

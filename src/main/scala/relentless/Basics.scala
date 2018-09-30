@@ -110,14 +110,14 @@ object BasicSignature {
 
   import Formula.{M, O}
 
-  Formula.INFIX ++= M(O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
+  Formula.INFIX ++= M(O("≤", 5), O("≥", 5), O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
 }
 
 
 trait Rules extends LazyLogging {
   lazy implicit val directory = {
     def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
-    D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
+    D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)), D(1))
   }
 
   implicit val enc: Encoding
@@ -171,7 +171,8 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     ++(x, ++(y, z)) =:= ++(++(x, y), z),
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`)),
 
-    <(x, y) ||> (min(x, y) =:> id(x))
+    (<(x, y) ||| tt) =:> ≤(x, y),
+    ≤(x, y) ||> (min(x, y) =:> id(x))
   )
 
   val rules : List[RewriteRule] = assocRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Basic)

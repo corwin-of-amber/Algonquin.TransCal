@@ -1,6 +1,7 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.BasicSignature
 import relentless.matching._
 import syntax.AstSugar._
 import syntax.{Identifier, Scheme, Tree}
@@ -25,11 +26,12 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   private val ws = mutable.Set.empty[BaseRewriteEdge[Int]]
 
   private val targets = mutable.Set.empty[Int]
+
   private def exceeded: Boolean = targets.size >= 1000
 
   def apply(): Unit = {
     while (wq.nonEmpty && !exceeded) {
-      val w = wq.dequeue()
+      val w = canonical(wq.dequeue())
       if (ws add w) {
         work(w)
       }
@@ -39,7 +41,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   def stream(): Stream[Seq[BaseRewriteEdge[Int]]] = {
     var i = 0
     Reconstructer.whileYield(wq.nonEmpty) {
-      val w = wq.dequeue()
+      val w = canonical(wq.dequeue())
       if (ws add w) {
         work(w)
       }
@@ -51,6 +53,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   }
 
   def work(w: BaseRewriteEdge[Int]): Unit = {
+    findEquivalences(w)
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
     targets.add(w.target)
     trie add w
@@ -64,12 +67,66 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
 
 
   def matches(headSymbol: Identifier): Seq[BaseRewriteEdge[Int]] = {
-    trie.realGet(0, enc --> headSymbol)
+    trie.getSubwords(0, enc --> headSymbol)
   }
 
   def nonMatches(headSymbols: Identifier*): Seq[BaseRewriteEdge[Int]] =
     Rewriter.nonMatches(trie.words, headSymbols: _*)
 
+  //-----------------
+  // Compaction Part
+  //-----------------
+
+  private val id_# = enc --> BasicSignature._id.leaf
+  private val equivs = mutable.Map.empty[Int, Int]
+
+  def findEquivalences(edge: BaseRewriteEdge[Int]): Unit = {
+    if (edge.edgeType == id_#) {
+      val eq = edge.target +: edge.params
+      makeEquivalent(eq)
+    }
+    else {
+      /* locate all stored edges with same edgeType and params */
+      val pat = new Pattern((edge map HyperTerm).updated(1, Placeholder(0)))
+      val eqs = pat.lookup(trie, new Valuation(1))
+      if (eqs.nonEmpty)
+        makeEquivalent(eqs map (_.target))
+    }
+  }
+
+  /**
+    * Declare all given hyperNodes equivalent. Update corresponding edges accordingly.
+    * @param hyperNodes a sequence of (distinct) nodes to equate
+    */
+  def makeEquivalent(hyperNodes: Seq[Int]): Unit = {
+    val rep = hyperNodes.min
+    for (from <- hyperNodes filter (_ != rep)) {
+      makeEquivalent(from, rep)
+    }
+  }
+
+  private def makeEquivalent(from: Int, to: Int): Unit = {
+    equivs.get(from) match {
+      case Some(to_) => equivs += from -> Seq(to, to_).min
+      case None =>
+        for (e <- equivs) {
+          if (e._2 == from)
+            equivs += e._1 -> to
+        }
+        equivs += from -> to
+    }
+    for (rehashEdge <- trie.getSubwords(1, from)) {
+      wq.enqueue(canonical(rehashEdge))
+    }
+  }
+
+  def canonical(edge: BaseRewriteEdge[Int]) = {
+    val seq = edge.map(x => equivs.getOrElse(x, x))
+    edge match {
+      case x: OriginalEdge[Int] => OriginalEdge(seq)
+      case x: RewriteEdge[Int] => RewriteEdge(x.origin, seq)
+    }
+  }
 }
 
 
