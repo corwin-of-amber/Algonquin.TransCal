@@ -7,14 +7,14 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.0.1"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.2"
     }
 }
 
 plugins {
-    id 'se.patrikerdes.use-latest-versions' version '0.2.0'
-    id 'com.github.ben-manes.versions' version '0.16.0'
-    id 'com.github.johnrengelman.shadow' version '1.2.3'
+    id 'se.patrikerdes.use-latest-versions' version '0.2.3'
+    id 'com.github.ben-manes.versions' version '0.20.0'
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
 }
 
 apply plugin: 'scala'
@@ -48,8 +48,6 @@ sourceSets {
     }
 }
 
-def json4s_version = '3.5.4'
-
 dependencies {
     compile group: 'org.scala-lang', name:'scala-library', version: '2.11.12'
     compile name: 'com.microsoft.z3'
@@ -60,10 +58,7 @@ dependencies {
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.23.1'
 
     testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.0.5'
-    testCompile group: 'org.json4s', name: 'json4s-core_2.11', version: json4s_version
-    testCompile group: 'org.json4s', name: 'json4s-native_2.11', version: json4s_version
-    testCompile group: 'org.json4s', name: 'json4s-ast_2.11', version: json4s_version
-    testCompile group: 'com.typesafe.play', name: 'play-json_2.11', version: '2.6.9'
+    testCompile group: 'com.typesafe.play', name: 'play-json_2.11', version: '2.6.10'
 }
 
 task profilingRunNoDup(type: JavaExec) {
