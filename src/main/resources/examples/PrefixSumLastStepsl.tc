@@ -1,0 +1,9 @@
+myfunc ?xs ?ys = len (take (xs ++ ys) i)  [++]
+
+i ∈ (range_exclude 1 (len xs)) = ⊤ [++]
+take ?xs (len xs) = xs [->]
+take (?xs ++ ?ys) ?i = (take xs (min (len xs) i)) ++ (take ys (bounded_minus i (len xs))) [->]
+take ?xs 0 = ⟨⟩ [->]
+
+len _ -> (1)  [only assoc]
+(1) ->  len _
