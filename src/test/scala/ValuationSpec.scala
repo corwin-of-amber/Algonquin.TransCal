@@ -1,12 +1,10 @@
 import java.io.{File, InputStream}
 
-import org.scalatest.concurrent.{Interruptor, Signaler, ThreadSignaler, TimeLimitedTests}
+import org.scalatest.concurrent.{Signaler, ThreadSignaler, TimeLimitedTests}
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{FlatSpec, Matchers}
 import relentless.matching.{HyperTerm, Pattern, Placeholder, Valuation}
 import relentless.rewriting.HyperEdge
-
-import scala.collection.mutable
 
 
 class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
@@ -38,7 +36,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get.map(_.value) should contain theSameElementsInOrderAs word
+    newValuation.get should contain theSameElementsInOrderAs word
   }
 
   it should "reorder elements as necassery" in {
@@ -49,7 +47,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get.map(_.value) should contain inOrderOnly (9, 5, 6, 8, 7)
+    newValuation.get should contain inOrderOnly (9, 5, 6, 8, 7)
   }
 
   it should "keep constants" in {
@@ -60,7 +58,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get.map(_.value) should contain inOrderOnly (6, 7)
+    newValuation.get should contain inOrderOnly (6, 7)
   }
 
   it should "return None if constants dont match" in {
@@ -102,7 +100,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get(0).value shouldBe 6
+    newValuation.get(0) shouldBe 6
   }
 
   it should "not change original valuation" in {
@@ -113,7 +111,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation: Option[Valuation] = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get(0).value shouldBe 6
+    newValuation.get(0) shouldBe 6
     emptyVal.isDefined(0) shouldBe false
   }
 }
