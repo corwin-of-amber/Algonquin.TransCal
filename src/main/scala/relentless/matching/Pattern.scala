@@ -1,7 +1,5 @@
 package relentless.matching
 
-import relentless.rewriting.BaseHyperEdge
-
 import scala.collection.immutable
 
 /**
@@ -32,7 +30,7 @@ class Pattern(val pattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedS
           case HyperTerm(v) => t = t.get(idx, v) getOrElse { return Seq.empty }
         }
       }
-      t.words
+      t.getWords
     } catch {
       case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
     }

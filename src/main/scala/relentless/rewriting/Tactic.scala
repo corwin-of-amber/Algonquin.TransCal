@@ -1,14 +1,13 @@
 package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.BasicSignature
-import relentless.matching.{Encoding, Trie}
+import relentless.{BasicSignature, Utils}
 import relentless.matching.Trie.Directory
+import relentless.matching.{Encoding, Trie}
 import semantics.LambdaCalculus
 import syntax.AstSugar._
-import syntax.{Identifier, Scheme, Strip, Tree}
-import relentless.Utils
 import syntax.Scheme.Arity
+import syntax.{Identifier, Scheme, Strip}
 
 
 abstract class Tactic {
@@ -76,7 +75,7 @@ abstract class RuleBasedTactic(rules: List[RewriteRule]) extends Tactic with Laz
     val work0 = new Rewriter(s.asHyperEdges, rules, s.directory)(s.enc)
     work0()
     logger.info("-" * 60)
-    Utils.dump(work0.trie.words, "peg-before")(s.enc)
+    Utils.dump(work0.trie.getWords, "peg-before")(s.enc)
     work0
   }
 
@@ -157,7 +156,7 @@ object RuleBasedTactic {
     Reconstructer.whileYield(wq.nonEmpty) {
       val u = wq.dequeue
       if (ws add u) {
-        val incident = 1 until trie.subtries.length flatMap (i => trie.get(i, u).toList flatMap (_.words))
+        val incident = 1 until trie.subtriesSize flatMap (i => trie.get(i, u).toList flatMap (_.getWords))
         for (e <- incident; v <- e drop 1 if !(ws contains v)) wq enqueue v
         incident
       }
@@ -182,15 +181,15 @@ trait Compaction extends RuleBasedTactic {
     val except = Markers.all map (enc --> _.leaf)
 
     // for each edge type, compare words by parameters and add to equiv by target.
-    for ((k, subtrie) <- trie.subtries(0) if !(except contains k)) {
-      equiv ++= subtrie.uniques(2, (_.min))
+    for ((k, subtrie) <- trie.firstSubtrie if !(except contains k)) {
+      equiv ++= subtrie.uniques(2, _.min)
     }
     /*--------------------
      * a meek effort to eliminate id() terms by equating the argument with the result
      */
     val id = enc --> BasicSignature._id.leaf
     // get all words with type id and find eqalities between target and single param
-    for (subtrie <- trie.subtries(0).get(id); word <- subtrie.words) {
+    for (subtrie <- trie.firstSubtrie.get(id); word <- subtrie.getWords) {
       if (word(1) != word(2)) {
         val rep = Seq(word(2), word(1)).min
         val source = Seq(word(2), word(1)).max
@@ -203,7 +202,7 @@ trait Compaction extends RuleBasedTactic {
         case x: OriginalEdge[Int] => OriginalEdge(w map (x => equiv getOrElse (x,x)))
         case x: RewriteEdge[Int] => RewriteEdge(x.origin, w map (x => equiv getOrElse (x,x)))
       }
-      val work = new Rewriter(trie.words.toStream filter (_.edgeType != id) map subst, List.empty, trie.directory)
+      val work = new Rewriter(trie.toStream filter (_.edgeType != id) map subst, List.empty, trie.directory)
       work()
       compaction0(work)
     }
@@ -277,7 +276,7 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
       println("-" * 60)
     }*/
 
-    Utils.dump(work0.trie.words)
+    Utils.dump(work0.trie.getWords)
 
     def reconstruct(root: Int /* hyper-node */) = new Reconstructer(root, work0.trie).apply(enc, except)
 
@@ -329,9 +328,9 @@ class Locate(rules: List[RewriteRule], anchor: Term, anchorScheme: Option[Scheme
 
 class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], name: Option[Term]) extends RuleBasedTactic(rules) with Compaction {
 
+  import Generalize._
   import RuleBasedTactic._
   import syntax.AstSugar._
-  import Generalize._
 
   def apply(s: Revision) = {
     val work0 = this.work(s)
@@ -341,7 +340,7 @@ class Generalize(rules: List[RewriteRule], anchor: Term, leaves: List[Term], nam
     implicit val enc = s.enc
     val except = (Markers.all :+ anchor) map (_.leaf) toSet
 
-    Utils.dump(work0.trie.words)
+    Utils.dump(work0.trie.getWords)
 
     val context = s.env.vars.toSet
 
@@ -443,7 +442,7 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
     implicit val enc = s.enc
     val except = Markers.all map (_.leaf) toSet
 
-    Utils.dump(work.trie.words)
+    Utils.dump(work.trie.getWords)
 
     showAlternatives(work.matches(Markers.goal.leaf), work.trie)
 

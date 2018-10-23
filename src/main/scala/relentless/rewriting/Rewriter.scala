@@ -3,10 +3,7 @@ package relentless.rewriting
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
 import relentless.matching._
-import syntax.AstSugar._
-import syntax.{Identifier, Scheme, Tree}
-
-import scala.collection.immutable
+import syntax.{Identifier, Tree}
 
 
 /** Representing the rewrite system
@@ -71,7 +68,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   }
 
   def nonMatches(headSymbols: Identifier*): Seq[BaseRewriteEdge[Int]] =
-    Rewriter.nonMatches(trie.words, headSymbols: _*)
+    Rewriter.nonMatches(trie.getWords, headSymbols: _*)
 
   //-----------------
   // Compaction Part

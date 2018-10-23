@@ -18,8 +18,14 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
 
   private val DEFAULT_CAPACITY = 5
   
-  var words: ListBuffer[HE] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
-  var subtries: Array[Map[E,Trie[E, HE]]] = new Array(DEFAULT_CAPACITY)
+  private var words: ListBuffer[HE] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
+
+  private var subtries: Array[Map[E,Trie[E, HE]]] = new Array(DEFAULT_CAPACITY)
+
+  def toStream: Stream[HE] = words.toStream
+  def getWords: Seq[HE] = words
+  def subtriesSize: Int = subtries.length
+  def firstSubtrie:Map[E,Trie[E, HE]] = subtries(0)
 
   def add(word: HE): Unit = {
     for (t <- directory.subtrees) {

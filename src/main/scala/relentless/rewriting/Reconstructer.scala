@@ -5,9 +5,9 @@ import relentless.matching.{Encoding, Trie}
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 
+import scala.collection.immutable
 import scala.collection.immutable.HashSet
 import scala.collection.immutable.Stream.cons
-import scala.collection.{immutable, mutable}
 
 /**
   * Reconstruction of terms from tuples stored in the trie.
@@ -21,11 +21,11 @@ class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]
 
   import collection.mutable
 
-  def this(root: Int, trie: Trie[Int, BaseRewriteEdge[Int]]) = this(new Tree(root), trie.words.toStream)
+  def this(root: Int, trie: Trie[Int, BaseRewriteEdge[Int]]) = this(new Tree(root), trie.toStream)
 
   def this(root: Int, words: Seq[BaseRewriteEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), trie.words.toStream)
+  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), trie.toStream)
 
   def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), words.toStream)
 
@@ -41,7 +41,7 @@ class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]
     // There is one problamatic case where we are initialized from an edge. We need to add the edge to the used edges.
     // As we cannot know what the target was we will use negative numbers. To not confuse patterns we will use -999.
     val first = {
-      if (init.subtrees.size > 0)
+      if (init.subtrees.nonEmpty)
         Entry(init, List(new OriginalEdge[Int](init.root, -999, init.subtrees map(_.root))))
       else
         Entry(init, List.empty)
