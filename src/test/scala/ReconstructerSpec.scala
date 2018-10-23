@@ -1,19 +1,8 @@
-import java.io.{File, InputStream}
-
-import org.json4s.DefaultReaders.{JArrayReader, JObjectReader}
-import org.json4s.JsonAST.{JArray, JObject}
+import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
+import org.scalatest.time.{Millis, Span}
 import org.scalatest.{FlatSpec, Matchers}
-import syntax.{Identifier, Tree}
-import org.json4s.native.JsonMethods._
-import org.json4s._
-import org.scalatest.concurrent.{Interruptor, TimeLimitedTests}
-import org.scalatest.time.{Millis, Seconds, Span}
-import relentless.matching.Encoding
-import relentless.rewriting.{HyperEdge, OriginalEdge, Reconstructer, RewriteEdge}
-import relentless.rewriting.Reconstructer.Entry
+import relentless.rewriting.Reconstructer
 import syntax.AstSugar.Term
-
-import scala.collection.mutable
 
 
 class ReconstructerSpec extends FlatSpec with Matchers with TimeLimitedTests {
@@ -32,11 +21,11 @@ class ReconstructerSpec extends FlatSpec with Matchers with TimeLimitedTests {
 //  }
 
   val timeLimit: Span = Span(20000000, Millis)
-  val defaultTestInterruptor: Interruptor =
-    new Interruptor {
+  override val defaultTestSignaler: Signaler =
+    new Signaler {
     override def apply(testThread: Thread): Unit = {
       println("Kindly die")
-      // using sto because thread will be stuck in long calculation and interrupt wont work
+      // using stop because thread will be stuck in long calculation and interrupt wont work
       testThread.stop() // deprecated. unsafe. do not use
     }
   }
