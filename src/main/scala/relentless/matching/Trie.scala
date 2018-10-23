@@ -1,5 +1,6 @@
 package relentless.matching
 
+import com.typesafe.scalalogging.LazyLogging
 import syntax.Tree
 
 import scala.collection.immutable.IndexedSeq
@@ -12,7 +13,14 @@ import scala.collection.mutable.ListBuffer
  * A directory is used to claim which letter is used to index a word. Some words
  * are indexed by more than one letter.
  */
-class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) {
+class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Trie.DirectoryEntry]) extends LazyLogging {
+  def getSubwordsContaining(from: E): Seq[HE] = {
+//    (for (subtrie <- subtries.toSeq if subtrie != null) yield {
+//      subtrie.get(from).map(_.words).getOrElse(Seq.empty)
+//    }).flatten.distinct
+    // TODO: We are not sure if this is equivalent to the last implementation.
+    words.filter(_.contains(from))
+  }
 
   import Trie._
 

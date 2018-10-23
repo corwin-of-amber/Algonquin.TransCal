@@ -50,10 +50,10 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   }
 
   def work(w: BaseRewriteEdge[Int]): Unit = {
-    findEquivalences(w)
     //println((w mkString " ") + "   [" + (w map (enc.ntor <--) mkString "] [") + "]")
     targets.add(w.target)
     trie add w
+    findEquivalences(w)
     logger.trace(s"working on word ${w mkString " "}")
     for (r <- rewriteRules) {
       wq.enqueue(r.process(w, trie): _*)
@@ -112,7 +112,8 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
         }
         equivs += from -> to
     }
-    for (rehashEdge <- trie.getSubwords(1, from)) {
+    // TODO: We are not sure if this is equivalent to the last implementation.
+    for (rehashEdge <- trie.getSubwordsContaining(from)) {
       wq.enqueue(canonical(rehashEdge))
     }
   }
