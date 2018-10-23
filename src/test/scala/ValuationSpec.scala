@@ -9,13 +9,13 @@ import relentless.rewriting.HyperEdge
 
 class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
 
-  def readFile(fileName: String) = {
+  private def readFile(fileName: String) = {
     val stream: InputStream = getClass.getResourceAsStream(s"$fileName")
     val test = scala.io.Source.fromInputStream(stream).getLines.toList
     test.length should be > 0
   }
 
-  def readFiles = {
+  private def readFiles = {
     val resources = new File(getClass getResource "." getPath)
     val fileNames = resources.listFiles.filter(_.isFile).filter(_.getName().endsWith(".txt")).toList
     // TODO: remove temporay measure, ignore simple tests as they are in old format
@@ -36,7 +36,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get should contain theSameElementsInOrderAs word
+    newValuation.get should contain theSameElementsInOrderAs (word map(x=>Some(HyperTerm(x))))
   }
 
   it should "reorder elements as necassery" in {
@@ -47,7 +47,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get should contain inOrderOnly (9, 5, 6, 8, 7)
+    newValuation.get should contain inOrderOnly (Some(HyperTerm(9)), Some(HyperTerm(5)), Some(HyperTerm(6)), Some(HyperTerm(8)), Some(HyperTerm(7)))
   }
 
   it should "keep constants" in {
@@ -58,7 +58,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get should contain inOrderOnly (6, 7)
+    newValuation.get should contain inOrderOnly (Some(HyperTerm(6)), Some(HyperTerm(7)))
   }
 
   it should "return None if constants dont match" in {
@@ -100,7 +100,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get(0) shouldBe 6
+    newValuation.get(0) shouldBe Some(HyperTerm(6))
   }
 
   it should "not change original valuation" in {
@@ -111,7 +111,7 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
     val newValuation: Option[Valuation] = emptyVal.unify(word, pattern)
 
     newValuation.isDefined shouldBe true
-    newValuation.get(0) shouldBe 6
+    newValuation.get(0) shouldBe Some(HyperTerm(6))
     emptyVal.isDefined(0) shouldBe false
   }
 }
