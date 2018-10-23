@@ -1,11 +1,11 @@
 package relentless
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.rewriting.RewriteRule.Category
-import relentless.matching.{Encoding, Pattern, Placeholder, Trie}
+import relentless.matching.{Encoding, Trie}
 import relentless.rewriting.RewriteRule
+import relentless.rewriting.RewriteRule.Category
 import syntax.AstSugar._
-import syntax.{Formula, Identifier, Scheme, Tree}
+import syntax.{Formula, Identifier, Tree}
 
 
 object BasicSignature {
@@ -35,6 +35,8 @@ object BasicSignature {
   val l = TV("l")
 
   val _nil = TV("⟨⟩")
+  val _zero = TV(0)
+  val _one = TV(1)
   val _cons = TV("::")
   val _snoc = TV(":+")
   val _elem = TV("elem")
@@ -42,6 +44,7 @@ object BasicSignature {
 
   val `_++` = TV("++")
   val _take = TV("take")
+  val _len = TV("len")
   val _drop = TV("drop")
 
   val _ne = TI("≠")
@@ -57,11 +60,18 @@ object BasicSignature {
   val _ge = TI("≥")
 
   val _min = TI("min")
+  val _bounded_minus = TI("bounded_minus")
   val _max = TI("max")
+
+  val _range_exclude = TI("range_exclude")
+  val _range_include = TI("range_include")
 
   def `!=:=`(x: Term, y: Term) = _ne :@ (x, y)
 
   def in(x: Term, xs: Term) = _in :@ (x, xs)
+
+  def range_exclude(x: Term, y: Term) = _range_exclude :@ (x, y)
+  def range_include(x: Term, y: Term) = _range_include :@ (x, y)
 
   def not_in(x: Term, xs: Term) = _not_in :@ (x, xs)
 
@@ -72,6 +82,8 @@ object BasicSignature {
   def set_union(s: Term, t: Term) = _set_union :@ (s, t)
 
   def nil = _nil
+  def one = _one
+  def zero = _zero
 
   def cons(x: Term, xs: Term) = _cons :@ (x, xs)
 
@@ -84,9 +96,11 @@ object BasicSignature {
   def ++(x: Term, y: Term) = `_++` :@ (x, y)
 
   def take(xs: Term, y: Term) = _take :@ (xs, y)
+  def len(xs: Term) = _len :@ (xs)
 
   def drop(xs: Term, y: Term) = _drop :@ (xs, y)
 
+  def bounded_minus(x: Term, y: Term) = _bounded_minus :@ (x, y)
   def min(x: Term, y: Term) = _min :@ (x, y)
   def max(x: Term, y: Term) = _max :@ (x, y)
 
@@ -110,7 +124,10 @@ object BasicSignature {
 
   import Formula.{M, O}
 
-  Formula.INFIX ++= M(O("≤", 5), O("≥", 5), O("≠", 5), O("‖", 5), O("∈", 5), O("∉", 5), O("∪", 5), O("++", 5), O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
+  Formula.INFIX ++= M(O("≤", 5), O("≥", 5),
+    O("≠", 5), O("‖", 5), O("∈", 5),
+    O("∉", 5), O("∪", 5), O("++", 5),
+    O("⇒", 5)) + ("{.}" -> new Brackets("{", "}"))
 }
 
 
@@ -172,7 +189,19 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
     ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`)),
 
     (<(x, y) ||| tt) =:> ≤(x, y),
-    ≤(x, y) ||> (min(x, y) =:> id(x))
+    ≤(x, y) ||> (min(x, y) =:> id(x)),
+    ≤(x, y) ||> (min(y, x) =:> id(x)),
+//    min(x, y) =:> min(y,x),
+
+    ≤(x, y) ||> (bounded_minus(x, y) =:> zero),
+
+    // merge range
+    ++(range_exclude(x,y), range_exclude(y, z)) =:> range_exclude(x, z),
+    // exclude to include
+    range_exclude(x, y + one) =:= range_include(x, y),
+    // singleton range
+    range_include(x, x) =:= cons(x, nil),
+    (in(z, range_exclude(x, y)) ||| tt) =:> (≤(x, z) ||| <(z, y))
   )
 
   val rules : List[RewriteRule] = assocRules.rules ++ templatesToRewriteRules(RewriteRule.Category.Basic)
