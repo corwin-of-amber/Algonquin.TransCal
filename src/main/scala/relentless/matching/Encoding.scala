@@ -1,7 +1,7 @@
 package relentless.matching
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.matching.structures.filling.{BaseHyperTerm, HyperTerm, Pattern, Placeholder}
+import relentless.matching.structures.filling._
 import relentless.rewriting.OriginalEdge
 import syntax.AstSugar.Term
 import syntax.{Identifier, Scheme}
@@ -86,7 +86,7 @@ class Encoding extends LazyLogging {
     if (!atRoot && termToPlaceholder.contains(term) && termToPlaceholder(term).value <= nholes && term.isLeaf) List.empty
     else {
       val (head, rest) = headRest(term)
-      new Pattern(Pattern.toHyperTermBase(this --> head) +: toTuple(Seq(term) ++ rest.toSeq, termToPlaceholder) toIndexedSeq) ::
+      new ImplPattern(Pattern.toHyperTermBase(this --> head) +: toTuple(Seq(term) ++ rest.toSeq, termToPlaceholder) toIndexedSeq) ::
         (rest flatMap (toPatterns(_, termToPlaceholder, nholes, false)))
     }
   }

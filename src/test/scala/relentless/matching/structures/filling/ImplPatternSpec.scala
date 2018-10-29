@@ -5,21 +5,21 @@ import java.io.{File, InputStream}
 import org.scalatest.concurrent.{Signaler, ThreadSignaler, TimeLimitedTests}
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 import relentless.rewriting.HyperEdge
 import syntax.Tree
 
 
-class PatternSpec extends FlatSpec with Matchers with TimeLimitedTests with BeforeAndAfter {
+class ImplPatternSpec extends FlatSpec with Matchers with TimeLimitedTests with BeforeAndAfter {
 
-  var trie: Trie[Int, HyperEdge[Int]] = _
+  var trie: Vocabulary[Int, HyperEdge[Int]] = _
   // From each index we can access the higher indexes
   var dir = {
-    var tree = new Tree[Trie.DirectoryEntry](-1, 0 to 5 map (new Tree[Trie.DirectoryEntry](_)) toList)
+    var tree = new Tree[Vocabulary.DirectoryEntry](-1, 0 to 5 map (new Tree[Vocabulary.DirectoryEntry](_)) toList)
     for (i <- 5 to 0 by -1) {
       tree = tree.replaceDescendant(
         (tree.subtrees(i),
-        new Tree[Trie.DirectoryEntry](i, i+1 to 5 map (tree.subtrees(_)) toList))
+        new Tree[Vocabulary.DirectoryEntry](i, i+1 to 5 map (tree.subtrees(_)) toList))
       )
     }
     tree
@@ -59,21 +59,21 @@ class PatternSpec extends FlatSpec with Matchers with TimeLimitedTests with Befo
   implicit val signaler: Signaler = ThreadSignaler
 
   "Lookup" should "return all matching words with all constants" in {
-    val pattern = new Pattern(IndexedSeq(1, 2, 3, 4) map HyperTerm)
-    val res = pattern.lookup(trie, new Valuation(0))
+    val pattern = new ImplPattern(IndexedSeq(1, 2, 3, 4) map HyperTerm)
+    val res = pattern.lookup(trie, new ImplValuation(0))
     res.length shouldBe 4
     all (res) should contain inOrder (1, 2, 3, 4)
   }
 
   it should "return none if constants dont match" in {
-    val pattern = new Pattern(IndexedSeq(1, 2, 9999, 4) map HyperTerm)
-    val res = pattern.lookup(trie, new Valuation(0))
+    val pattern = new ImplPattern(IndexedSeq(1, 2, 9999, 4) map HyperTerm)
+    val res = pattern.lookup(trie, new ImplValuation(0))
     res.length shouldBe 0
   }
 
   it should "consider already assigned vals" in {
-    val pattern = new Pattern(IndexedSeq(HyperTerm(1), HyperTerm(2), Placeholder(0), HyperTerm(4)))
-    val valuation = new Valuation(1).unify(new HyperEdge[Int](5, 1, Seq()), new Pattern(IndexedSeq(Placeholder(0), HyperTerm(1)))).get
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(1), HyperTerm(2), Placeholder(0), HyperTerm(4)))
+    val valuation = new ImplValuation(1).unify(new HyperEdge[Int](5, 1, Seq()), new ImplPattern(IndexedSeq(Placeholder(0), HyperTerm(1)))).get
     val res = pattern.lookup(trie, valuation)
     res.length shouldBe 1
     all (res) should contain inOrder (1, 2, 5, 4)
@@ -81,14 +81,14 @@ class PatternSpec extends FlatSpec with Matchers with TimeLimitedTests with Befo
 
   it should "with empty trie should be empty" in {
     trie = new Trie[Int, HyperEdge[Int]](dir)
-    val pattern = new Pattern(IndexedSeq(1, 2, 3, 4) map HyperTerm)
-    val res = pattern.lookup(trie, new Valuation(0))
+    val pattern = new ImplPattern(IndexedSeq(1, 2, 3, 4) map HyperTerm)
+    val res = pattern.lookup(trie, new ImplValuation(0))
     res.length shouldBe 0
   }
 
   it should "manage weirdly ordered valuation" in {
-    val pattern = new Pattern(IndexedSeq(Placeholder(1), HyperTerm(2), HyperTerm(3), HyperTerm(4), Placeholder(0)))
-    val valuation = new Valuation(2).unify(new HyperEdge[Int](5, 1, Seq()), new Pattern(IndexedSeq(Placeholder(0), Placeholder(1)))).get
+    val pattern = new ImplPattern(IndexedSeq(Placeholder(1), HyperTerm(2), HyperTerm(3), HyperTerm(4), Placeholder(0)))
+    val valuation = new ImplValuation(2).unify(new HyperEdge[Int](5, 1, Seq()), new ImplPattern(IndexedSeq(Placeholder(0), Placeholder(1)))).get
     val res = pattern.lookup(trie, valuation)
     res.length shouldBe 1
     all (res) should contain inOrder (1, 2, 3, 4, 5)

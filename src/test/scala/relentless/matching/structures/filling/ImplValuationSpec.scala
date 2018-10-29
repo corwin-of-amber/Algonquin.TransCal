@@ -8,7 +8,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import relentless.rewriting.HyperEdge
 
 
-class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
+class ImplValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
 
   private def readFile(fileName: String) = {
     val stream: InputStream = getClass.getResourceAsStream(s"$fileName")
@@ -30,8 +30,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   implicit val signaler: Signaler = ThreadSignaler
 
   "Unify" should "take all word to valuation" in {
-    val emptyVal = new Valuation(5)
-    val pattern = new Pattern(IndexedSeq(0, 1, 2, 3, 4) map Placeholder)
+    val emptyVal = new ImplValuation(5)
+    val pattern = new ImplPattern(IndexedSeq(0, 1, 2, 3, 4) map Placeholder)
     val word = HyperEdge(Seq(5, 6, 7, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -41,8 +41,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "reorder elements as necassery" in {
-    val emptyVal = new Valuation(5)
-    val pattern = new Pattern(IndexedSeq(1, 2, 4, 3, 0) map Placeholder)
+    val emptyVal = new ImplValuation(5)
+    val pattern = new ImplPattern(IndexedSeq(1, 2, 4, 3, 0) map Placeholder)
     val word = HyperEdge(Seq(5, 6, 7, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -52,8 +52,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "keep constants" in {
-    val emptyVal = new Valuation(2)
-    val pattern = new Pattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(1), HyperTerm(8), HyperTerm(9)))
+    val emptyVal = new ImplValuation(2)
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(1), HyperTerm(8), HyperTerm(9)))
     val word = HyperEdge(Seq(5, 6, 7, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -63,8 +63,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "return None if constants dont match" in {
-    val emptyVal = new Valuation(2)
-    val pattern = new Pattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(1), HyperTerm(8), HyperTerm(1)))
+    val emptyVal = new ImplValuation(2)
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(1), HyperTerm(8), HyperTerm(1)))
     val word = HyperEdge(Seq(5, 6, 7, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -75,16 +75,16 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "fail if too many values to fill" in {
-    val emptyVal = new Valuation(5)
-    val pattern = new Pattern(IndexedSeq(0, 1, 2, 3, 4, 5) map Placeholder)
+    val emptyVal = new ImplValuation(5)
+    val pattern = new ImplPattern(IndexedSeq(0, 1, 2, 3, 4, 5) map Placeholder)
     val word = HyperEdge(Seq(5, 6, 7, 8, 9, 10))
 
     an [Exception] should be thrownBy emptyVal.unify(word, pattern)
   }
 
   it should "fail we have holes with same valuation index but different values" in {
-    val emptyVal = new Valuation(1)
-    val pattern = new Pattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
+    val emptyVal = new ImplValuation(1)
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
     val word = HyperEdge(Seq(5, 6, 7, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -94,8 +94,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "fill holes with same valuation index but with same values" in {
-    val emptyVal = new Valuation(1)
-    val pattern = new Pattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
+    val emptyVal = new ImplValuation(1)
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
     val word = HyperEdge(Seq(5, 6, 6, 8, 9))
 
     val newValuation = emptyVal.unify(word, pattern)
@@ -105,8 +105,8 @@ class ValuationSpec extends FlatSpec with Matchers with TimeLimitedTests {
   }
 
   it should "not change original valuation" in {
-    val emptyVal = new Valuation(1)
-    val pattern = new Pattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
+    val emptyVal = new ImplValuation(1)
+    val pattern = new ImplPattern(IndexedSeq(HyperTerm(5), Placeholder(0), Placeholder(0), HyperTerm(8), HyperTerm(9)))
     val word = HyperEdge(Seq(5, 6, 6, 8, 9))
 
     val newValuation: Option[Valuation] = emptyVal.unify(word, pattern)

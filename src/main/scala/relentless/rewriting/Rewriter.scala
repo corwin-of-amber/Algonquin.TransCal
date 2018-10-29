@@ -86,7 +86,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     }
     else {
       /* locate all stored edges with same edgeType and params */
-      val pat = new Pattern((edge map HyperTerm).updated(1, Placeholder(0)))
+      val pat = new ImplPattern((edge map HyperTerm).updated(1, Placeholder(0)))
       val eqs = pat.lookup(trie, new ImplValuation(1))
       if (eqs.nonEmpty)
         makeEquivalent(eqs map (_.target))

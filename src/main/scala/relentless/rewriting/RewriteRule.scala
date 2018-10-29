@@ -201,7 +201,7 @@ object RewriteRule {
 
       // construct new hyperedges by replacing holes (undefined) with valuation elements and fresh hyperterms
       val f = for (pattern <- conclusion.patterns.reverse) yield {
-        val updatedPattern: Pattern = new Pattern(pattern map {
+        val updatedPattern: Pattern = new ImplPattern(pattern map {
           case x: Placeholder => newSubterms.get(x).map(_.getOrElse(x)).getOrElse(x)
           case x => x
         })

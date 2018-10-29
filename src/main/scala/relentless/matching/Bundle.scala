@@ -1,7 +1,8 @@
 package relentless.matching
 
-import relentless.matching.structures.filling.{HyperTerm, Pattern, Placeholder}
+import relentless.matching.structures.filling.{HyperTerm, ImplPattern, Pattern, Placeholder}
 import relentless.rewriting.HyperEdge
+
 import scala.collection.mutable.ListBuffer
 import collection.mutable
 
@@ -11,7 +12,7 @@ import collection.mutable
 class Bundle(val patterns: List[Pattern]) {
 
   def this(patterns: List[Array[Int]], holes: Int*) = //this(tuples)
-    this(Bundle.puncture(patterns, holes.toList) map (Pattern.toHyperTermBase(_)) map (new Pattern(_)))
+    this(Bundle.puncture(patterns, holes.toList) map (Pattern.toHyperTermBase(_)) map (new ImplPattern(_)))
 
   private def fillIn(pattern: Pattern, args: Int*): IndexedSeq[Int] =
     pattern map {

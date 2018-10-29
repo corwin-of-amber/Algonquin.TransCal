@@ -1,9 +1,9 @@
-import java.io.{FileOutputStream, PrintWriter}
+package relentless.rewriting
+
+import java.io.PrintWriter
 
 import relentless.matching.Encoding
-import relentless.rewriting.{BaseRewriteEdge, OriginalEdge}
 import syntax.{Identifier, Tree}
-import play.api.libs.json._
 
 
 case class ReconstructData(encoding: Encoding, init: Int, except: Set[Identifier], expectedOuts: Seq[Tree[Identifier]],
@@ -11,9 +11,9 @@ case class ReconstructData(encoding: Encoding, init: Int, except: Set[Identifier
 
 object ReconstructData {
 
-  import play.api.libs.json._ // JSON library
-  import play.api.libs.json.Reads._ // Custom validation helpers
-  import play.api.libs.functional.syntax._ // Combinator syntax
+  import play.api.libs.functional.syntax._
+  import play.api.libs.json.Reads._
+  import play.api.libs.json._ // Combinator syntax
 
   /*  We can assume here AND ONLY HERE that literal is Int nad ns is null
   {
@@ -62,7 +62,7 @@ object ReconstructData {
 
 
   implicit val pickleWrites = Json.writes[ReconstructData]
-//  implicit val pickleReads = Json.reads[ReconstructData]
+//  implicit val pickleReads = Json.reads[relentless.rewriting.ReconstructData]
 
 
   val except: ReconstructData = {
