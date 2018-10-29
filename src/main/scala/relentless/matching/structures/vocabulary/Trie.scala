@@ -10,12 +10,12 @@ import scala.collection.mutable.ListBuffer
 
 
 /**
- * It is a mutable data structure that stores words from E* indexed by letter.
+ * It is a mutable data structure that stores words from Letter* indexed by letter.
  * A directory is used to claim which letter is used to index a word. Some words
  * are indexed by more than one letter.
  */
-class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry]) extends Vocabulary[E, HE] with LazyLogging {
-  override def getSubwordsContaining(from: E): Seq[HE] = {
+class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.DirectoryEntry]) extends Vocabulary[Letter, Word] with LazyLogging {
+  override def getSubwordsContaining(from: Letter): Seq[Word] = {
 //    (for (subtrie <- subtries.toSeq if subtrie != null) yield {
 //      subtrie.get(from).map(_.words).getOrElse(Seq.empty)
 //    }).flatten.distinct
@@ -27,16 +27,16 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry
 
   private val DEFAULT_CAPACITY = 5
   
-  private var words: ListBuffer[HE] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
+  private var words: ListBuffer[Word] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
 
-  private var subtries: Array[Map[E,Trie[E, HE]]] = new Array(DEFAULT_CAPACITY)
+  private var subtries: Array[Map[Letter,Trie[Letter, Word]]] = new Array(DEFAULT_CAPACITY)
 
-  override def toStream: Stream[HE] = words.toStream
-  override def getWords: Seq[HE] = words
+  override def toStream: Stream[Word] = words.toStream
+  override def getWords: Seq[Word] = words
   override def subtriesSize: Int = subtries.length
-  override def firstSubtrie:Map[E,Vocabulary[E, HE]] = subtries(0)
+  override def firstSubtrie:Map[Letter,Vocabulary[Letter, Word]] = subtries(0)
 
-  override def add(word: HE): Unit = {
+  override def add(word: Word): Unit = {
     for (t <- directory.subtrees) {
       val idx = t.root.letterIndex
       if (idx < word.length) {
@@ -52,14 +52,14 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry
     words += word
   }
 
-  override def get(index: Int, letter: E): Option[Trie[E, HE]] = {
+  override def get(index: Int, letter: Letter): Option[Trie[Letter, Word]] = {
     val subtrie = subtries(index)
     if (subtrie == null) { /** for debugging **/ if (!(directory.subtrees exists (_.root.letterIndex == index))) throw new RuntimeException(s"trie not indexed by position ${index}");
                            None }
     else subtrie get letter
   }
 
-  override def getSubwords(index: Int, letter: E): Seq[HE] = {
+  override def getSubwords(index: Int, letter: Letter): Seq[Word] = {
     get(index, letter) match {
       case Some(t) => t.words
       case None => Seq.empty
@@ -72,7 +72,7 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry
     * @param sparsePattern index value pairs to find in trie.
     * @return optional word conforming sparse pattern
     */
-  override def sparseLookup(sparsePattern: Seq[(Int, E)]): Option[HE] = sparsePattern match {
+  override def sparseLookup(sparsePattern: Seq[(Int, Letter)]): Option[Word] = sparsePattern match {
     case Nil => Some(words.head)
     case (i, v) +: ivs => get(i, v) match {
       case None => None
@@ -85,12 +85,12 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry
     * then declares hyperedge.target to be equivalent for all words in each group.
     * Output is into equiv.
     */
-  override def uniques(index: Int, repFun: Seq[E] => E): mutable.Map[E, E] = {
-    val equiv = mutable.Map.empty[E, E]
+  override def uniques(index: Int, repFun: Seq[Letter] => Letter): mutable.Map[Letter, Letter] = {
+    val equiv = mutable.Map.empty[Letter, Letter]
     if (index >= subtries.length || subtries(index) == null) {
       if (words.lengthCompare(1) > 0) {
         val equals = words map (_(1))
-        val rep = repFun(equals)    /* repFun should make sure there are no cycles; e.g. impose a full order on E */
+        val rep = repFun(equals)    /* repFun should make sure there are no cycles; e.g. impose a full order on Letter */
         equals foreach ((u) => if (u != rep) equiv += u -> rep)
       }
     }
@@ -101,5 +101,5 @@ class Trie[E, HE <: IndexedSeq[E]](val directory: Tree[Vocabulary.DirectoryEntry
   }
 
   /* this is so it can be overridden easily */
-  private def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[E, HE](subdirectory)
+  private def makeSubTrie(subdirectory: Tree[DirectoryEntry]) = new Trie[Letter, Word](subdirectory)
 }
