@@ -4,7 +4,6 @@ import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.structures.vocabulary.Vocabulary.DirectoryEntry
 import syntax.Tree
 
-import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -59,8 +58,8 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
     else subtrie get letter
   }
 
-  override def getSubwords(index: Int, letter: Letter): Seq[Word] = {
-    get(index, letter) match {
+  override def getSubwords(letter: Letter): Seq[Word] = {
+    get(0, letter) match {
       case Some(t) => t.getWords
       case None => Seq.empty
     }
@@ -85,7 +84,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
     * then declares hyperedge.target to be equivalent for all words in each group.
     * Output is into equiv.
     */
-  override def uniques(index: Int, repFun: Seq[Letter] => Letter): mutable.Map[Letter, Letter] = {
+  override def uniques(index: Int, repFun: Seq[Letter] => Letter): Map[Letter, Letter] = {
     val equiv = mutable.Map.empty[Letter, Letter]
     if (index >= subtries.length || subtries(index) == null) {
       if (words.lengthCompare(1) > 0) {
@@ -97,7 +96,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
     else {
       for ((k, subtrie) <- subtries(index)) equiv ++= subtrie.uniques(index+1, repFun)
     }
-    equiv
+    equiv.toMap
   }
 
   /* this is so it can be overridden easily */

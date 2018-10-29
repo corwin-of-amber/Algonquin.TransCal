@@ -2,7 +2,7 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.Encoding
-import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
+import relentless.matching.structures.vocabulary.Vocabulary
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 

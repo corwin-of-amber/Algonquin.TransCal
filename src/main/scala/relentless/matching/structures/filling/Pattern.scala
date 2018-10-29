@@ -2,18 +2,16 @@ package relentless.matching.structures.filling
 
 import relentless.matching.structures.vocabulary.Vocabulary
 
-import scala.collection.immutable
-
 /**
   * @author user
   * @since 4/2/2018
   * @param pattern The pattern with terms
   */
-trait Pattern extends immutable.IndexedSeq[BaseHyperTerm] {
+trait Pattern extends IndexedSeq[BaseHyperTerm] {
 
   def placeholders: IndexedSeq[Placeholder]
 
-  def lookup[HE <: immutable.IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE]
+  def lookup[HE <: IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE]
 }
 
 object Pattern {

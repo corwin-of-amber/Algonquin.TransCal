@@ -1,8 +1,6 @@
 package relentless.matching.structures.filling
 
-import scala.collection.immutable
-
-trait Valuation extends immutable.IndexedSeq[Option[HyperTerm]] {
+trait Valuation extends IndexedSeq[Option[HyperTerm]] {
 
   // TODO: remove unnecessary functions
   def isDefined(idx: Int): Boolean

@@ -3,8 +3,8 @@ package relentless.matching
 import relentless.matching.structures.filling.{HyperTerm, ImplPattern, Pattern, Placeholder}
 import relentless.rewriting.HyperEdge
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import collection.mutable
 
 /**
   * A sequence of tuples, possibly with holes denoted by negative integers.

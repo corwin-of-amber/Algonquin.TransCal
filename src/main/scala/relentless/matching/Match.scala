@@ -4,9 +4,7 @@ import relentless.matching.structures.filling.{Pattern, Valuation}
 import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.rewriting.BaseHyperEdge
 
-import scala.collection.immutable
-
-class Match[HE <: immutable.IndexedSeq[Int]](val trie: Vocabulary[Int, HE])(implicit val enc: Encoding) {
+class Match[HE <: IndexedSeq[Int]](val trie: Vocabulary[Int, HE])(implicit val enc: Encoding) {
 
   /**
     * Returns a stream of possible valuations for given pattern tuples.

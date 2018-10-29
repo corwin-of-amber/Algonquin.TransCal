@@ -2,9 +2,6 @@ package relentless.matching.structures.vocabulary
 
 import syntax.Tree
 
-import scala.collection.immutable.IndexedSeq
-import scala.collection.mutable
-
 
 /**
  * It is a mutable data structure that stores words from Word indexed by letter.
@@ -20,11 +17,26 @@ trait Vocabulary[Letter, Word <: IndexedSeq[Letter]] {
   def subtriesSize: Int
   def firstSubtrie:Map[Letter,Vocabulary[Letter, Word]]
 
+  /** Adds a word to the Vocabulary.
+    *
+    * @param word The word to add.
+    */
   def add(word: Word): Unit
 
+  /** Finds a Vocabulary in index of a letter.
+    *
+    * @param index The index to look at
+    * @param letter The searched letter
+    * @return The relevant Vocabulary if exists.
+    */
   def get(index: Int, letter: Letter): Option[Vocabulary[Letter, Word]]
 
-  def getSubwords(index: Int, letter: Letter): Seq[Word]
+  /** Return all words starts with the letter.
+    *
+    * @param letter The letter to find
+    * @return Words starts with the letter
+    */
+  def getSubwords(letter: Letter): Seq[Word]
 
   /** Lookup by pattern.
     * comparing each letter in the relevant index and return first word conforming to given pattern.
@@ -39,10 +51,9 @@ trait Vocabulary[Letter, Word <: IndexedSeq[Letter]] {
     * then declares hyperedge.target to be equivalent for all words in each group.
     * Output is into equiv.
     */
-  def uniques(index: Int, repFun: Seq[Letter] => Letter): mutable.Map[Letter, Letter]
+  def uniques(index: Int, repFun: Seq[Letter] => Letter): Map[Letter, Letter]
 
-  def addAll(words: Iterable[Word]): Vocabulary[Letter, Word] = { words foreach add ; this }
-  def ++=(words: Iterable[Word]) = addAll(words)
+  def ++=(words: Iterable[Word]): Vocabulary[Letter, Word] = { words foreach add ; this }
 }
 
 object Vocabulary {

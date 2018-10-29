@@ -2,19 +2,17 @@ package relentless.rewriting
 
 import java.io.Writer
 
-import relentless.matching.Encoding
+import com.typesafe.scalalogging.LazyLogging
+import relentless.Utils
+import relentless.matching.{Encoding, _}
+import relentless.matching.structures.filling._
+import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.rewriting.RewriteRule.CompiledRule
 import syntax.AstSugar._
 import syntax.Formula.O
 import syntax.{Formula, Identifier, Scheme, Tree}
-import com.typesafe.scalalogging.LazyLogging
-import relentless.Utils
-import relentless.matching._
-import relentless.matching.structures.filling._
-import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 
 import scala.collection.mutable
-import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 
 
@@ -138,7 +136,7 @@ object RewriteRule {
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     // For debuging this might be better: T((enc <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
     // (but perhaps it is better to just write tests)
-    private def fresh(wv: immutable.IndexedSeq[Int]): Int = enc.reserveIndex()
+    private def fresh(wv: IndexedSeq[Int]): Int = enc.reserveIndex()
 
     private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Vocabulary[Int, BaseRewriteEdge[Int]]): Option[Int] =
       t.sparseLookup(sparsePattern).map(_ (1))

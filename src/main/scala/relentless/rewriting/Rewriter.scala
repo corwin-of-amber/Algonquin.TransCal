@@ -66,7 +66,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
 
 
   def matches(headSymbol: Identifier): Seq[BaseRewriteEdge[Int]] = {
-    trie.getSubwords(0, enc --> headSymbol)
+    trie.getSubwords(enc --> headSymbol)
   }
 
   def nonMatches(headSymbols: Identifier*): Seq[BaseRewriteEdge[Int]] =

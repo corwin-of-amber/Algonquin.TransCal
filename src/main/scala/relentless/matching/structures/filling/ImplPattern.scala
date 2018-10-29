@@ -2,8 +2,6 @@ package relentless.matching.structures.filling
 
 import relentless.matching.structures.vocabulary.Vocabulary
 
-import scala.collection.immutable
-
 /**
   * @author user
   * @since 4/2/2018
@@ -22,7 +20,7 @@ class ImplPattern(val pattern: IndexedSeq[BaseHyperTerm]) extends Pattern {
   lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
   lazy val hyperterms: IndexedSeq[HyperTerm] = indexedHyperterms.map(_._1)
 
-  override def lookup[HE <: immutable.IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE] = {
+  override def lookup[HE <: IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE] = {
     var t = trie
     try {
       for ((term, idx) <- pattern.zipWithIndex) {
