@@ -11,7 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import relentless.Utils
 import relentless.matching._
 import relentless.matching.structures.filling._
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 
 import scala.collection.mutable
 import scala.collection.immutable
@@ -101,7 +101,7 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
   }
 
 
-  def process(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding): List[BaseRewriteEdge[Int]] = {
+  def process(w: BaseRewriteEdge[Int], trie: Vocabulary[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding): List[BaseRewriteEdge[Int]] = {
     if (compiled.isEmpty) compile
     compiled.get.process(w, trie)
   }
@@ -140,7 +140,7 @@ object RewriteRule {
     // (but perhaps it is better to just write tests)
     private def fresh(wv: immutable.IndexedSeq[Int]): Int = enc.reserveIndex()
 
-    private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Trie[Int, BaseRewriteEdge[Int]]): Option[Int] =
+    private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Vocabulary[Int, BaseRewriteEdge[Int]]): Option[Int] =
       t.sparseLookup(sparsePattern).map(_ (1))
 
     // TODO: remove assumptions
@@ -159,7 +159,7 @@ object RewriteRule {
       }
     }
 
-    def process(w: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
+    def process(w: BaseRewriteEdge[Int], trie: Vocabulary[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
       val matcher = new Match(trie)(enc)
       val res = for (s <- shards;
                      valuation <- matcher.matchLookupUnify_*(s.patterns, w, new Valuation(nHoles))) yield {
@@ -177,7 +177,7 @@ object RewriteRule {
       * @param trie containing all available rewrites
       * @return
       */
-    private def conclude(valuation: Valuation, trie: Trie[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
+    private def conclude(valuation: Valuation, trie: Vocabulary[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
       assert(valuation.length >= nHoles)
 
       val uid = new Uid

@@ -1,6 +1,6 @@
 package relentless.matching.structures.filling
 
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.Vocabulary
 
 import scala.collection.immutable
 
@@ -22,7 +22,7 @@ class Pattern(val pattern: IndexedSeq[BaseHyperTerm]) extends immutable.IndexedS
   lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
   lazy val hyperterms: IndexedSeq[HyperTerm] = indexedHyperterms.map(_._1)
 
-  def lookup[HE <: immutable.IndexedSeq[Int]](trie: Trie[Int, HE], valuation: Valuation): Seq[HE] = {
+  def lookup[HE <: immutable.IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE] = {
     var t = trie
     try {
       for ((term, idx) <- pattern.zipWithIndex) {

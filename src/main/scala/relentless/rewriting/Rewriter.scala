@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
 import relentless.matching._
 import relentless.matching.structures.filling.{HyperTerm, Pattern, Placeholder, Valuation}
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 import syntax.{Identifier, Tree}
 
 
@@ -13,10 +13,10 @@ import syntax.{Identifier, Tree}
   * The rewriting is done by building a Trie of terms.
   * The full term can be recreated using reconstruct
   */
-class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], val trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
+class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], val trie: Vocabulary[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) extends LazyLogging {
   import collection.mutable
 
-  def this(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], directory: Tree[Trie.DirectoryEntry])(implicit enc: Encoding) =
+  def this(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], directory: Tree[Vocabulary.DirectoryEntry])(implicit enc: Encoding) =
     this(init, rewriteRules, new Trie[Int, BaseRewriteEdge[Int]](directory))
 
   private val match_ = new Match(trie)(enc)

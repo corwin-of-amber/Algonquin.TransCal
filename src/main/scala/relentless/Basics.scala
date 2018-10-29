@@ -2,7 +2,7 @@ package relentless
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.Encoding
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.rewriting.RewriteRule
 import relentless.rewriting.RewriteRule.Category
 import syntax.AstSugar._
@@ -134,7 +134,7 @@ object BasicSignature {
 
 trait Rules extends LazyLogging {
   lazy implicit val directory = {
-    def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
+    def D(root: Vocabulary.DirectoryEntry, subtrees: Tree[Vocabulary.DirectoryEntry]*) = new Tree(root, subtrees.toList)
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)), D(1))
   }
 

@@ -2,8 +2,8 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.{BasicSignature, Utils}
-import relentless.matching.structures.vocabulary.Trie.Directory
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.Vocabulary.Directory
+import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.matching.Encoding
 import semantics.LambdaCalculus
 import syntax.AstSugar._
@@ -150,7 +150,7 @@ object RuleBasedTactic {
    * then all their neighbors (incident to those words' letters) recursively,
    * while not traversing across the boundary.
    */
-  def spanning(trie: Trie[Int, BaseRewriteEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]) = {
+  def spanning(trie: Vocabulary[Int, BaseRewriteEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]) = {
     import collection.mutable
     val ws = mutable.Set.empty ++ boundary
     val wq = mutable.Queue.empty ++ init
@@ -203,7 +203,7 @@ trait Compaction extends RuleBasedTactic {
         case x: OriginalEdge[Int] => OriginalEdge(w map (x => equiv getOrElse (x,x)))
         case x: RewriteEdge[Int] => RewriteEdge(x.origin, w map (x => equiv getOrElse (x,x)))
       }
-      val work = new Rewriter(trie.toStream filter (_.edgeType != id) map subst, List.empty, trie.directory)
+      val work = new Rewriter(trie.toStream filter (_.edgeType != id) map subst, List.empty, trie.getDirectory)
       work()
       compaction0(work)
     }
@@ -460,7 +460,7 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
     }
   }
 
-  def showAlternatives(matches: Seq[BaseRewriteEdge[Int]], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
+  def showAlternatives(matches: Seq[BaseRewriteEdge[Int]], trie: Vocabulary[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) {
     import semantics.Prelude.B
 
     val except = Markers.all map (_.leaf) toSet;
@@ -472,7 +472,7 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
   }
 
 
-  def pickFirst(match_ : BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) = {
+  def pickFirst(match_ : BaseRewriteEdge[Int], trie: Vocabulary[Int, BaseRewriteEdge[Int]])(implicit enc: Encoding) = {
     val except = Markers.all map (_.leaf) toSet;
     new Reconstructer(match_, trie)(enc, except).head
   }

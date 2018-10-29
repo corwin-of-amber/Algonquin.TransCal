@@ -3,7 +3,7 @@ package examples
 import java.io.{FileWriter, PrintWriter}
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 import relentless.{AssocRules, BasicRules}
 import relentless.matching.Encoding
 import relentless.rewriting.RuleBasedTactic.Markers
@@ -34,7 +34,7 @@ object NoDup extends LazyLogging {
 
   lazy implicit val enc = new Encoding
   lazy implicit val directory = {
-    def D(root: Trie.DirectoryEntry, subtrees: Tree[Trie.DirectoryEntry]*) = new Tree(root, subtrees.toList)
+    def D(root: Vocabulary.DirectoryEntry, subtrees: Tree[Vocabulary.DirectoryEntry]*) = new Tree(root, subtrees.toList)
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)))
   }
 

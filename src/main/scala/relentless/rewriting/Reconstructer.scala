@@ -2,7 +2,7 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.matching.Encoding
-import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 
@@ -22,11 +22,11 @@ class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]
 
   import collection.mutable
 
-  def this(root: Int, trie: Trie[Int, BaseRewriteEdge[Int]]) = this(new Tree(root), trie.toStream)
+  def this(root: Int, trie: Vocabulary[Int, BaseRewriteEdge[Int]]) = this(new Tree(root), trie.toStream)
 
   def this(root: Int, words: Seq[BaseRewriteEdge[Int]]) = this(new Tree(root), words.toStream)
 
-  def this(tuple: BaseRewriteEdge[Int], trie: Trie[Int, BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), trie.toStream)
+  def this(tuple: BaseRewriteEdge[Int], trie: Vocabulary[Int, BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), trie.toStream)
 
   def this(tuple: BaseRewriteEdge[Int], words: Seq[BaseRewriteEdge[Int]]) = this(Reconstructer.tupleToTree(tuple), words.toStream)
 
