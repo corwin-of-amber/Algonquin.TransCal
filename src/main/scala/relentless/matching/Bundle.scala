@@ -1,5 +1,6 @@
 package relentless.matching
 
+import relentless.matching.structures.filling.{HyperTerm, Pattern, Placeholder}
 import relentless.rewriting.HyperEdge
 import scala.collection.mutable.ListBuffer
 import collection.mutable

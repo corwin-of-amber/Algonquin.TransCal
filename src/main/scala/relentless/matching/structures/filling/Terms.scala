@@ -1,4 +1,4 @@
-package relentless.matching
+package relentless.matching.structures.filling
 
 trait BaseHyperTerm extends Any { }
 

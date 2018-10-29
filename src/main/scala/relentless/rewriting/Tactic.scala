@@ -2,8 +2,9 @@ package relentless.rewriting
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.{BasicSignature, Utils}
-import relentless.matching.Trie.Directory
-import relentless.matching.{Encoding, Trie}
+import relentless.matching.structures.vocabulary.Trie.Directory
+import relentless.matching.structures.vocabulary.Trie
+import relentless.matching.Encoding
 import semantics.LambdaCalculus
 import syntax.AstSugar._
 import syntax.Scheme.Arity

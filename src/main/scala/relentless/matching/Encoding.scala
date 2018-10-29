@@ -1,9 +1,10 @@
 package relentless.matching
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.rewriting.{BaseHyperEdge, HyperEdge, OriginalEdge}
+import relentless.matching.structures.filling.{BaseHyperTerm, HyperTerm, Pattern, Placeholder}
+import relentless.rewriting.OriginalEdge
 import syntax.AstSugar.Term
-import syntax.{Identifier, Scheme, Tree}
+import syntax.{Identifier, Scheme}
 
 
 class Encoding extends LazyLogging {

@@ -2,7 +2,7 @@ package relentless.rewriting
 
 import java.io.Writer
 
-import relentless.matching.{Encoding, Trie, Valuation}
+import relentless.matching.Encoding
 import relentless.rewriting.RewriteRule.CompiledRule
 import syntax.AstSugar._
 import syntax.Formula.O
@@ -10,6 +10,8 @@ import syntax.{Formula, Identifier, Scheme, Tree}
 import com.typesafe.scalalogging.LazyLogging
 import relentless.Utils
 import relentless.matching._
+import relentless.matching.structures.filling._
+import relentless.matching.structures.vocabulary.Trie
 
 import scala.collection.mutable
 import scala.collection.immutable

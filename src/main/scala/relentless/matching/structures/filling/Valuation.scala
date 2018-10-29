@@ -1,6 +1,4 @@
-package relentless.matching
-
-import relentless.rewriting.BaseHyperEdge
+package relentless.matching.structures.filling
 
 import scala.collection.immutable
 

@@ -3,6 +3,8 @@ package relentless.rewriting
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
 import relentless.matching._
+import relentless.matching.structures.filling.{HyperTerm, Pattern, Placeholder, Valuation}
+import relentless.matching.structures.vocabulary.Trie
 import syntax.{Identifier, Tree}
 
 

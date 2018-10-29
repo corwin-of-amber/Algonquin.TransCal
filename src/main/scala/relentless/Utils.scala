@@ -3,12 +3,9 @@ package relentless
 import java.io.FileWriter
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.matching.{Encoding, Trie}
-import relentless.rewriting.RuleBasedTactic.Markers
-import relentless.rewriting.{BaseRewriteEdge, _}
+import relentless.matching.Encoding
+import relentless.rewriting._
 import syntax.AstSugar._
-import semantics.Prelude._
-import syntax.Identifier
 
 import scala.collection.mutable.ListBuffer
 

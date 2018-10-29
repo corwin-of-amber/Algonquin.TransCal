@@ -1,5 +1,7 @@
 package relentless.matching
 
+import relentless.matching.structures.filling.{Pattern, Valuation}
+import relentless.matching.structures.vocabulary.Trie
 import collection.immutable
 import relentless.rewriting.BaseHyperEdge
 

@@ -1,7 +1,8 @@
+package relentless.rewriting
+
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{FlatSpec, Matchers}
-import relentless.rewriting.Reconstructer
 import syntax.AstSugar.Term
 
 

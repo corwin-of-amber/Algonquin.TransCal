@@ -13,7 +13,7 @@
     <appender name="file" class="ch.qos.logback.core.FileAppender">
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>TRACE</level>
-            <onMatch>DENY</onMatch>
+            <!--<onMatch>DENY</onMatch>-->
         </filter>
         <file>${log-file:-scala-logging.log}</file>
         <encoder>
@@ -28,7 +28,7 @@
         </connectionSource>
     </appender>
 
-    <root level="debug">
+    <root level="trace">
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
         <appender-ref ref="db"/>

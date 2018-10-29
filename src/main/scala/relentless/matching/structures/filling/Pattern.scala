@@ -1,4 +1,6 @@
-package relentless.matching
+package relentless.matching.structures.filling
+
+import relentless.matching.structures.vocabulary.Trie
 
 import scala.collection.immutable
 

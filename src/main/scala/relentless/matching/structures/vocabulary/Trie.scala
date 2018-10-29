@@ -1,4 +1,4 @@
-package relentless.matching
+package relentless.matching.structures.vocabulary
 
 import com.typesafe.scalalogging.LazyLogging
 import syntax.Tree

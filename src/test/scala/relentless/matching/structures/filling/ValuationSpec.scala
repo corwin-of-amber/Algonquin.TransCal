@@ -1,9 +1,10 @@
+package relentless.matching.structures.filling
+
 import java.io.{File, InputStream}
 
 import org.scalatest.concurrent.{Signaler, ThreadSignaler, TimeLimitedTests}
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{FlatSpec, Matchers}
-import relentless.matching.{HyperTerm, Pattern, Placeholder, Valuation}
 import relentless.rewriting.HyperEdge
 
 

@@ -3,8 +3,9 @@ package examples
 import java.io.{FileWriter, PrintWriter}
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.matching.structures.vocabulary.Trie
 import relentless.{AssocRules, BasicRules}
-import relentless.matching.{Encoding, Trie}
+import relentless.matching.Encoding
 import relentless.rewriting.RuleBasedTactic.Markers
 import relentless.rewriting.{BaseRewriteEdge, _}
 import report.data.DisplayContainer

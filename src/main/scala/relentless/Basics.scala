@@ -1,7 +1,8 @@
 package relentless
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.matching.{Encoding, Trie}
+import relentless.matching.Encoding
+import relentless.matching.structures.vocabulary.Trie
 import relentless.rewriting.RewriteRule
 import relentless.rewriting.RewriteRule.Category
 import syntax.AstSugar._
