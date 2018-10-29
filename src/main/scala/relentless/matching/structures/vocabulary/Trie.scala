@@ -29,7 +29,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
   
   private var words: ListBuffer[Word] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
 
-  private var subtries: Array[Map[Letter,Trie[Letter, Word]]] = new Array(DEFAULT_CAPACITY)
+  private var subtries: Array[Map[Letter, Vocabulary[Letter, Word]]] = new Array(DEFAULT_CAPACITY)
 
   override def toStream: Stream[Word] = words.toStream
   override def getWords: Seq[Word] = words
@@ -52,7 +52,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
     words += word
   }
 
-  override def get(index: Int, letter: Letter): Option[Trie[Letter, Word]] = {
+  override def get(index: Int, letter: Letter): Option[Vocabulary[Letter, Word]] = {
     val subtrie = subtries(index)
     if (subtrie == null) { /** for debugging **/ if (!(directory.subtrees exists (_.root.letterIndex == index))) throw new RuntimeException(s"trie not indexed by position ${index}");
                            None }
@@ -61,7 +61,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
 
   override def getSubwords(index: Int, letter: Letter): Seq[Word] = {
     get(index, letter) match {
-      case Some(t) => t.words
+      case Some(t) => t.getWords
       case None => Seq.empty
     }
   }

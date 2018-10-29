@@ -9,7 +9,7 @@ class ImplValuation private(array: Array[Option[HyperTerm]]) extends Valuation {
   override def apply(idx: Int): Option[HyperTerm] = array(idx)
 
   // TODO: remove unnecessary functions
-  override def isDefined(idx: Int): Boolean = array(idx) isDefined;
+  override def isDefined(idx: Int): Boolean = array(idx) isDefined
 
   /**
     * Matches a word against a pattern. The word has concrete letters (int of type HyperTerm), whereas the pattern
