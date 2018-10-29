@@ -162,7 +162,7 @@ object RewriteRule {
     def process(w: BaseRewriteEdge[Int], trie: Vocabulary[Int, BaseRewriteEdge[Int]]): List[BaseRewriteEdge[Int]] = {
       val matcher = new Match(trie)(enc)
       val res = for (s <- shards;
-                     valuation <- matcher.matchLookupUnify_*(s.patterns, w, new Valuation(nHoles))) yield {
+                     valuation <- matcher.matchLookupUnify_*(s.patterns, w, new ImplValuation(nHoles))) yield {
         //println(s"valuation = ${valuation mkString " "}")
         val add = conclude(valuation, trie)
         logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")

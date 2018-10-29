@@ -2,18 +2,10 @@ package relentless.matching.structures.filling
 
 import scala.collection.immutable
 
-class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.IndexedSeq[Option[HyperTerm]] {
-
-  def this(n: Int) = this(Array.fill[Option[HyperTerm]](n) {None})
-
-  override def length: Int = array.length
-
-  override def apply(idx: Int): Option[HyperTerm] = array(idx)
+trait Valuation extends immutable.IndexedSeq[Option[HyperTerm]] {
 
   // TODO: remove unnecessary functions
-  def isDefined(idx: Int): Boolean = array(idx) isDefined;
-
-  def isEmpty(idx: Int): Boolean = array(idx) isEmpty;
+  def isDefined(idx: Int): Boolean
 
   override def toString(): String = 0 until length map (x => if (isDefined(x)) this(x) else 0) mkString " "
 
@@ -26,20 +18,5 @@ class Valuation private(array: Array[Option[HyperTerm]]) extends immutable.Index
     * @return a new valuation, possibly with more assignments set, if the word matches;
     *         otherwise None.
     */
-  def unify[HE <: IndexedSeq[Int]](word: HE, pattern: Pattern): Option[Valuation] = {
-    if (word.length != pattern.length)
-      None
-    else {
-      val newArray = array.clone()
-      for ((letter, term) <- word zip pattern) {
-        term match {
-          case Placeholder(v) =>
-            if (newArray(v).isEmpty) newArray(v) = Some(HyperTerm(letter)) else if (newArray(v).get.value != letter) return None
-          case HyperTerm(v) =>
-            if (v != letter) return None
-        }
-      }
-      Some(new Valuation(newArray))
-    }
-  }
+  def unify[HE <: IndexedSeq[Int]](word: HE, pattern: Pattern): Option[Valuation]
 }

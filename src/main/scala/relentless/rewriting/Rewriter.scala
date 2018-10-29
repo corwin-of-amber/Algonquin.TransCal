@@ -3,7 +3,7 @@ package relentless.rewriting
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
 import relentless.matching._
-import relentless.matching.structures.filling.{HyperTerm, Pattern, Placeholder, Valuation}
+import relentless.matching.structures.filling._
 import relentless.matching.structures.vocabulary.{Trie, Vocabulary}
 import syntax.{Identifier, Tree}
 
@@ -87,7 +87,7 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     else {
       /* locate all stored edges with same edgeType and params */
       val pat = new Pattern((edge map HyperTerm).updated(1, Placeholder(0)))
-      val eqs = pat.lookup(trie, new Valuation(1))
+      val eqs = pat.lookup(trie, new ImplValuation(1))
       if (eqs.nonEmpty)
         makeEquivalent(eqs map (_.target))
     }
