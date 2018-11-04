@@ -18,5 +18,5 @@ case class HyperEdge[T](override val edgeType: T, override val target: T, overri
   BaseHyperEdge[T](edgeType, target, params) {}
 
 case object HyperEdge {
-  def apply[T](seq: Seq[T]): HyperEdge[T] = HyperEdge[T](seq(0), seq(1), seq drop 2)
+  def apply[T](seq: Seq[T]): HyperEdge[T] = HyperEdge[T](seq.head, seq(1), seq drop 2)
 }

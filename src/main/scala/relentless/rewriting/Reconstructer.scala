@@ -112,11 +112,11 @@ class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]
           updateTrees(newEntry)
           newEntry
         }
-      }).takeWhile((_) => nextStep.nonEmpty))
+      }).takeWhile(_ => nextStep.nonEmpty))
     }
 
-    val legalEdges: Stream[BaseRewriteEdge[Int]] = edges filter ((e) => !except.contains(e.edgeType))
-    val edgesToTrees: Stream[Entry[Int]] = legalEdges flatMap ((e) => edgeStep(e) append advanceStep(e) append developStep)
+    val legalEdges: Stream[BaseRewriteEdge[Int]] = edges filter (e => !except.contains(e.edgeType))
+    val edgesToTrees: Stream[Entry[Int]] = legalEdges flatMap (e => edgeStep(e) append advanceStep(e) append developStep)
     // need to filter out entries that have same index. can do so by validating that index is on last leaf.
     val treeStream = edgesToTrees filter
       ((entry: Entry[Int]) => entry.nextIndex == entry.tree.leaves.length - 1) map
@@ -141,10 +141,9 @@ class Reconstructer private(init: Tree[Int], words: Stream[BaseRewriteEdge[Int]]
             //if (Formula.QUANTIFIERS contains r.literal.toString) throw new RuntimeException(r.kind)
             T(r) :@ (t.subtrees map decode)
         }
-      case None => {
+      case None =>
         logger.error(s"Identifier not found in encoding for hyperterm: ${t.root}")
         throw new RuntimeException("Missing identifier in encoding")
-      }
     }
   }
 }
@@ -219,9 +218,7 @@ object Reconstructer {
 
   private def edgeToTree[T](edge: BaseRewriteEdge[T]) = new Tree(edge.edgeType, edge.params map (new Tree(_)) toList)
 
-  private def onlyIf[A](cond: Boolean, op: => Seq[A]) = if (cond) op else Seq.empty
-
-  def whileYield[A](cond: => Boolean)(vals: => A) = takeWhileLeft(cond, Iterator.continually(vals))
+  def whileYield[A](cond: => Boolean)(vals: => A): Stream[A] = takeWhileLeft(cond, Iterator.continually(vals))
 
   private def tupleToTree[A](tuple: BaseRewriteEdge[A]): Tree[A] = new Tree(tuple(0), tuple drop 2 map (new Tree(_)) toList)
 

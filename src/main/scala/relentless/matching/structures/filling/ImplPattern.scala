@@ -13,12 +13,9 @@ class ImplPattern(val pattern: IndexedSeq[BaseHyperTerm]) extends Pattern {
 
   override def apply(idx: Int): BaseHyperTerm = pattern.apply(idx)
 
-  lazy val indexedPlaceholders: IndexedSeq[(Placeholder, Int)] = pattern.zipWithIndex.filter(_._1.isInstanceOf[Placeholder]).
+  private lazy val indexedPlaceholders: IndexedSeq[(Placeholder, Int)] = pattern.zipWithIndex.filter(_._1.isInstanceOf[Placeholder]).
     map(a => (a._1.asInstanceOf[Placeholder], a._2))
-  lazy val indexedHyperterms: IndexedSeq[(HyperTerm, Int)] = pattern.zipWithIndex.filter(_._1.isInstanceOf[HyperTerm]).
-    map(a => (a._1.asInstanceOf[HyperTerm], a._2))
-  lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
-  lazy val hyperterms: IndexedSeq[HyperTerm] = indexedHyperterms.map(_._1)
+  override lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
 
   override def lookup[HE <: IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE] = {
     var t = trie
@@ -32,7 +29,7 @@ class ImplPattern(val pattern: IndexedSeq[BaseHyperTerm]) extends Pattern {
       }
       t.getWords
     } catch {
-      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; ${e}")
+      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; $e")
     }
   }
 }

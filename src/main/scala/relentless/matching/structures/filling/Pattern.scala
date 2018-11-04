@@ -5,7 +5,6 @@ import relentless.matching.structures.vocabulary.Vocabulary
 /**
   * @author user
   * @since 4/2/2018
-  * @param pattern The pattern with terms
   */
 trait Pattern extends IndexedSeq[BaseHyperTerm] {
 
@@ -27,7 +26,7 @@ object Pattern {
     *                           fresh relative to patterns1.
     * @return the joint sequence
     */
-  def combinePatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]) = {
+  def combinePatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]): Seq[Pattern] = {
     patterns1 ++ shiftPatterns(patterns2, patterns2, commonPlaceholders)
   }
 
@@ -41,7 +40,7 @@ object Pattern {
     * @return the patterns in pattern2, where all the placeholders that are not common, are shifted to higher
     *         indexes.
     */
-  def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]) = {
+  def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]): Seq[ImplPattern] = {
 
     val max_ph =         (for (p1 <- patterns1; ph1 <- p1.placeholders) yield ph1.value).max
     val additional_ph =  (for (p2 <- patterns2; ph2 <- p2.placeholders

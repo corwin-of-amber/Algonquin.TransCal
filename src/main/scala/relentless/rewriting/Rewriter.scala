@@ -19,8 +19,6 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
   def this(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule], directory: Tree[Vocabulary.DirectoryEntry])(implicit enc: Encoding) =
     this(init, rewriteRules, new Trie[Int, BaseRewriteEdge[Int]](directory))
 
-  private val match_ = new Match(trie)(enc)
-
   private val wq = mutable.Queue.empty[BaseRewriteEdge[Int]] ++ init
   private val ws = mutable.Set.empty[BaseRewriteEdge[Int]]
 
@@ -120,10 +118,10 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     }
   }
 
-  def canonical(edge: BaseRewriteEdge[Int]) = {
+  def canonical(edge: BaseRewriteEdge[Int]): BaseRewriteEdge[Int] = {
     val seq = edge.map(x => equivs.getOrElse(x, x))
     edge match {
-      case x: OriginalEdge[Int] => OriginalEdge(seq)
+      case _: OriginalEdge[Int] => OriginalEdge(seq)
       case x: RewriteEdge[Int] => RewriteEdge(x.origin, seq)
     }
   }
@@ -157,11 +155,11 @@ abstract class BaseRewriteEdge[T](edgeType: T, target: T, params: Seq[T]) extend
 case class OriginalEdge[T](override val edgeType: T, override val target: T, override val params: Seq[T]) extends
   BaseRewriteEdge[T](edgeType, target, params) {}
 case object OriginalEdge {
-    def apply[T](seq: Seq[T]): OriginalEdge[T] = OriginalEdge[T](seq(0), seq(1), seq drop 2)
+    def apply[T](seq: Seq[T]): OriginalEdge[T] = OriginalEdge[T](seq.head, seq(1), seq drop 2)
 }
 
 case class RewriteEdge[T](origin: RewriteRule, override val edgeType: T, override val target: T, override val params: Seq[T]) extends
   BaseRewriteEdge[T](edgeType, target, params) {}
 case object RewriteEdge {
-  def apply[T](rewriteRule: RewriteRule, seq: Seq[T]): RewriteEdge[T] = RewriteEdge[T](rewriteRule, seq(0), seq(1), seq drop 2)
+  def apply[T](rewriteRule: RewriteRule, seq: Seq[T]): RewriteEdge[T] = RewriteEdge[T](rewriteRule, seq.head, seq(1), seq drop 2)
 }

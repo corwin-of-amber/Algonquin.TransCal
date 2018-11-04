@@ -16,16 +16,16 @@ object Utils extends LazyLogging {
     var yss = xss
     while (!yss.forall(_.isEmpty)) {
       buf += (yss map (_.headOption getOrElse ph)).toList
-      yss = (yss map { case _::tail => tail case _ => Nil })
+      yss = yss map { case _::tail => tail case _ => Nil }
     }
     buf.toList
   }
 
-  def ljust(s: String, n: Int) = s ++ (" " * (n - s.length))
+  def ljust(s: String, n: Int): String = s ++ (" " * (n - s.length))
 
-  def rtrim(s: String) = s.replaceAll("\\s+$", "")
+  def rtrim(s: String): String = s.replaceAll("\\s+$", "")
 
-  def mkStringColumns[A](l: List[A], colWidth: Int) =
+  def mkStringColumns[A](l: List[A], colWidth: Int): String =
     l map (_.toString) map (ljust(_, colWidth)) mkString " "
 
   /*
@@ -39,25 +39,23 @@ object Utils extends LazyLogging {
   }
   */
 
-  def formatColumns[A](columns: Seq[Seq[A]], colWidth: Int = 40) = {
+  def formatColumns[A](columns: Seq[Seq[A]], colWidth: Int = 40): List[String] = {
     for (line <- transposeAll(columns, ""))
       yield mkStringColumns(line, colWidth)
   }
 
-  def formatColumnsPretty(columns: Seq[Seq[Term]], colWidth: Int = 40) =
+  def formatColumnsPretty(columns: Seq[Seq[Term]], colWidth: Int = 40): List[String] =
     formatColumns(columns map (_ map (_.toPretty)), colWidth)
 
   /**
     * Dumps some things to files, for debug purposes
-    * @param edges
-    * @param enc
     */
   def dump(edges: Seq[BaseHyperEdge[Int]], filename: String = "peg")(implicit enc: Encoding) {
 
     // Dump the encoding
     val encf = new FileWriter("enc")
     val pairs = enc.dumpIdentifiers
-    for ((k, v) <- pairs) { encf.write(s"${k} ${v}\n"); }
+    for ((k, v) <- pairs) { encf.write(s"$k $v\n"); }
     encf.close()
 
     // Dump hyper-edges (PEG)
@@ -67,7 +65,7 @@ object Utils extends LazyLogging {
 
     val tupf = new FileWriter(filename)
     for (w <- edges sortBy (_.target)) {
-      tupf.write(s"${ljust(s"${fmtLabel(w.edgeType)} ${w.drop(1) map fmtNode mkString " "}", 20)}  [${w map fmtNodeLong mkString "] ["}]\n");
+      tupf.write(s"${ljust(s"${fmtLabel(w.edgeType)} ${w.drop(1) map fmtNode mkString " "}", 20)}  [${w map fmtNodeLong mkString "] ["}]\n")
     }
     tupf.close()
 

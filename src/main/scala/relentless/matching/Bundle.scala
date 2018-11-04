@@ -1,6 +1,6 @@
 package relentless.matching
 
-import relentless.matching.structures.filling.{HyperTerm, ImplPattern, Pattern, Placeholder}
+import relentless.matching.structures.filling.{ImplPattern, Pattern, Placeholder}
 import relentless.rewriting.HyperEdge
 
 import scala.collection.mutable
@@ -14,15 +14,6 @@ class Bundle(val patterns: List[Pattern]) {
   def this(patterns: List[Array[Int]], holes: Int*) = //this(tuples)
     this(Bundle.puncture(patterns, holes.toList) map (Pattern.toHyperTermBase(_)) map (new ImplPattern(_)))
 
-  private def fillIn(pattern: Pattern, args: Int*): IndexedSeq[Int] =
-    pattern map {
-      case Placeholder(v) => args(v)
-      case HyperTerm(v) => v
-    }
-
-  private def fillIn(args: Int*): List[IndexedSeq[Int]] =
-    patterns map (pattern => fillIn(pattern, args: _*))
-
   lazy val minValuationSize: Int = {
     val places = patterns.flatMap(a => a.placeholders)
     if (places.nonEmpty) places.map(_.value).max + 1 else 0
@@ -35,7 +26,7 @@ class Bundle(val patterns: List[Pattern]) {
     *
     * @return
     */
-  def shuffles: List[Bundle] = {
+  def shuffles: Seq[Bundle] = {
     patterns.indices map { i =>
       val inputBuffer = new ListBuffer ++ patterns
       val outputBuffer = new ListBuffer[Pattern]
@@ -56,10 +47,10 @@ class Bundle(val patterns: List[Pattern]) {
         }
       }
       new Bundle(outputBuffer.toList)
-    } toList
+    }
   }
 
-  def shuffles2: List[Bundle] = {
+  def shuffles2: Seq[Bundle] = {
     patterns.indices map { i =>
       val inputBuffer = new ListBuffer ++ patterns
       val outputBuffer = new ListBuffer[Pattern]
@@ -78,7 +69,7 @@ class Bundle(val patterns: List[Pattern]) {
         }
       }
       new Bundle(outputBuffer.toList)
-    } toList
+    }
   }
 }
 

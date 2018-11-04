@@ -9,6 +9,7 @@ import syntax.AstSugar._
 import syntax.Tree
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
@@ -82,9 +83,9 @@ object Parser extends LazyLogging {
 	                  raw"\s+".r -> null)
 
 	
-	def op(op: => Term) = ((l: List[Term]) => op)
-	def op(op: Term => Term) = ((l: List[Term]) => op(l(0)))
-  def op(op: (Term, Term) => Term) = ((l: List[Term]) => op(l(0), l(1)))
+	def op(op: => Term): List[Term] => Term = (_: List[Term]) => op
+	def op(op: Term => Term): List[Term] => Term = (l: List[Term]) => op(l.head)
+  def op(op: (Term, Term) => Term): List[Term] => Term = (l: List[Term]) => op(l.head, l(1))
 
   val NOTATIONS: Map[String, List[Term] => Term] = Map(
       "N:"   -> op(_ :- _),
@@ -135,13 +136,13 @@ object Parser extends LazyLogging {
   def splitBlocks(s: Stream[String]): Stream[String] = s match {
     case Stream.Empty => Stream.empty
     case firstH #:: rest => rest.span(_.matches(raw"\s.*")) match {
-      case (firstT, rest) =>
-        def splitRest = splitBlocks(rest dropWhile (_ == ""))
+      case (firstT, rest2) =>
+        def splitRest = splitBlocks(rest2 dropWhile (_ == ""))
         (firstH #:: firstT).mkString("\n") #:: splitRest
     }
   }
 
-  def getBlocks(f: BufferedReader) = splitBlocks(getLines(f))
+  def getBlocks(f: BufferedReader): Stream[String] = splitBlocks(getLines(f))
   def getBlocks(f: Reader): Stream[String] = getBlocks(new BufferedReader(f))
 	
 	
@@ -155,13 +156,13 @@ object Parser extends LazyLogging {
 		val lex = new BabyLexer(TOKENS)
 		val p = new Parser(new Grammar(GRAMMAR), NOTATIONS)
 		val tokens = lex.tokenize(program)
-    logger.info(s"${tokens}")
+    logger.info(s"$tokens")
 		for (prog <- p(tokens); t <- prog) logger.info(t toPretty)
 	}
   
 	class BabyLexer(val patterns: List[(Regex, String)])
 	{
-		def tokenize(text: String) = {
+		def tokenize(text: String): List[Token] = {
 		  val l = ListBuffer.empty[Token]
 		  var pos = 0
 		  while (pos < text.length) {
@@ -172,7 +173,7 @@ object Parser extends LazyLogging {
     		      (mo.end(), cat, mo.group())
     		    else
     		      (0, null, null)
-    		  }).maxBy((_._1))
+    		  }).maxBy(_._1)
     		if (newPos <= pos)
     		  throw new Exception(s"unrecognized token at '${text.substring(pos)}'")
     		if (cat != null) {
@@ -187,10 +188,10 @@ object Parser extends LazyLogging {
 	
 	class Token(tag: String, value: String) extends Word(tag)
 	{
-		val text = value
+		val text: String = value
 		
-		override def toString() =
-			if (tag == text) tag else s"${tag}:${text}"
+		override def toString: String =
+			if (tag == text) tag else s"$tag:$text"
 	}
 
   trait Annotation
@@ -198,11 +199,11 @@ object Parser extends LazyLogging {
     this: X =>
     val annot: List[Annotation] = List.empty
     
-    def get[A <: Annotation : ClassTag] = annot collect { case a: A => a }
-    def /+(a: Annotation)(implicit wax: WithAnnotation[X]) = _with(annot :+ a)
-    def /++(as: Seq[Annotation])(implicit wax: WithAnnotation[X]) = _with(annot ++ as)
+    def get[A <: Annotation : ClassTag]: List[A] = annot collect { case a: A => a }
+    def /+(a: Annotation)(implicit wax: WithAnnotation[X]): X with Annotated[X] = _with(annot :+ a)
+    def /++(as: Seq[Annotation])(implicit wax: WithAnnotation[X]): X with Annotated[X] = _with(annot ++ as)
     
-    protected def _with(l: List[Annotation])(implicit wax: WithAnnotation[X]) = wax.copyWith(this, l)
+    protected def _with(l: List[Annotation])(implicit wax: WithAnnotation[X]): X with Annotated[X] = wax.copyWith(this, l)
   }
 
   trait WithAnnotation[X] {
@@ -210,11 +211,11 @@ object Parser extends LazyLogging {
   }
   
   implicit object WithAnnotationForTerm extends WithAnnotation[Term] {
-    def copyWith(t: Term, l: List[Annotation]) =
-      new Term(t.root, t.subtrees) with Annotated[Term] { override val annot = l }
+    def copyWith(t: Term, l: List[Annotation]): Term with Annotated[Term] =
+      new Term(t.root, t.subtrees) with Annotated[Term] { override val annot: List[Annotation] = l }
   }
   
-  implicit def annotate(t: Term) = t match {
+  implicit def annotate(t: Term): Term with Annotated[Term] = t match {
     case a: Annotated[Term] @unchecked /* it cannot really be anything else because of this: X in Annotated[X] */ => a
     case _ => implicitly[WithAnnotation[Term]].copyWith(t, List.empty)
   }
@@ -238,18 +239,18 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
 		apply(tokens)
 	}
 
-  def apply(tokens: List[Token]) = {
+  def apply(tokens: List[Token]): List[List[Term]] = {
 		earley.parseSentence(new SimpleSentence(tokens)).toList map toTree map toTerms
 	}
   
-  def error = {
+  def error: String = {
     val pm = earley.diagnoseError()
     s"at '${pm.token}': expecting ${pm.expecting mkString " "}"
   }
   
   def toTree(pt: ontopt.pen.Tree): Tree[Word] = new Tree(pt.root, pt.subtrees map toTree toList)
   
-  val E = raw"E\d+".r
+  val E: Regex = raw"E\d+".r
  
   def toTerms(t: Tree[Word]): List[Term] = t.root.tag match {
     case "P" | "C" | "VARS" => t.subtrees flatMap toTerms
@@ -261,22 +262,22 @@ class Parser(grammar: Grammar, notations: Map[String, List[Term] => Term]) {
     case "[...]" => 
       List(TV("[...]") /+ DeductionHints(parseOptions(t.root.asInstanceOf[Token].text)))
     case k => 
-      List(NOTATIONS(k)(t.subtrees filter (!_.isLeaf) flatMap toTerms toList)) // kind of assumes each subtree only yields one term
+      List(NOTATIONS(k)(t.subtrees filter (!_.isLeaf) flatMap toTerms)) // kind of assumes each subtree only yields one term
   }
   
-  val BRACKETS = raw"\[(.*)\]".r
+  val BRACKETS: Regex = raw"\[(.*)\]".r
   
-  def parseOptions(s: String) = (s match {
-    case BRACKETS(s) => s
-    case _ => s
+  def parseOptions(s: String): List[String] = (s match {
+    case BRACKETS(s2) => s2
+    case s1 => s1
   }).split(raw"\s+").toList
   
   def memoize[I, O](f: I => O): collection.mutable.Map[I, O] = new collection.mutable.HashMap[I, O]() {
-    override def apply(key: I) = getOrElseUpdate(key, f(key))
+    override def apply(key: I): O = getOrElseUpdate(key, f(key))
   }
-  val variables = memoize[String, Term] { case s => TV(s) } /* not thread-safe but Parser is (supposed to be) single-threaded */
+  val variables: mutable.Map[String, Term] = memoize[String, Term](s => TV(s)) /* not thread-safe but Parser is (supposed to be) single-threaded */
   
-  def collapseAnnotations(terms: Seq[Term]) = terms match {
+  def collapseAnnotations(terms: Seq[Term]): Term = terms match {
     case head :: tail => 
       (head /: tail)((h, t) => h /++ t.annot)
     /* should never be called with an empty list */

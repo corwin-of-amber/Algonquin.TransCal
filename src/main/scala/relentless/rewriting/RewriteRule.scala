@@ -38,11 +38,10 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
     * Subterms are considered implicit holes, so they are assigned distinct placeholders.
     * The roots of the terms in the bundle are special: they are all encoded as Placeholder(0).
     */
-  def toBundles(implicit enc: Encoding) = {
+  def toBundles(implicit enc: Encoding): (Bundle, Bundle) = {
 
     val allVars = (src.vars ++ (precond flatMap (_.vars)) ++ target.vars).distinct
 
-    val srcHoles = src.vars map (T(_))
     //val srcTerms = src.template.split(RewriteRule.||>) map (_.split(RewriteRule.|||))
     val srcTerms = src.template.split(RewriteRule.|||) map (new Scheme.Template(allVars, _))
     val targetTerms = target.template.split(RewriteRule.|||) map (new Scheme.Template(allVars, _))
@@ -107,7 +106,6 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
   /**
     * Compiles the rule to patterns.
     * It is assumed that the same encoding will be used throughout the rule's lifetime.
-    * @param enc
     */
   def compile(implicit enc: Encoding) { compiled = Some(new CompiledRule(this)) }
 
@@ -125,13 +123,11 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
 
 object RewriteRule {
   /** Dont know yet
-    *
-    * @param enc
     */
   private class CompiledRule (origin: RewriteRule)(implicit enc: Encoding) extends LazyLogging {
     private val (pattern, conclusion): (Bundle, Bundle) = origin.toBundles
-    val shards = pattern.shuffles
-    val nHoles = pattern.minValuationSize
+    val shards: Seq[Bundle] = pattern.shuffles
+    val nHoles: Int = pattern.minValuationSize
 
     //def fresh(wv: Array[Int]) = enc.ntor --> new Uid  // -- more efficient? but definitely harder to debug
     // For debuging this might be better: T((enc <-- wv(0)).asInstanceOf[Identifier], wv.drop(2) map enc.asTerm toList)
@@ -163,7 +159,7 @@ object RewriteRule {
                      valuation <- matcher.matchLookupUnify_*(s.patterns, w, new ImplValuation(nHoles))) yield {
         //println(s"valuation = ${valuation mkString " "}")
         val add = conclude(valuation, trie)
-        logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString (", ")}. words: ${add map (_ mkString " ") mkString ", "}")
+        logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString ", "}. words: ${add map (_ mkString " ") mkString ", "}")
         add
       }
       res.flatten
@@ -171,7 +167,7 @@ object RewriteRule {
 
     /** Return all rewrites after filling in all the holes.
       *
-      * @param valuation
+      * @param valuation The valution to fill.
       * @param trie containing all available rewrites
       * @return
       */
@@ -250,9 +246,9 @@ object RewriteRule {
 
   // TODO: make sure all literals are in encoding (for example elems, head, take)
 
-  val `=>` = I("=>", "operator") // directional rewrite
-  val ||| = I("|||", "operator") // parallel patterns or conclusions
-  val ||> = I("||>", "operator")
+  val `=>`: Identifier = I("=>", "operator") // directional rewrite
+  val ||| : Identifier = I("|||", "operator") // parallel patterns or conclusions
+  val ||> : Identifier = I("||>", "operator")
 
   val truth = new Scheme.Template(List(), relentless.BasicSignature.tt)
 
@@ -274,16 +270,16 @@ object RewriteRule {
     def varsUsed(t: Term) = vars filter t.leaves.contains
 
     rule match {
-      case eqn@T(`=>`, List(lhs, rhs)) =>
+      case T(`=>`, List(lhs, rhs)) =>
         val left_v = varsUsed(lhs) map (_.leaf)
         val right_v = varsUsed(rhs) map (_.leaf)
         List(new RewriteRule(new Scheme.Template(left_v, lhs), new Scheme.Template(right_v, rhs), ruleType))
-      case eqn@T(`=`, List(lhs, rhs)) =>
+      case T(`=`, List(lhs, rhs)) =>
         val left_v = varsUsed(lhs) map (_.leaf)
         val right_v = varsUsed(rhs) map (_.leaf)
         val (l, r) = (new Scheme.Template(left_v, lhs), new Scheme.Template(right_v, rhs))
         List(new RewriteRule(l, r, ruleType), new RewriteRule(r, l, ruleType))
-      case dvn@T(`||>`, List(precond, body)) =>
+      case T(`||>`, List(precond, body)) =>
         val precond_v = varsUsed(precond) map (_.leaf)
         val precond_t = Seq(truth, new Scheme.Template(precond_v, precond))
         val rules = apply(body, vars, ruleType)

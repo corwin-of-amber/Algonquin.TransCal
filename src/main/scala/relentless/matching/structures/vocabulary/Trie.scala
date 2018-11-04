@@ -28,7 +28,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
   
   private var words: ListBuffer[Word] = ListBuffer.empty  /* please don't change 'words' outside this class :-P */
 
-  private var subtries: Array[Map[Letter, Vocabulary[Letter, Word]]] = new Array(DEFAULT_CAPACITY)
+  private val subtries: Array[Map[Letter, Vocabulary[Letter, Word]]] = new Array(DEFAULT_CAPACITY)
 
   override def toStream: Stream[Word] = words.toStream
   override def getWords: Seq[Word] = words
@@ -42,7 +42,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
         if (subtries(idx) == null) subtries(idx) = Map.empty
         val subtrie =
           subtries(idx) get word(idx) match {
-            case Some(subtrie) => subtrie
+            case Some(extractedSubtrie) => extractedSubtrie
             case None => val subtrie = makeSubTrie(t); subtries(idx) += word(idx) -> subtrie; subtrie
           }
         subtrie add word
@@ -90,11 +90,11 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
       if (words.lengthCompare(1) > 0) {
         val equals = words map (_(1))
         val rep = repFun(equals)    /* repFun should make sure there are no cycles; e.g. impose a full order on Letter */
-        equals foreach ((u) => if (u != rep) equiv += u -> rep)
+        equals foreach (u => if (u != rep) equiv += u -> rep)
       }
     }
     else {
-      for ((k, subtrie) <- subtries(index)) equiv ++= subtrie.uniques(index+1, repFun)
+      for ((_, subtrie) <- subtries(index)) equiv ++= subtrie.uniques(index+1, repFun)
     }
     equiv.toMap
   }

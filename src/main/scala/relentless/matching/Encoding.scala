@@ -46,10 +46,10 @@ class Encoding extends LazyLogging {
    */
   import syntax.AstSugar._
 
-  def dumpIdentifiers = identifierMap.toList map { case (x,y) => (y,x) } sortBy (_._1)
-  def dumpTermHint(index: Int) = termMap find (_._2 == index) match {
+  def dumpIdentifiers: List[(Int, Identifier)] = identifierMap.toList map { case (x,y) => (y,x) } sortBy (_._1)
+  def dumpTermHint(index: Int): String = termMap find (_._2 == index) match {
     case Some((term, _)) => term.toPretty
-    case _ => index
+    case _ => index toString
   }
 
 
@@ -69,7 +69,7 @@ class Encoding extends LazyLogging {
     val top = equateWith
     val (head, rest) = headRest(term)
     val tail = rest flatMap toOriginalEdges
-    val firstHalf = OriginalEdge(this --> head, top, toTuple(rest.toSeq))
+    val firstHalf = OriginalEdge(this --> head, top, toTuple(rest))
     firstHalf :: tail
   }
 
@@ -86,8 +86,8 @@ class Encoding extends LazyLogging {
     if (!atRoot && termToPlaceholder.contains(term) && termToPlaceholder(term).value <= nholes && term.isLeaf) List.empty
     else {
       val (head, rest) = headRest(term)
-      new ImplPattern(Pattern.toHyperTermBase(this --> head) +: toTuple(Seq(term) ++ rest.toSeq, termToPlaceholder) toIndexedSeq) ::
-        (rest flatMap (toPatterns(_, termToPlaceholder, nholes, false)))
+      new ImplPattern(Pattern.toHyperTermBase(this --> head) +: toTuple(Seq(term) ++ rest, termToPlaceholder) toIndexedSeq) ::
+        (rest flatMap (toPatterns(_, termToPlaceholder, nholes, atRoot = false)))
     }
   }
 
@@ -96,8 +96,8 @@ class Encoding extends LazyLogging {
     *  - the root is mapped to Placeholder(0).
     *  - the variable leaves are mapped to Placeholder(1) .. Placeholder(vars.length)
     *  - other nodes are allocated subsequent placeholders.
-    * @param template
-    * @return
+    * @param template A template to convert.
+    * @return The result patterns.
     */
   def toPatterns(template: Scheme.Template): List[Pattern] = {
     val term = template.template

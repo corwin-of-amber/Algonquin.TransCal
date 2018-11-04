@@ -2,22 +2,22 @@ package ui
 
 import java.io._
 
+import com.mongodb.BasicDBObject
 import com.typesafe.scalalogging.LazyLogging
-import relentless.{AssocRules, BasicRules, ExistentialRules}
-import syntax.AstSugar._
-import syntax.Identifier
-import syntax.Scheme
-import syntax.Strip
-import syntax.transform.TreeSubstitution
-import semantics.Namespace
-import semantics.LambdaCalculus
-import synth.pods.TacticalError
-import report.data.DisplayContainer
-import report.data.SerializationContainer
 import relentless.matching.Encoding
+import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.rewriting.Revision.Environment
 import relentless.rewriting._
+import relentless.{AssocRules, BasicRules, ExistentialRules}
+import report.data.{DisplayContainer, SerializationContainer}
+import semantics.Namespace
+import syntax.AstSugar._
+import syntax.transform.TreeSubstitution
+import syntax.{Identifier, Scheme, Strip, Tree}
+import synth.pods.TacticalError
 import ui.Parser.DeductionHints
+
+import scala.util.matching.Regex
 
 
 
@@ -29,7 +29,7 @@ object Interpreter extends LazyLogging {
     def !< (op: Revision => Revision) = State(op(prog), rules)
     def !> (op: Rules => Rules) = State(prog, op(rules))
     
-    def +<>+ (op: Revision => (RevisionDiff, Rules))(implicit ann: List[Annotation]) = op(prog) match {
+    def +<>+ (op: Revision => (RevisionDiff, Rules))(implicit ann: List[Annotation]): State = op(prog) match {
       case (p, r) => State(prog ++: decorate(p, ann), rules ++ r)
     }
   }
@@ -38,30 +38,30 @@ object Interpreter extends LazyLogging {
 	import Revision.Equivalence
 	
 	implicit object WithAnnotationForEquivalence extends WithAnnotation[Revision.Equivalence] {
-	  override def copyWith(e: Equivalence, l: List[Annotation]) =
-	    new Equivalence(e.lhs, e.rhs) with Annotated[Equivalence] { override val annot = l }
+	  override def copyWith(e: Equivalence, l: List[Annotation]): Equivalence with Annotated[Equivalence] =
+	    new Equivalence(e.lhs, e.rhs) with Annotated[Equivalence] { override val annot: List[Annotation] = l }
 	}
 
-  implicit def annotate_(e: Equivalence) = e match {
+  implicit def annotate_(e: Equivalence): Equivalence with Annotated[Equivalence] = e match {
     case a: Annotated[Equivalence] @unchecked /* it cannot really be anything else because of this: X in Annotated[X] */ => a
     case _ => implicitly[WithAnnotation[Equivalence]].copyWith(e, List.empty)
   }
 
-  def decorate(diff: RevisionDiff, annotations: List[Annotation]) = {
+  def decorate(diff: RevisionDiff, annotations: List[Annotation]): RevisionDiff = {
     def f(el: List[Revision.Equivalence]) = el map (_ /++ annotations)
     if (annotations.isEmpty) diff /* optimization */
     else RevisionDiff(diff.program_++, diff.vars_++, f(diff.equivalences_++))
   }  
 	
-	def toJson(rev: Revision)(implicit cc: SerializationContainer) = {
+	def toJson(rev: Revision)(implicit cc: SerializationContainer): BasicDBObject = {
 	  def annots(e: Equivalence) = e.get[DeductionHints] flatMap (_.options)
   	cc.map("program" -> rev.program,
         "equivalences" -> (rev.equivalences map (el => cc.list(List(el.lhs, el.rhs, cc.list(annots(el)))))))
 	}
 	
-	def dump(rev: Revision) = {
+	def dump(rev: Revision): Unit = {
     val progf = new FileWriter("prog.json")
-    implicit val cc = new DisplayContainer
+    implicit val cc: DisplayContainer = new DisplayContainer
     progf.write(toJson(rev).toString)
     progf.close()
   }
@@ -86,9 +86,9 @@ object Interpreter extends LazyLogging {
 	*/
 
   class CommandLineArgs(args: Array[String]) {
-    val filename = () => if (args.length > 0) args(0) else "-"
+    val filename: () => String = () => if (args.length > 0) args(0) else "-"
     
-    def file() = filename() match {
+    def file(): InputStreamReader = filename() match {
       case "-" => new InputStreamReader(System.in)
       case fn => new InputStreamReader(new FileInputStream(fn), "UTF-8")
     }
@@ -109,7 +109,7 @@ object Interpreter extends LazyLogging {
 
     logger.info("Starting new run")
 		val cmd = new CommandLineArgs(args)
-		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; ";
+		val program = getBlocks(cmd.file()).mkString(" ;\n") + " ; "
 
     logger.info(program)
 		
@@ -117,10 +117,10 @@ object Interpreter extends LazyLogging {
 		val p = new Parser()
 		val tokens = lex.tokenize(program)
     logger.info("Tokens:\n" + (tokens map (_.toString()) mkString " "))
-		logger.info(s"${tokens}")
+		logger.info(s"$tokens")
 		
-		implicit val enc = new Encoding
-		implicit val directory = (new BasicRules).directory
+		implicit val enc: Encoding = new Encoding
+		implicit val directory: Tree[Vocabulary.DirectoryEntry] = (new BasicRules).directory
 
 
 		val interp = new Interpreter
@@ -142,9 +142,9 @@ object Interpreter extends LazyLogging {
   		    val patv = interp.varify(t)
   		    val pat = new Scheme.Template(patv.vars, subst(patv.template))
           logger.info(s"(${pat.vars mkString " "})  ${pat.template toPretty}")
-  		    for (a <- t.get[DeductionHints]) logger.info(s"  ${a}")
-  		    implicit val ann = t.get[Annotation]
-  		    implicit val dh = t.get[DeductionHints]
+  		    for (a <- t.get[DeductionHints]) logger.info(s"  $a")
+  		    implicit val ann: List[Annotation] = t.get[Annotation]
+  		    implicit val dh: List[DeductionHints] = t.get[DeductionHints]
   		    state = state +<>+ interp.interpretDerivation(state, pat).apply
 		    }
 		  }
@@ -173,14 +173,14 @@ object Interpreter extends LazyLogging {
 class Interpreter(implicit val enc: Encoding) extends LazyLogging {
   
   import Interpreter._
-  import RuleBasedTactic.{mkLocator, mkLocator_simple, mkGoal}
+  import RuleBasedTactic.{mkGoal, mkLocator, mkLocator_simple}
   import relentless.rewriting.RewriteRule.RuleOps
 
   val BasicRules = new BasicRules
   val AssocRules = new AssocRules
   val ExistentialRules = new ExistentialRules
   
-  def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]) = {
+  def interpretDerivation(s: State, scheme: Scheme.Template)(implicit hints: List[DeductionHints]): Tactic = {
     val t = scheme.template
     val vars = scheme.vars
     val rules =
@@ -201,7 +201,7 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
         to match {
             // Sugar syntax of isApp
           case f @: args if f.isLeaf && (vars contains f.leaf) =>
-                    logger.info(s"  generalize ${f} ${args}")
+                    logger.info(s"  generalize $f $args")
                     assert(isAnchorName(from)) // TODO
               new Generalize(rules, from, args, Some(f))
           case _ =>
@@ -223,7 +223,7 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     else if (t.root == `=`) {
       logger.info("  let")
       // Make it a directional rule, if a direction option was specified
-      val rule = if (hints exists (_.options contains "->")) new Scheme.Template(scheme.vars, t.subtrees(0) =:> t.subtrees(1))
+      val rule = if (hints exists (_.options contains "->")) new Scheme.Template(scheme.vars, t.subtrees.head =:> t.subtrees(1))
                  else scheme
       new Let(List(rule), incorporate = hints exists (_.options contains "++"))
     }
@@ -232,15 +232,15 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     }
   }
 
-  def isAnchorName(t: Term) = t.isLeaf && (t.leaf.literal match {
+  def isAnchorName(t: Term): Boolean = t.isLeaf && (t.leaf.literal match {
     case _: Int => true
     case s: String => s.contains("⃝") || s.startsWith("(")
     case _ => false
   })
   
-  val PATVAR_RE = raw"\?(.*)".r
+  val PATVAR_RE: Regex = raw"\?(.*)".r
   
-  def varify(t: Term) = {
+  def varify(t: Term): Scheme.Template = {
     val `ⓧ` = "ⓧ"  /* this symbol is used as a placeholder */
     def varify0(t: Term): Scheme.Template = t.root.literal match {
       case PATVAR_RE(lit) => val v = T(new Identifier(lit, t.root.kind, t.root.ns)); new Scheme.Template(List(v.leaf), v)
