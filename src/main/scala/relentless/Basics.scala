@@ -5,118 +5,119 @@ import relentless.matching.Encoding
 import relentless.matching.structures.vocabulary.Vocabulary
 import relentless.rewriting.RewriteRule
 import relentless.rewriting.RewriteRule.Category
+import report.data.TapeString
 import syntax.AstSugar._
 import syntax.{Formula, Identifier, Tree}
 
 
 object BasicSignature {
 
-  val `⇒` = I("⇒", "operator") // used for guarded command, instead of |! that we used in Bellmania
+  val `⇒`: Identifier = I("⇒", "operator") // used for guarded command, instead of |! that we used in Bellmania
   def `⇒:`(x: Term, y: Term): Term = T(`⇒`, List(x, y))
 
-  val tt = TV("⊤")
-  val ff = TV("⊥")
+  val tt: Tree[Identifier] = TV("⊤")
+  val ff: Tree[Identifier] = TV("⊥")
 
-  val _id = TV("id")
+  val _id: Tree[Identifier] = TV("id")
 
-  def id(x: Term) = _id :@ (x)
+  def id(x: Term): Tree[Identifier] = _id :@ x
 
-  val x = TV("x");
-  val y = TV("y");
-  val z = TV("z");
-  val w = TV("w");
-  val v = TV("v")
-  val `x'` = TV("x'")
-  val xs = TV("xs");
-  val `xs'` = TV("xs'")
-  val xss = TV("xss")
-  val exist = TV("exist")
+  val x: Tree[Identifier] = TV("x")
+  val y: Tree[Identifier] = TV("y")
+  val z: Tree[Identifier] = TV("z")
+  val w: Tree[Identifier] = TV("w")
+  val v: Tree[Identifier] = TV("v")
+  val `x'`: Tree[Identifier] = TV("x'")
+  val xs: Tree[Identifier] = TV("xs")
+  val `xs'`: Tree[Identifier] = TV("xs'")
+  val xss: Tree[Identifier] = TV("xss")
+  val exist: Tree[Identifier] = TV("exist")
 
-  val f = TV("f")
-  val l = TV("l")
+  val f: Tree[Identifier] = TV("f")
+  val l: Tree[Identifier] = TV("l")
 
-  val _nil = TV("⟨⟩")
-  val _zero = TV(0)
-  val _one = TV(1)
-  val _cons = TV("::")
-  val _snoc = TV(":+")
-  val _elem = TV("elem")
-  val _elems = TI("elems")
+  val _nil: Tree[Identifier] = TV("⟨⟩")
+  val _zero: Tree[Identifier] = TV(0)
+  val _one: Tree[Identifier] = TV(1)
+  val _cons: Tree[Identifier] = TV("::")
+  val _snoc: Tree[Identifier] = TV(":+")
+  val _elem: Tree[Identifier] = TV("elem")
+  val _elems: Tree[Identifier] = TI("elems")
 
-  val `_++` = TV("++")
-  val _take = TV("take")
-  val _len = TV("len")
-  val _drop = TV("drop")
+  val `_++`: Tree[Identifier] = TV("++")
+  val _take: Tree[Identifier] = TV("take")
+  val _len: Tree[Identifier] = TV("len")
+  val _drop: Tree[Identifier] = TV("drop")
 
-  val _ne = TI("≠")
-  val _in = TI("∈")
-  val _not_in = TI("∉")
-  val _set_singleton = TI("{.}")
-  val _set_disj = TI("‖")
-  val _set_union = TI("∪")
+  val _ne: Tree[Identifier] = TI("≠")
+  val _in: Tree[Identifier] = TI("∈")
+  val _not_in: Tree[Identifier] = TI("∉")
+  val _set_singleton: Tree[Identifier] = TI("{.}")
+  val _set_disj: Tree[Identifier] = TI("‖")
+  val _set_union: Tree[Identifier] = TI("∪")
 
-  val _lt = TI("<")
-  val _gt = TI(">")
-  val _le = TI("≤")
-  val _ge = TI("≥")
+  val _lt: Tree[Identifier] = TI("<")
+  val _gt: Tree[Identifier] = TI(">")
+  val _le: Tree[Identifier] = TI("≤")
+  val _ge: Tree[Identifier] = TI("≥")
 
-  val _min = TI("min")
-  val _bounded_minus = TI("bounded_minus")
-  val _max = TI("max")
+  val _min: Tree[Identifier] = TI("min")
+  val _bounded_minus: Tree[Identifier] = TI("bounded_minus")
+  val _max: Tree[Identifier] = TI("max")
 
-  val _range_exclude = TI("range_exclude")
-  val _range_include = TI("range_include")
+  val _range_exclude: Tree[Identifier] = TI("range_exclude")
+  val _range_include: Tree[Identifier] = TI("range_include")
 
-  def `!=:=`(x: Term, y: Term) = _ne :@ (x, y)
+  def `!=:=`(x: Term, y: Term): Tree[Identifier] = _ne :@ (x, y)
 
-  def in(x: Term, xs: Term) = _in :@ (x, xs)
+  def in(x: Term, xs: Term): Tree[Identifier] = _in :@ (x, xs)
 
-  def range_exclude(x: Term, y: Term) = _range_exclude :@ (x, y)
-  def range_include(x: Term, y: Term) = _range_include :@ (x, y)
+  def range_exclude(x: Term, y: Term): Tree[Identifier] = _range_exclude :@ (x, y)
+  def range_include(x: Term, y: Term): Tree[Identifier] = _range_include :@ (x, y)
 
-  def not_in(x: Term, xs: Term) = _not_in :@ (x, xs)
+  def not_in(x: Term, xs: Term): Tree[Identifier] = _not_in :@ (x, xs)
 
-  def `{}`(x: Term) = _set_singleton :@ (x)
+  def `{}`(x: Term): Tree[Identifier] = _set_singleton :@ x
 
-  def set_disj(s: Term, t: Term) = _set_disj :@ (s, t)
+  def set_disj(s: Term, t: Term): Tree[Identifier] = _set_disj :@ (s, t)
 
-  def set_union(s: Term, t: Term) = _set_union :@ (s, t)
+  def set_union(s: Term, t: Term): Tree[Identifier] = _set_union :@ (s, t)
 
-  def nil = _nil
-  def one = _one
-  def zero = _zero
+  def nil: Tree[Identifier] = _nil
+  def one: Tree[Identifier] = _one
+  def zero: Tree[Identifier] = _zero
 
-  def cons(x: Term, xs: Term) = _cons :@ (x, xs)
+  def cons(x: Term, xs: Term): Tree[Identifier] = _cons :@ (x, xs)
 
-  def snoc(x: Term, xs: Term) = _snoc:@(x, xs)
+  def snoc(x: Term, xs: Term): Tree[Identifier] = _snoc:@(x, xs)
 
-  def elem(x: Term, xs: Term) = _elem :@ (x, xs)
+  def elem(x: Term, xs: Term): Tree[Identifier] = _elem :@ (x, xs)
 
-  def elems(xs: Term) = _elems :@ (xs)
+  def elems(xs: Term): Tree[Identifier] = _elems :@ xs
 
-  def ++(x: Term, y: Term) = `_++` :@ (x, y)
+  def ++(x: Term, y: Term): Tree[Identifier] = `_++` :@ (x, y)
 
-  def take(xs: Term, y: Term) = _take :@ (xs, y)
-  def len(xs: Term) = _len :@ (xs)
+  def take(xs: Term, y: Term): Tree[Identifier] = _take :@ (xs, y)
+  def len(xs: Term): Tree[Identifier] = _len :@ xs
 
-  def drop(xs: Term, y: Term) = _drop :@ (xs, y)
+  def drop(xs: Term, y: Term): Tree[Identifier] = _drop :@ (xs, y)
 
-  def bounded_minus(x: Term, y: Term) = _bounded_minus :@ (x, y)
-  def min(x: Term, y: Term) = _min :@ (x, y)
-  def max(x: Term, y: Term) = _max :@ (x, y)
+  def bounded_minus(x: Term, y: Term): Tree[Identifier] = _bounded_minus :@ (x, y)
+  def min(x: Term, y: Term): Tree[Identifier] = _min :@ (x, y)
+  def max(x: Term, y: Term): Tree[Identifier] = _max :@ (x, y)
 
-  def <(x: Term, y: Term) = _lt :@ (x, y)
-  def >(x: Term, y: Term) = _gt :@ (x, y)
-  def ≤(x: Term, y: Term) = _le :@ (x, y)
-  def ≥(x: Term, y: Term) = _ge :@ (x, y)
+  def <(x: Term, y: Term): Tree[Identifier] = _lt :@ (x, y)
+  def >(x: Term, y: Term): Tree[Identifier] = _gt :@ (x, y)
+  def ≤(x: Term, y: Term): Tree[Identifier] = _le :@ (x, y)
+  def ≥(x: Term, y: Term): Tree[Identifier] = _ge :@ (x, y)
 
   class Brackets(left: String, right: String) extends Formula.Notation {
 
     import Formula._
     import report.data.TapeString._
 
-    def format(term: Term) = {
-      tape"${left}${display(term.subtrees.head)}${right}"
+    def format(term: Term): TapeString = {
+      tape"$left${display(term.subtrees.head)}$right"
     }
 
     val precedence = 0
@@ -133,7 +134,7 @@ object BasicSignature {
 
 
 trait Rules extends LazyLogging {
-  lazy implicit val directory = {
+  lazy implicit val directory: Tree[Vocabulary.DirectoryEntry] = {
     def D(root: Vocabulary.DirectoryEntry, subtrees: Tree[Vocabulary.DirectoryEntry]*) = new Tree(root, subtrees.toList)
     D(-1, D(0, D(1, D(2, D(3, D(4))), D(3)), D(2, D(3, D(4))), D(3)), D(1))
   }
@@ -162,26 +163,26 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
   val vars = List(x, y, z, `x'`, xs, `xs'`)
 
   val ruleTemplates = List(
-    (`⇒:`(tt, y)) =:> id(y),
-    (`⇒:`(ff, y)) =:> ff,
+    `⇒:`(tt, y) =:> id(y),
+    `⇒:`(ff, y) =:> ff,
     ~tt =:= ff,
     ~ff =:= tt,
     (x /: ff) =:> id(x),
     (ff /: x) =:> id(x),
     id(id(x)) =:> id(x),
 
-    (x =:= `x'`) =:= (in(`x'`, `{}`(x))),
+    (x =:= `x'`) =:= in(`x'`, `{}`(x)),
     elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
     ~(x =:= y) =:= `!=:=`(x, y),
-    ~(in(x, y)) =:= not_in(x, y),
+    ~in(x, y) =:= not_in(x, y),
     not_in(x, xs) =:= set_disj(`{}`(x), xs),
     set_disj(xs, `{}`(x)) =:> not_in(x, xs),
     ~(x | y) =:= (~x & ~y),
     ~(x & y) =:= (~x | ~y),
-    (set_disj(x, xs) & set_disj(y, xs)) =:= (set_disj(set_union(x, y), xs)),
-    (set_disj(xs, x) & set_disj(xs, y)) =:= (set_disj(xs, set_union(x, y))),
+    (set_disj(x, xs) & set_disj(y, xs)) =:= set_disj(set_union(x, y), xs),
+    (set_disj(xs, x) & set_disj(xs, y)) =:= set_disj(xs, set_union(x, y)),
     elem(x, xs) =:= in(x, elems(xs)),
-    elems(cons(`x'`, `xs'`)) =:= (set_union(`{}`(`x'`), elems(`xs'`))), // <-- this one is somewhat superfluous?
+    elems(cons(`x'`, `xs'`)) =:= set_union(`{}`(`x'`), elems(`xs'`)), // <-- this one is somewhat superfluous?
 
     snoc(y, x) =:= ++(y, cons(x, nil)),
     ++(nil, `xs'`) =:> id(`xs'`),
@@ -195,6 +196,10 @@ class BasicRules(implicit val enc: Encoding) extends Rules {
 //    min(x, y) =:> min(y,x),
 
     ≤(x, y) ||> (bounded_minus(x, y) =:> zero),
+
+    take(xs, zero) =:> nil,
+    take(xs, len(xs)) =:> xs,
+    take(++(xs, `xs'`), x) =:> ++(take(xs, min(len(xs), x)), take(`xs'`, bounded_minus(x, len(xs)))),
 
     // merge range
     ++(range_exclude(x,y), range_exclude(y, z)) =:> range_exclude(x, z),
@@ -216,7 +221,7 @@ class AssocRules(implicit val enc: Encoding) extends Rules {
 
   override val ruleTemplates: List[Tree[Identifier]] = List((x & (y & z)) =:= (x & y & z))
 
-  val rules = templatesToRewriteRules(RewriteRule.Category.Associative)
+  val rules: List[RewriteRule] = templatesToRewriteRules(RewriteRule.Category.Associative)
 }
 
 class ExistentialRules(implicit val enc: Encoding) extends Rules {
