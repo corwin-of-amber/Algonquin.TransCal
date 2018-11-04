@@ -162,7 +162,7 @@ object RewriteRule {
         logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString ", "}. words: ${add map (_ mkString " ") mkString ", "}")
         add
       }
-      res.flatten
+      res.flatten toList
     }
 
     /** Return all rewrites after filling in all the holes.
