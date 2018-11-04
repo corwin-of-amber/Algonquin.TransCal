@@ -27,7 +27,7 @@ class ImplPatternSpec extends FlatSpec with Matchers with TimeLimitedTests with 
 
   before {
     trie = new Trie[Int, HyperEdge[Int]](dir)
-    trie.addAll(Seq(
+    trie ++= Seq(
       HyperEdge(Seq(1, 2, 3, 4)),
       HyperEdge(Seq(1, 2, 3, 4)),
       HyperEdge(Seq(1, 2, 3, 4)),
@@ -35,7 +35,7 @@ class ImplPatternSpec extends FlatSpec with Matchers with TimeLimitedTests with 
       HyperEdge(Seq(3, 4, 2)),
       HyperEdge(Seq(1, 2, 3, 4, 5)),
       HyperEdge(Seq(6, 7, 8, 9))
-    ))
+    )
   }
 
 
