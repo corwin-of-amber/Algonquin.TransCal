@@ -185,7 +185,7 @@ class Interpreter(implicit val enc: Encoding) extends LazyLogging {
     val vars = scheme.vars
     val rules =
       if (hints exists (_.options containsSlice Seq("only","assoc"))) AssocRules.rules
-      else if(hints exists (_.options containsSlice "allow existentials")) ExistentialRules.rules ++ s.rules.rules
+      else if(hints exists (_.options containsSlice Seq("allow", "existentials"))) ExistentialRules.rules ++ s.rules.rules
       else BasicRules.rules ++ s.rules.rules
     if (t.root == ->.root) {
       /**/ assume(t.subtrees.length == 2) /**/
