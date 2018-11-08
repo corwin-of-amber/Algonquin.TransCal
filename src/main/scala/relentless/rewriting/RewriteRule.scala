@@ -47,30 +47,6 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
     val targetTerms = target.template.split(RewriteRule.|||) map (new Scheme.Template(allVars, _))
 
     // All holes including the addition of hyperterms for the subterms in the bundle
-    /*
-    val allSrcHoles = srcTerms.head.head :: srcHoles.toList ++
-      (srcTerms.flatten flatMap (term => term.nodes filterNot (n => (n eq term) || (srcHoles contains n)/* (*) */
-        /*n.isLeaf*/))) distinct
-    val srcTermToPlaceholder: Map[Term, Placeholder] =
-      allSrcHoles.zipWithIndex.toMap.mapValues(Placeholder) ++ (srcTerms.head.tail map ((_, Placeholder(0)))) ++
-        (srcTerms.tail.zipWithIndex flatMap { case (terms, i) => terms map ((_, Placeholder(allSrcHoles.length + i))) })
-    val srcPats = srcTerms.flatten flatMap (enc.toPatterns(_, srcTermToPlaceholder, srcHoles.length))
-
-    val targetHoles = target.vars map (T(_))
-    val targetTerms = target.template.split(RewriteRule.|||)
-
-    assert(targetHoles.forall(_.isLeaf))
-    val allTargetHoles = {
-      // All terms other then the holes and the root need to become holes (they need a new hyper term)
-      def internalSubterms(root: Term): Stream[Term] = root.nodes filter (subterm => !((subterm eq root) || subterm.isLeaf))
-      targetTerms.head :: targetHoles.toList ++ (targetTerms flatMap internalSubterms)
-    }
-
-    val targetTermToPlaceholder = allTargetHoles.zipWithIndex.filterNot(kv => srcTermToPlaceholder.contains(kv._1)).
-      toMap.mapValues(Placeholder) ++ (targetTerms.tail map ((_, Placeholder(0)))) ++ srcTermToPlaceholder
-    val targetBundle = new Bundle(targetTerms flatMap (enc.toPatterns(_, targetTermToPlaceholder, targetHoles.length)) toList) // |-- dbg)
-*/
-
     val rootPh = Placeholder(0)
     val varPhs = allVars.indices map (i => Placeholder(i + 1))
 
@@ -78,7 +54,11 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
 
     val srcPats = (srcTerms map enc.toPatterns) reduceLeft op
 
-    val targetPats = Pattern.shiftPatterns(srcPats, (targetTerms map enc.toPatterns) reduceLeft op, (rootPh +: varPhs).toSet)
+    val targetPats = {
+      val targetPatsTemp = (targetTerms map enc.toPatterns) reduceLeft op
+      val shifted = Pattern.shiftPatterns(srcPats, targetPatsTemp, (rootPh +: varPhs).toSet)
+      shifted
+    }
 
     val srcBundle = new Bundle(
       if (precond.isEmpty) srcPats.toList

@@ -27,7 +27,7 @@ object Pattern {
     * @return the joint sequence
     */
   def combinePatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]): Seq[Pattern] = {
-    patterns1 ++ shiftPatterns(patterns2, patterns2, commonPlaceholders)
+    patterns1 ++ shiftPatterns(patterns1, patterns2, commonPlaceholders)
   }
 
   /**
@@ -42,7 +42,7 @@ object Pattern {
     */
   def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]): Seq[ImplPattern] = {
 
-    val max_ph =         (for (p1 <- patterns1; ph1 <- p1.placeholders) yield ph1.value).max
+    val max_ph =         commonPlaceholders.toStream.append(for (p1 <- patterns1; ph1 <- p1.placeholders) yield ph1) map (_.value) max
     val additional_ph =  (for (p2 <- patterns2; ph2 <- p2.placeholders
                                                 if !(commonPlaceholders contains ph2)) yield ph2).distinct
     val renum_ph =       (for ((ph2, i) <- additional_ph.zipWithIndex) yield (ph2, Placeholder(max_ph + i + 1))).toMap
