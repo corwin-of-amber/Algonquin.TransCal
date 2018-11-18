@@ -18,19 +18,14 @@ class ImplPattern(val pattern: IndexedSeq[BaseHyperTerm]) extends Pattern {
   override lazy val placeholders: IndexedSeq[Placeholder] = indexedPlaceholders.map(_._1)
 
   override def lookup[HE <: IndexedSeq[Int]](trie: Vocabulary[Int, HE], valuation: Valuation): Seq[HE] = {
-    var t = trie
-    try {
-      for ((term, idx) <- pattern.zipWithIndex) {
-        // In case match fails we exit the whole lookup function with an empty seq
-        term match {
-          case Placeholder(v) => if (valuation.isDefined(v)) t = t.get(idx, valuation(v).get.value) getOrElse { return Seq.empty }
-          case HyperTerm(v) => t = t.get(idx, v) getOrElse { return Seq.empty }
-        }
-      }
-      t.getWords
-    } catch {
-      case e: RuntimeException => throw new RuntimeException(s"matching pattern = ${pattern mkString " "}, valuation = ${valuation mkString " "}; $e")
+    val sparsePattern = (pattern zipWithIndex) filter {
+      case (Placeholder(v), _) if !valuation.isDefined(v) => false
+      case _ => true
+    } map {
+      case (Placeholder(v), idx) => (idx, valuation(v).get.value)
+      case (HyperTerm(v), idx) => (idx, v)
     }
+    trie.sparseLookup(sparsePattern)
   }
 }
 

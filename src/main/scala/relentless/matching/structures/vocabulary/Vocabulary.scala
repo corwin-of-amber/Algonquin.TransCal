@@ -44,7 +44,7 @@ trait Vocabulary[Letter, Word <: IndexedSeq[Letter]] {
     * @param sparsePattern index value pairs to find in trie.
     * @return optional word conforming sparse pattern
     */
-  def sparseLookup(sparsePattern: Seq[(Int, Letter)]): Option[Word]
+  def sparseLookup(sparsePattern: Seq[(Int, Letter)]): Stream[Word]
 
   /**
     * uniques() groups words in given trie by values at locations >= index,
