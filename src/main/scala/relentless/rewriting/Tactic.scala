@@ -150,20 +150,20 @@ object RuleBasedTactic {
    * then all their neighbors (incident to those words' letters) recursively,
    * while not traversing across the boundary.
    */
-  def spanning(trie: Vocabulary[Int, BaseRewriteEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]): Stream[BaseRewriteEdge[Int]] = {
-    import collection.mutable
-    val ws = mutable.Set.empty ++ boundary
-    val wq = mutable.Queue.empty ++ init
-    Reconstructer.whileYield(wq.nonEmpty) {
-      val u = wq.dequeue
-      if (ws add u) {
-        val incident = 1 until trie.subtriesSize flatMap (i => trie.get(i, u).toList flatMap (_.getWords))
-        for (e <- incident; v <- e drop 1 if !(ws contains v)) wq enqueue v
-        incident
-      }
-      else Seq.empty
-    } flatten
-  }
+//  def spanning(trie: Vocabulary[Int, BaseRewriteEdge[Int]], init: Iterable[Int], boundary: Iterable[Int]): Stream[BaseRewriteEdge[Int]] = {
+//    import collection.mutable
+//    val ws = mutable.Set.empty ++ boundary
+//    val wq = mutable.Queue.empty ++ init
+//    Reconstructer.whileYield(wq.nonEmpty) {
+//      val u = wq.dequeue
+//      if (ws add u) {
+//        val incident = 1 until trie.subtriesSize flatMap (i => trie.get(i, u).toList flatMap (_.getWords))
+//        for (e <- incident; v <- e drop 1 if !(ws contains v)) wq enqueue v
+//        incident
+//      }
+//      else Seq.empty
+//    } flatten
+//  }
 
 }
 
