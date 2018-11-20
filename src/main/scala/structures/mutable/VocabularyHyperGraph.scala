@@ -11,38 +11,38 @@ import scala.language.postfixOps
   * @author tomer
   * @since 11/15/18
   */
-class VocabularyHyperGraph[Node, Edge](vocabulary: Vocabulary[Either[Node, Edge]]) extends HyperGraphManyWithOrderToOne[Node, Edge] {
+class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]]) extends HyperGraphManyWithOrderToOne[Node, EdgeType] {
 
 
   /* --- Constructors --- */
 
   def this() = {
-    this (new Trie[Either[Node, Edge]]())
+    this (new Trie[Either[Node, EdgeType]]())
   }
 
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(target: Node, edge: Edge, sources: Seq[Node]): VocabularyHyperGraph[Node, Edge] = {
-    vocabulary add (righty(edge) +: (target +: sources).map(lefty))
+  override def addEdge(target: Node, edgeType: EdgeType, sources: Seq[Node]): VocabularyHyperGraph[Node, EdgeType] = {
+    vocabulary add (righty(edgeType) +: (target +: sources).map(lefty))
     this
   }
 
-  override def removeEdge(target: Node, edge: Edge, sources: Seq[Node]): VocabularyHyperGraph[Node, Edge] = {
-    vocabulary remove (righty(edge) +: (target +: sources).map(lefty))
+  override def removeEdge(target: Node, edgeType: EdgeType, sources: Seq[Node]): VocabularyHyperGraph[Node, EdgeType] = {
+    vocabulary remove (righty(edgeType) +: (target +: sources).map(lefty))
     this
   }
 
-  override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, Edge] = {
+  override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     vocabulary replace (lefty(keep), lefty(change))
     this
   }
 
-  override def findEdges(edge: Edge): Set[(Node, Edge, Seq[Node])] = {
-    vocabulary.findByPrefix(Seq((0, righty(edge)))).map(wordToHyperEdge)
+  override def findEdges(edgeType: EdgeType): Set[(Node, EdgeType, Seq[Node])] = {
+    vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
   }
 
-  override def find[Id](pattern: (Item[Node, Id], Item[Edge, Id], Seq[Item[Node, Id]])): Set[(Node, Edge, Seq[Node])] = {
+  override def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[(Node, EdgeType, Seq[Node])] = {
     val (target, edge, sources) = pattern
     def convertItemBuilder[First, Second] (builer: First => Either[First, Second]): Item[First, Id] => Item[Either[First, Second], Id] = {
       def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
@@ -62,7 +62,7 @@ class VocabularyHyperGraph[Node, Edge](vocabulary: Vocabulary[Either[Node, Edge]
       }
       convertItem
     }
-    vocabulary.findPattern(convertItemBuilder2[Node, Edge](righty)(edge) +: (target +: sources).map(convertItemBuilder(lefty)))
+    vocabulary.findPattern(convertItemBuilder2[Node, EdgeType](righty)(edge) +: (target +: sources).map(convertItemBuilder(lefty)))
      .map(wordToHyperEdge)
   }
 
@@ -93,26 +93,26 @@ class VocabularyHyperGraph[Node, Edge](vocabulary: Vocabulary[Either[Node, Edge]
 
   override def nodes: Set[Node] = vocabulary.words.flatMap(_.drop(1)) map toNode
 
-  override def edges: Set[Edge] = vocabulary.words.flatMap(_.take(1)) map toEdge
+  override def edges: Set[EdgeType] = vocabulary.words.flatMap(_.take(1)) map toEdge
 
 
   /* --- Private Methods --- */
 
-  private def wordToHyperEdge(word: Seq[Either[Node, Edge]]): (Node, Edge, Seq[Node]) =
+  private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): (Node, EdgeType, Seq[Node]) =
     (toNode(word(1)), toEdge(word.head), word.take(2) map toNode)
 
-  private def lefty(node: Node): Either[Node, Edge] = {
+  private def lefty(node: Node): Either[Node, EdgeType] = {
     Left(node)
   }
-  private def righty(edge: Edge): Either[Node, Edge] = {
+  private def righty(edge: EdgeType): Either[Node, EdgeType] = {
     Right(edge)
   }
-  private def toNode(either: Either[Node, Edge]): Node = {
+  private def toNode(either: Either[Node, EdgeType]): Node = {
     either match {
       case Left(node) => node
     }
   }
-  private def toEdge(either: Either[Node, Edge]): Edge = {
+  private def toEdge(either: Either[Node, EdgeType]): EdgeType = {
     either match {
       case Right(edge) => edge
     }
