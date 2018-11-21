@@ -54,9 +54,12 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     targets.add(w.target)
     trie add w
     findEquivalences(w)
-    logger.trace(s"working on word ${w mkString " "}")
+    logger.debug(s"working on word ${w mkString " "}")
     for (r <- rewriteRules) {
-      wq.enqueue(r.process(w, trie): _*)
+      val res = r.process(w, trie)
+      if (res.nonEmpty)
+        logger.debug(s"rule ${r.src.template.leaves.map(_.root)} returned ${res.length} new edges")
+      wq.enqueue(res: _*)
     }
 
     //for (g <- goal) processRule(g, w)

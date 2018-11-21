@@ -467,8 +467,8 @@ class Elaborate(rules: List[RewriteRule], goalScheme: Scheme) extends RuleBasedT
 
     for (gm <- matches) {
       logger.info(s"${gm mkString " "}")//  [${gm map (enc.ntor <--) mkString "] ["}]");
-      for (ln <- Utils.transposeAll(gm.toList drop 2 map (x => new Reconstructer(x, trie)(enc, except).toList), B))
-        logger.info("    " + Utils.mkStringColumns(ln map (t => if (t == B) "" else t toPretty), 40 ))
+//      for (ln <- Utils.transposeAll(gm.toList drop 2 map (x => new Reconstructer(x, trie)(enc, except)), B))
+//        logger.info("    " + Utils.mkStringColumns(ln take 5 map (t => if (t == B) "" else t toPretty), 40 ))
     }
   }
 

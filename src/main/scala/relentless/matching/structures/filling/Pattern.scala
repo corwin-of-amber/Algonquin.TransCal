@@ -40,12 +40,14 @@ object Pattern {
     * @return the patterns in pattern2, where all the placeholders that are not common, are shifted to higher
     *         indexes.
     */
-  def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder]): Seq[ImplPattern] = {
+  def shiftPatterns(patterns1: Seq[Pattern], patterns2: Seq[Pattern], commonPlaceholders: Set[Placeholder],
+                    additionalRoot: Option[Placeholder] = None): Seq[ImplPattern] = {
 
     val max_ph =         commonPlaceholders.toStream.append(for (p1 <- patterns1; ph1 <- p1.placeholders) yield ph1) map (_.value) max
     val additional_ph =  (for (p2 <- patterns2; ph2 <- p2.placeholders
                                                 if !(commonPlaceholders contains ph2)) yield ph2).distinct
-    val renum_ph =       (for ((ph2, i) <- additional_ph.zipWithIndex) yield (ph2, Placeholder(max_ph + i + 1))).toMap
+    val renum_ph = additionalRoot.map{p => Map(p -> Placeholder(0))} getOrElse Map.empty ++
+      (for ((ph2, i) <- additional_ph.zipWithIndex) yield (ph2, Placeholder(max_ph + i + 1))).toMap
 
     def subst(element: BaseHyperTerm) = element match {
       case ph: Placeholder => renum_ph.getOrElse(ph, ph)

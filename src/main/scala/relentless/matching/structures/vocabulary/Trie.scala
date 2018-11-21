@@ -53,6 +53,7 @@ class Trie[Letter, Word <: IndexedSeq[Letter]](val directory: Tree[Vocabulary.Di
 
   private def get(index: Int, letter: Letter): Option[Vocabulary[Letter, Word]] = {
     val subtrie = if (index < subtries.length) subtries(index) else null
+    // TODO: Either auto enhance directory or change interface to enable returning all words following cond.
     if (subtrie == null) { /** for debugging if (!(directory.subtrees exists (_.root.letterIndex == index))) throw new RuntimeException(s"trie not indexed by position ${index}"); */
                            None }
     else subtrie get letter
