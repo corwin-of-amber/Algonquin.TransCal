@@ -59,11 +59,8 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
     val edge1 = 'a'
     val edge2 = 'b'
 
-    val hyperEdge1 = (node1, edge1, Seq(node2))
-    val hyperEdge2 = (node2, edge2, Seq(node1))
-
-    hyperGraph addEdge hyperEdge1
-    hyperGraph addEdge hyperEdge2
+    hyperGraph addEdge (node1, edge1, Seq(node2))
+    hyperGraph addEdge (node2, edge2, Seq(node1))
 
     hyperGraph.cycles shouldBe true
   }
@@ -77,13 +74,9 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
     val node4 = 4
     val edge1 = 'a'
 
-    val hyperEdge1 = (node1, edge1, Seq(node2, node4))
-    val hyperEdge2 = (node2, edge1, Seq(node3, node4))
-    val hyperEdge3 = (node3, edge1, Seq(node1, node4))
-
-    hyperGraph addEdge hyperEdge1
-    hyperGraph addEdge hyperEdge2
-    hyperGraph addEdge hyperEdge3
+    hyperGraph addEdge (node1, edge1, Seq(node2, node4))
+    hyperGraph addEdge (node2, edge1, Seq(node3, node4))
+    hyperGraph addEdge (node3, edge1, Seq(node1, node4))
 
     hyperGraph.cycles shouldBe true
   }
