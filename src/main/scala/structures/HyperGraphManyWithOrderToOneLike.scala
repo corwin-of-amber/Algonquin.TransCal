@@ -40,5 +40,6 @@ object HyperGraphManyWithOrderToOneLike {
   class HyperEdge[Node, EdgeType](val target: Node, val edgeType: EdgeType, val sources:Seq[Node])
   object HyperEdge {
     def apply[Node, EdgeType] (target: Node, edgeType: EdgeType, sources: Seq[Node]): HyperEdge[Node, EdgeType] = new HyperEdge(target, edgeType, sources)
+    def unapply[Node, EdgeType](hyperEdge: HyperEdge[Node, EdgeType]): Option[(Node, EdgeType, Seq[Node])] = Some(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)
   }
 }
