@@ -49,7 +49,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
   }
 
   def findPatternPrefix[Id](pattern: Seq[Item[Letter, Id]]): Set[Seq[Letter]] = {
-    findPatternPrefix[Id](pattern, Map.empty)
+    recursiveFindPatternPrefix[Id](pattern, Map.empty)
   }
 
   /* --- Private Methods --- */
@@ -57,7 +57,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
   private def addWithIndex(word: Seq[Letter], index: Int): Trie[Letter] = {
     logger.trace("Add word")
     logger.trace("Make subtries larger if needed")
-    subtries ++= (0 to word.length - index - subtries.length).map(_=>mutable.Map.empty)
+    subtries =  subtries ++ (0 to word.length - index - subtries.length).map(_=>mutable.Map.empty[Letter, Trie[Letter]])
 
     logger.trace("Add to indexes")
     for (((letter, mapSubtries), mapIndex) <- word.drop(index).zip(subtries).zipWithIndex) {
@@ -114,22 +114,22 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     }
   }
 
-  private def findPatternPrefix[Id](pattern: Seq[Item[Letter, Id]], placeholdersMap: Map[Id, Letter]): Set[Seq[Letter]] = {
+  private def recursiveFindPatternPrefix[Id](pattern: Seq[Item[Letter, Id]], placeholdersMap: Map[Id, Letter]): Set[Seq[Letter]] = {
     pattern match {
       case Nil => words
       case item +: more => {
         item match {
-          case Explicit(value) => subtries(0)(value).findPatternPrefix(more, placeholdersMap)
+          case Explicit(value) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
           case Reference(id) => {
             if (placeholdersMap.contains(id)) {
               val value = placeholdersMap(id)
-              subtries(0)(value).findPatternPrefix(more, placeholdersMap)
+              subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
             } else {
-              (for((letter, subtrie) <- subtries(0)) yield subtrie.findPatternPrefix(more, placeholdersMap updated (id, letter)))
+              (for((letter, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated (id, letter)))
                 .flatten.toSet
             }
           }
-          case NotMatter() => (for((_, subtrie) <- subtries(0)) yield subtrie.findPatternPrefix(more, placeholdersMap))
+          case NotMatter() => (for((_, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
             .flatten.toSet
         }
       }
