@@ -8,9 +8,11 @@ import structures.immutable.Item
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]] {
 
-  def findEdges(edge: EdgeType): Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
+  def findEdges(edge: EdgeType): Set[HyperEdge[Node, EdgeType]]
 
-  def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
+  def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperEdge[Node, EdgeType]]
+
+  def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
   def cycles: Boolean
 
@@ -18,9 +20,9 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   def edgeTypes: Set[EdgeType] = edges.flatMap(edge=>Set(edge.edgeType))
 
-  def edges: Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
+  def edges: Set[HyperEdge[Node, EdgeType]]
 
-  def addEdge(hyperEdge: HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]): This = {
+  def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This = {
     addEdge(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)
   }
   def addEdge(hyperEdge: (Node, EdgeType, Seq[Node])): This = {
@@ -35,12 +37,4 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
   def removeEdge(target: Node, edge: EdgeType, sources: Seq[Node]): This
 
   def mergeNodes(keep: Node, change: Node): This
-}
-
-object HyperGraphManyWithOrderToOneLike {
-  class HyperEdge[Node, EdgeType](val target: Node, val edgeType: EdgeType, val sources:Seq[Node])
-  object HyperEdge {
-    def apply[Node, EdgeType] (target: Node, edgeType: EdgeType, sources: Seq[Node]): HyperEdge[Node, EdgeType] = new HyperEdge(target, edgeType, sources)
-    def unapply[Node, EdgeType](hyperEdge: HyperEdge[Node, EdgeType]): Option[(Node, EdgeType, Seq[Node])] = Some(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)
-  }
 }

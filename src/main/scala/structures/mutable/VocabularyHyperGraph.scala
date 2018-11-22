@@ -1,9 +1,8 @@
 package structures.mutable
 
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.immutable.{Explicit, Item, NotMatter, Reference}
-import structures.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike, Vocabulary}
+import structures.{HyperEdge, HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike, Vocabulary}
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -69,6 +68,61 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
      .map(wordToHyperEdge)
   }
 
+  def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
+    type SubPattern = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
+    type ReferencesMap = Map[Id, Either[Node, EdgeType]]
+    /**
+      * Creating a new references map from known hyper edge and pattern.
+      * @param knownEdge The known edge
+      * @param pattern The pattern
+      * @return A map of the references in pattern to the values in knownPattern.
+      */
+    def hyperEdgeAndTemplateToReferencesMap(knownEdge: HyperEdge[Node, EdgeType], pattern: SubPattern): ReferencesMap = {
+      val temp = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Reference[Node, Id]]).map(a=>a._1 match {
+        case Reference(id) => (id, Left[Node, EdgeType](a._2))
+      }).toMap
+      pattern match {
+        case Reference(id) => temp(id) = Right(knownEdge.edgeType)
+        case _ =>
+      }
+      temp
+    }
+
+    def fillReferences(pattern: SubPattern, referencesMap: ReferencesMap): SubPattern = {
+      def convert[A](b: Either[Node, EdgeType] => A, item: Item[A, Id]): Item[A, Id] = {
+        item match {
+          case Reference(id) => referencesMap.get(id).map(b).map(Explicit[A, Id]).getOrElse(item)
+          case _ => item
+        }
+      }
+      val newTarget = convert[Node]({ case Left(node) => node }, pattern.target)
+      val newEdgeType = convert[EdgeType]({ case Right(edgeType) => edgeType }, pattern.edgeType)
+      val newSources = pattern.sources.map(convert[Node].curried({ case Left(node) => node }))
+      HyperEdge(newTarget, newEdgeType, newSources)
+    }
+
+    /**
+      * Creating reference map for a lot of matches.
+      * @param itemEdges
+      * @param referencesMap
+      * @return
+      */
+    def getReferencesMap(itemEdges: Seq[SubPattern], referencesMap: ReferencesMap): Set[ReferencesMap] = {
+      itemEdges match {
+        case Nil => Set(referencesMap)
+        case itemEdge::left => {
+          val HyperEdge(itemTarget, itemFunction, itemParameters) = fillReferences(itemEdge, referencesMap)
+          (for (hyperEdge <- this.find(itemTarget, itemFunction, itemParameters)) yield {
+            val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, HyperEdge(itemTarget, itemFunction, itemParameters)) ++ referencesMap
+            getReferencesMap(left, newReferences)
+          }).flatten
+        }
+      }
+    }
+    getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
+  }
+
+
   override def cycles: Boolean = {
     if (!vocabulary.isEmpty) {
       val opened = mutable.Set.empty[Node]
@@ -94,7 +148,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     false
   }
 
-  def edges: Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
+  def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
 
   /* --- Private Methods --- */
 
