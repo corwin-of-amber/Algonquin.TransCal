@@ -78,12 +78,14 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       * @return A map of the references in pattern to the values in knownPattern.
       */
     def hyperEdgeAndTemplateToReferencesMap(knownEdge: HyperEdge[Node, EdgeType], pattern: SubPattern): ReferencesMap = {
-      val temp: ReferencesMap = ((pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Reference[Node, Id]]).map(a=>a._1 match {
+      val nodesRefs = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Reference[Node, Id]]).map(a=>a._1 match {
         case Reference(id) => (id, Left[Node, EdgeType](a._2))
-      }) ++ (knownEdge.edgeType match {
-        case Reference(id: Id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
+      })
+      val edgeTypeRef = pattern.edgeType match {
+        case Reference(id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
         case _ => None
-      })).toMap
+      }
+      val temp: ReferencesMap = (nodesRefs ++ edgeTypeRef).toMap
 
       temp
     }
