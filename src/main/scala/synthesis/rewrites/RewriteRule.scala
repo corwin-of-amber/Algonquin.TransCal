@@ -65,8 +65,10 @@ object RewriteRule {
   private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): (Item[Term, Int], Item[Term, Int], Seq[Item[Term, Int]]) = {
     def templateTermToItem(templateTerm: TemplateTerm): Item[Term, Int] = {
       templateTerm match {
-        case ReferenceTerm(id) => references.get(templateTerm).map(Explicit[Term, Int]).getOrElse(Reference[Term, Int](id))
-        case ExplicitTerm(term) => Explicit[Term, Int](term)
+        case term: ReferenceTerm =>
+          references.get(templateTerm).map(Explicit[Term, Int]).getOrElse(Reference[Term, Int](term.id))
+        case term: ExplicitTerm =>
+          Explicit[Term, Int](term.term)
       }
     }
     (templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
