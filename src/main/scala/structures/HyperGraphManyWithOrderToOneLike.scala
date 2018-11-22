@@ -1,6 +1,5 @@
 package structures
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.immutable.Item
 
 /**
@@ -9,9 +8,9 @@ import structures.immutable.Item
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]] {
 
-  def findEdges(edge: EdgeType): Set[HyperEdge[Node, EdgeType]]
+  def findEdges(edge: EdgeType): Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
 
-  def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperEdge[Node, EdgeType]]
+  def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
 
   def cycles: Boolean
 
@@ -19,7 +18,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   def edges: Set[EdgeType]
 
-  def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This = {
+  def addEdge(hyperEdge: HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]): This = {
     addEdge(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)
   }
   def addEdge(hyperEdge: (Node, EdgeType, Seq[Node])): This = {

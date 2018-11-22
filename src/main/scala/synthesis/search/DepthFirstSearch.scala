@@ -1,7 +1,5 @@
 package synthesis.search
 
-import synthesis.search.DepthFirstSearch.Node
-
 import scala.collection.mutable
 
 /**
@@ -13,13 +11,13 @@ class DepthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, 
 
   override def search(searchSpace: SS, maxDepth: Double): Option[S] = {
     // a LIFO open_set
-    val openStack = new mutable.Stack[Node[S]]()
+    val openStack = new mutable.Stack[DepthFirstSearch.Node[S]]()
     // an empty set to maintain visited nodes
-    val closedMap = new mutable.HashMap[S, Node[S]]()
+    val closedMap = new mutable.HashMap[S, DepthFirstSearch.Node[S]]()
 
     // initialize
     for (root <- searchSpace.initialStates) {
-      openStack.push(new Node[S](root, maxDepth))
+      openStack.push(DepthFirstSearch.Node[S](root, maxDepth))
     }
 
     //For each node on the current level expand and process, if no children (leaf, then unwind)
@@ -41,7 +39,7 @@ class DepthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, 
             //The child is not enqueued to be processed, so enqueue this level of children to be expanded
             if (!openStack.exists(p => p.state == newState)) {
               //enqueue these nodes
-              openStack.push(new Node[S](newState, current))
+              openStack.push(DepthFirstSearch.Node[S](newState, current))
             }
           }
         }
@@ -53,13 +51,6 @@ class DepthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, 
 
 object DepthFirstSearch {
   private class Node[S <: State](val state: S, val parent: Option[Node[S]], val depth: Double) {
-    def this(state: S, depth: Double) {
-      this(state, None, depth)
-    }
-
-    def this(state: S, parent: Node[S]) {
-      this(state, Some(parent), parent.depth - 1)
-    }
 
     /**
       * Produce a backtrace of the actions taken to find the goal node, using the recorded meta dictionary
@@ -77,5 +68,12 @@ object DepthFirstSearch {
       }
       total_path.reverse.toIndexedSeq
     }
+  }
+  private object Node {
+    def apply[S](state: S, parent: Option[Node[S]], depth: Double): Node[S] = new Node(state, parent, depth)
+
+    def apply[S](state: S, parent: Node[S]): Node[S] = new Node(state, Some(parent), parent.depth - 1)
+
+    def apply[S](state: S, depth: Double): Node[S] = new Node(state, None, depth)
   }
 }
