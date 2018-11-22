@@ -33,7 +33,7 @@ class BreadthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S
         //We finished processing the root of this subtree, so add it to the closed
         closedMap.put(current.state, current)
         //For each child of the current tree process
-        for ((newState, _) <- searchSpace.neighbors(current.state)) {
+        for (newState <- searchSpace.neighbors(current.state)) {
           //The node has already been processed, so skip over it
           if (!closedMap.contains(newState)) {
             //The child is not enqueued to be processed, so enqueue this level of children to be expanded
@@ -70,8 +70,10 @@ object BreadthFirstSearch {
     }
   }
   private object Node {
-    def apply[S](state: S, parent: Option[Node[S]], depth: Double): Node[S] = new Node(state, parent, depth)
-    def apply[S](state: S, parent: Node[S]): Node[S] = new Node(state, Some(parent), parent.depth - 1)
-    def apply[S](state: S, depth: Double): Node[S] = new Node(state, None, depth)
+    def apply[S <: State](state: S, parent: Option[Node[S]], depth: Double): Node[S] = new Node[S](state, parent, depth)
+
+    def apply[S <: State](state: S, parent: Node[S]): Node[S] = new Node[S](state, Some(parent), parent.depth - 1)
+
+    def apply[S <: State](state: S, depth: Double): Node[S] = new Node[S](state, None, depth)
   }
 }
