@@ -73,9 +73,7 @@ object RewriteRule {
   }
 
   private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]] = {
-    def innerTemplateToPattern(templateTerm: Template): (Item[Term, Int], Item[Term, Int], Seq[Item[Term, Int]]) = templateToPattern.curried(Map.empty)
-
-    templates.map(innerTemplateToPattern)
+    templates.map(templateToPattern(Map.empty,_))
       .foldLeft[HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]]](VocabularyHyperGraph.empty[Item[Term, Int],
       Item[Term, Int]])((graph, pattern) => graph.addEdge(pattern))
   }

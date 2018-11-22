@@ -11,6 +11,10 @@ class Template(val target: Template.TemplateTerm, val function: Template.Templat
 }
 object Template {
   trait TemplateTerm
-  case class ExplicitTerm(term: Term) {}
-  case class ReferenceTerm(id: Int) {}
+  case class ExplicitTerm(term: Term) {
+    def unapply(arg: ExplicitTerm): Term = arg.term
+  }
+  case class ReferenceTerm(id: Int) {
+    def unapply(arg: ReferenceTerm): Int = arg.id
+  }
 }
