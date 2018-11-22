@@ -15,7 +15,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
     hyperGraph addEdge (target, edge, sources)
 
     hyperGraph.nodes shouldBe Set(target)
-    hyperGraph.edges shouldBe Set(edge)
+    hyperGraph.edgeTypes shouldBe Set(edge)
   }
 
   it should "remove an edge" in {
@@ -28,7 +28,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
     hyperGraph removeEdge (target, edge, sources)
 
     hyperGraph.nodes shouldBe empty
-    hyperGraph.edges shouldBe empty
+    hyperGraph.edgeTypes shouldBe empty
   }
 
   it should "merge an edge" in {
@@ -42,7 +42,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
     hyperGraph mergeNodes (newTarget, target)
 
     hyperGraph.nodes shouldBe Set(newTarget)
-    hyperGraph.edges shouldBe Set(edge)
+    hyperGraph.edgeTypes shouldBe Set(edge)
   }
 
   it should "has no cycle when empty" in {

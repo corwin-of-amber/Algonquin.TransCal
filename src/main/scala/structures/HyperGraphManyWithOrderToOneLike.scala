@@ -14,9 +14,11 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   def cycles: Boolean
 
-  def nodes: Set[Node]
+  def nodes: Set[Node] = edges.flatMap(edge=>edge.target +: edge.sources)
 
-  def edges: Set[EdgeType]
+  def edgeTypes: Set[EdgeType] = edges.flatMap(edge=>Set(edge.edgeType))
+
+  def edges: Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]]
 
   def addEdge(hyperEdge: HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]): This = {
     addEdge(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)

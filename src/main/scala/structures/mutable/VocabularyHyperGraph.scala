@@ -3,7 +3,7 @@ package structures.mutable
 
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.immutable.{Explicit, Item, NotMatter, Reference}
-import structures.{HyperGraphManyWithOrderToOne, Vocabulary}
+import structures.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike, Vocabulary}
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -94,10 +94,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     false
   }
 
-  override def nodes: Set[Node] = vocabulary.words.flatMap(_.drop(1)) map toNode
-
-  override def edges: Set[EdgeType] = vocabulary.words.flatMap(_.take(1)) map toEdge
-
+  def edges: Set[HyperGraphManyWithOrderToOneLike.HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
 
   /* --- Private Methods --- */
 
