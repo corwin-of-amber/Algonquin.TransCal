@@ -12,7 +12,7 @@ import synthesis.search.Operator
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
+class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
   def this(source: Template, destination: Template, conditions: Seq[Template], ruleType: RewriteRule.Category.Value) = {
     this(destination, RewriteRule.createHyperPatternFromTemplate(source +: conditions), ruleType)
@@ -25,7 +25,7 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[Term, Term]]] = compactGraph.findSubgraph[TemplateTerm, HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]]](hyperPattern)
+    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[Term, Term]]] = compactGraph.findSubgraph(hyperPattern)
     def merge(either: Either[Term, Term]): Term = {
       either match {
         case Left(left) => left
@@ -62,21 +62,21 @@ object RewriteRule {
 
   /* --- Privates --- */
 
-  private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): (Item[Term, Int], Item[Term, Int], Seq[Item[Term, Int]]) = {
-    def templateTermToItem(templateTerm: TemplateTerm): Item[Term, Int] = {
+  private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): (Item[Term, TemplateTerm], Item[Term, TemplateTerm], Seq[Item[Term, TemplateTerm]]) = {
+    def templateTermToItem(templateTerm: TemplateTerm): Item[Term, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
-          references.get(templateTerm).map(Explicit[Term, Int]).getOrElse(Reference[Term, Int](term.id))
+          references.get(templateTerm).map(Explicit[Term, TemplateTerm]).getOrElse(Reference[Term, TemplateTerm](term))
         case term: ExplicitTerm =>
-          Explicit[Term, Int](term.term)
+          Explicit[Term, TemplateTerm](term.term)
       }
     }
     (templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
   }
 
-  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]] = {
+  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]] = {
     templates.map(templateToPattern(Map.empty,_))
-      .foldLeft[HyperGraphManyWithOrderToOne[Item[Term, Int], Item[Term, Int]]](VocabularyHyperGraph.empty[Item[Term, Int],
-      Item[Term, Int]])((graph, pattern) => graph.addEdge(pattern))
+      .foldLeft[HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]]](VocabularyHyperGraph.empty[Item[Term, TemplateTerm],
+      Item[Term, TemplateTerm]])((graph, pattern) => graph.addEdge(pattern))
   }
 }
