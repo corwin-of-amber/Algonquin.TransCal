@@ -1,7 +1,8 @@
 package structures.mutable
 
 
-import structures.immutable.{Explicit, Item}
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.immutable.{Explicit, Item, NotMatter, Reference}
 import structures.{HyperGraphManyWithOrderToOne, Vocabulary}
 
 import scala.collection.mutable
@@ -17,7 +18,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
   /* --- Constructors --- */
 
   def this() = {
-    this (new Trie[Either[Node, EdgeType]]())
+    this (Trie.empty)
   }
 
 
@@ -38,17 +39,18 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     this
   }
 
-  override def findEdges(edgeType: EdgeType): Set[(Node, EdgeType, Seq[Node])] = {
+  override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
     vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
   }
 
-  override def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[(Node, EdgeType, Seq[Node])] = {
+  override def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperEdge[Node, EdgeType]] = {
     val (target, edge, sources) = pattern
     def convertItemBuilder[First, Second] (builer: First => Either[First, Second]): Item[First, Id] => Item[Either[First, Second], Id] = {
       def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
         item match {
           case Explicit(value) => Explicit(builer(value))
-          case _ => _
+          case Reference(id) => Reference(id)
+          case NotMatter() => NotMatter()
         }
       }
       convertItem
@@ -57,7 +59,8 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       def convertItem(item: Item[Second, Id]): Item[Either[First, Second], Id] = {
         item match {
           case Explicit(value) => Explicit(builer(value))
-          case _ => _
+          case Reference(id) => Reference(id)
+          case NotMatter() => NotMatter()
         }
       }
       convertItem
@@ -98,8 +101,8 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   /* --- Private Methods --- */
 
-  private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): (Node, EdgeType, Seq[Node]) =
-    (toNode(word(1)), toEdge(word.head), word.take(2) map toNode)
+  private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] =
+    HyperEdge(toNode(word(1)), toEdge(word.head), word.take(2) map toNode)
 
   private def lefty(node: Node): Either[Node, EdgeType] = {
     Left(node)
