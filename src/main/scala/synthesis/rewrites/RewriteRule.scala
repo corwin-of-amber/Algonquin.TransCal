@@ -46,6 +46,11 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
 
   /* --- Privates --- */
 
+  /**
+    * This function should work only after "id" rule.
+    * @param graph
+    * @return
+    */
   private def compact(graph: HyperGraphManyWithOrderToOne[Term, Term]): HyperGraphManyWithOrderToOne[Term, Term] = {
     graph
   }
