@@ -103,8 +103,8 @@ class Encoding extends LazyLogging {
     val term = template.template
     val vars = template.vars map (T(_))
     val rest = term.nodes filterNot (n => (n eq term) || (vars contains n))
-    val allHoles = (term :: vars ++ rest).distinct
-    val holeToPlaceholder: Map[Term, Placeholder] = (for ((u, idx) <- allHoles.zipWithIndex) yield (u, Placeholder(idx))).toMap
+    val allHoles = term :: (vars ++ rest).distinct
+    val holeToPlaceholder: Map[Term, Placeholder] = (for ((u, idx) <- allHoles.zipWithIndex.reverse) yield (u, Placeholder(idx))).toMap
 
     toPatterns(term, holeToPlaceholder, vars.length)
   }

@@ -1,4 +1,5 @@
-same = ?xs   [++]
+f = len ( ?xs )   [++]
 
-xs -> 1⃝
-1⃝ -> _ ++ _  [allow existentials]
+f -> 1
+1 -> len ( _ ++ _ )   [allow existentials]
+1 -> len ( _ ++ drop ( _ ++ _ ) _ )   [allow existentials]

@@ -54,9 +54,14 @@ class RewriteRule(val src: Scheme.Template, val target: Scheme.Template, val pre
 
     val srcPats = (srcTerms map enc.toPatterns) reduceLeft op
 
+    val additionalRoots = allVars.map(T(_)).intersect(srcTerms.map(_.template)).map(_.root)
+    val addRootPh: Option[Placeholder] = allVars.zipWithIndex.
+      filter(((i: Identifier, x: Int) => additionalRoots.contains(i)).tupled).
+      map(_._2 + 1).map(Placeholder).headOption
+
     val targetPats = {
       val targetPatsTemp = (targetTerms map enc.toPatterns) reduceLeft op
-      val shifted = Pattern.shiftPatterns(srcPats, targetPatsTemp, (rootPh +: varPhs).toSet)
+      val shifted = Pattern.shiftPatterns(srcPats, targetPatsTemp, (rootPh +: varPhs).toSet, addRootPh)
       shifted
     }
 
@@ -115,7 +120,7 @@ object RewriteRule {
     private def fresh(wv: IndexedSeq[Int]): Int = enc.reserveIndex()
 
     private def sparseTargetLookup(sparsePattern: Seq[(Int, Int)], t: Vocabulary[Int, BaseRewriteEdge[Int]]): Option[Int] =
-      t.sparseLookup(sparsePattern).map(_ (1))
+      t.sparseLookup(sparsePattern).headOption.map(_ (1))
 
     // TODO: remove assumptions
     // existential should be last.
@@ -142,6 +147,7 @@ object RewriteRule {
         logger.trace(s"added new words using ${s.patterns.map(_.mkString(" ")) mkString ", "}. words: ${add map (_ mkString " ") mkString ", "}")
         add
       }
+
       res.flatten toList
     }
 
@@ -162,6 +168,7 @@ object RewriteRule {
         else if (i < valuation.length) None
         // --- introduces an existential
         else {
+          // Make sure we don't create an existention foreach subterm (only for missing subterms)
           val ident = new Identifier("ex?" + i, "variable", uid)
           val term = T(ident)
           existentailEdges.append(RewriteEdge(origin, Seq(enc --> ident, enc --> term)))

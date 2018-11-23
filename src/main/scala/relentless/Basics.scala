@@ -231,8 +231,9 @@ class ExistentialRules(implicit val enc: Encoding) extends Rules {
 
   private val basicRules = new BasicRules()
 
-  val vars = List(x, y, z, `x'`, xs, `xs'`, exist)
+  val vars = List(x, y, z, `x'`, `xs'`, exist)
 
+  // TODO: return xs to vars after we have types.
   val ruleTemplates = List(
     xs =:> ++(take(xs, exist), drop(xs, exist))
   )

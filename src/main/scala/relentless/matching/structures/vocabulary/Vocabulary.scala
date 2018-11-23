@@ -23,14 +23,6 @@ trait Vocabulary[Letter, Word <: IndexedSeq[Letter]] {
     */
   def add(word: Word): Unit
 
-  /** Finds a Vocabulary in index of a letter.
-    *
-    * @param index The index to look at
-    * @param letter The searched letter
-    * @return The relevant Vocabulary if exists.
-    */
-  def get(index: Int, letter: Letter): Option[Vocabulary[Letter, Word]]
-
   /** Return all words starts with the letter.
     *
     * @param letter The letter to find
@@ -44,7 +36,7 @@ trait Vocabulary[Letter, Word <: IndexedSeq[Letter]] {
     * @param sparsePattern index value pairs to find in trie.
     * @return optional word conforming sparse pattern
     */
-  def sparseLookup(sparsePattern: Seq[(Int, Letter)]): Option[Word]
+  def sparseLookup(sparsePattern: Seq[(Int, Letter)]): Stream[Word]
 
   /**
     * uniques() groups words in given trie by values at locations >= index,

@@ -54,9 +54,12 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     targets.add(w.target)
     trie add w
     findEquivalences(w)
-    logger.trace(s"working on word ${w mkString " "}")
+    logger.debug(s"working on word ${w mkString " "}")
     for (r <- rewriteRules) {
-      wq.enqueue(r.process(w, trie): _*)
+      val res = r.process(w, trie)
+      if (res.nonEmpty)
+        logger.debug(s"rule ${r.src.template.leaves.map(_.root)} returned ${res.length} new edges")
+      wq.enqueue(res: _*)
     }
 
     //for (g <- goal) processRule(g, w)
@@ -84,8 +87,8 @@ class Rewriter(init: Seq[BaseRewriteEdge[Int]], rewriteRules: List[RewriteRule],
     }
     else {
       /* locate all stored edges with same edgeType and params */
-      val pat = new ImplPattern((edge map HyperTerm).updated(1, Placeholder(0)))
-      val eqs = pat.lookup(trie, new ImplValuation(1))
+      val pattern = new ImplPattern((edge map HyperTerm).updated(1, Placeholder(0)))
+      val eqs = pattern.lookup(trie, new ImplValuation(1))
       if (eqs.nonEmpty)
         makeEquivalent(eqs map (_.target))
     }

@@ -5,6 +5,10 @@
             <level>TRACE</level>
             <onMatch>DENY</onMatch>
         </filter>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>DENY</onMatch>
+        </filter>
         <encoder>
             <pattern>%msg%n</pattern>
         </encoder>

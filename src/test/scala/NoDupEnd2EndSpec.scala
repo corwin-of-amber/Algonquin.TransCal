@@ -62,8 +62,7 @@ class NoDupEnd2EndSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val locateInput = getInput(logs, locateIndexes.head)
     val locateOutput = getOutput(logs, locateIndexes.head)
     getVars(locateInput.getFormattedMessage).length should be (2)
-    locateOutput.length should be (1)
-    locateOutput.head.getFormattedMessage.trim shouldEqual "¬(elem x xs) ∧ nodup xs"
+    locateOutput.map(_.getFormattedMessage.trim).filter(_.contains("∧{¬{@{@{elem, x}, xs}}, @{nodup, xs}}")) shouldNot be (empty)
   }
 
   // When transcal receives a "->" with ? to the right define the new function
@@ -75,7 +74,6 @@ class NoDupEnd2EndSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val genOutput = getOutput(logs, genIndexes.head)
     getVars(genInput.getFormattedMessage).length should be (1)
     getVars(genInput.getFormattedMessage).head shouldEqual "nodup'"
-    genOutput.length should be (2)
     // get message with param replacement and remove as at print start
     val generalizedExpression = genOutput.last.getFormattedMessage.trim.substring(2)
     // this means nodup' is the lambda (α β ↦ (α ‖ elems β) ∧ nodup β)
@@ -104,25 +102,25 @@ class NoDupEnd2EndSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     // TODO: Logic testing that the found program is equivalent to nodup
   }
 
-  it should "locate pattern and transform term into the first requested pattern (locate and elaborate commnad)" in {
-    val elabIndexes = logs.zipWithIndex.filter(_._1.getFormattedMessage.trim.startsWith("elaborate")).map(_._2)
-    elabIndexes should not be empty
-    // We will have only the new function name as a var bgecause x/xs are defined
-    val elabInput = getInput(logs, elabIndexes.drop(1).head)
-    val elabOutput = getOutput(logs, elabIndexes.drop(1).head)
-    // The pattern has 4 holes so the requested term has 4 vars
-    getVars(elabInput.getFormattedMessage).length should be (4)
-    elabOutput.length should be > 0
-    verifyElaborateIO(elabOutput,
-      locateVerifier = left => {
-    val located = raw"x\s*∉\s*(.*)\s*(?:/\\|∧)\s*x'\s*∉\s*(.*)".r.findFirstMatchIn(left)
-    located should not be None
-    },
-    elabVerifier = right => {
-      val elaborated = raw"(.*)\s*‖\s*(.*)".r.findFirstMatchIn(right)
-      elaborated should not be None
-    })
-  }
+//  it should "locate pattern and transform term into the first requested pattern (locate and elaborate commnad)" in {
+//    val elabIndexes = logs.zipWithIndex.filter(_._1.getFormattedMessage.trim.startsWith("elaborate")).map(_._2)
+//    elabIndexes should not be empty
+//    // We will have only the new function name as a var bgecause x/xs are defined
+//    val elabInput = getInput(logs, elabIndexes.drop(1).head)
+//    val elabOutput = getOutput(logs, elabIndexes.drop(1).head)
+//    // The pattern has 4 holes so the requested term has 4 vars
+//    getVars(elabInput.getFormattedMessage).length should be (4)
+//    elabOutput.length should be > 0
+//    verifyElaborateIO(elabOutput,
+//      locateVerifier = left => {
+//    val located = raw"x\s*∉\s*(.*)\s*(?:/\\|∧)\s*x'\s*∉\s*(.*)".r.findFirstMatchIn(left)
+//    located should not be None
+//    },
+//    elabVerifier = right => {
+//      val elaborated = raw"(.*)\s*‖\s*(.*)".r.findFirstMatchIn(right)
+//      elaborated should not be None
+//    })
+//  }
 
   // TODO: finish rest of app;ied tactics
 
