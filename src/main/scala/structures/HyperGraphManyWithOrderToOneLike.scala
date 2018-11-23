@@ -10,7 +10,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   def findEdges(edge: EdgeType): Set[HyperEdge[Node, EdgeType]]
 
-  def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperEdge[Node, EdgeType]]
+  def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]]
 
   def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
@@ -22,19 +22,9 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   def edges: Set[HyperEdge[Node, EdgeType]]
 
-  def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This = {
-    addEdge(hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)
-  }
-  def addEdge(hyperEdge: (Node, EdgeType, Seq[Node])): This = {
-    addEdge(hyperEdge._1, hyperEdge._2, hyperEdge._3)
-  }
+  def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
 
-  def addEdge(target: Node, edgeType: EdgeType, sources: Seq[Node]): This
-
-  def removeEdge(hyperEdge: (Node, EdgeType, Seq[Node])): This = {
-    removeEdge(hyperEdge._1, hyperEdge._2, hyperEdge._3)
-  }
-  def removeEdge(target: Node, edge: EdgeType, sources: Seq[Node]): This
+  def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
 
   def mergeNodes(keep: Node, change: Node): This
 }

@@ -23,13 +23,13 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(target: Node, edgeType: EdgeType, sources: Seq[Node]): VocabularyHyperGraph[Node, EdgeType] = {
-    vocabulary add (righty(edgeType) +: (target +: sources).map(lefty))
+  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    vocabulary add hyperEdgeToWord(hyperEdge)
     this
   }
 
-  override def removeEdge(target: Node, edgeType: EdgeType, sources: Seq[Node]): VocabularyHyperGraph[Node, EdgeType] = {
-    vocabulary remove (righty(edgeType) +: (target +: sources).map(lefty))
+  override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    vocabulary remove hyperEdgeToWord(hyperEdge)
     this
   }
 
@@ -42,8 +42,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
   }
 
-  override def find[Id](pattern: (Item[Node, Id], Item[EdgeType, Id], Seq[Item[Node, Id]])): Set[HyperEdge[Node, EdgeType]] = {
-    val (target, edge, sources) = pattern
+  override def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]] = {
     def convertItemBuilder[First, Second] (builer: First => Either[First, Second]): Item[First, Id] => Item[Either[First, Second], Id] = {
       def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
         item match {
@@ -64,7 +63,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       }
       convertItem
     }
-    vocabulary.findPattern(convertItemBuilder2[Node, EdgeType](righty)(edge) +: (target +: sources).map(convertItemBuilder(lefty)))
+    vocabulary.findPattern(convertItemBuilder2[Node, EdgeType](righty)(pattern.edgeType) +: (pattern.target +: pattern.sources).map(convertItemBuilder(lefty)))
      .map(wordToHyperEdge)
   }
 
@@ -113,9 +112,9 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       itemEdges match {
         case Nil => Set(referencesMap)
         case itemEdge::left => {
-          val HyperEdge(itemTarget, itemFunction, itemParameters) = fillReferences(itemEdge, referencesMap)
-          (for (hyperEdge <- this.find(itemTarget, itemFunction, itemParameters)) yield {
-            val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, HyperEdge(itemTarget, itemFunction, itemParameters)) ++ referencesMap
+          val filledEdge= fillReferences(itemEdge, referencesMap)
+          (for (hyperEdge <- this.find(filledEdge)) yield {
+            val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge) ++ referencesMap
             getReferencesMap(left, newReferences)
           }).flatten
         }
@@ -123,7 +122,6 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     }
     getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
   }
-
 
   override def cycles: Boolean = {
     if (!vocabulary.isEmpty) {
@@ -152,10 +150,14 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
 
+
   /* --- Private Methods --- */
 
   private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] =
-    HyperEdge(toNode(word(1)), toEdge(word.head), word.take(2) map toNode)
+    HyperEdge(toNode(word(1)), toEdge(word.head), word.drop(2) map toNode)
+
+  private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Seq[Either[Node, EdgeType]] =
+    righty(hyperEdge.edgeType) +: lefty(hyperEdge.target) +: hyperEdge.sources.map(lefty)
 
   private def lefty(node: Node): Either[Node, EdgeType] = {
     Left(node)

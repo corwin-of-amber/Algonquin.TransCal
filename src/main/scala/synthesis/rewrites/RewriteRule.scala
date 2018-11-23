@@ -3,7 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.immutable.{Explicit, Item, Reference}
 import structures.mutable.VocabularyHyperGraph
-import structures.HyperGraphManyWithOrderToOne
+import structures.{HyperEdge, HyperGraphManyWithOrderToOne}
 import synthesis.Term
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -67,7 +67,7 @@ object RewriteRule {
 
   /* --- Privates --- */
 
-  private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): (Item[Term, TemplateTerm], Item[Term, TemplateTerm], Seq[Item[Term, TemplateTerm]]) = {
+  private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): HyperEdge[Item[Term, TemplateTerm], Item[Term, TemplateTerm]] = {
     def templateTermToItem(templateTerm: TemplateTerm): Item[Term, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
@@ -76,7 +76,7 @@ object RewriteRule {
           Explicit[Term, TemplateTerm](term.term)
       }
     }
-    (templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
+    HyperEdge(templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
   }
 
   private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]] = {
