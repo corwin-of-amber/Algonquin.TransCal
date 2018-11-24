@@ -1,0 +1,20 @@
+package synthesis.actions
+
+import synthesis.actions.operators.Action
+import synthesis.search.SearchSpace
+
+/**
+  * @author tomer
+  * @since 11/18/18
+  */
+class ActionSearchSpace(initialState: ActionSearchState , operators: Seq[Action]) extends SearchSpace[ActionSearchState] {
+  override def neighbors(state: ActionSearchState): Stream[ActionSearchState] = {
+    for(operator <- operators.toStream) yield {
+      operator(state)
+    }
+  }
+
+  override def isGoal(state: ActionSearchState): Boolean = true
+
+  override def initialStates: Set[ActionSearchState] = Set(initialState)
+}
