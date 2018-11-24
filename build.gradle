@@ -52,6 +52,7 @@ dependencies {
     compile group: 'org.scala-lang', name:'scala-library', version: '2.11.12'
     compile name: 'com.microsoft.z3'
     compile name: 'earley'
+    compile group: 'org.rogach', name: 'scallop_2.11', version: '3.1.5'
     compile group: 'org.algonquin', name: 'bellmaniac'
     compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.11', version: '3.9.0'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
