@@ -123,6 +123,21 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
   }
 
+  override def singularSubgraphs(node: Node): Stream[VocabularyHyperGraph[Node, EdgeType]] = {
+    def recursiveSingularSubgraphs(selectedEdges: Set[HyperEdge[Node, EdgeType]], closed: Set[Node]): Stream[VocabularyHyperGraph[Node, EdgeType]] = {
+      val opened = selectedEdges.flatMap(_.sources).diff(closed)
+
+      opened.map(node => (node, vocabulary.findByPrefix(Seq((1, lefty(node)))).map(wordToHyperEdge)))  // Getting the edges of the opens
+        .find(found => found._2.nonEmpty)  // Selecting the first non terminal node
+        .map(tuple => {
+        val (newSelectedNode, newSelectedEdges) = tuple
+        newSelectedEdges.toStream.flatMap(newSelectedEdge => recursiveSingularSubgraphs(selectedEdges + newSelectedEdge, closed + newSelectedNode)) // Recursive with the first non terminal node
+      }).getOrElse(Stream(selectedEdges.foldLeft(new VocabularyHyperGraph[Node, EdgeType]())((hyperGraph, edge)=>hyperGraph.addEdge(edge))))  // Build singular subgraph from current edges
+    }
+    vocabulary.findByPrefix(Seq((1, lefty(node)))).map(wordToHyperEdge)
+      .toStream.flatMap(edge => recursiveSingularSubgraphs(Set(edge), Set()))
+  }
+
   override def cycles: Boolean = {
     if (!vocabulary.isEmpty) {
       val opened = mutable.Set.empty[Node]
