@@ -40,7 +40,7 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
 
     val graph = r.foldLeft(compactGraph)((graph, edge) => graph.addEdge(edge))
 
-    new RewriteSearchState(state.hyperTerm, graph)
+    new RewriteSearchState(graph)
   }
 
 
