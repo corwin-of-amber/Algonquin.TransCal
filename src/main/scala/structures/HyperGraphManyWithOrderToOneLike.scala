@@ -33,13 +33,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
-  /** Builds subgraphs where each node has one edge as a target but if it has any.
-    *
-    * @param node The starting node
-    * @return Singular subgraphs
-    */
-  def singularSubgraphs(node: Node): Stream[This]
-
   /** Checks if there are any cycles in the hyper graph.
     *
     * @return True is there is a cycle and false otherwise.
@@ -57,7 +50,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
   def edgeTypes: Set[EdgeType] = edges.flatMap(edge=>Set(edge.edgeType))
 
   /**
-    * @return all the edgea in the hyper graph.
+    * @return all the edges in the hyper graph.
     */
   def edges: Set[HyperEdge[Node, EdgeType]]
 
