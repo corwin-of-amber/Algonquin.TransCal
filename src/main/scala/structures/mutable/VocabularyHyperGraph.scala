@@ -2,7 +2,7 @@ package structures.mutable
 
 
 import structures.immutable.{Explicit, Item, NotMatter, Reference}
-import structures.{HyperEdge, HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike, Vocabulary}
+import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike}
 
 import scala.collection.mutable
 import scala.language.postfixOps

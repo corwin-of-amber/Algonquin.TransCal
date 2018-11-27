@@ -10,7 +10,7 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Letter]]], var words: Set[Seq[Letter]])
-  extends structures.Vocabulary[Letter] with LazyLogging {
+  extends Vocabulary[Letter] with LazyLogging {
 
 
   /* --- Constructors --- */
