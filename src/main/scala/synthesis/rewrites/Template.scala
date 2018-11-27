@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import synthesis.Term
+import synthesis.HyperTerm
 
 /**
   * @author tomer
@@ -10,8 +10,8 @@ class Template(val target: Template.TemplateTerm, val function: Template.Templat
 
 object Template {
   trait TemplateTerm
-  case class ExplicitTerm(term: Term) {
-    def unapply(arg: ExplicitTerm): Term = arg.term
+  case class ExplicitTerm(term: HyperTerm) {
+    def unapply(arg: ExplicitTerm): HyperTerm = arg.term
   }
   case class ReferenceTerm(id: Int) {
     def unapply(arg: ReferenceTerm): Int = arg.id

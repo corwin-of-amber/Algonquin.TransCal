@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.immutable.{Explicit, Item, Reference}
 import structures.mutable.VocabularyHyperGraph
 import structures.{HyperEdge, HyperGraphManyWithOrderToOne}
-import synthesis.Term
+import synthesis.HyperTerm
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
 
@@ -12,7 +12,7 @@ import synthesis.search.Operator
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
+class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
   def this(source: Template, destination: Template, conditions: Seq[Template], ruleType: RewriteRule.Category.Value) = {
     this(destination, RewriteRule.createHyperPatternFromTemplate(source +: conditions), ruleType)
@@ -25,8 +25,8 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[Term, Term]]] = compactGraph.findSubgraph(hyperPattern)
-    def merge(either: Either[Term, Term]): Term = {
+    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[HyperTerm, HyperTerm]]] = compactGraph.findSubgraph(hyperPattern)
+    def merge(either: Either[HyperTerm, HyperTerm]): HyperTerm = {
       either match {
         case Left(left) => left
         case Right(right) => right
@@ -51,7 +51,7 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
     * @param graph
     * @return
     */
-  private def compact(graph: HyperGraphManyWithOrderToOne[Term, Term]): HyperGraphManyWithOrderToOne[Term, Term] = {
+  private def compact(graph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]): HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm] = {
     graph
   }
 }
@@ -67,21 +67,21 @@ object RewriteRule {
 
   /* --- Privates --- */
 
-  private def templateToPattern(references: Map[TemplateTerm, Term], template: Template): HyperEdge[Item[Term, TemplateTerm], Item[Term, TemplateTerm]] = {
-    def templateTermToItem(templateTerm: TemplateTerm): Item[Term, TemplateTerm] = {
+  private def templateToPattern(references: Map[TemplateTerm, HyperTerm], template: Template): HyperEdge[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]] = {
+    def templateTermToItem(templateTerm: TemplateTerm): Item[HyperTerm, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
-          references.get(templateTerm).map(Explicit[Term, TemplateTerm]).getOrElse(Reference[Term, TemplateTerm](term))
+          references.get(templateTerm).map(Explicit[HyperTerm, TemplateTerm]).getOrElse(Reference[HyperTerm, TemplateTerm](term))
         case term: ExplicitTerm =>
-          Explicit[Term, TemplateTerm](term.term)
+          Explicit[HyperTerm, TemplateTerm](term.term)
       }
     }
     HyperEdge(templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
   }
 
-  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]] = {
+  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]] = {
     templates.map(templateToPattern(Map.empty,_))
-      .foldLeft[HyperGraphManyWithOrderToOne[Item[Term, TemplateTerm], Item[Term, TemplateTerm]]](VocabularyHyperGraph.empty[Item[Term, TemplateTerm],
-      Item[Term, TemplateTerm]])((graph, pattern) => graph.addEdge(pattern))
+      .foldLeft[HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]]](VocabularyHyperGraph.empty[Item[HyperTerm, TemplateTerm],
+      Item[HyperTerm, TemplateTerm]])((graph, pattern) => graph.addEdge(pattern))
   }
 }
