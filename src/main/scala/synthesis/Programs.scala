@@ -130,7 +130,7 @@ object Programs {
       if (tree.isLeaf) {
         Set.empty
       } else {
-        val newHyperEdge = new HyperEdge[HyperTerm, HyperTerm](HyperTerm(counter()), HyperTerm(tree.root), tree.subtrees.map(_.root).map(HyperTerm))
+        val newHyperEdge = HyperEdge[HyperTerm, HyperTerm](HyperTerm(counter()), HyperTerm(tree.root), tree.subtrees.map(_.root).map(HyperTerm))
         val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter)).toSet
         subHyperEdges + newHyperEdge
       }
