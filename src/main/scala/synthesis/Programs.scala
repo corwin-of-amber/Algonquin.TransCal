@@ -4,7 +4,7 @@ import structures.HyperEdge
 import structures.mutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
 import syntax.Tree
 
-/**
+/** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
   * @author tomer
   * @since 11/19/18
   */
