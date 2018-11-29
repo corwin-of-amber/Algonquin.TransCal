@@ -10,6 +10,14 @@ import syntax.Tree
 class Programs(var hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]) {
 
 
+  /* --- Constructors --- */
+
+  def this(tree: Tree[Int]) = {
+    this(destruct(tree, Stream.from(1).iterator.next))
+
+  }
+
+
   /* --- Public --- */
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -18,17 +26,17 @@ class Programs(var hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
     * @return All the trees.
     */
   def reconstruct(hyperTerm: HyperTerm): Iterator[Tree[Int]] = {
-      val targetToEdges = hyperGraph.edges.groupBy(edge=>edge.target)
-      def recursive(currentHyperTerm: HyperTerm): Iterator[Tree[Int]] = {
-        if (targetToEdges.contains(currentHyperTerm)) {
-          targetToEdges(currentHyperTerm).toIterator.flatMap(edge => {
-            new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Int](edge.edgeType.id, subtrees.toList))
-          })
-        } else {
-          Iterator(new Tree[Int](currentHyperTerm.id))
-        }
+    val targetToEdges = hyperGraph.edges.groupBy(edge=>edge.target)
+    def recursive(currentHyperTerm: HyperTerm): Iterator[Tree[Int]] = {
+      if (targetToEdges.contains(currentHyperTerm)) {
+        targetToEdges(currentHyperTerm).toIterator.flatMap(edge => {
+          new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Int](HyperTerm.toInt(edge.edgeType), subtrees.toList))
+        })
+      } else {
+        Iterator(new Tree[Int](HyperTerm.toInt(currentHyperTerm)))
       }
-      recursive(hyperTerm)
+    }
+    recursive(hyperTerm)
   }
 
 
