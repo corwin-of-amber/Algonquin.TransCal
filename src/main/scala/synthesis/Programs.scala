@@ -1,5 +1,6 @@
 package synthesis
 
+import com.typesafe.scalalogging.LazyLogging
 import structures.HyperEdge
 import structures.mutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
 import syntax.Tree
@@ -8,7 +9,7 @@ import syntax.Tree
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]) {
+class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]) extends LazyLogging {
 
 
   /* --- Constructors --- */
@@ -24,6 +25,7 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
     * @return All the trees.
     */
   def reconstruct(hyperTerm: HyperTerm): Iterator[Tree[Int]] = {
+    logger.trace("Reconstruct programs")
     val targetToEdges = hyperGraph.edges.groupBy(edge => edge.target)
 
     import scala.collection.AbstractIterator
@@ -116,12 +118,14 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
   }
 }
 
-object Programs {
+object Programs extends LazyLogging {
 
 
   /* --- Private --- */
 
   private def destruct(tree: Tree[Int]): HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm] = {
+    logger.trace("Destruct a program")
+
     def allIds(tree: Tree[Int]): Set[Int] = {
       tree.subtrees.flatMap(allIds).toSet + tree.root
     }
