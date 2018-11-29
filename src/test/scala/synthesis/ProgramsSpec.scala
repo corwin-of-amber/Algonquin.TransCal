@@ -11,7 +11,7 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val param1 = 1
     val param2 = 2
     val tree = new Tree[Int](root, List(new Tree[Int](param1), new Tree[Int](param2)))
-    val hyperEdge = new HyperEdge(new HyperTerm(3), new HyperTerm(root), Seq(new HyperTerm(param1), new HyperTerm(param2)))
+    val hyperEdge = HyperEdge(HyperTerm(3), HyperTerm(root), Seq(HyperTerm(param1), HyperTerm(param2)))
 
     val programs = new Programs(tree)
 
@@ -22,7 +22,7 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val tree = new Tree[Int](0)
     val programs = new Programs(tree)
 
-    val results = programs.reconstruct(new HyperTerm(0)).toList
+    val results = programs.reconstruct(HyperTerm(0)).toList
 
     results should have size 1
     results should contain(tree)
@@ -32,7 +32,7 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val tree = new Tree[Int](0, List(new Tree[Int](1), new Tree[Int](2)))
     val programs = new Programs(tree)
 
-    val results = programs.reconstruct(new HyperTerm(0)).toList
+    val results = programs.reconstruct(HyperTerm(0)).toList
 
     results should have size 1
     results should contain (tree)
