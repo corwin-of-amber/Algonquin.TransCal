@@ -70,8 +70,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
   def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
     type SubPattern = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
     type ReferencesMap = Map[Id, Either[Node, EdgeType]]
-    /**
-      * Creating a new references map from known hyper edge and pattern.
+    /** Creating a new references map from known hyper edge and pattern.
       * @param knownEdge The known edge
       * @param pattern The pattern
       * @return A map of the references in pattern to the values in knownPattern.
@@ -89,6 +88,11 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       temp
     }
 
+    /** Fills the pattern with known references.
+      * @param pattern The pattern to fill
+      * @param referencesMap The known map
+      * @return A filled pattern
+      */
     def fillReferences(pattern: SubPattern, referencesMap: ReferencesMap): SubPattern = {
       def convert[A](b: Either[Node, EdgeType] => A, item: Item[A, Id]): Item[A, Id] = {
         item match {
@@ -102,22 +106,20 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       HyperEdge(newTarget, newEdgeType, newSources)
     }
 
-    /**
-      * Creating reference map for a lot of matches.
-      * @param itemEdges
-      * @param referencesMap
-      * @return
+    /** Creating reference map for a lot of matches.
+      * @param itemEdges pattern edges.
+      * @param referencesMap current reference map
+      * @return a nee reference map
       */
     def getReferencesMap(itemEdges: Seq[SubPattern], referencesMap: ReferencesMap): Set[ReferencesMap] = {
       itemEdges match {
         case Nil => Set(referencesMap)
-        case itemEdge::left => {
+        case itemEdge::left =>
           val filledEdge= fillReferences(itemEdge, referencesMap)
           (for (hyperEdge <- this.find(filledEdge)) yield {
             val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge) ++ referencesMap
             getReferencesMap(left, newReferences)
           }).flatten
-        }
       }
     }
     getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
