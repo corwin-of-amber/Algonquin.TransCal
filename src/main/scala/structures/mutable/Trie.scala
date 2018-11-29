@@ -48,7 +48,8 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     }
   }
 
-  def findPatternPrefix[Id](pattern: Seq[Item[Letter, Id]]): Set[Seq[Letter]] = {
+  override def findPatternPrefix[Id](pattern: Seq[Item[Letter, Id]]): Set[Seq[Letter]] = {
+    logger.trace("find pattern prefix")
     recursiveFindPatternPrefix[Id](pattern, Map.empty)
   }
 
@@ -108,10 +109,9 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     this
   }
 
-  private def addAll(otherTrie: Trie[Letter], index: Int): Unit = {
-    for(word <- otherTrie.words) {
-      addWithIndex(word, index)
-    }
+  private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
+    logger.trace("addAll")
+    otherTrie.words.foldLeft(this)((trie, word) => trie.addWithIndex(word, index))
   }
 
   private def recursiveFindPatternPrefix[Id](pattern: Seq[Item[Letter, Id]], placeholdersMap: Map[Id, Letter]): Set[Seq[Letter]] = {
