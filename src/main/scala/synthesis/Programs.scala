@@ -30,22 +30,22 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
 
     /** Iterator which combines sequence of iterators (return all combinations of their results).
       * @param iterators All the iterators to combine.
-      * @tparam A The return type.
+      * @tparam T The return type.
       */
-    class CombineSeq[A](iterators: Seq[Iterator[A]]) extends AbstractIterator[Seq[A]] {
+    class CombineSeq[T](iterators: Seq[Iterator[T]]) extends AbstractIterator[Seq[T]] {
 
 
       /* --- AbstractIterator Implementation --- */
 
       override def hasNext: Boolean = innerIterator.hasNext
 
-      override def next(): Seq[A] = innerIterator.next()
+      override def next(): Seq[T] = innerIterator.next()
 
 
       /* --- Privates --- */
 
       /** Creates inner iterator of CombinedTwo and flat map it out. */
-      private val innerIterator: Iterator[Seq[A]] = iterators match {
+      private val innerIterator: Iterator[Seq[T]] = iterators match {
         case Nil => Iterator.empty
         case head +: Nil => head.map(Seq(_))
         case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
@@ -130,7 +130,7 @@ object Programs {
       if (tree.isLeaf) {
         Set.empty
       } else {
-        val newHyperEdge = new HyperEdge[HyperTerm, HyperTerm](new HyperTerm(counter()), new HyperTerm(tree.root), tree.subtrees.map(subtree => new HyperTerm(subtree.root)))
+        val newHyperEdge = new HyperEdge[HyperTerm, HyperTerm](HyperTerm(counter()), HyperTerm(tree.root), tree.subtrees.map(_.root).map(HyperTerm))
         val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter)).toSet
         subHyperEdges + newHyperEdge
       }
