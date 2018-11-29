@@ -1,7 +1,6 @@
 package synthesis
 
-import structures.HyperGraphManyWithOrderToOne
-import structures.mutable.CombineSeq
+import structures.{HyperEdge, HyperGraphManyWithOrderToOne}
 import syntax.Tree
 
 /**
@@ -30,5 +29,64 @@ class Programs(var hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
         }
       }
       recursive(hyperTerm)
+  }
+
+
+  /* --- Private --- */
+
+  def destruct(tree: Tree[Int], counter: () => Int): Set[HyperEdge[HyperTerm, HyperTerm]] = {
+    if (tree.isLeaf) {
+      Set.empty
+    } else {
+      val newHyperEdge = new HyperEdge[HyperTerm, HyperTerm](PlaceHolder(counter()), Value(tree.root), tree.subtrees.map(subtree => Value(subtree.root)))
+      val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter)).toSet
+      subHyperEdges + newHyperEdge
+    }
+  }
+
+  import scala.collection.AbstractIterator
+
+  private class CombineSeq[A](iterators: Seq[Iterator[A]]) extends AbstractIterator[Seq[A]] {
+
+
+    /* --- AbstractIterator Implementation --- */
+
+    override def hasNext: Boolean = innerIterator.hasNext
+
+    override def next(): Seq[A] = innerIterator.next()
+
+
+    /* --- Privates --- */
+
+    private val innerIterator: Iterator[Seq[A]] = iterators match {
+      case Nil => Iterator.empty
+      case head +: Nil => head.map(Seq(_))
+      case head +: tail =>  new CombineTwo(head, new CombineSeq(tail)).map(t=>t._1 +: t._2)
+    }
+
+    private class CombineTwo[B](iter1: Iterator[A], given: Iterator[B]) extends AbstractIterator[(A, B)] {
+
+
+      /* --- AbstractIterator Implementation --- */
+
+      override def hasNext: Boolean = (iter1.hasNext && kept.hasNext) || // can reload
+        (chached.isDefined && iter2.hasNext)  // reload is readable
+
+      override def next(): (A, B) = {
+        if (!iter2.hasNext) { // Reload
+          chached = Some(iter1.next())
+          (kept, iter2) = kept.duplicate
+        }
+        (chached.get, iter2.next())
+      }
+
+
+      /* --- Privates --- */
+
+      private var (kept, iter2) = given.duplicate
+
+      private var chached: Option[A] = if (iter1.hasNext) { Some(iter1.next) } else { None }
+
+    }
   }
 }
