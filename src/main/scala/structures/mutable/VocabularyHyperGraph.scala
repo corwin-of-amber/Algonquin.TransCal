@@ -1,6 +1,7 @@
 package structures.mutable
 
 
+import com.typesafe.scalalogging.LazyLogging
 import structures.immutable.{Explicit, Item, NotMatter, Reference}
 import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike}
 
@@ -11,7 +12,7 @@ import scala.language.postfixOps
   * @author tomer
   * @since 11/15/18
   */
-class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]]) extends HyperGraphManyWithOrderToOne[Node, EdgeType] {
+class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]]) extends HyperGraphManyWithOrderToOne[Node, EdgeType] with LazyLogging {
 
 
   /* --- Constructors --- */
@@ -24,25 +25,30 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Add edge")
     vocabulary add hyperEdgeToWord(hyperEdge)
     this
   }
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Remove edge")
     vocabulary remove hyperEdgeToWord(hyperEdge)
     this
   }
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Merge nodes")
     vocabulary replace (lefty(keep), lefty(change))
     this
   }
 
   override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
+    logger.trace("Find edges")
     vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
   }
 
   override def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]] = {
+    logger.trace("Find pattern")
     def convertItemBuilder[First, Second] (builer: First => Either[First, Second]): Item[First, Id] => Item[Either[First, Second], Id] = {
       def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
         item match {
@@ -68,6 +74,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
   }
 
   def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
+    logger.trace("Find subgraph")
     type SubPattern = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
     type ReferencesMap = Map[Id, Either[Node, EdgeType]]
     /** Creating a new references map from known hyper edge and pattern.
@@ -126,6 +133,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
   }
 
   override def cycles: Boolean = {
+    logger.trace("Has cycles")
     if (!vocabulary.isEmpty) {
       val opened = mutable.Set.empty[Node]
       vocabulary.words.head drop 1 head match {
