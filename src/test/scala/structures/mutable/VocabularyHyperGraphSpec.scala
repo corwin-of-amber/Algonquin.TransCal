@@ -7,7 +7,7 @@ import structures.HyperEdge
 class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
 
   "TrieHyperGraph" should "add an edge with empty sources" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Char] = VocabularyHyperGraph.empty[Int, Char]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
     val target = 1
     val edgeType = 'a'
     val sources = Seq.empty
@@ -19,7 +19,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
   }
 
   it should "remove an edge" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Char] = VocabularyHyperGraph.empty[Int, Char]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
     val target = 1
     val edgeType = 'a'
     val sources = Seq.empty
@@ -32,7 +32,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
   }
 
   it should "merge an edge" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Char] = VocabularyHyperGraph.empty[Int, Char]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
     val target = 1
     val newTarget = 2
     val edgeType = 'a'
@@ -46,13 +46,13 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
   }
 
   it should "has no cycle when empty" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Int] = VocabularyHyperGraph.empty[Int, Int]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Int]
 
     hyperGraph.cycles shouldBe false
   }
 
   it should "has cycle" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Char] = VocabularyHyperGraph.empty[Int, Char]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
 
     val node1 = 1
     val node2= 2
@@ -66,7 +66,7 @@ class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
   }
 
   it should "has a complicated cycle" in {
-    val hyperGraph: HyperGraphManyWithOrderToOne[Int, Char] = VocabularyHyperGraph.empty[Int, Char]
+    val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
 
     val node1 = 1
     val node2 = 2

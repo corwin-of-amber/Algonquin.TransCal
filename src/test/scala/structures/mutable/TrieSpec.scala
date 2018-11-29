@@ -9,7 +9,7 @@ class TrieSpec extends FlatSpec with Matchers {
   val random = new SecureRandom()
 
   "Trie" should "add a word" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val word = randomWord
 
     vocabulary add word
@@ -19,7 +19,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "add a word once" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val word = randomWord
 
     vocabulary add word
@@ -30,7 +30,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "add different words" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val word1 = randomWord
     val word2 = randomWord
 
@@ -43,7 +43,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "remove only the word" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val word = randomWord
 
     vocabulary add word
@@ -53,7 +53,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "remove only the removed word" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val word1 = randomWord
     val word2 = word1 ++ randomWord
 
@@ -66,7 +66,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "change the letter" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val keep = random.nextInt
     val change = random.nextInt
     val word = Seq(change)
@@ -80,7 +80,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "change only the letter" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val keep = random.nextInt
     val change = random.nextInt
     val otherSuffix = randomWord
@@ -111,7 +111,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "return all when empty find prefix" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
 
     for (i <- 0 to random.nextInt(MAX_WORD_SIZE)) {
       vocabulary.add(randomWord)

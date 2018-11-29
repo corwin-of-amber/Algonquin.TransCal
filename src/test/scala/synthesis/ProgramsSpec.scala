@@ -35,6 +35,6 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val results = programs.reconstruct(new HyperTerm(0)).toList
 
     results should have size 1
-    results should contain(tree)
+    results should contain (tree)
   }
 }

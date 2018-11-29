@@ -83,7 +83,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
         case Reference(id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
         case _ => None
       }
-      val temp: ReferencesMap = (nodesRefs ++ edgeTypeRef).toMap
+      val temp = (nodesRefs ++ edgeTypeRef).toMap
 
       temp
     }

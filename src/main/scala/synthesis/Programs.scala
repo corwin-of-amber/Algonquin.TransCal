@@ -45,7 +45,7 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
       /* --- Privates --- */
 
       /** Creates inner iterator of CombinedTwo and flat map it out. */
-      private val innerIterator: Iterator[Seq[T]] = iterators match {
+      private val innerIterator = iterators match {
         case Nil => Iterator.empty
         case head +: Nil => head.map(Seq(_))
         case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
