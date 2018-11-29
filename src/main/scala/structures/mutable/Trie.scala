@@ -102,7 +102,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
           } else {
             mapSubtries(keep) = subtrie
           }
-        case _ => {}
+        case _ =>
       }
     }
     this
@@ -117,10 +117,10 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
   private def recursiveFindPatternPrefix[Id](pattern: Seq[Item[Letter, Id]], placeholdersMap: Map[Id, Letter]): Set[Seq[Letter]] = {
     pattern match {
       case Nil => words
-      case item +: more => {
+      case item +: more =>
         item match {
           case Explicit(value) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
-          case Reference(id) => {
+          case Reference(id) =>
             if (placeholdersMap.contains(id)) {
               val value = placeholdersMap(id)
               subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
@@ -128,11 +128,9 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
               (for((letter, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated (id, letter)))
                 .flatten.toSet
             }
-          }
           case NotMatter() => (for((_, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
             .flatten.toSet
         }
-      }
     }
   }
 }
