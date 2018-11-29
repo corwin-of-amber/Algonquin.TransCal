@@ -12,8 +12,6 @@ buildscript {
 }
 
 plugins {
-    id 'se.patrikerdes.use-latest-versions' version '0.2.6'
-    id 'com.github.ben-manes.versions' version '0.20.0'
     id 'com.github.johnrengelman.shadow' version '4.0.2'
 }
 
@@ -53,7 +51,6 @@ dependencies {
     compile name: 'com.microsoft.z3'
     compile name: 'earley'
     compile group: 'org.rogach', name: 'scallop_2.11', version: '3.1.5'
-    compile group: 'org.scala-lang.modules', name: 'scala-parser-combinators_2.11', version: '1.1.1'
     compile group: 'org.algonquin', name: 'bellmaniac'
     compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.11', version: '3.9.0'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
