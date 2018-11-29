@@ -8,19 +8,24 @@ import synthesis.HyperTerm
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
 
-/**
+/** Rewrites a program to a new program.
   * @author tomer
   * @since 11/18/18
   */
 class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
+
+  /* --- Constructors --- */
+
   def this(source: Template, destination: Template, conditions: Seq[Template], ruleType: RewriteRule.Category.Value) = {
     this(destination, RewriteRule.createHyperPatternFromTemplate(source +: conditions), ruleType)
   }
 
+
   /* --- Operator Impl. --- */
 
   override def apply(state: RewriteSearchState): RewriteSearchState = {
+    logger.trace("Creating a new state")
     val compactGraph = compact(state.graph) // Should this be only after id ruleType? we don't really need to compact any other time!
 
     // Fill conditions - maybe subgraph matching instead of current temple
@@ -46,12 +51,12 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
 
   /* --- Privates --- */
 
-  /**
-    * This function should work only after "id" rule.
+  /** This function should work only after "id" rule.
     * @param graph
     * @return
     */
   private def compact(graph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]): HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm] = {
+    logger.trace("Compacting graph")
     graph
   }
 }
