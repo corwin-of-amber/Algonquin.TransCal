@@ -28,6 +28,10 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
 
     import scala.collection.AbstractIterator
 
+    /** Iterator which combines sequence of iterators (return all combinations of their results).
+      * @param iterators All the iterators to combine.
+      * @tparam A The return type.
+      */
     class CombineSeq[A](iterators: Seq[Iterator[A]]) extends AbstractIterator[Seq[A]] {
 
 
@@ -40,36 +44,48 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
 
       /* --- Privates --- */
 
+      /** Creates inner iterator of CombinedTwo and flat map it out. */
       private val innerIterator: Iterator[Seq[A]] = iterators match {
         case Nil => Iterator.empty
         case head +: Nil => head.map(Seq(_))
         case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
       }
 
-      private class CombineTwo[B](iter1: Iterator[A], given: Iterator[B]) extends AbstractIterator[(A, B)] {
+      /** Iterator which combines two iterators (return all combinations of their results).
+        *
+        * @param iter1 First iterator.
+        * @param given Second iterator.
+        * @tparam A The first type
+        * @tparam B The second type
+        */
+      private class CombineTwo[A, B](iter1: Iterator[A], given: Iterator[B]) extends AbstractIterator[(A, B)] {
 
 
         /* --- AbstractIterator Implementation --- */
 
         override def hasNext: Boolean = (iter1.hasNext && kept.hasNext) || // can reload
-          (chached.isDefined && iter2.hasNext) // reload is readable
+          (cached.isDefined && iter2.hasNext) // reload is readable
 
         override def next(): (A, B) = {
           if (!iter2.hasNext) { // Reload
-            this.chached = Some(iter1.next())
+            this.cached = Some(iter1.next())
             val two = kept.duplicate
             this.kept = two._1
             this.iter2 = two._2
           }
-          (chached.get, iter2.next())
+          (cached.get, iter2.next())
         }
 
 
         /* --- Privates --- */
 
+        /** Kept holds the last state.
+          * iter2 holds the current second state.
+          */
         private var (kept, iter2) = given.duplicate
 
-        private var chached: Option[A] = if (iter1.hasNext) {
+        /** Cached  last first result. */
+        private var cached: Option[A] = if (iter1.hasNext) {
           Some(iter1.next)
         } else {
           None
@@ -79,15 +95,24 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
 
     }
 
-    def recursive(currentHyperTerm: HyperTerm): Iterator[Tree[Int]] = if (targetToEdges.contains(currentHyperTerm)) {
-      targetToEdges(currentHyperTerm).toIterator.flatMap(edge => {
+    /** Build iterator of program's trees where their root is the current target.
+      *
+      * @param root The root of the programs we find
+      * @return Iterator with all the programs of root.
+      */
+    def recursive(root: HyperTerm): Iterator[Tree[Int]] = if (targetToEdges.contains(root)) {
+      targetToEdges(root).toIterator.flatMap(edge => {
         new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Int](edge.edgeType.id, subtrees.toList))
       })
     } else {
-      Iterator(new Tree[Int](currentHyperTerm.id))
+      Iterator(new Tree[Int](root.id))
     }
 
-    recursive(hyperTerm)
+    if (hyperGraph.edgeTypes.contains(hyperTerm)) {
+      hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
+    } else {
+      Iterator(new Tree[Int](hyperTerm.id))
+    }
   }
 }
 
