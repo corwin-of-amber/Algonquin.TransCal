@@ -3,7 +3,6 @@ package structures.mutable
 import org.scalatest.{FlatSpec, Matchers}
 
 import java.security.SecureRandom
-import structures.Vocabulary
 
 class TrieSpec extends FlatSpec with Matchers {
 

@@ -1,7 +1,7 @@
 package structures.mutable
 
 import org.scalatest.{FlatSpec, Matchers}
-import structures.{HyperEdge, HyperGraphManyWithOrderToOne}
+import structures.HyperEdge
 
 
 class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
