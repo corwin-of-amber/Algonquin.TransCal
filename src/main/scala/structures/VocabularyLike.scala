@@ -1,6 +1,6 @@
 package structures
 
-import structures.immutable.Item
+import structures.HyperGraphManyWithOrderToOneLike.Item
 
 /**
   * @author tomer

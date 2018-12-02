@@ -1,7 +1,7 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.immutable.{Explicit, Item, NotMatter, Reference}
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, Item, NotMatter, Reference}
 
 import scala.collection.mutable
 
