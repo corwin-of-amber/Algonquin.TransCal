@@ -131,7 +131,7 @@ object Programs extends LazyLogging {
       if (tree.isLeaf) {
         Set.empty
       } else {
-        val newHyperEdge = HyperEdge[HyperTerm, HyperTermIdentifier](HyperTermId(counter()), Identifier(tree.root), tree.subtrees.map(_.root).map(HyperTermIdentifier))
+        val newHyperEdge = HyperEdge[HyperTerm, HyperTermIdentifier](HyperTermId(counter()), HyperTermIdentifier(tree.root), tree.subtrees.map(_.root).map(HyperTermIdentifier))
         val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter)).toSet
         subHyperEdges + newHyperEdge
       }

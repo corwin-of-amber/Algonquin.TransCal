@@ -5,7 +5,7 @@ import java.io.{BufferedReader, PrintStream}
 import structures.mutable.VocabularyHyperGraph
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-import synthesis.{HyperTerm, Programs}
+import synthesis.{HyperTerm, HyperTermIdentifier, Programs}
 
 /**
   * @author tomer
@@ -15,7 +15,7 @@ class Interpreter(userInput: BufferedReader, userOutput: PrintStream) {
   private val actions = Seq(new UserAction(userInput, userOutput))
 
   def start: Unit = {
-    var newState = new ActionSearchState(new Programs(new VocabularyHyperGraph[HyperTerm, HyperTerm]()), Set())
+    var newState = new ActionSearchState(new Programs(new VocabularyHyperGraph[HyperTerm, HyperTermIdentifier]()), Set())
     do {
       val oldState = newState
       for(action <- actions) {
