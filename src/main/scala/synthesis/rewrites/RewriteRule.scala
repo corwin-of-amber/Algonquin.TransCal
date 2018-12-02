@@ -3,7 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.mutable.VocabularyHyperGraph
 import structures.HyperGraphManyWithOrderToOne
-import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Explicit, Item, Reference}
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, Reference}
 import synthesis.HyperTerm
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -12,7 +12,7 @@ import synthesis.search.Operator
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]], ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
+class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern, ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
 
   /* --- Constructors --- */
@@ -65,6 +65,9 @@ object RewriteRule {
 
   /* --- Public --- */
 
+  type HyperPatternEdge = HyperEdge[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]]
+  type HyperPattern = HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]]
+
   object Category extends Enumeration {
     val Basic, Associative, Goal, Locator, Definition, Existential = Value
   }
@@ -72,7 +75,7 @@ object RewriteRule {
 
   /* --- Privates --- */
 
-  private def templateToPattern(references: Map[TemplateTerm, HyperTerm], template: Template): HyperEdge[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]] = {
+  private def templateToPattern(references: Map[TemplateTerm, HyperTerm], template: Template): HyperPatternEdge = {
     def templateTermToItem(templateTerm: TemplateTerm): Item[HyperTerm, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
@@ -84,9 +87,9 @@ object RewriteRule {
     HyperEdge(templateTermToItem(template.target), templateTermToItem(template.function), template.parameters.map(templateTermToItem))
   }
 
-  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]] = {
+  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperPattern = {
     templates.map(templateToPattern(Map.empty,_))
-      .foldLeft[HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTerm, TemplateTerm]]](VocabularyHyperGraph.empty[Item[HyperTerm, TemplateTerm],
+      .foldLeft[HyperPattern](VocabularyHyperGraph.empty[Item[HyperTerm, TemplateTerm],
       Item[HyperTerm, TemplateTerm]])((graph, pattern) => graph.addEdge(pattern))
   }
 }
