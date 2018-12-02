@@ -24,8 +24,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]]
 
-  type HyperPattern[Id] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], HyperPattern[Id]]
-
   /** Finds subgraphs by a pattern graph.
     *
     * @param hyperPattern The pattern graph to match with
@@ -33,7 +31,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Pattern The type of the pattern subgraph
     * @return The matched references.
     */
-  def findSubgraph[Id, Pattern <: HyperPattern[Id]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
+  def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
   /** Checks if there are any cycles in the hyper graph.
     *
