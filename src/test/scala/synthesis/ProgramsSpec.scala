@@ -1,7 +1,7 @@
 package synthesis
 
 import org.scalatest.{FlatSpec, Matchers}
-import structures.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import syntax.Tree
 
 class ProgramsSpec extends FlatSpec with Matchers {

@@ -1,10 +1,13 @@
 package structures.mutable
 
+import org.scalacheck.{Arbitrary, Properties}
+import org.scalacheck.Prop.BooleanOperators
+import org.scalacheck.Prop.forAll
 import org.scalatest.{FlatSpec, Matchers}
-import structures.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 
 
-class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
+class VocabularyHyperGraphUnitSpec extends FlatSpec with Matchers {
 
   "TrieHyperGraph" should "add an edge with empty sources" in {
     val hyperGraph = VocabularyHyperGraph.empty[Int, Char]
