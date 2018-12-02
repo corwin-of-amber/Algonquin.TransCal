@@ -2,8 +2,8 @@ package structures.mutable
 
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.immutable.{Explicit, Item, NotMatter, Reference}
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike}
+import structures.HyperGraphManyWithOrderToOneLike._
+import structures.HyperGraphManyWithOrderToOneLike
 
 import scala.collection.mutable
 import scala.language.postfixOps

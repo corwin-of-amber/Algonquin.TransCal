@@ -28,6 +28,6 @@ abstract class AbstractAction[R] extends Action {
     * @param rewriterResult The last rewrites result
     * @return The next action state
     */
-  protected abstract def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState
+  protected def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState
 
 }

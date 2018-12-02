@@ -1,12 +1,14 @@
 package synthesis.ui
 
+import java.io.{BufferedReader, PrintStream}
+
 import scala.io.Source
 
 /**
   * @author tomer
   * @since 11/24/18
   */
-object Main {
+object Main extends App {
 
   import org.rogach.scallop.ScallopConf
 
@@ -15,9 +17,9 @@ object Main {
     verify()
   }
 
-  def main(args: Array[String]): Unit = {
-    val conf = new CommandLineConfiguration(args)
-    val userSource = conf.file.map(Source.fromFile).toOption.getOrElse(Source.stdin)
-    val interpreter = new Interpreter(userSource)
-  }
+  val conf = new CommandLineConfiguration(args)
+  val userInput: BufferedReader = conf.file.map(Source.fromFile).map(_.bufferedReader()).getOrElse(Console.in)
+  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+  val interpreter = new Interpreter(userInput, userOutput)
+  interpreter.start
 }
