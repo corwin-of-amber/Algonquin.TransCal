@@ -1,7 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.mutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
 import syntax.Tree
 

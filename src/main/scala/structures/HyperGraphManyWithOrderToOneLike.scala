@@ -1,5 +1,6 @@
 package structures
 
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.immutable.Item
 
 /** A hyper graph from many to one.
@@ -77,4 +78,8 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new graph after the change.
     */
   def mergeNodes(keep: Node, change: Node): This
+}
+
+object HyperGraphManyWithOrderToOneLike {
+  case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node])
 }
