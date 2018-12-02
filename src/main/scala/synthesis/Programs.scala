@@ -3,7 +3,8 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.mutable.VocabularyHyperGraph
-import syntax.Tree
+import syntax.AstSugar.Term
+import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
 
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
@@ -15,7 +16,7 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
 
   /* --- Constructors --- */
 
-  def this(tree: Tree[Int]) = this(Programs.destruct(tree))
+  def this(tree: Term) = this(Programs.destruct(tree))
 
 
   /* --- Public --- */
@@ -25,7 +26,7 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
     * @param hyperTerm The hyper term to build.
     * @return All the trees.
     */
-  def reconstruct(hyperTerm: HyperTerm): Iterator[Tree[Int]] = {
+  def reconstruct(hyperTerm: HyperTerm): Iterator[Term] = {
     logger.trace("Reconstruct programs")
     val targetToEdges = hyperGraph.edges.groupBy(edge => edge.target)
 
@@ -103,18 +104,18 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
       * @param root The root of the programs we find
       * @return Iterator with all the programs of root.
       */
-    def recursive(root: HyperTerm): Iterator[Tree[Int]] = if (targetToEdges.contains(root)) {
-      targetToEdges(root).toIterator.flatMap(edge => {
-        new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Int](edge.edgeType.id, subtrees.toList))
-      })
-    } else {
-      Iterator(new Tree[Int](root.id))
+    def recursive(root: HyperTerm): Iterator[Term] = {
+      root match {
+        case HyperTermId(_) => targetToEdges(root).toIterator.flatMap(edge => {
+          new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+        })
+        case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
+      }
     }
 
-    if (hyperGraph.edgeTypes.contains(hyperTerm)) {
-      hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
-    } else {
-      Iterator(new Tree[Int](hyperTerm.id))
+    hyperTerm match {
+      case HyperTermId(_) => hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
+      case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
     }
   }
 }
@@ -123,25 +124,21 @@ object Programs extends LazyLogging {
 
   /* --- Private --- */
 
-  private def destruct(tree: Tree[Int]): RewriteSearchState.HyperGraph = {
+  private def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
-    def allIds(tree: Tree[Int]): Set[Int] = {
-      tree.subtrees.flatMap(allIds).toSet + tree.root
-    }
-
-    def destruct(tree: Tree[Int], counter: () => Int): Set[HyperEdge[HyperTerm, HyperTerm]] = {
+    def destruct(tree: Term, counter: () => Int): Set[HyperEdge[HyperTerm, HyperTermIdentifier]] = {
       if (tree.isLeaf) {
         Set.empty
       } else {
-        val newHyperEdge = HyperEdge[HyperTerm, HyperTerm](HyperTerm(counter()), HyperTerm(tree.root), tree.subtrees.map(_.root).map(HyperTerm))
+        val newHyperEdge = HyperEdge[HyperTerm, HyperTermIdentifier](HyperTermId(counter()), Identifier(tree.root), tree.subtrees.map(_.root).map(HyperTermIdentifier))
         val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter)).toSet
         subHyperEdges + newHyperEdge
       }
     }
 
-    val hyperEdges = destruct(tree, Stream.from(allIds(tree).max + 1).iterator.next)
+    val hyperEdges = destruct(tree, Stream.from(1).iterator.next)
 
-    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](new VocabularyHyperGraph[HyperTerm, HyperTerm]())((graph, edge)=>graph.addEdge(edge))
+    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](new VocabularyHyperGraph[HyperTerm, HyperTermIdentifier]())((graph, edge)=>graph.addEdge(edge))
   }
 }
