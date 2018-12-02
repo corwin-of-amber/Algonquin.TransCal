@@ -4,5 +4,4 @@ package structures
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]] {
-}
+trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]]
