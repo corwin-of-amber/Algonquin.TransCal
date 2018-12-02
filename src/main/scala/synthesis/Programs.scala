@@ -2,14 +2,15 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
-import structures.mutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
+import structures.mutable.VocabularyHyperGraph
 import syntax.Tree
+import synthesis.rewrites.RewriteSearchState
 
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]) extends LazyLogging {
+class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
 
 
   /* --- Constructors --- */
@@ -120,10 +121,9 @@ class Programs(val hyperGraph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm
 
 object Programs extends LazyLogging {
 
-
   /* --- Private --- */
 
-  private def destruct(tree: Tree[Int]): HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm] = {
+  private def destruct(tree: Tree[Int]): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
     def allIds(tree: Tree[Int]): Set[Int] = {
@@ -142,6 +142,6 @@ object Programs extends LazyLogging {
 
     val hyperEdges = destruct(tree, Stream.from(allIds(tree).max + 1).iterator.next)
 
-    hyperEdges.foldLeft[HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]](new VocabularyHyperGraph[HyperTerm, HyperTerm]())((graph, edge)=>graph.addEdge(edge))
+    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](new VocabularyHyperGraph[HyperTerm, HyperTerm]())((graph, edge)=>graph.addEdge(edge))
   }
 }

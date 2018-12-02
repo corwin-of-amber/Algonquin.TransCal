@@ -55,7 +55,7 @@ class RewriteRule(destination: Template, hyperPattern: HyperGraphManyWithOrderTo
     * @param graph
     * @return
     */
-  private def compact(graph: HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm]): HyperGraphManyWithOrderToOne[HyperTerm, HyperTerm] = {
+  private def compact(graph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
     logger.trace("Compacting graph")
     graph
   }
