@@ -1,7 +1,6 @@
 package structures
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
-import structures.immutable.Item
+import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Item}
 
 /** A hyper graph from many to one.
   *
@@ -82,4 +81,9 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
 object HyperGraphManyWithOrderToOneLike {
   case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node])
+
+  trait Item[Value, Id]
+  case class Reference[Value, Id](id: Id) extends Item[Value, Id]
+  case class Explicit[Value, Id](value: Value) extends Item[Value, Id]
+  case class NotMatter[Value, Id]() extends Item[Value, Id]
 }

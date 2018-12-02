@@ -1,10 +1,9 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.immutable.{Explicit, Item, Reference}
 import structures.mutable.VocabularyHyperGraph
 import structures.HyperGraphManyWithOrderToOne
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Explicit, Item, Reference}
 import synthesis.HyperTerm
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
