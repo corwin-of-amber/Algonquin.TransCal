@@ -1,13 +1,26 @@
 package synthesis.ui
 
-import synthesis.actions.operators.UserAction
+import java.io.{BufferedReader, PrintStream}
 
-import scala.io.Source
+import structures.mutable.VocabularyHyperGraph
+import synthesis.actions.ActionSearchState
+import synthesis.actions.operators.UserAction
+import synthesis.{HyperTerm, Programs}
 
 /**
   * @author tomer
   * @since 11/24/18
   */
-class Interpreter(userSource: Source) {
-  val actions = Seq(new UserAction(userSource))
+class Interpreter(userInput: BufferedReader, userOutput: PrintStream) {
+  private val actions = Seq(new UserAction(userInput, userOutput))
+
+  def start: Unit = {
+    var newState = new ActionSearchState(new Programs(new VocabularyHyperGraph[HyperTerm, HyperTerm]()), Set())
+    do {
+      val oldState = newState
+      for(action <- actions) {
+        newState = action.apply(newState)
+      }
+    } while(newState != newState)
+  }
 }
