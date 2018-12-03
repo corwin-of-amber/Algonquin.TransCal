@@ -12,7 +12,9 @@ import scala.language.postfixOps
   * @author tomer
   * @since 11/15/18
   */
-class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]]) extends HyperGraphManyWithOrderToOne[Node, EdgeType] with LazyLogging {
+class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]])
+  extends HyperGraphManyWithOrderToOne[Node, EdgeType]
+    with HyperGraphManyWithOrderToOneLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with LazyLogging {
 
 
   /* --- Constructors --- */
