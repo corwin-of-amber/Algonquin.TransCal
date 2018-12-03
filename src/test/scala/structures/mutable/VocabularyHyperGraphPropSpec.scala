@@ -10,7 +10,7 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.mutable.Graph
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, NotMatter}
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
@@ -42,8 +42,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("edges finds all that were added") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      val g = new VocabularyHyperGraph[Int, Int]()
-      for (e <- es) g.addEdge(e)
+      val g = grapher(es)
       es.toSeq.intersect(g.edges.toSeq).size == es.size
     })
   }
@@ -51,28 +50,59 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("add than remove than add") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
       !g.edges.contains(e) ==> (g.edges.size + 1 == g.addEdge(e).edges.size &&
-        g.edges.size-1 == g.removeEdge(e).edges.size && g.edges.size + 1 == g.addEdge(e).edges.size)
+        g.edges.size - 1 == g.removeEdge(e).edges.size && g.edges.size + 1 == g.addEdge(e).edges.size)
     })
   }
 
   property("find by type returns all") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      val g = new VocabularyHyperGraph[Int, Int]()
-      for (e <- es) g.addEdge(e)
+      val g = grapher(es)
       es.map(_.edgeType).forall(et => es.filter(_.edgeType == et) == g.findEdges(et))
     })
   }
 
   property("test cycles using graph library") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      val hg = new VocabularyHyperGraph[Int, Int]()
-      var graph = Graph()
-      for (e <- es) {
-        hg.addEdge(e)
-      }
+      val hg = grapher(es)
+      val graph = Graph()
       val newEdges = es.flatMap(he => he.sources.map(DiEdge(_, he.target)))
       val graph2 = graph ++ newEdges
       hg.cycles == graph2.isCyclic
+    })
+  }
+
+  property("merge any different node returns graph without merged node") {
+    check(forAll { g: VocabularyHyperGraph[Int, Int] =>
+      g.nodes.nonEmpty ==> {
+        val first = g.nodes.toList(Random.nextInt(g.nodes.size))
+        val second = g.nodes.toList(Random.nextInt(g.nodes.size))
+        g.mergeNodes(first, second)
+        g.nodes.contains(first) && (first == second || !g.nodes.contains(second))
+      }
+    })
+  }
+
+  property("merge nodes renames edges") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      (es.size > 1) ==> {
+        val g = grapher(es)
+        val toChange = es.toList(1)
+        val source = es.toList(0)
+        g.mergeNodes(source.target, toChange.target)
+        !g.edges.contains(toChange) && g.edges.count(x => x.target == source.target && x.sources == toChange.sources.map({x =>
+          if (x == toChange.target) source.target
+          else x
+        }) && x.edgeType == toChange.edgeType) == 1
+      }
+    })
+  }
+
+  property("find edge by target equal to empty pattern except target") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      (es.size > 1) ==> {
+        val g = grapher(es)
+        es.forall(e => g.findEdges(e.target) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), NotMatter(), e.sources.map(_ => NotMatter[Int, Int]()))))
+      }
     })
   }
 }
