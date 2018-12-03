@@ -54,6 +54,8 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     recursiveFindPatternPrefix[Id](pattern, Map.empty)
   }
 
+  override def toString: String = f"Trie (${words.mkString(", ")})"
+
   /* --- Private Methods --- */
 
   private def addWithIndex(word: Seq[Letter], index: Int): Trie[Letter] = {
