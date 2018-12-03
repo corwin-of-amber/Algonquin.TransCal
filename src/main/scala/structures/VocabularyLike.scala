@@ -20,7 +20,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
 
   def words: Set[Seq[Letter]]
 
-  def letter: Set[Letter] = words.flatten
+  def letters: Set[Letter] = words.flatten
 
   def replace(keep: Letter, change: Letter): This
 
