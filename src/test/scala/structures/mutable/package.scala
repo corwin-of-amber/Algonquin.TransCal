@@ -16,14 +16,14 @@ package object mutable {
 
   val integerEdgesGen: Gen[HyperEdge[Int, Int]] = HyperEdgeGenFactory(oneOf(0 to 50), oneOf(0 to 20))
 
-  def HyperGraphGenFactory[Node, Edge](edgeSource: Gen[HyperEdge[Node, Edge]]): Gen[VocabularyHyperGraph[Node, Edge]] = {
-    def grapher(se: Seq[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = {
-      val v = new VocabularyHyperGraph[Node, Edge]()
-      for (e <- se) v.addEdge(e)
-      v
-    }
+  def grapher[Node, Edge](se: Set[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = {
+    val v = new VocabularyHyperGraph[Node, Edge]()
+    for (e <- se) v.addEdge(e)
+    v
+  }
 
-    containerOf[Seq, HyperEdge[Node, Edge]](edgeSource) map grapher
+  def HyperGraphGenFactory[Node, Edge](edgeSource: Gen[HyperEdge[Node, Edge]]): Gen[VocabularyHyperGraph[Node, Edge]] = {
+    containerOf[Set, HyperEdge[Node, Edge]](edgeSource) map grapher
   }
 
   val integerGraphGen: Gen[VocabularyHyperGraph[Int, Int]] = HyperGraphGenFactory(integerEdgesGen)

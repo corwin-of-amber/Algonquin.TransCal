@@ -16,6 +16,7 @@
     <orderEntry type="library" name="Gradle: org.scalatest:scalatest_2.11:3.0.5" level="project" />
     <orderEntry type="library" name="Gradle: com.typesafe.play:play-json_2.11:2.6.10" level="project" />
     <orderEntry type="library" name="Gradle: org.scalacheck:scalacheck_2.11:1.14.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.scala-graph:graph-core_2.11:1.12.5" level="project" />
     <orderEntry type="library" name="Gradle: org.scalactic:scalactic_2.11:3.0.5" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang:scala-reflect:2.11.12" level="project" />
     <orderEntry type="library" name="Gradle: org.scala-lang.modules:scala-xml_2.11:1.0.6" level="project" />
