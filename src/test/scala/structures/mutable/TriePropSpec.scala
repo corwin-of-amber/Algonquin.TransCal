@@ -36,11 +36,20 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("edges finds all that were added twice") {
+    check(forAll { word: Seq[Int] =>
+      val trie = new Trie[Int]()
+      trie.add(word)
+      trie.add(word)
+      trie.words.count(_ == word) == 1
+    })
+  }
+
   property("edges finds all that were added") {
-    check(forAll { words: Seq[Seq[Int]] =>
+    check(forAll { words: Set[Seq[Int]] =>
       val trie = new Trie[Int]()
       for (word <- words) trie.add(word)
-      words.toSet.intersect(trie.words).size == words.size
+      words.intersect(trie.words).size == words.size
     })
   }
 
@@ -51,15 +60,26 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("changed exist letter") {
+  property("changed letter to exists letter") {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
-//      val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      beforeLettersSize == newTrie.letters.size + 1 /*&& beforeWordsSize == trie.words.size*/ && trie == newTrie
+      beforeLettersSize == newTrie.letters.size + 1 && trie == newTrie
     }
-    check(forAll { (trie: Trie[Int], keepLetter: Int, changeLetter: Int) =>
-      trie.letters.contains(changeLetter) ==> validate(trie, keepLetter, changeLetter)
+    check(forAll { trie: Trie[Int] =>
+      (trie.letters.size > 1) ==> validate(trie, trie.letters.head, trie.letters.last)
+    })
+  }
+
+  property("changed exist letter to non exist letter") {
+    def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
+      val beforeWordsSize = trie.words.size
+      val beforeLettersSize = trie.letters.size
+      val newTrie = trie.replace(keepLetter, changeLetter)
+      beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie == newTrie
+    }
+    check(forAll { trie: Trie[Int] =>
+      trie.letters.nonEmpty ==> validate(trie, trie.letters.max + 1, trie.letters.last)
     })
   }
 
@@ -70,8 +90,8 @@ class TriePropSpec extends PropSpec with Checkers {
       val newTrie = trie.replace(keepLetter, changeLetter)
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && trie == newTrie
     }
-    check(forAll { (trie: Trie[Int], keepLetter: Int, changeLetter: Int) =>
-      !trie.letters.contains(changeLetter) ==> validate(trie, keepLetter, changeLetter)
+    check(forAll { (trie: Trie[Int], keepLetter: Int) =>
+      validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)
     })
   }
 }
