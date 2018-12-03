@@ -8,6 +8,8 @@ import org.scalacheck.Prop.BooleanOperators
 import scala.util.Random
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
+import scalax.collection.GraphEdge.DiEdge
+import scalax.collection.mutable.Graph
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 
 
@@ -22,7 +24,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("removes") {
     check(forAll { g: VocabularyHyperGraph[Int, Int] =>
-      g.edges.nonEmpty ==> checkRemoved(g, Random.nextInt(g.edges.size)) && false
+      g.edges.nonEmpty ==> checkRemoved(g, Random.nextInt(g.edges.size))
     })
   }
 
@@ -39,10 +41,10 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   }
 
   property("edges finds all that were added") {
-    check(forAll { es: Seq[HyperEdge[Int, Int]] =>
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = new VocabularyHyperGraph[Int, Int]()
       for (e <- es) g.addEdge(e)
-      es.toSet.toSeq.intersect(g.edges.toSeq).size == es.size
+      es.toSeq.intersect(g.edges.toSeq).size == es.size
     })
   }
 
@@ -50,6 +52,27 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
       !g.edges.contains(e) ==> (g.edges.size + 1 == g.addEdge(e).edges.size &&
         g.edges.size-1 == g.removeEdge(e).edges.size && g.edges.size + 1 == g.addEdge(e).edges.size)
+    })
+  }
+
+  property("find by type returns all") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      val g = new VocabularyHyperGraph[Int, Int]()
+      for (e <- es) g.addEdge(e)
+      es.map(_.edgeType).forall(et => es.filter(_.edgeType == et) == g.findEdges(et))
+    })
+  }
+
+  property("test cycles using graph library") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      val hg = new VocabularyHyperGraph[Int, Int]()
+      var graph = Graph()
+      for (e <- es) {
+        hg.addEdge(e)
+      }
+      val newEdges = es.flatMap(he => he.sources.map(DiEdge(_, he.target)))
+      val graph2 = graph ++ newEdges
+      hg.cycles == graph2.isCyclic
     })
   }
 }
