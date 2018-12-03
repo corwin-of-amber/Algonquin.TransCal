@@ -27,4 +27,24 @@ package object mutable {
   }
 
   val integerGraphGen: Gen[VocabularyHyperGraph[Int, Int]] = HyperGraphGenFactory(integerEdgesGen)
+
+  def WordGenFactory[Letter](letterSource: Gen[Letter]): Gen[Seq[Letter]] = for {
+    wordSize <- Random.nextInt(6)
+    word <- containerOfN[Seq, Letter](wordSize, letterSource)
+  } yield word
+
+  val integerLetterGen: Gen[Int] = oneOf(0 to 20)
+  val integerWordGen: Gen[Seq[Int]] = WordGenFactory(integerLetterGen)
+
+  def TrieGenFactory[Letter](wordSource: Gen[Seq[Letter]]): Gen[Trie[Letter]] = {
+    def builder(se: Seq[Seq[Letter]]): Trie[Letter] = {
+      val v = new Trie[Letter]()
+      for (e <- se) v.add(e)
+      v
+    }
+
+    containerOf[Seq, Seq[Letter]](wordSource) map builder
+  }
+
+  val integerTrieGen: Gen[Trie[Int]] = TrieGenFactory(integerWordGen)
 }
