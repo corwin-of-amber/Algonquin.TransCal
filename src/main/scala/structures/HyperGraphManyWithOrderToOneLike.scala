@@ -33,12 +33,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
-  /** Checks if there are any cycles in the hyper graph.
-    *
-    * @return True is there is a cycle and false otherwise.
-    */
-  def cycles: Boolean
-
   /**
     * @return all the nodes in the hyper graph.
     */

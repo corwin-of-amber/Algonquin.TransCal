@@ -2,10 +2,9 @@ package structures.mutable
 
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike._
 import structures.HyperGraphManyWithOrderToOneLike
+import structures.HyperGraphManyWithOrderToOneLike._
 
-import scala.collection.mutable
 import scala.language.postfixOps
 
 /**
@@ -126,32 +125,6 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       }
     }
     getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
-  }
-
-  override def cycles: Boolean = {
-    logger.trace("Has cycles")
-    if (!vocabulary.isEmpty) {
-      val opened = mutable.Set.empty[Node]
-      vocabulary.words.head drop 1 head match {
-        case Left(node) => opened add node
-      }
-      val closed = mutable.Set.empty[Node]
-
-      while (opened nonEmpty) {
-        val node = opened.head
-        assert (opened.remove(node), "Node is not opened yet")
-        assert (closed.add(node), "Node is already closed")
-
-        val words = vocabulary.findByPrefix(Seq((1, lefty(node))))
-        val nodes = words.flatMap(_.drop(1)) map toNode
-
-        if (nodes.exists(closed.contains)) {
-          return true
-        }
-        nodes.foreach(opened.add)
-      }
-    }
-    false
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)

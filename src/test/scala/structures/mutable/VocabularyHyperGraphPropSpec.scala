@@ -4,8 +4,6 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import scalax.collection.GraphEdge.DiEdge
-import scalax.collection.mutable.Graph
 import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
 
 import scala.util.Random
@@ -56,16 +54,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
       es.map(_.edgeType).forall(et => es.filter(_.edgeType == et) == g.findEdges(et))
-    })
-  }
-
-  property("test cycles using graph library") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      val hg = grapher(es)
-      val graph = Graph()
-      val newEdges = es.flatMap(he => he.sources.map(DiEdge(_, he.target)))
-      val graph2 = graph ++ newEdges
-      hg.cycles == graph2.isCyclic
     })
   }
 

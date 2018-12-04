@@ -59,7 +59,6 @@ dependencies {
     testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.0.5'
     testCompile group: 'com.typesafe.play', name: 'play-json_2.11', version: '2.6.10'
     testCompile group: 'org.scalacheck', name: 'scalacheck_2.11', version: '1.14.0'
-    testCompile group: 'org.scala-graph', name: 'graph-core_2.11', version: '1.12.5'
 }
 
 task profilingRunNoDup(type: JavaExec) {
