@@ -28,25 +28,31 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
     */
   def reconstruct(hyperTerm: HyperTerm): Iterator[Term] = {
     logger.trace("Reconstruct programs")
-    val targetToEdges = hyperGraph.edges.groupBy(edge => edge.target)
 
-    /** Build iterator of program's trees where their root is the current target.
-      *
-      * @param root The root of the programs we find
-      * @return Iterator with all the programs of root.
-      */
-    def recursive(root: HyperTerm): Iterator[Term] = {
-      root match {
-        case HyperTermId(_) => targetToEdges(root).toIterator.flatMap(edge => {
-          new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
-        })
+    if (!(hyperGraph.nodes ++ hyperGraph.edgeTypes).contains(hyperTerm)) {
+      logger.debug(f"Unknown HyperTerm - $hyperTerm")
+      Iterator.empty
+    } else {
+      val targetToEdges = hyperGraph.edges.groupBy(edge => edge.target)
+
+      /** Build iterator of program's trees where their root is the current target.
+        *
+        * @param root The root of the programs we find
+        * @return Iterator with all the programs of root.
+        */
+      def recursive(root: HyperTerm): Iterator[Term] = {
+        root match {
+          case HyperTermId(_) => targetToEdges(root).toIterator.flatMap(edge => {
+            new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          })
+          case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
+        }
+      }
+
+      hyperTerm match {
+        case HyperTermId(_) => hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
         case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
       }
-    }
-
-    hyperTerm match {
-      case HyperTermId(_) => hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
-      case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
     }
   }
 }
