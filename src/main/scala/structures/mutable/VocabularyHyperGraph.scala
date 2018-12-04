@@ -55,8 +55,8 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
         item match {
           case Explicit(value) => Explicit(builer(value))
-          case Reference(id) => Reference(id)
-          case NotMatter() => NotMatter()
+          case Hole(id) => Hole(id)
+          case Ignored() => Ignored()
         }
       }
       convertItem
@@ -65,8 +65,8 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       def convertItem(item: Item[Second, Id]): Item[Either[First, Second], Id] = {
         item match {
           case Explicit(value) => Explicit(builer(value))
-          case Reference(id) => Reference(id)
-          case NotMatter() => NotMatter()
+          case Hole(id) => Hole(id)
+          case Ignored() => Ignored()
         }
       }
       convertItem
@@ -85,11 +85,11 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
       * @return A map of the references in pattern to the values in knownPattern.
       */
     def hyperEdgeAndTemplateToReferencesMap(knownEdge: HyperEdge[Node, EdgeType], pattern: SubPattern): ReferencesMap = {
-      val nodesRefs = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Reference[Node, Id]]).map(a=>a._1 match {
-        case Reference(id) => (id, Left[Node, EdgeType](a._2))
+      val nodesRefs = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Hole[Node, Id]]).map(a=>a._1 match {
+        case Hole(id) => (id, Left[Node, EdgeType](a._2))
       })
       val edgeTypeRef = pattern.edgeType match {
-        case Reference(id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
+        case Hole(id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
         case _ => None
       }
       val temp = (nodesRefs ++ edgeTypeRef).toMap
@@ -105,7 +105,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     def fillReferences(pattern: SubPattern, referencesMap: ReferencesMap): SubPattern = {
       def convert[A](b: Either[Node, EdgeType] => A, item: Item[A, Id]): Item[A, Id] = {
         item match {
-          case Reference(id) => referencesMap.get(id).map(b).map(Explicit[A, Id]).getOrElse(item)
+          case Hole(id) => referencesMap.get(id).map(b).map(Explicit[A, Id]).getOrElse(item)
           case _ => item
         }
       }

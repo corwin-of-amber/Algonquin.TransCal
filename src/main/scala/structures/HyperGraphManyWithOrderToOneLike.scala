@@ -81,7 +81,7 @@ object HyperGraphManyWithOrderToOneLike {
   case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node])
 
   trait Item[Value, Id]
-  case class Reference[Value, Id](id: Id) extends Item[Value, Id]
+  case class Hole[Value, Id](id: Id) extends Item[Value, Id]
   case class Explicit[Value, Id](value: Value) extends Item[Value, Id]
-  case class NotMatter[Value, Id]() extends Item[Value, Id]
+  case class Ignored[Value, Id]() extends Item[Value, Id]
 }

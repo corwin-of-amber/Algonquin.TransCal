@@ -1,16 +1,14 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.forAll
-import org.scalacheck.Prop.imply
-import org.scalacheck.Prop.BooleanOperators
-
-import scala.util.Random
+import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.mutable.Graph
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, NotMatter}
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
+
+import scala.util.Random
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
@@ -101,7 +99,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       (es.size > 1) ==> {
         val g = grapher(es)
-        es.forall(e => g.findEdges(e.target) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), NotMatter(), e.sources.map(_ => NotMatter[Int, Int]()))))
+        es.forall(e => g.findEdges(e.target) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Ignored(), e.sources.map(_ => Ignored[Int, Int]()))))
       }
     })
   }

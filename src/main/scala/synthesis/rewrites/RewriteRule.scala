@@ -3,7 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.mutable.VocabularyHyperGraph
 import structures.HyperGraphManyWithOrderToOne
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, Reference}
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, Hole}
 import synthesis.{HyperTerm, HyperTermIdentifier}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -79,7 +79,7 @@ object RewriteRule {
     def templateTermToItem(templateTerm: TemplateTerm): Item[HyperTerm, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
-          references.get(templateTerm).map(Explicit[HyperTerm, TemplateTerm]).getOrElse(Reference[HyperTerm, TemplateTerm](term))
+          references.get(templateTerm).map(Explicit[HyperTerm, TemplateTerm]).getOrElse(Hole[HyperTerm, TemplateTerm](term))
         case term: ExplicitTerm =>
           Explicit[HyperTerm, TemplateTerm](term.term)
       }
@@ -88,7 +88,7 @@ object RewriteRule {
       templateTerm match {
         case term: ReferenceTerm =>
           references.get(templateTerm).map(_.asInstanceOf[HyperTermIdentifier])
-            .map(Explicit[HyperTermIdentifier, TemplateTerm]).getOrElse(Reference[HyperTermIdentifier, TemplateTerm](term))
+            .map(Explicit[HyperTermIdentifier, TemplateTerm]).getOrElse(Hole[HyperTermIdentifier, TemplateTerm](term))
         case term: ExplicitTerm =>
           Explicit[HyperTermIdentifier, TemplateTerm](term.term.asInstanceOf[HyperTermIdentifier])
       }

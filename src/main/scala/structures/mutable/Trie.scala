@@ -1,7 +1,7 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, Item, NotMatter, Reference}
+import structures.HyperGraphManyWithOrderToOneLike.{Explicit, Item, Ignored, Hole}
 import structures.VocabularyLike
 
 import scala.collection.mutable
@@ -123,7 +123,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
       case item +: more =>
         item match {
           case Explicit(value) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
-          case Reference(id) =>
+          case Hole(id) =>
             if (placeholdersMap.contains(id)) {
               val value = placeholdersMap(id)
               subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
@@ -131,7 +131,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
               (for((letter, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated (id, letter)))
                 .flatten.toSet
             }
-          case NotMatter() => (for((_, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
+          case Ignored() => (for((_, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
             .flatten.toSet
         }
     }
