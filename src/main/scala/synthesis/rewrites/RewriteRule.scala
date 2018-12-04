@@ -3,7 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.mutable.VocabularyHyperGraph
 import structures.HyperGraphManyWithOrderToOne
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Item, Hole}
+import structures.HyperGraphManyWithOrderToOneLike._
 import synthesis.{HyperTerm, HyperTermIdentifier}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -30,7 +30,7 @@ class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[HyperTerm, HyperTermIdentifier]]] = compactGraph.findSubgraph(hyperPattern)
+    val conditionsAndSourceReferencesMaps = compactGraph.findSubgraph(hyperPattern)
     def merge(either: Either[HyperTerm, HyperTerm]): HyperTerm = {
       either match {
         case Left(left) => left
@@ -65,7 +65,7 @@ object RewriteRule {
 
   /* --- Public --- */
 
-  type HyperPatternEdge = HyperEdge[Item[HyperTerm, TemplateTerm], Item[HyperTermIdentifier, TemplateTerm]]
+  type HyperPatternEdge = HyperEdgePattern[HyperTerm, HyperTermIdentifier, TemplateTerm]
   type HyperPattern = HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTermIdentifier, TemplateTerm]]
 
   object Category extends Enumeration {
