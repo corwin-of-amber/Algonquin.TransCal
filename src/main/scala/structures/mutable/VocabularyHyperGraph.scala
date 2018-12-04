@@ -49,35 +49,29 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
   }
 
-  override def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]] = {
+  override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find pattern")
-    def convertItemBuilder[First, Second] (builer: First => Either[First, Second]): Item[First, Id] => Item[Either[First, Second], Id] = {
-      def convertItem(item: Item[First, Id]): Item[Either[First, Second], Id] = {
-        item match {
-          case Explicit(value) => Explicit(builer(value))
-          case Hole(id) => Hole(id)
-          case Ignored() => Ignored()
-        }
+    def convertNode(item: Item[Node, Id]): Item[Either[Node, EdgeType], Id] = {
+      item match {
+        case Explicit(value) => Explicit(lefty(value))
+        case Hole(id) => Hole(id)
+        case Ignored() => Ignored()
       }
-      convertItem
     }
-    def convertItemBuilder2[First, Second] (builer: Second => Either[First, Second]): Item[Second, Id] => Item[Either[First, Second], Id] = {
-      def convertItem(item: Item[Second, Id]): Item[Either[First, Second], Id] = {
-        item match {
-          case Explicit(value) => Explicit(builer(value))
-          case Hole(id) => Hole(id)
-          case Ignored() => Ignored()
-        }
+    def convertEdgeType(item: Item[EdgeType, Id]): Item[Either[Node, EdgeType], Id] = {
+      item match {
+        case Explicit(value) => Explicit(righty(value))
+        case Hole(id) => Hole(id)
+        case Ignored() => Ignored()
       }
-      convertItem
     }
-    vocabulary.findPattern(convertItemBuilder2[Node, EdgeType](righty)(pattern.edgeType) +: (pattern.target +: pattern.sources).map(convertItemBuilder(lefty)))
+    vocabulary.findPattern(convertEdgeType(pattern.edgeType) +: (pattern.target +: pattern.sources).map(convertNode))
      .map(wordToHyperEdge)
   }
 
-  def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
     logger.trace("Find subgraph")
-    type SubPattern = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
+    type SubPattern = HyperEdgePattern[Node, EdgeType, Id]
     type ReferencesMap = Map[Id, Either[Node, EdgeType]]
     /** Creating a new references map from known hyper edge and pattern.
       * @param knownEdge The known edge
