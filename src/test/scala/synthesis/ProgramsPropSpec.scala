@@ -2,6 +2,7 @@ package synthesis
 
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
+import org.scalacheck.Prop.BooleanOperators
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import syntax.AstSugar.Term
@@ -13,14 +14,10 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   implicit val programsCreator = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    check(forAll { term: Term =>
-      new Programs(term).reconstruct(HyperTermIdentifier(term.root)).contains(term)
-    })
-  }
-
-  property("program is never empty") {
-    check(forAll { term: Term =>
-      new Programs(term).reconstruct(HyperTermIdentifier(term.root)).nonEmpty
+    check(forAll { term: Term => {
+      val programs = new Programs(term)
+      programs.reconstruct(HyperTermIdentifier(term.root)).contains(term) :| programs.toString
+    }
     })
   }
 
