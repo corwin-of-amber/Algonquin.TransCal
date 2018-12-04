@@ -160,7 +160,12 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     false
   }
 
-  def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
+  override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
+
+
+  /* --- Object Impl. --- */
+
+  override def toString: String = f"VocabularyHyperGraph($edges)"
 
 
   /* --- Private Methods --- */
