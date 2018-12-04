@@ -3,7 +3,7 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
-import structures.mutable.VocabularyHyperGraph
+import structures.immutable.VocabularyHyperGraph
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState

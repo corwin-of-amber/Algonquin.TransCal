@@ -1,9 +1,9 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.mutable.VocabularyHyperGraph
 import structures.HyperGraphManyWithOrderToOne
 import structures.HyperGraphManyWithOrderToOneLike._
+import structures.immutable.VocabularyHyperGraph
 import synthesis.{HyperTerm, HyperTermIdentifier}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator

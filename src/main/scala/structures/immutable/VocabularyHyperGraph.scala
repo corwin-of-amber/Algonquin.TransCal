@@ -1,5 +1,4 @@
-package structures.mutable
-
+package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike

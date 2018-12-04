@@ -2,6 +2,7 @@ package structures.mutable
 
 import org.scalatest.{FlatSpec, Matchers}
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.immutable.VocabularyHyperGraph
 
 
 class VocabularyHyperGraphUnitSpec extends FlatSpec with Matchers {

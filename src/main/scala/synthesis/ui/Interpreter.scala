@@ -2,7 +2,7 @@ package synthesis.ui
 
 import java.io.{BufferedReader, PrintStream}
 
-import structures.mutable.VocabularyHyperGraph
+import structures.immutable.VocabularyHyperGraph
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
 import synthesis.{HyperTerm, HyperTermIdentifier, Programs}

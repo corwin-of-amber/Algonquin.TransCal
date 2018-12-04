@@ -1,8 +1,8 @@
-package structures.mutable
+package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.VocabularyLike._
 import structures.VocabularyLike
+import structures.VocabularyLike._
 
 import scala.collection.mutable
 

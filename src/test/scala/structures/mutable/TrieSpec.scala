@@ -1,8 +1,9 @@
 package structures.mutable
 
 import org.scalatest.{FlatSpec, Matchers}
-
 import java.security.SecureRandom
+
+import structures.immutable.Trie
 
 class TrieSpec extends FlatSpec with Matchers {
 
@@ -95,7 +96,7 @@ class TrieSpec extends FlatSpec with Matchers {
   }
 
   it should "change only the letter and merge new words" in {
-    val vocabulary: Vocabulary[Int] = Trie.empty[Int]
+    val vocabulary = Trie.empty[Int]
     val keep = random.nextInt
     val change = random.nextInt
     val otherSuffix = randomWord
