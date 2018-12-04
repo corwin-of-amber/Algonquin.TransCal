@@ -53,6 +53,11 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
       recursive(hyperTerm)
     }
   }
+
+
+  /* --- Object Impl. --- */
+
+  override def toString: String = f"Programs($hyperGraph)"
 }
 
 object Programs extends LazyLogging {
