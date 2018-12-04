@@ -58,7 +58,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
 
   /* --- Private Methods --- */
 
-  private def addWithIndex(word: Seq[Letter], index: Int): Trie[Letter] = {
+  private def addWithIndex(word: Word[Letter], index: Int): Trie[Letter] = {
     logger.trace("Add word")
     logger.trace("Make subtries larger if needed")
     subtries =  subtries ++ (0 to word.length - index - subtries.length).map(_=>mutable.Map.empty[Letter, Trie[Letter]])
@@ -73,7 +73,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     this
   }
 
-  private def removeWithIndex(word: Seq[Letter], index: Int): Trie[Letter] = {
+  private def removeWithIndex(word: Word[Letter], index: Int): Trie[Letter] = {
     logger.trace("Remove to indexes")
     for (((letter, mapSubtries), mapIndex) <- word.drop(index).zip(subtries).zipWithIndex) {
       mapSubtries(letter).removeWithIndex(word, index + 1 + mapIndex)
