@@ -30,7 +30,7 @@ class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsAndSourceReferencesMaps = compactGraph.findSubgraph(hyperPattern)
+    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[HyperTerm, HyperTermIdentifier]]] = compactGraph.findSubgraph(hyperPattern)
     def merge(either: Either[HyperTerm, HyperTerm]): HyperTerm = {
       either match {
         case Left(left) => left
