@@ -1,4 +1,4 @@
-package structures.mutable
+package structures.immutable
 
 import org.scalatest.{FlatSpec, Matchers}
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge

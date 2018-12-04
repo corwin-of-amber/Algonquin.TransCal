@@ -1,4 +1,4 @@
-package structures.mutable
+package structures.immutable
 
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}

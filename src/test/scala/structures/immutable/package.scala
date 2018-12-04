@@ -3,11 +3,10 @@ package structures
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
-import structures.immutable.{Trie, VocabularyHyperGraph}
 
 import scala.util.Random
 
-package object mutable {
+package object immutable {
   def HyperEdgeGenFactory[Node, Edge](nodeSource: Gen[Node], edgeSource: Gen[Edge]): Gen[HyperEdge[Node, Edge]] = for {
     source <- nodeSource
     edge <- edgeSource
