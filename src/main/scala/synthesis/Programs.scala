@@ -1,11 +1,14 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import structures.HyperGraphManyWithOrderToOneLike
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import structures.mutable.VocabularyHyperGraph
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
+
+import scala.collection.mutable
 
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
   * @author tomer
@@ -33,7 +36,9 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
       logger.debug(f"Unknown HyperTerm - $hyperTerm")
       Iterator.empty
     } else {
-      val targetToEdges = hyperGraph.edges.groupBy(edge => edge.target)
+      var hyperTermToEdge = Programs.createMultiMap[HyperTerm, HyperGraphManyWithOrderToOneLike.HyperEdge[HyperTerm, HyperTermIdentifier]]
+      hyperTermToEdge = hyperGraph.edges.groupBy(edge => edge.target).foldLeft(hyperTermToEdge)(Programs.addToMultiMap)
+      hyperTermToEdge = hyperGraph.edges.groupBy(edge => edge.edgeType).foldLeft(hyperTermToEdge)(Programs.addToMultiMap)
 
       /** Build iterator of program's trees where their root is the current target.
         *
@@ -41,18 +46,11 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
         * @return Iterator with all the programs of root.
         */
       def recursive(root: HyperTerm): Iterator[Term] = {
-        root match {
-          case HyperTermId(_) => targetToEdges(root).toIterator.flatMap(edge => {
-            new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
-          })
-          case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
-        }
+        hyperTermToEdge.get(root).map(edges => edges.toIterator.flatMap(edge => {
+          new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+        })).getOrElse(Iterator(new Tree[Identifier](root match { case HyperTermIdentifier(identifier) => identifier })))
       }
-
-      hyperTerm match {
-        case HyperTermId(_) => hyperGraph.edges.toIterator.filter(_.edgeType == hyperTerm).map(_.target).flatMap(recursive)
-        case HyperTermIdentifier(identifier) => Iterator(new Tree[Identifier](identifier))
-      }
+      recursive(hyperTerm)
     }
   }
 }
@@ -60,6 +58,10 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
 object Programs extends LazyLogging {
 
   /* --- Private --- */
+
+  private def createMultiMap[Key, Value]: mutable.MultiMap[Key, Value] = new mutable.HashMap[Key, mutable.Set[Value]] with mutable.MultiMap[Key, Value]
+
+  private def addToMultiMap[Key, Value](multimap: mutable.MultiMap[Key, Value], kvs: (Key, Set[Value])): mutable.MultiMap[Key, Value] = kvs._2.foldLeft(multimap)((multimap, value) => {multimap. addBinding(kvs._1, value)})
 
   private def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
