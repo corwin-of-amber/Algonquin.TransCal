@@ -1,6 +1,6 @@
 package structures
 
-import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Item}
+import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, HyperEdgePattern, HyperGraphPattern}
 
 /** A hyper graph from many to one.
   *
@@ -22,7 +22,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched edges
     */
-  def find[Id](pattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperEdge[Node, EdgeType]]
+  def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]]
 
   /** Finds subgraphs by a pattern graph.
     *
@@ -31,7 +31,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Pattern The type of the pattern subgraph
     * @return The matched references.
     */
-  def findSubgraph[Id, Pattern <: HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]]
 
   /** Checks if there are any cycles in the hyper graph.
     *
@@ -78,10 +78,22 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 }
 
 object HyperGraphManyWithOrderToOneLike {
+
+
+  /* --- Public --- */
+
   case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node])
 
-  trait Item[Value, Id]
-  case class Hole[Value, Id](id: Id) extends Item[Value, Id]
-  case class Explicit[Value, Id](value: Value) extends Item[Value, Id]
-  case class Ignored[Value, Id]() extends Item[Value, Id]
+  // Reference VocabularyLike.Item from HyperGraphManyWithOrderToOneLike
+  type Item[Value, Id] = VocabularyLike.Item[Value, Id]
+  type Hole[Value, Id] = VocabularyLike.Hole[Value, Id]
+  val Hole = VocabularyLike.Hole
+  type Explicit[Value, Id] = VocabularyLike.Explicit[Value, Id]
+  val Explicit = VocabularyLike.Explicit
+  type Ignored[Value, Id] = VocabularyLike.Ignored[Value, Id]
+  val Ignored = VocabularyLike.Ignored
+
+  // Shortcuts
+  type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
+  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], This]
 }
