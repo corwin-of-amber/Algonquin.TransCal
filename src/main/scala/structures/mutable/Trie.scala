@@ -1,7 +1,7 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, Item, Ignored, Hole}
+import structures.VocabularyLike._
 import structures.VocabularyLike
 
 import scala.collection.mutable
@@ -10,7 +10,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Letter]]], var words: Set[Seq[Letter]])
+class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Letter]]], var words: Set[Word[Letter]])
   extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
 
@@ -23,13 +23,13 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
 
   /* --- Vocabulary Impl. --- */
 
-  override def add(word: Seq[Letter]): Trie[Letter] = if (!words.contains(word)) { addWithIndex(word, 0) } else this
+  override def add(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) { addWithIndex(word, 0) } else this
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
-  override def remove(word: Seq[Letter]): Trie[Letter] = if (words.contains(word)) { removeWithIndex(word, 0) } else this
+  override def remove(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) { removeWithIndex(word, 0) } else this
 
-  override def findByPrefix(sparse: Seq[(Int, Letter)]): Set[Seq[Letter]] = {
+  override def findByPrefix(sparse: Seq[(Int, Letter)]): Set[Word[Letter]] = {
     logger.trace("Entered findByPrefix")
     sparse match {
       case Nil =>
@@ -49,7 +49,7 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     }
   }
 
-  override def findPatternPrefix[Id](pattern: Seq[Item[Letter, Id]]): Set[Seq[Letter]] = {
+  override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
     logger.trace("find pattern prefix")
     recursiveFindPatternPrefix[Id](pattern, Map.empty)
   }
@@ -117,13 +117,13 @@ class Trie[Letter](private var subtries: IndexedSeq[mutable.Map[Letter, Trie[Let
     otherTrie.words.foldLeft(this)((trie, word) => trie.addWithIndex(word, index))
   }
 
-  private def recursiveFindPatternPrefix[Id](pattern: Seq[Item[Letter, Id]], placeholdersMap: Map[Id, Letter]): Set[Seq[Letter]] = {
+  private def recursiveFindPatternPrefix[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] = {
     pattern match {
       case Nil => words
       case item +: more =>
         item match {
-          case Explicit(value) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
-          case Hole(id) =>
+          case Explicit(value: Letter) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
+          case Hole(id: Id) =>
             if (placeholdersMap.contains(id)) {
               val value = placeholdersMap(id)
               subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
