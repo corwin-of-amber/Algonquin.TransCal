@@ -36,6 +36,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("add edge with empty source") {
+    check(forAll { e: HyperEdge[Int, Int] =>
+      e.sources.isEmpty ==> VocabularyHyperGraph.empty.addEdge(e).edges.contains(e)
+    })
+  }
+
   property("edges finds all that were added") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
