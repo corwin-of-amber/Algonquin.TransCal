@@ -37,6 +37,22 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("add twice works") {
+    check(forAll { word: Seq[Int] =>
+      {
+        val onceTrie = Trie.empty.add(word)
+        val twiceTrie = onceTrie.add(word)
+        onceTrie == twiceTrie
+      }
+    })
+  }
+
+  property("empty find prefix returns all") {
+    check(forAll { trie: Trie[Int] =>
+      trie.words == trie.findPatternPrefix(Seq())
+    })
+  }
+
   property("added should be findable as sparse") {
     check(forAll { trie: Trie[Int] =>
       trie.words.forall(word => trie.findPattern(word.map(Explicit(_))).contains(word))
