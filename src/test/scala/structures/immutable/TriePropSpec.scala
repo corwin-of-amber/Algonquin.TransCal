@@ -4,6 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
+import structures.VocabularyLike.Explicit
 
 import scala.util.Random
 
@@ -33,6 +34,12 @@ class TriePropSpec extends PropSpec with Checkers {
   property("add non exists works") {
     check(forAll { (trie: Trie[Int], word: Seq[Int]) =>
       !trie.words.contains(word) ==> trie.add(word).words.contains(word)
+    })
+  }
+
+  property("added should be findable as sparse") {
+    check(forAll { trie: Trie[Int] =>
+      trie.words.forall(word => trie.findPattern(word.map(Explicit(_))).contains(word))
     })
   }
 
