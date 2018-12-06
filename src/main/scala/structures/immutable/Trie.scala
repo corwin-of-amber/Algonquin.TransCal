@@ -56,7 +56,11 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
   override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
     logger.trace("find pattern prefix")
-    recursiveFindPatternPrefix[Id](pattern, Map.empty)
+    if (isEmpty) {
+      Set.empty
+    } else {
+      recursiveFindPatternPrefix[Id](pattern, Map.empty)
+    }
   }
 
   override def toString: String = f"Trie (${words.mkString(", ")})"
