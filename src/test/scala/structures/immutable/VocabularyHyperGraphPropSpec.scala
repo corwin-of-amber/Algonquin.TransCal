@@ -87,11 +87,11 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("find edge by target equal to empty pattern except target") {
+  property("find edge by target equal to empty pattern except edge type") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       (es.size > 1) ==> {
         val g = grapher(es)
-        es.forall(e => g.findEdges(e.target) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Ignored(), e.sources.map(_ => Ignored[Int, Int]()))))
+        es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored[Int, Int]()))))
       }
     })
   }
