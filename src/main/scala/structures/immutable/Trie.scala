@@ -104,16 +104,16 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
       case Nil => words
       case item +: more =>
         item match {
-          case Explicit(value: Letter) => subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
+          case Explicit(value: Letter) => subtries.head(value).recursiveFindPatternPrefix(more, placeholdersMap)
           case Hole(id: Id) =>
             if (placeholdersMap.contains(id)) {
               val value = placeholdersMap(id)
-              subtries(0)(value).recursiveFindPatternPrefix(more, placeholdersMap)
+              subtries.head(value).recursiveFindPatternPrefix(more, placeholdersMap)
             } else {
-              (for ((letter, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated(id, letter)))
+              (for ((letter, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated(id, letter)))
                 .flatten.toSet
             }
-          case Ignored() => (for ((_, subtrie) <- subtries(0)) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
+          case Ignored() => (for ((_, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
             .flatten.toSet
         }
     }
