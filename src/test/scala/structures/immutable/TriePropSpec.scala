@@ -14,8 +14,8 @@ class TriePropSpec extends PropSpec with Checkers {
   implicit val trieCreator = Arbitrary(integerTrieGen)
 
   def checkRemoved(trie: Trie[Int], i: Int): Boolean = {
-    val words = trie.words.toList(i)
-    !trie.remove(words).words.contains(words)
+    val word = trie.words.toList(i)
+    !trie.remove(word).words.contains(word)
   }
 
   property("removes") {
