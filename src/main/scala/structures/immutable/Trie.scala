@@ -21,38 +21,11 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
   /* --- Vocabulary Impl. --- */
 
-  override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else { logger.trace("Add word")
-    logger.trace("Make subtries larger if needed")
-    val expendedSubtries = subtries ++ (0 to word.length - subtries.length).map(_ => Map.empty[Letter, Trie[Letter]])
-
-    logger.trace("Add to indexes")
-    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(expendedSubtries).zipWithIndex) yield {
-      mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.empty).add(word.drop(1 + mapIndex))))
-    }) ++ expendedSubtries.drop(word.size)
-
-    logger.trace("Add to set")
-    val newWords = words + word
-    new Trie(newSubtries, newWords) }
+  override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
-  override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else {
-
-    logger.trace("Remove with index")
-    logger.debug(f"Trying to remove $word")
-    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
-      val subtrieRemoved = mapSubtries(letter).remove(word.drop(1 + mapIndex))
-      if (subtrieRemoved.isEmpty) {
-        mapSubtries - letter
-      } else {
-        mapSubtries + ((letter, subtrieRemoved))
-      }
-    }) ++ subtries.drop(word.size)
-
-    logger.trace("Remove from set")
-    val newWords = words - word
-    new Trie(newSubtries, newWords)
-  }
+  override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
 
   override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
     logger.trace("find pattern prefix")
@@ -67,6 +40,38 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
 
   /* --- Private Methods --- */
+
+  private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
+    logger.trace("Add word")
+    logger.trace("Make subtries larger if needed")
+    val expendedSubtries = subtries ++ (0 to word.length - subtries.length).map(_ => Map.empty[Letter, Trie[Letter]])
+
+    logger.trace("Add to indexes")
+    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(expendedSubtries).zipWithIndex) yield {
+      mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.empty).addRecursive(word.drop(1 + mapIndex), originalWord)))
+    }) ++ expendedSubtries.drop(word.size)
+
+    logger.trace("Add to set")
+    val newWords = words + originalWord
+    new Trie(newSubtries, newWords)
+  }
+
+  private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
+    logger.trace("Remove with index")
+    logger.debug(f"Trying to remove $word")
+    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
+      val subtrieRemoved = mapSubtries(letter).removeRecursive(word.drop(1 + mapIndex), originalWord)
+      if (subtrieRemoved.isEmpty) {
+        mapSubtries - letter
+      } else {
+        mapSubtries + ((letter, subtrieRemoved))
+      }
+    }) ++ subtries.drop(word.size)
+
+    logger.trace("Remove from set")
+    val newWords = words - originalWord
+    new Trie(newSubtries, newWords)
+  }
 
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
     logger.trace("Replace local words")
