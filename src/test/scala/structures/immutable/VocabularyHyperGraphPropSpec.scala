@@ -66,8 +66,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       g.nodes.nonEmpty ==> {
         val first = g.nodes.toList(Random.nextInt(g.nodes.size))
         val second = g.nodes.toList(Random.nextInt(g.nodes.size))
-        g.mergeNodes(first, second)
-        g.nodes.contains(first) && (first == second || !g.nodes.contains(second))
+        val gMerged = g.mergeNodes(first, second)
+        gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second))
       }
     })
   }
