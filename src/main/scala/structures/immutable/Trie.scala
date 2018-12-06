@@ -100,21 +100,18 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
   }
 
   private def recursiveFindPatternPrefix[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] = {
+    def specificValue(value: Letter, more: WordPattern[Letter, Id],  placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] =
+      subtries.head.get(value).map(_.recursiveFindPatternPrefix(more, placeholdersMap)).getOrElse(Set.empty)
     pattern match {
       case Nil => words
       case item +: more =>
         item match {
-          case Explicit(value: Letter) => subtries.head(value).recursiveFindPatternPrefix(more, placeholdersMap)
+          case Explicit(value: Letter) => specificValue(value, more, placeholdersMap)
           case Hole(id: Id) =>
-            if (placeholdersMap.contains(id)) {
-              val value = placeholdersMap(id)
-              subtries.head(value).recursiveFindPatternPrefix(more, placeholdersMap)
-            } else {
-              (for ((letter, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated(id, letter)))
-                .flatten.toSet
-            }
-          case Ignored() => (for ((_, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap))
-            .flatten.toSet
+            placeholdersMap.get(id)
+              .map(specificValue(_, more, placeholdersMap))
+              .getOrElse((for ((letter, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated(id, letter))).flatten.toSet)
+          case Ignored() => (for ((_, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap)).flatten.toSet
         }
     }
   }
