@@ -5,7 +5,6 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
-import structures.immutable.VocabularyHyperGraph
 
 import scala.util.Random
 

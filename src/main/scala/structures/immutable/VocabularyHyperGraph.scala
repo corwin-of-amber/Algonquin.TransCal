@@ -38,27 +38,27 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
-    vocabulary replace (lefty(keep), lefty(change))
+    vocabulary replace (Left(keep), Left(change))
     this
   }
 
   override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find edges")
-    vocabulary.findByPrefix(Seq((0, righty(edgeType)))).map(wordToHyperEdge)
+    vocabulary.findPatternPrefix[Int](Seq(Explicit(Right(edgeType)))).map(wordToHyperEdge)
   }
 
   override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find pattern")
     def convertNode(item: Item[Node, Id]): Item[Either[Node, EdgeType], Id] = {
       item match {
-        case Explicit(value) => Explicit(lefty(value))
+        case Explicit(value) => Explicit(Left(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
       }
     }
     def convertEdgeType(item: Item[EdgeType, Id]): Item[Either[Node, EdgeType], Id] = {
       item match {
-        case Explicit(value) => Explicit(righty(value))
+        case Explicit(value) => Explicit(Right(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
       }
@@ -140,24 +140,11 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
     HyperEdge(toNode(word(1)), toEdge(word.head), word.drop(2) map toNode)
 
   private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Seq[Either[Node, EdgeType]] =
-    righty(hyperEdge.edgeType) +: lefty(hyperEdge.target) +: hyperEdge.sources.map(lefty)
+    Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
 
-  private def lefty(node: Node): Either[Node, EdgeType] = {
-    Left(node)
-  }
-  private def righty(edge: EdgeType): Either[Node, EdgeType] = {
-    Right(edge)
-  }
-  private def toNode(either: Either[Node, EdgeType]): Node = {
-    either match {
-      case Left(node) => node
-    }
-  }
-  private def toEdge(either: Either[Node, EdgeType]): EdgeType = {
-    either match {
-      case Right(edge) => edge
-    }
-  }
+  private def toNode(either: Either[Node, EdgeType]): Node = either match { case Left(node) => node }
+
+  private def toEdge(either: Either[Node, EdgeType]): EdgeType = either match { case Right(edge) => edge }
 }
 
 object VocabularyHyperGraph {

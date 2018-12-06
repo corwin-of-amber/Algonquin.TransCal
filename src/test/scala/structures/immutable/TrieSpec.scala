@@ -108,7 +108,7 @@ class TrieSpec extends FlatSpec with Matchers {
       vocabulary = vocabulary.add(randomWord)
     }
 
-    vocabulary.findByPrefix(Seq.empty) shouldBe vocabulary.words
+    vocabulary.findPatternPrefix(Seq.empty) shouldBe vocabulary.words
   }
 
   /* --- Privates --- */
