@@ -26,20 +26,17 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
-    vocabulary add hyperEdgeToWord(hyperEdge)
-    this
+    new VocabularyHyperGraph(vocabulary add hyperEdgeToWord(hyperEdge))
   }
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Remove edge")
-    vocabulary remove hyperEdgeToWord(hyperEdge)
-    this
+    new VocabularyHyperGraph(vocabulary remove hyperEdgeToWord(hyperEdge))
   }
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
-    vocabulary replace (Left(keep), Left(change))
-    this
+    new VocabularyHyperGraph(vocabulary replace (Left(keep), Left(change)))
   }
 
   override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {

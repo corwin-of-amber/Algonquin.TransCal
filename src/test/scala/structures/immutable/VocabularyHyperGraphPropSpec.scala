@@ -45,8 +45,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("add than remove than add") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> (g.edges.size + 1 == g.addEdge(e).edges.size &&
-        g.edges.size - 1 == g.removeEdge(e).edges.size && g.edges.size + 1 == g.addEdge(e).edges.size)
+      !g.edges.contains(e) ==> {
+        val gAdded = g.addEdge(e)
+        val gRemoved = gAdded.removeEdge(e)
+        val gAdded2 = gRemoved.addEdge(e)
+        g.edges.size + 1 == gAdded.edges.size && gAdded.edges.size - 1 == gRemoved.edges.size && gRemoved.edges.size + 1 == gAdded2.edges.size
+      }
     })
   }
 
@@ -74,8 +78,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         val g = grapher(es)
         val toChange = es.toList(1)
         val source = es.toList(0)
-        g.mergeNodes(source.target, toChange.target)
-        !g.edges.contains(toChange) && g.edges.count(x => x.target == source.target && x.sources == toChange.sources.map({x =>
+        val gMerged = g.mergeNodes(source.target, toChange.target)
+        !gMerged.edges.contains(toChange) && gMerged.edges.count(x => x.target == source.target && x.sources == toChange.sources.map({x =>
           if (x == toChange.target) source.target
           else x
         }) && x.edgeType == toChange.edgeType) == 1
