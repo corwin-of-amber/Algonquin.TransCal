@@ -133,15 +133,14 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   /* --- Private Methods --- */
 
-  private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] =
+  private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] = {
+    def toNode(either: Either[Node, EdgeType]): Node = either match { case Left(node) => node }
+    def toEdge(either: Either[Node, EdgeType]): EdgeType = either match { case Right(edge) => edge }
     HyperEdge(toNode(word(1)), toEdge(word.head), word.drop(2) map toNode)
+  }
 
   private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Seq[Either[Node, EdgeType]] =
     Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
-
-  private def toNode(either: Either[Node, EdgeType]): Node = either match { case Left(node) => node }
-
-  private def toEdge(either: Either[Node, EdgeType]): EdgeType = either match { case Right(edge) => edge }
 }
 
 object VocabularyHyperGraph {
