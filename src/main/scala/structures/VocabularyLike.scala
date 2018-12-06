@@ -8,10 +8,6 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
 
   import VocabularyLike.{Word, WordPattern}
 
-  def findByPrefix(tuple: Seq[(Int, Letter)]): Set[Word[Letter]]
-
-  def find(tuple: Seq[(Int, Letter)], size: Int): Set[Word[Letter]] = findByPrefix(tuple).filter(_.length == size)
-
   def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]]
 
   def findPattern[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = findPatternPrefix(pattern).filter(_.length == pattern.length)

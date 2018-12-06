@@ -21,65 +21,27 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
   /* --- Vocabulary Impl. --- */
 
-  override def add(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) {
-    addWithIndex(word)
-  } else this
-
-  override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
-
-  override def remove(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) {
-    removeWithIndex(word)
-  } else this
-
-  override def findByPrefix(sparse: Seq[(Int, Letter)]): Set[Word[Letter]] = {
-    logger.trace("Entered findByPrefix")
-    sparse match {
-      case Nil =>
-        logger.trace("sparse is Nil")
-        words
-      case (index, letter) +: remined => if (subtries.length < index) {
-        logger.trace("Subtrie doesn't exist")
-        Set.empty
-      } else {
-        subtries(index).get(letter) match {
-          case None =>
-            logger.trace("Subtrie doesn't exist")
-            Set.empty
-          case Some(subtrie) => subtrie.findByPrefix(remined)
-        }
-      }
-    }
-  }
-
-  override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
-    logger.trace("find pattern prefix")
-    recursiveFindPatternPrefix[Id](pattern, Map.empty)
-  }
-
-  override def toString: String = f"Trie (${words.mkString(", ")})"
-
-  /* --- Private Methods --- */
-
-  private def addWithIndex(word: Word[Letter]): Trie[Letter] = {
-    logger.trace("Add word")
+  override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else { logger.trace("Add word")
     logger.trace("Make subtries larger if needed")
     val expendedSubtries = subtries ++ (0 to word.length - subtries.length).map(_ => Map.empty[Letter, Trie[Letter]])
 
     logger.trace("Add to indexes")
     val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(expendedSubtries).zipWithIndex) yield {
-      mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.empty).addWithIndex(word.drop(1 + mapIndex))))
+      mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.empty).add(word.drop(1 + mapIndex))))
     }) ++ expendedSubtries.drop(word.size)
 
     logger.trace("Add to set")
     val newWords = words + word
-    new Trie(newSubtries, newWords)
-  }
+    new Trie(newSubtries, newWords) }
 
-  private def removeWithIndex(word: Word[Letter]): Trie[Letter] = {
+  override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
+
+  override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else {
+
     logger.trace("Remove with index")
     logger.debug(f"Trying to remove $word")
     val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
-      val subtrieRemoved = mapSubtries(letter).removeWithIndex(word.drop(1 + mapIndex))
+      val subtrieRemoved = mapSubtries(letter).remove(word.drop(1 + mapIndex))
       if (subtrieRemoved.isEmpty) {
         mapSubtries - letter
       } else {
@@ -91,6 +53,16 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
     val newWords = words - word
     new Trie(newSubtries, newWords)
   }
+
+  override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
+    logger.trace("find pattern prefix")
+    recursiveFindPatternPrefix[Id](pattern, Map.empty)
+  }
+
+  override def toString: String = f"Trie (${words.mkString(", ")})"
+
+
+  /* --- Private Methods --- */
 
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
     logger.trace("Replace local words")
@@ -120,7 +92,7 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
     logger.trace("addAll")
-    otherTrie.words.foldLeft(this)((trie, word) => trie.addWithIndex(word.drop(index)))
+    otherTrie.words.foldLeft(this)((trie, word) => trie.add(word.drop(index)))
   }
 
   private def recursiveFindPatternPrefix[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] = {
