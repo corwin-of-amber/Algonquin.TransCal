@@ -41,7 +41,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 
   override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find edges")
-    vocabulary.findPatternPrefix[Int](Seq(Explicit(Right(edgeType)))).map(wordToHyperEdge)
+    vocabulary.findPatternPrefix[Int](Seq(Explicit(Right(edgeType)), Ignored())).map(wordToHyperEdge)
   }
 
   override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
