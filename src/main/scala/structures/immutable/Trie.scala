@@ -46,7 +46,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
     logger.trace("Add to set")
     val newWords = words + originalWord
-    Trie(newSubtries, newWords)
+    new Trie(newSubtries, newWords)
   }
 
   private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
@@ -63,7 +63,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
     logger.trace("Remove from set")
     val newWords = words - originalWord
-    Trie(newSubtries, newWords)
+    new Trie(newSubtries, newWords)
   }
 
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
@@ -89,7 +89,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
         case None => mapSubtriesRemoved
       }
     }
-    Trie(newSubtries, newWords)
+    new Trie(newSubtries, newWords)
   }
 
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
@@ -116,7 +116,5 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 }
 
 object Trie {
-  def empty[Letter]: Trie[Letter] = Trie(IndexedSeq.empty, Set.empty)
-
-  def apply[Letter](subtries: IndexedSeq[Map[Letter, Trie[Letter]]], words: Set[Word[Letter]]) = new Trie(subtries, words)
+  def empty[Letter]: Trie[Letter] = new Trie(IndexedSeq.empty, Set.empty)
 }
