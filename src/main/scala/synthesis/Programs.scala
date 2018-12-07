@@ -3,7 +3,7 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
-import structures.immutable.VocabularyHyperGraph
+import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
@@ -83,7 +83,7 @@ object Programs extends LazyLogging {
 
     val hyperEdges = destruct(tree, Stream.from(1).iterator.next)
 
-    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](new VocabularyHyperGraph[HyperTerm, HyperTermIdentifier]())((graph, edge)=>graph.addEdge(edge))
+    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](HyperGraphManyWithOrderToOne.empty)((graph, edge)=>graph.addEdge(edge))
   }
 
   /** Iterator which combines two iterators (return all combinations of their results).
