@@ -25,13 +25,13 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("every node is constructable") {
     check(forAll { programs: Programs =>
-      !programs.hyperGraph.nodes.map(programs.reconstruct).exists(_.isEmpty)
+      programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)
     })
   }
 
   property("every edge is constructable") {
     check(forAll { programs: Programs =>
-      !programs.hyperGraph.edgeTypes.map(programs.reconstruct).exists(_.isEmpty)
+      programs.hyperGraph.edgeTypes.map(programs.reconstruct).forall(_.nonEmpty)
     })
   }
 
