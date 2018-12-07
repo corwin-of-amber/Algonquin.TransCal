@@ -12,7 +12,9 @@ package object synthesis {
     children <- listOfN(childrenSize, valuesSource.map(new Tree(_)))
   } yield new Tree[Node](root, children)
 
-  val identifierTreesGen: Gen[Term] = TreeGenFactory(oneOf((0 to 50).map(new Identifier(_))))
+  val identifierGen: Gen[Identifier] = oneOf((0 to 50).map(new Identifier(_)))
+
+  val identifierTreesGen: Gen[Term] = TreeGenFactory(identifierGen)
 
   val programsGen: Gen[Programs] = identifierTreesGen.map(Programs(_))
 }
