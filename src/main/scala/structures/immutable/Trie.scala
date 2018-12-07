@@ -94,7 +94,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
     logger.trace("addAll")
-    otherTrie.words.foldLeft(this)((trie, word) => trie.add(word.drop(index)))
+    otherTrie.words.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
   }
 
   private def recursiveFindPatternPrefix[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] = {
