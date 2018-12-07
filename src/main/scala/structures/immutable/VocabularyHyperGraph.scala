@@ -144,5 +144,7 @@ class VocabularyHyperGraph[Node, EdgeType](vocabulary: Vocabulary[Either[Node, E
 }
 
 object VocabularyHyperGraph {
-  def empty[Node, Edge] = new VocabularyHyperGraph[Node, Edge]()
+  def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = VocabularyHyperGraph(Vocabulary.empty)
+
+  def apply[Node, EdgeType](vocabulary: Vocabulary[Either[Node, EdgeType]]) = new VocabularyHyperGraph(vocabulary)
 }
