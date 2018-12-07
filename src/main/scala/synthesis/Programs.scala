@@ -14,12 +14,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
-
-
-  /* --- Constructors --- */
-
-  def this(tree: Term) = this(Programs.destruct(tree))
+class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
 
 
   /* --- Public --- */
@@ -61,6 +56,16 @@ class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLoggin
 }
 
 object Programs extends LazyLogging {
+
+
+  /* --- Public --- */
+
+  def empty: Programs = Programs(HyperGraphManyWithOrderToOne.empty[HyperTerm, HyperTermIdentifier])
+
+  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(hyperGraph)
+
+  def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
+
 
   /* --- Private --- */
 

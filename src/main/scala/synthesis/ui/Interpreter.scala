@@ -2,10 +2,9 @@ package synthesis.ui
 
 import java.io.{BufferedReader, PrintStream}
 
-import structures.immutable.HyperGraphManyWithOrderToOne
+import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-import synthesis.{HyperTerm, HyperTermIdentifier, Programs}
 
 /**
   * @author tomer
@@ -15,7 +14,7 @@ class Interpreter(userInput: BufferedReader, userOutput: PrintStream) {
   private val actions = Seq(new UserAction(userInput, userOutput))
 
   def start: Unit = {
-    var newState = new ActionSearchState(new Programs(HyperGraphManyWithOrderToOne.empty[HyperTerm, HyperTermIdentifier]), Set())
+    var newState = new ActionSearchState(Programs.empty, Set())
     do {
       val oldState = newState
       for(action <- actions) {

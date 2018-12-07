@@ -18,7 +18,7 @@ class ExpandProgramsAction extends Action with LazyLogging {
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, _ => {counter += 1; counter == state.rewriteRules.size})
     rewriteSearch.search(spaceSearch, 1) match {
       case None => state
-      case Some(rewriteSearchState) => new ActionSearchState(new Programs(rewriteSearchState.graph), state.rewriteRules)
+      case Some(rewriteSearchState) => new ActionSearchState(Programs(rewriteSearchState.graph), state.rewriteRules)
     }
   }
 }

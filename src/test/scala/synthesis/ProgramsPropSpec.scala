@@ -15,7 +15,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("main program is in reconstruct") {
     check(forAll { term: Term => {
-      val programs = new Programs(term)
+      val programs = Programs(term)
       programs.reconstruct(HyperTermIdentifier(term.root)).contains(term) :| programs.toString
     }
     })

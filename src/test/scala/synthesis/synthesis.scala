@@ -14,5 +14,5 @@ package object synthesis {
 
   val identifierTreesGen: Gen[Term] = TreeGenFactory(oneOf((0 to 50).map(new Identifier(_))))
 
-  val programsGen: Gen[Programs] = identifierTreesGen.map(new Programs(_))
+  val programsGen: Gen[Programs] = identifierTreesGen.map(Programs(_))
 }
