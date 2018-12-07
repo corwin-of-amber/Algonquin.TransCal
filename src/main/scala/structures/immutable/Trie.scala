@@ -8,15 +8,8 @@ import structures.VocabularyLike._
   * @author tomer
   * @since 11/15/18
   */
-class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
+class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
   extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
-
-
-  /* --- Constructors --- */
-
-  def this() = {
-    this(IndexedSeq.empty, Set.empty)
-  }
 
 
   /* --- Vocabulary Impl. --- */
@@ -53,7 +46,7 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
     logger.trace("Add to set")
     val newWords = words + originalWord
-    new Trie(newSubtries, newWords)
+    Trie(newSubtries, newWords)
   }
 
   private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
@@ -70,7 +63,7 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 
     logger.trace("Remove from set")
     val newWords = words - originalWord
-    new Trie(newSubtries, newWords)
+    Trie(newSubtries, newWords)
   }
 
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
@@ -96,7 +89,7 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
         case None => mapSubtriesRemoved
       }
     }
-    new Trie(newSubtries, newWords)
+    Trie(newSubtries, newWords)
   }
 
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
@@ -123,5 +116,7 @@ class Trie[Letter](private val subtries: IndexedSeq[Map[Letter, Trie[Letter]]], 
 }
 
 object Trie {
-  def empty[Letter] = new Trie[Letter]()
+  def empty[Letter]: Trie[Letter] = Trie(IndexedSeq.empty, Set.empty)
+
+  def apply[Letter](subtries: IndexedSeq[Map[Letter, Trie[Letter]]], words: Set[Word[Letter]]) = new Trie(subtries, words)
 }
