@@ -2,15 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_main.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_main.iml" group="bellmaniac" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_test.iml" filepath="$PROJECT_DIR$/.idea/modules/1080601962/bellmaniac_test.iml" group="bellmaniac" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal_main.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal_main.iml" group="transcal" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/transcal_test.iml" filepath="$PROJECT_DIR$/.idea/modules/transcal_test.iml" group="transcal" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/visualizer.iml" filepath="$PROJECT_DIR$/.idea/modules/visualizer.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/visualizer_main.iml" filepath="$PROJECT_DIR$/.idea/modules/visualizer_main.iml" group="visualizer" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/visualizer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/visualizer_test.iml" group="visualizer" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/algonquin.transcal.iml" filepath="$PROJECT_DIR$/.idea/modules/algonquin.transcal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/algonquin.transcal-build.iml" filepath="$PROJECT_DIR$/.idea/modules/algonquin.transcal-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bellmaniac.iml" filepath="$PROJECT_DIR$/.idea/modules/bellmaniac.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bellmaniac-build.iml" filepath="$PROJECT_DIR$/.idea/modules/bellmaniac-build.iml" />
     </modules>
   </component>
 </project>
