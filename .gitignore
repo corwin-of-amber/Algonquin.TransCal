@@ -13,7 +13,7 @@ prog.json
 prog.txt
 .cache-main
 /.DS_Store
-/target/
+target/
 /build/
 /.gradle/
 
