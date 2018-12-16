@@ -4,22 +4,18 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOne
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.VocabularyHyperGraph
-import synthesis.{HyperTerm, HyperTermIdentifier}
+import synthesis.rewrites.RewriteRule.{Category, HyperPattern, HyperPatternEdge}
+import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
+import synthesis.{HyperTerm, HyperTermIdentifier}
 
 /** Rewrites a program to a new program.
+  *
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern, ruleType: RewriteRule.Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
-
-
-  /* --- Constructors --- */
-
-  def this(source: Template, destination: Template, conditions: Seq[Template], ruleType: RewriteRule.Category.Value) = {
-    this(destination, RewriteRule.createHyperPatternFromTemplate(source +: conditions), ruleType)
-  }
+class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
 
   /* --- Operator Impl. --- */
@@ -30,20 +26,37 @@ class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsAndSourceReferencesMaps: Set[Map[TemplateTerm, Either[HyperTerm, HyperTermIdentifier]]] = compactGraph.findSubgraph(hyperPattern)
     def merge(either: Either[HyperTerm, HyperTerm]): HyperTerm = {
       either match {
         case Left(left) => left
         case Right(right) => right
       }
     }
-    val r = (for (conditionsAndSourceReferencesMap <- conditionsAndSourceReferencesMaps) yield {
-        val destinationPattern = RewriteRule.templateToPattern(conditionsAndSourceReferencesMap.map(v=>(v._1, merge(v._2))), destination)
 
-        compactGraph.find(destinationPattern)
-    }).flatten
+    val conditionsReferencesMaps = compactGraph.findSubgraph[TemplateTerm, HyperPattern](conditions).map(_.map(kv => (kv._1, merge(kv._2))))
 
-    val graph = r.foldLeft(compactGraph)((graph, edge) => graph.addEdge(edge))
+    def extract(i: Item[HyperTerm, TemplateTerm]): HyperTerm = i match {
+      case Explicit(v) => v
+    }
+
+    def extract2(i: Item[HyperTermIdentifier, TemplateTerm]): HyperTermIdentifier = i match {
+      case Explicit(v) => v
+    }
+
+    def extractNewEdges(m: Map[Template.TemplateTerm, HyperTerm]): Set[HyperPatternEdge] = m.foldLeft(destination)((graph, kv) => {
+      // From each map create new edges from the destination graph
+      val ng = graph.mergeNodes(Explicit(kv._2), Hole(kv._1))
+      kv._2 match {
+        case k: HyperTermIdentifier => ng.mergeEdgeTypes(Explicit(k.asInstanceOf[HyperTermIdentifier]), Hole(kv._1))
+        case _ => ng
+      }
+    }).edges
+
+    val graph = conditionsReferencesMaps.flatMap {
+      extractNewEdges
+    }.map(e =>
+      HyperEdge(extract(e.target), extract2(e.edgeType), e.sources.map(extract))
+    ).foldLeft(VocabularyHyperGraph.empty[HyperTerm, HyperTermIdentifier])((g, e) => g.addEdge(e))
 
     new RewriteSearchState(graph)
   }
@@ -52,10 +65,11 @@ class RewriteRule(destination: Template, hyperPattern: RewriteRule.HyperPattern,
   /* --- Privates --- */
 
   /** This function should work only after "id" rule.
+    *
     * @param graph
     * @return
     */
-  private def compact(graph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
+  private def compact(graph: HyperGraph): HyperGraph = {
     logger.trace("Compacting graph")
     graph
   }
@@ -75,6 +89,11 @@ object RewriteRule {
 
   /* --- Privates --- */
 
+  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperPattern = {
+    templates.map(templateToPattern(Map.empty, _))
+      .foldLeft[HyperPattern](VocabularyHyperGraph.empty)((graph, pattern) => graph.addEdge(pattern))
+  }
+
   private def templateToPattern(references: Map[TemplateTerm, HyperTerm], template: Template): HyperPatternEdge = {
     def templateTermToItem(templateTerm: TemplateTerm): Item[HyperTerm, TemplateTerm] = {
       templateTerm match {
@@ -84,7 +103,8 @@ object RewriteRule {
           Explicit[HyperTerm, TemplateTerm](term.term)
       }
     }
-    def templateTermToItem2(templateTerm: TemplateTerm): Item[HyperTermIdentifier, TemplateTerm] = {
+
+    def templateTermToIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, TemplateTerm] = {
       templateTerm match {
         case term: ReferenceTerm =>
           references.get(templateTerm).map(_.asInstanceOf[HyperTermIdentifier])
@@ -93,11 +113,8 @@ object RewriteRule {
           Explicit[HyperTermIdentifier, TemplateTerm](term.term.asInstanceOf[HyperTermIdentifier])
       }
     }
-    HyperEdge(templateTermToItem(template.target), templateTermToItem2(template.function), template.parameters.map(templateTermToItem))
-  }
 
-  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperPattern = {
-    templates.map(templateToPattern(Map.empty,_))
-      .foldLeft[HyperPattern](VocabularyHyperGraph.empty)((graph, pattern) => graph.addEdge(pattern))
+    HyperEdge(templateTermToItem(template.target), templateTermToIdentifierItem(template.function),
+      template.parameters.map(templateTermToItem))
   }
 }

@@ -8,4 +8,5 @@ import syntax.Identifier
   */
 trait HyperTerm
 case class HyperTermId(id: Int) extends HyperTerm
-case class HyperTermIdentifier(val identifier: Identifier) extends HyperTerm
+
+case class HyperTermIdentifier(identifier: Identifier) extends HyperTerm

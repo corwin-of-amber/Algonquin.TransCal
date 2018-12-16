@@ -6,7 +6,7 @@ import synthesis.HyperTerm
   * @author tomer
   * @since 11/16/18
   */
-class Template(val target: Template.TemplateTerm, val function: Template.TemplateTerm, val parameters: Seq[Template.TemplateTerm])
+case class Template(target: Template.TemplateTerm, function: Template.TemplateTerm, parameters: Seq[Template.TemplateTerm])
 
 object Template {
   trait TemplateTerm
