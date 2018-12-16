@@ -38,7 +38,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("add edge with empty source") {
     check(forAll { e: HyperEdge[Int, Int] =>
-      e.sources.isEmpty ==> VocabularyHyperGraph.empty.addEdge(e).edges.contains(e)
+      val e1 = HyperEdge(e.edgeType, e.target, List.empty)
+      VocabularyHyperGraph.empty.addEdge(e1).edges.contains(e1)
     })
   }
 
@@ -85,10 +86,10 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         val toChange = es.toList(1)
         val source = es.toList(0)
         val gMerged = g.mergeNodes(source.target, toChange.target)
-        !gMerged.edges.contains(toChange) && gMerged.edges.count(x => x.target == source.target && x.sources == toChange.sources.map({x =>
+        !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
           if (x == toChange.target) source.target
           else x
-        }) && x.edgeType == toChange.edgeType) == 1
+        }) && x.edgeType == toChange.edgeType)
       }
     })
   }
@@ -99,6 +100,41 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         val g = grapher(es)
         es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored[Int, Int]()))))
       }
+    })
+  }
+
+  property("find all empty should find all edges by sources length") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      (es.size > 1) ==> {
+        val g = grapher(es)
+        0 to 8 forall { i =>
+          val pat = HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored(), Seq.fill(i)(Ignored()))
+          g.find(pat).size == es.count(_.sources.length == i)
+        }
+      }
+    })
+  }
+
+  property("find all by target") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      (es.size > 1) ==> {
+        val g = grapher(es)
+        es.map(_.target) forall { t =>
+          0 to 8 forall { i =>
+            val pat = HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(t), Ignored(), Seq.fill(i)(Ignored()))
+            g.find(pat).size == es.count(e => e.sources.length == i && e.target == t)
+          }
+        }
+      }
+    })
+  }
+
+  property("find graph finds itself") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      val g = grapher(es)
+      val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
+        grapher(es map (e => HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]))))
+      g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).size == 1
     })
   }
 }
