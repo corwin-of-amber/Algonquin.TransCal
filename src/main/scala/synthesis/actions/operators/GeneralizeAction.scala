@@ -16,16 +16,14 @@ import synthesis.actions.ActionSearchState
 class GeneralizeAction(anchor: Term, leaves: List[Term], name: Term) extends Action {
   override def apply(state: ActionSearchState): ActionSearchState = {
 
-    val work0 = state.programs
-
-    val roots = work0.hyperGraph.findEdges(HyperTermIdentifier(anchor.leaf)) map (_.target)
+    val roots = state.programs.hyperGraph.findEdges(HyperTermIdentifier(anchor.leaf)) map (_.target)
 
     val context: Set[Term] = Set.empty  // s.env.vars.toSet
 
     // Reconstruct and generalize
     val gen =
       for (root <- roots) yield {
-        (for (term <- work0.reconstruct(root);
+        (for (term <- state.programs.reconstruct(root);
               genTerm <- generalize(term, leaves, context)) yield {
           val vas = leaves.indices map Strip.greek map (TV(_))
 
