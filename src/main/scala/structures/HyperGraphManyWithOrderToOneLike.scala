@@ -55,6 +55,13 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
 
+  /** Adds edges to the hyper graph.
+    *
+    * @param hyperEdges The edges to add.
+    * @return The new hyper graph with the edges.
+    */
+  def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This
+
   /** Removes an edge from the hyper graph.
     *
     * @param hyperEdge The edge to remove.

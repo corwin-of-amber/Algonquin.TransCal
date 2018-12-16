@@ -1,6 +1,7 @@
 package structures.immutable
 
 import structures.VocabularyLike
+import structures.VocabularyLike.Word
 
 /**
   * @author tomer
@@ -10,4 +11,6 @@ trait Vocabulary[Letter] extends structures.Vocabulary[Letter] with VocabularyLi
 
 object Vocabulary {
   def empty[Letter]: Vocabulary[Letter] = Trie.empty
+
+  def apply[Letter](words: Set[Word[Letter]]): Vocabulary[Letter] = Trie(words)
 }

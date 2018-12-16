@@ -16,9 +16,7 @@ package object immutable {
 
   val integerEdgesGen: Gen[HyperEdge[Int, Int]] = HyperEdgeGenFactory(oneOf(0 to 50), oneOf(0 to 20))
 
-  def grapher[Node, Edge](se: Set[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = {
-    se.foldLeft(VocabularyHyperGraph.empty[Node, Edge])((v, e) => v.addEdge(e))
-  }
+  def grapher[Node, Edge](se: Set[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = VocabularyHyperGraph(se)
 
   def HyperGraphGenFactory[Node, Edge](edgeSource: Gen[HyperEdge[Node, Edge]]): Gen[VocabularyHyperGraph[Node, Edge]] = {
     containerOf[Set, HyperEdge[Node, Edge]](edgeSource) map grapher
@@ -32,11 +30,7 @@ package object immutable {
   val integerWordGen: Gen[Seq[Int]] = WordGenFactory(integerLetterGen)
 
   def TrieGenFactory[Letter](wordSource: Gen[Seq[Letter]]): Gen[Trie[Letter]] = {
-    def builder(se: Seq[Seq[Letter]]): Trie[Letter] = {
-      se.foldLeft(Trie.empty[Letter])((v, e) => v.add(e))
-    }
-
-    containerOf[Seq, Seq[Letter]](wordSource) map builder
+    containerOf[Set, Seq[Letter]](wordSource) map Trie[Letter]
   }
 
   val integerTrieGen: Gen[Trie[Int]] = TrieGenFactory(integerWordGen)

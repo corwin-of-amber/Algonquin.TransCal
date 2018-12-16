@@ -22,6 +22,11 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     new VocabularyHyperGraph(vocabulary add hyperEdgeToWord(hyperEdge))
   }
 
+  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Add edges")
+    new VocabularyHyperGraph(vocabulary addAll hyperEdges.map(hyperEdgeToWord))
+  }
+
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Remove edge")
     new VocabularyHyperGraph(vocabulary remove hyperEdgeToWord(hyperEdge))
@@ -143,4 +148,6 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
 object VocabularyHyperGraph {
   def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(Vocabulary.empty)
+
+  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty.addEdges(edges)
 }
