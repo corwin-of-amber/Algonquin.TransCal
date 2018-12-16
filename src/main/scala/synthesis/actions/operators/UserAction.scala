@@ -6,22 +6,42 @@ import synthesis.actions.ActionSearchState
 
 import scala.collection.mutable
 
-/**
+/** Getting actions from user.
   * @author tomer
   * @since 11/18/18
   */
 class UserAction(in: BufferedReader, out:PrintStream) extends Action {
 
-  private val lines: mutable.Buffer[(String, String)] = new mutable.ListBuffer[(String, String)]()
+  /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     out.print(f"In [${lines.length}]: ")
     out.flush()
-    val line = in.readLine()
-    out.println(f"Out [${lines.length}]: $line")
+    val line: String = in.readLine()
+
+    // TODO: Add parsing functionality
+    // operator = in the main is Let (adding a new hyperterm)
+    // operator ->:
+    //   For left is:
+    //   1) a pattern - Locate (locating a pattern)
+    //   2) a symbol - Locate (locating a symbol)
+    //   The right is:
+    //   1) a symbol => easy reference
+    //   2) a pattern => Elaborate (finding the pattern - is it needed in case we keep programs?!)
+    //   3) a term => extract the left to to match the term (Generalize or extract methods)
+    // operator →: push stack
+    // operator ←: pop stack
+    // operator □: save state ?!
+    val output: String = line
+
+    out.println(f"Out [${lines.length}]: $output")
     out.flush()
-    val a: (String, String) = (line, line)
-    lines += a
+    lines += ((line, output))
     state
   }
+
+
+  /* --- Privates --- */
+
+  private val lines: mutable.Buffer[(String, String)] = new mutable.ListBuffer[(String, String)]()
 }
