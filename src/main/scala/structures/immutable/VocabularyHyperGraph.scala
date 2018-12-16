@@ -110,7 +110,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     def getReferencesMap(itemEdges: Seq[SubPattern], referencesMap: ReferencesMap): Set[ReferencesMap] = {
       itemEdges match {
         case Nil => Set(referencesMap)
-        case itemEdge::left =>
+        case itemEdge +: left =>
           val filledEdge= fillReferences(itemEdge, referencesMap)
           (for (hyperEdge <- this.find(filledEdge)) yield {
             val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge) ++ referencesMap
