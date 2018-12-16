@@ -14,12 +14,13 @@ class Interpreter(userInput: BufferedReader, userOutput: PrintStream) {
   private val actions = Seq(new UserAction(userInput, userOutput))
 
   def start: Unit = {
+    var oldState: ActionSearchState = null
     var newState = new ActionSearchState(Programs.empty, Set())
     do {
-      val oldState = newState
+      oldState = newState
       for(action <- actions) {
         newState = action.apply(newState)
       }
-    } while(newState != newState)
+    } while(oldState != newState)
   }
 }
