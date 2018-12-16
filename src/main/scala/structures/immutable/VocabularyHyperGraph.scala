@@ -32,6 +32,11 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     new VocabularyHyperGraph(vocabulary replace (Left(keep), Left(change)))
   }
 
+  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Merge edge types")
+    new VocabularyHyperGraph(vocabulary replace (Right(keep), Right(change)))
+  }
+
   override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find edges")
     vocabulary.findPatternPrefix[Int](Seq(Explicit(Right(edgeType)), Ignored())).map(wordToHyperEdge)

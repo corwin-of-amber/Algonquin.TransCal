@@ -64,11 +64,19 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   /** Merges two node to one.
     *
+    * @param keep The node to change to.
+    * @param change The node to change from.
+    * @return The new graph after the change.
+    */
+  def mergeNodes(keep: Node, change: Node): This
+
+  /** Merges two edge types to one.
+    *
     * @param keep The edge to change to.
     * @param change The edge to change from.
     * @return The new graph after the change.
     */
-  def mergeNodes(keep: Node, change: Node): This
+  def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This
 }
 
 object HyperGraphManyWithOrderToOneLike {
