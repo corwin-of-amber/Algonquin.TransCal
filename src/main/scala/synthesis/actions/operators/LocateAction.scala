@@ -7,7 +7,7 @@ import syntax.Scheme.Arity
 import synthesis.HyperTermIdentifier
 import synthesis.actions.ActionSearchState
 
-/**
+/** Finding a hyperterm.
   * @author tomer
   * @since 11/18/18
   */
@@ -16,7 +16,7 @@ class LocateAction(anchor: HyperTermIdentifier, scheme: Scheme with Arity) exten
     /** Hyperterms representing the anchor (ideally, there should be exactly one) */
     val anchor_# = state.programs.hyperGraph.findEdges(anchor) map (_.target)
     /** All placeholder hyperedges where first parameter is in anchor_# */
-    val matches = state.programs.hyperGraph.findEdges(LocateAction.placeholderEx) filter (anchor_# contains _(2))
+    val matches = state.programs.hyperGraph.findEdges(LocateAction.placeholderEx) filter (anchor_# contains _.sources.head)
 
     // choose the first term for each match for the scheme parameters
     val allAlternatives =
