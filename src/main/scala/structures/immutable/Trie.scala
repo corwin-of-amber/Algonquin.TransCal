@@ -16,6 +16,8 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
 
+  override def addAll(words: Set[Word[Letter]]): Trie[Letter] = words.foldLeft(this)((vocabulary, word) => vocabulary.add(word))
+
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
   override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
@@ -117,4 +119,6 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
 object Trie {
   def empty[Letter]: Trie[Letter] = new Trie(IndexedSeq.empty, Set.empty)
+
+  def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = empty.addAll(words)
 }
