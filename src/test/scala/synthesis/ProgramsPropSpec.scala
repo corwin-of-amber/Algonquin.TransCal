@@ -1,8 +1,7 @@
 package synthesis
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.forAll
-import org.scalacheck.Prop.BooleanOperators
+import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
