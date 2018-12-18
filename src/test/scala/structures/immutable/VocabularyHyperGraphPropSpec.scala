@@ -7,7 +7,6 @@ import org.scalatest.prop.Checkers
 import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
 import structures.VocabularyLike.Hole
 
-import scala.collection.JavaConversions.asJavaCollection
 import scala.util.Random
 
 
@@ -159,17 +158,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       es.exists(e => es.exists(e1 => e1.sources.contains(e.target))) ==> {
         val g = grapher(es)
         es.exists(e => {
-          0 until e.sources.size exists { i =>
+          e.sources.indices exists { i =>
             0 until 10 exists { j =>
               val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
                 grapher(Set(HyperEdge[Item[Int, Int], Item[Int, Int]](Hole(0), Ignored[Int, Int](), (0 until j).map(_ => Ignored[Int, Int]())),
                   HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored[Int, Int](), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole[Int, Int](0) else Ignored[Int, Int]()))))
               val results = g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).map(_.values)
-              val foundTarget = results.map(i => i.map(
-                v => v match {
-                  case Right(x) => x
-                  case Left(x) => x
-                })).forall(vals => vals.toList.contains(e.target))
+              val foundTarget = results.map(i => i.map {
+                case Right(x) => x
+                case Left(x) => x
+              }).forall(vals => vals.toList.contains(e.target))
               results.nonEmpty && foundTarget
             }
           }
