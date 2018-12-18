@@ -5,7 +5,9 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
+import structures.VocabularyLike.Hole
 
+import scala.collection.JavaConversions.asJavaCollection
 import scala.util.Random
 
 
@@ -135,6 +137,45 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
         grapher(es map (e => HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]))))
       g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).size == 1
+    })
+  }
+
+  property("find graph finds nothing") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      val g = grapher(es)
+      val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored[Int, Int](), Explicit[Int, Int](800), Seq[Item[Int, Int]](Ignored[Int, Int](), Ignored[Int, Int]())),
+        HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit[Int, Int](800), Ignored[Int, Int](), Seq[Item[Int, Int]]()),
+        HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored[Int, Int](), Ignored[Int, Int](), Seq[Item[Int, Int]](Explicit[Int, Int](800)))).map(Set(_))
+      edges.forall(e => {
+        val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] = grapher(e)
+        g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).isEmpty
+      }
+      )
+    })
+  }
+
+  property("find graph finds edge and replacer") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.exists(e => es.exists(e1 => e1.sources.contains(e.target))) ==> {
+        val g = grapher(es)
+        es.exists(e => {
+          0 until e.sources.size exists { i =>
+            0 until 10 exists { j =>
+              val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
+                grapher(Set(HyperEdge[Item[Int, Int], Item[Int, Int]](Hole(0), Ignored[Int, Int](), (0 until j).map(_ => Ignored[Int, Int]())),
+                  HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored[Int, Int](), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole[Int, Int](0) else Ignored[Int, Int]()))))
+              val results = g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).map(_.values)
+              val foundTarget = results.map(i => i.map(
+                v => v match {
+                  case Right(x) => x
+                  case Left(x) => x
+                })).forall(vals => vals.toList.contains(e.target))
+              results.nonEmpty && foundTarget
+            }
+          }
+        }
+        )
+      }
     })
   }
 }
