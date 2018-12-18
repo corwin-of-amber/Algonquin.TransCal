@@ -164,11 +164,10 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
                 grapher(Set(HyperEdge[Item[Int, Int], Item[Int, Int]](Hole(0), Ignored[Int, Int](), (0 until j).map(_ => Ignored[Int, Int]())),
                   HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored[Int, Int](), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole[Int, Int](0) else Ignored[Int, Int]()))))
               val results = g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).map(_.values)
-              val foundTarget = results.map(i => i.map(
-                v => v match {
-                  case Right(x) => x
-                  case Left(x) => x
-                })).forall(vals => vals.toList.contains(e.target))
+              val foundTarget = results.map(i => i.map {
+                case Right(x) => x
+                case Left(x) => x
+              }).forall(vals => vals.toList.contains(e.target))
               results.nonEmpty && foundTarget
             }
           }
