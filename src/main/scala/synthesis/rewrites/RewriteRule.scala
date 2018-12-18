@@ -1,9 +1,8 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOne
 import structures.HyperGraphManyWithOrderToOneLike._
-import structures.immutable.VocabularyHyperGraph
+import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern, SubHyperEdgePattern, SubHyperGraphPattern}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
@@ -79,14 +78,14 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
       HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
+    HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 
   private lazy val subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
       HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
+    HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 }
 
@@ -100,14 +99,12 @@ object RewriteRule {
     val Basic, Associative, Goal, Locator, Definition, Existential = Value
   }
 
-  def createHyperPatternFromTemplates(templates: Seq[Template]): HyperPattern = {
-    templates.foldLeft[HyperPattern](VocabularyHyperGraph.empty)((graph, pattern) =>
-      graph.addEdge(HyperEdge[TemplateTerm, TemplateTerm](pattern.target, pattern.function, pattern.parameters))
-    )
-  }
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne.apply(
+    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters))
+  )
 
   /* --- Privates --- */
 
-  private type SubHyperGraphPattern = HyperGraphPattern[HyperTerm, HyperTermIdentifier, Int, SubHyperGraphPattern]
+  private type SubHyperGraphPattern = HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]]
   private type SubHyperEdgePattern = HyperEdgePattern[HyperTerm, HyperTermIdentifier, Int]
 }
