@@ -17,29 +17,6 @@ import synthesis.{HyperTerm, HyperTermIdentifier}
   */
 class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
-  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTerm, Int] = {
-    case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term)
-  }
-
-  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = {
-    case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term)
-  }
-
-  private lazy val subGraphConditions: SubHyperGraphPattern = {
-    val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
-      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
-    )
-    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
-  }
-
-  private lazy val subGraphDestination: SubHyperGraphPattern = {
-    val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
-      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
-    )
-    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
-  }
 
   /* --- Operator Impl. --- */
 
@@ -86,6 +63,30 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
   private def compact(graph: HyperGraph): HyperGraph = {
     logger.trace("Compacting graph")
     graph
+  }
+
+  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTerm, Int] = {
+    case ReferenceTerm(i) => Hole(i)
+    case ExplicitTerm(term) => Explicit(term)
+  }
+
+  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = {
+    case ReferenceTerm(i) => Hole(i)
+    case ExplicitTerm(term) => Explicit(term)
+  }
+
+  private lazy val subGraphConditions: SubHyperGraphPattern = {
+    val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
+      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+    )
+    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
+  }
+
+  private lazy val subGraphDestination: SubHyperGraphPattern = {
+    val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
+      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+    )
+    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
   }
 }
 
