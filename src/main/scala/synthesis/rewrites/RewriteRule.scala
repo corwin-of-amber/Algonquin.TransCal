@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOne
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.VocabularyHyperGraph
-import synthesis.rewrites.RewriteRule.{Category, HyperPattern, HyperPatternEdge}
+import synthesis.rewrites.RewriteRule.{Category, HyperPattern, SubHyperEdgePattern, SubHyperGraphPattern}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -17,6 +17,29 @@ import synthesis.{HyperTerm, HyperTermIdentifier}
   */
 class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
+  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTerm, Int] = {
+    case ReferenceTerm(i) => Hole(i)
+    case ExplicitTerm(term) => Explicit(term)
+  }
+
+  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = {
+    case ReferenceTerm(i) => Hole(i)
+    case ExplicitTerm(term) => Explicit(term)
+  }
+
+  private lazy val subGraphConditions: SubHyperGraphPattern = {
+    val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
+      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+    )
+    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
+  }
+
+  private lazy val subGraphDestination: SubHyperGraphPattern = {
+    val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
+      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+    )
+    VocabularyHyperGraph[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges).asInstanceOf[SubHyperGraphPattern]
+  }
 
   /* --- Operator Impl. --- */
 
@@ -26,37 +49,28 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    def merge(either: Either[HyperTerm, HyperTerm]): HyperTerm = {
-      either match {
-        case Left(left) => left
-        case Right(right) => right
-      }
+    val conditionsReferencesMaps = compactGraph.findSubgraph[Int, SubHyperGraphPattern](subGraphConditions)
+
+    def extractNewEdges(m: Map[Int, Either[HyperTerm, HyperTermIdentifier]]): Set[HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]]] = {
+      m.foldLeft(subGraphDestination)((graph, kv) => {
+        // From each map create new edges from the destination graph
+        val ng: SubHyperGraphPattern = graph.mergeNodes(Explicit(kv._2.merge), Hole(kv._1))
+
+        kv._2 match {
+          case Right(k) => ng.mergeEdgeTypes(Explicit(k), Hole(kv._1))
+          case _ => ng
+        }
+      }).edges
     }
 
-    val conditionsReferencesMaps = compactGraph.findSubgraph[TemplateTerm, HyperPattern](conditions).map(_.map(kv => (kv._1, merge(kv._2))))
-
-    def extract(i: Item[HyperTerm, TemplateTerm]): HyperTerm = i match {
+    def extract[T](i: Item[T, Int]): T = i match {
       case Explicit(v) => v
     }
 
-    def extract2(i: Item[HyperTermIdentifier, TemplateTerm]): HyperTermIdentifier = i match {
-      case Explicit(v) => v
-    }
-
-    def extractNewEdges(m: Map[Template.TemplateTerm, HyperTerm]): Set[HyperPatternEdge] = m.foldLeft(destination)((graph, kv) => {
-      // From each map create new edges from the destination graph
-      val ng = graph.mergeNodes(Explicit(kv._2), Hole(kv._1))
-      kv._2 match {
-        case k: HyperTermIdentifier => ng.mergeEdgeTypes(Explicit(k.asInstanceOf[HyperTermIdentifier]), Hole(kv._1))
-        case _ => ng
-      }
-    }).edges
-
-    val graph = conditionsReferencesMaps.flatMap {
-      extractNewEdges
-    }.map(e =>
-      HyperEdge(extract(e.target), extract2(e.edgeType), e.sources.map(extract))
-    ).foldLeft(VocabularyHyperGraph.empty[HyperTerm, HyperTermIdentifier])((g, e) => g.addEdge(e))
+    // Should crash if we still have holes as its a bug
+    val graph = compactGraph.addEdges(conditionsReferencesMaps.flatMap{extractNewEdges}.map(e =>
+      HyperEdge(extract[HyperTerm](e.target), extract[HyperTermIdentifier](e.edgeType), e.sources.map(extract[HyperTerm]))
+    ))
 
     new RewriteSearchState(graph)
   }
@@ -79,42 +93,20 @@ object RewriteRule {
 
   /* --- Public --- */
 
-  type HyperPatternEdge = HyperEdgePattern[HyperTerm, HyperTermIdentifier, TemplateTerm]
-  type HyperPattern = HyperGraphManyWithOrderToOne[Item[HyperTerm, TemplateTerm], Item[HyperTermIdentifier, TemplateTerm]]
+  type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm, TemplateTerm]
 
   object Category extends Enumeration {
     val Basic, Associative, Goal, Locator, Definition, Existential = Value
   }
 
+  def createHyperPatternFromTemplates(templates: Seq[Template]): HyperPattern = {
+    templates.foldLeft[HyperPattern](VocabularyHyperGraph.empty)((graph, pattern) =>
+      graph.addEdge(HyperEdge[TemplateTerm, TemplateTerm](pattern.target, pattern.function, pattern.parameters))
+    )
+  }
 
   /* --- Privates --- */
 
-  private def createHyperPatternFromTemplate(templates: Seq[Template]): HyperPattern = {
-    templates.map(templateToPattern(Map.empty, _))
-      .foldLeft[HyperPattern](VocabularyHyperGraph.empty)((graph, pattern) => graph.addEdge(pattern))
-  }
-
-  private def templateToPattern(references: Map[TemplateTerm, HyperTerm], template: Template): HyperPatternEdge = {
-    def templateTermToItem(templateTerm: TemplateTerm): Item[HyperTerm, TemplateTerm] = {
-      templateTerm match {
-        case term: ReferenceTerm =>
-          references.get(templateTerm).map(Explicit[HyperTerm, TemplateTerm]).getOrElse(Hole[HyperTerm, TemplateTerm](term))
-        case term: ExplicitTerm =>
-          Explicit[HyperTerm, TemplateTerm](term.term)
-      }
-    }
-
-    def templateTermToIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, TemplateTerm] = {
-      templateTerm match {
-        case term: ReferenceTerm =>
-          references.get(templateTerm).map(_.asInstanceOf[HyperTermIdentifier])
-            .map(Explicit[HyperTermIdentifier, TemplateTerm]).getOrElse(Hole[HyperTermIdentifier, TemplateTerm](term))
-        case term: ExplicitTerm =>
-          Explicit[HyperTermIdentifier, TemplateTerm](term.term.asInstanceOf[HyperTermIdentifier])
-      }
-    }
-
-    HyperEdge(templateTermToItem(template.target), templateTermToIdentifierItem(template.function),
-      template.parameters.map(templateTermToItem))
-  }
+  private type SubHyperGraphPattern = HyperGraphPattern[HyperTerm, HyperTermIdentifier, Int, SubHyperGraphPattern]
+  private type SubHyperEdgePattern = HyperEdgePattern[HyperTerm, HyperTermIdentifier, Int]
 }

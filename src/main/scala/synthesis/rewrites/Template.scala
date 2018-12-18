@@ -10,10 +10,10 @@ case class Template(target: Template.TemplateTerm, function: Template.TemplateTe
 
 object Template {
   trait TemplateTerm
-  case class ExplicitTerm(term: HyperTerm) {
+  case class ExplicitTerm(term: HyperTerm) extends TemplateTerm {
     def unapply(arg: ExplicitTerm): HyperTerm = arg.term
   }
-  case class ReferenceTerm(id: Int) {
+  case class ReferenceTerm(id: Int) extends TemplateTerm {
     def unapply(arg: ReferenceTerm): Int = arg.id
   }
 }
