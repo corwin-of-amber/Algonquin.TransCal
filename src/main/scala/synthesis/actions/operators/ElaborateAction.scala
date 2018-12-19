@@ -17,7 +17,7 @@ class ElaborateAction(goalScheme: Scheme) extends Action {
 
     state.programs.hyperGraph.findEdges(HyperTermIdentifier(Markers.goal.leaf)).headOption match {
       case Some(hyperEdge) =>
-        val elaborated = state.programs.reconstruct(hyperEdge.edgeType).map(goalScheme(_)).next()
+        val elaborated = state.programs.reconstruct(hyperEdge.target).map(goalScheme(_)).next()
         val original = state.programs.reconstruct(hyperEdge.target).toStream.headOption getOrElse new Tree[Identifier](new Identifier("?"))
         val t = (RevisionDiff(List(), List(), List(original ⇢ elaborated)), Rules.empty)  // Equal for adding two terms to the same hyper term
         new ActionSearchState(null, state.rewriteRules)

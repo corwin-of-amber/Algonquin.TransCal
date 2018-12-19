@@ -7,7 +7,7 @@ import synthesis.rewrites.RewriteRule.{Category, HyperPattern, SubHyperEdgePatte
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
-import synthesis.{HyperTerm, HyperTermIdentifier}
+import synthesis.{HyperTermId, HyperTermIdentifier}
 
 /** Rewrites a program to a new program.
   *
@@ -27,14 +27,12 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
 
     val conditionsReferencesMaps = compactGraph.findSubgraph[Int, SubHyperGraphPattern](subGraphConditions)
 
-    def extractNewEdges(m: Map[Int, Either[HyperTerm, HyperTermIdentifier]]): Set[HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]]] = {
+    def extractNewEdges(m: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Set[HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]] = {
       m.foldLeft(subGraphDestination)((graph, kv) => {
         // From each map create new edges from the destination graph
-        val ng: SubHyperGraphPattern = graph.mergeNodes(Explicit(kv._2.merge), Hole(kv._1))
-
         kv._2 match {
-          case Right(k) => ng.mergeEdgeTypes(Explicit(k), Hole(kv._1))
-          case _ => ng
+          case Right(k) => graph.mergeEdgeTypes(Explicit(k), Hole(kv._1))
+          case Left(k) => graph.mergeNodes(Explicit(k), Hole(kv._1))
         }
       }).edges
     }
@@ -44,8 +42,8 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     }
 
     // Should crash if we still have holes as its a bug
-    val graph = compactGraph.addEdges(conditionsReferencesMaps.flatMap{extractNewEdges}.map(e =>
-      HyperEdge(extract[HyperTerm](e.target), extract[HyperTermIdentifier](e.edgeType), e.sources.map(extract[HyperTerm]))
+    val graph = compactGraph.addEdges(conditionsReferencesMaps.flatMap(m => extractNewEdges(m)).map(e =>
+      HyperEdge(extract[HyperTermId](e.target), extract[HyperTermIdentifier](e.edgeType), e.sources.map(extract[HyperTermId]))
     ))
 
     new RewriteSearchState(graph)
@@ -64,28 +62,30 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     graph
   }
 
-  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTerm, Int] = {
+
+  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTermId, Int] = templateTerm match {
     case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term)
+    case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermId])
   }
 
-  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = {
+
+  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = templateTerm match {
     case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term)
+    case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermIdentifier])
   }
 
   private lazy val subGraphConditions: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
-      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges)
+    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 
   private lazy val subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
-      HyperEdge[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]](edges)
+    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 }
 
@@ -105,6 +105,6 @@ object RewriteRule {
 
   /* --- Privates --- */
 
-  private type SubHyperGraphPattern = HyperGraphManyWithOrderToOne[Item[HyperTerm, Int], Item[HyperTermIdentifier, Int]]
-  private type SubHyperEdgePattern = HyperEdgePattern[HyperTerm, HyperTermIdentifier, Int]
+  private type SubHyperGraphPattern = HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]
+  private type SubHyperEdgePattern = HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]
 }

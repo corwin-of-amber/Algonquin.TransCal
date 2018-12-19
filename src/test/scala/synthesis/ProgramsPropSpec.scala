@@ -17,7 +17,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("main program is in reconstruct") {
     check(forAll { term: Term => {
       val programs = Programs(term)
-      programs.reconstruct(HyperTermIdentifier(term.root)).contains(term) :| programs.toString
+      programs.reconstruct(HyperTermId(1)).contains(term) :| programs.toString
     }
     })
   }
@@ -30,13 +30,13 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("every edge is constructable") {
     check(forAll { programs: Programs =>
-      programs.hyperGraph.edgeTypes.map(programs.reconstruct).forall(_.nonEmpty)
+      programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)
     })
   }
 
   property("unknown term returns empty iterator") {
     check(forAll { programs: Programs =>
-      programs.reconstruct(HyperTermIdentifier(new Identifier("fail"))).isEmpty
+      programs.reconstruct(HyperTermId(-1)).isEmpty
     })
   }
 

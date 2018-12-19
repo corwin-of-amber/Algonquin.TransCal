@@ -1,8 +1,8 @@
 package synthesis.rewrites
 
 import structures.HyperGraphManyWithOrderToOne
-import synthesis.{HyperTerm, HyperTermIdentifier}
 import synthesis.search.State
+import synthesis.{HyperTermId, HyperTermIdentifier}
 
 /**
   * @author tomer
@@ -11,5 +11,5 @@ import synthesis.search.State
 class RewriteSearchState(val graph: RewriteSearchState.HyperGraph) extends State
 
 object RewriteSearchState {
-  type HyperGraph = HyperGraphManyWithOrderToOne[HyperTerm, HyperTermIdentifier]
+  type HyperGraph = HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier]
 }
