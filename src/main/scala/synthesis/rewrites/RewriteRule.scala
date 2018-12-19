@@ -74,14 +74,14 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermIdentifier])
   }
 
-  private lazy val subGraphConditions: SubHyperGraphPattern = {
+  private val subGraphConditions: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
     HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 
-  private lazy val subGraphDestination: SubHyperGraphPattern = {
+  private val subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
