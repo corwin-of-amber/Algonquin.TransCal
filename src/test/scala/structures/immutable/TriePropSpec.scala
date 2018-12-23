@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.VocabularyLike.Explicit
+import structures.immutable.Trie.Explicit
 
 import scala.util.Random
 
