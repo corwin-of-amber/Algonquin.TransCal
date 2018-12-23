@@ -1,7 +1,7 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike._
+import structures.immutable.HyperGraphManyWithOrderToOne._
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Uid
 import syntax.Identifier
