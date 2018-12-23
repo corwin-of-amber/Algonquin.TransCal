@@ -2,7 +2,7 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.VocabularyLike
-import structures.VocabularyLike._
+import structures.immutable.Trie._
 
 /**
   * @author tomer
@@ -121,4 +121,16 @@ object Trie {
   def empty[Letter]: Trie[Letter] = new Trie(IndexedSeq.empty, Set.empty)
 
   def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = empty.addAll(words)
+
+  // Reference Vocabulary
+  type Word[Letter] = Vocabulary.Word[Letter]
+  type Item[Value, Id] = Vocabulary.Item[Value, Id]
+  type Hole[Value, Id] = Vocabulary.Hole[Value, Id]
+  val Hole: Vocabulary.Hole.type = Vocabulary.Hole
+  type Explicit[Value, Id] = Vocabulary.Explicit[Value, Id]
+  val Explicit: Vocabulary.Explicit.type = Vocabulary.Explicit
+  type Ignored[Value, Id] = Vocabulary.Ignored[Value, Id]
+  val Ignored: Vocabulary.Ignored.type = Vocabulary.Ignored
+  type LetterPattern[Letter, Id] = Vocabulary.LetterPattern[Letter, Id]
+  type WordPattern[Letter, Id] = Vocabulary.WordPattern[Letter, Id]
 }

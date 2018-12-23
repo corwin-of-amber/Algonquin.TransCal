@@ -4,8 +4,8 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.HyperGraphManyWithOrderToOneLike.{Explicit, HyperEdge, Ignored, Item}
-import structures.VocabularyLike.Hole
+import structures.immutable.VocabularyHyperGraph.{Explicit, HyperEdge, Ignored, Item}
+import structures.immutable.VocabularyHyperGraph.Hole
 
 import scala.util.Random
 
