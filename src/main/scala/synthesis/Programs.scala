@@ -48,6 +48,15 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
     }
   }
 
+  /** Adds a new term to the programs.
+    *
+    * @param term The new term to add.
+    * @return New programs with the term in it.
+    */
+  def addTerm(term: Term): Programs = {
+    Programs(hyperGraph ++ Programs.destruct(term))
+  }
+
 
   /* --- Object Impl. --- */
 
