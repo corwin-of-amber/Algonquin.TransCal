@@ -3,6 +3,8 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.HyperGraphManyWithOrderToOne
+import syntax.AstSugar.Uid
+import syntax.Identifier
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern, SubHyperEdgePattern, SubHyperGraphPattern}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
@@ -15,7 +17,6 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * @since 11/18/18
   */
 class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
-
 
   /* --- Operator Impl. --- */
 
@@ -49,7 +50,6 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     new RewriteSearchState(graph)
   }
 
-
   /* --- Privates --- */
 
   /** This function should work only after "id" rule.
@@ -62,12 +62,10 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     graph
   }
 
-
   private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTermId, Int] = templateTerm match {
     case ReferenceTerm(i) => Hole(i)
     case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermId])
   }
-
 
   private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = templateTerm match {
     case ReferenceTerm(i) => Hole(i)
@@ -81,11 +79,19 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
   }
 
-  private val subGraphDestination: SubHyperGraphPattern = {
+  // Existential cannot be a function
+  private val destHoles = destination.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val condHoles = conditions.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val existentialHoles = destHoles.diff(condHoles)
+  private def subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
+
+    // TODO: change to Uid from Programs instead of global
+    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
+      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty))
+    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges ++ existentialEdges)
   }
 }
 
