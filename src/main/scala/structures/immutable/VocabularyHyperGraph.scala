@@ -2,7 +2,7 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike
-import structures.HyperGraphManyWithOrderToOneLike._
+import structures.immutable.VocabularyHyperGraph._
 
 import scala.language.postfixOps
 
@@ -150,4 +150,17 @@ object VocabularyHyperGraph {
   def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(Vocabulary.empty)
 
   def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty.addEdges(edges)
+
+  // Reference HyperGraphManyWithOrderToOne
+  type HyperEdge[Node, EdgeType] = HyperGraphManyWithOrderToOne.HyperEdge[Node, EdgeType]
+  val HyperEdge: HyperGraphManyWithOrderToOne.HyperEdge.type = HyperGraphManyWithOrderToOneLike.HyperEdge
+  type Item[Value, Id] = HyperGraphManyWithOrderToOne.Item[Value, Id]
+  type Hole[Value, Id] = HyperGraphManyWithOrderToOne.Hole[Value, Id]
+  val Hole: HyperGraphManyWithOrderToOne.Hole.type = HyperGraphManyWithOrderToOne.Hole
+  type Explicit[Value, Id] = HyperGraphManyWithOrderToOne.Explicit[Value, Id]
+  val Explicit: HyperGraphManyWithOrderToOne.Explicit.type = HyperGraphManyWithOrderToOne.Explicit
+  type Ignored[Value, Id] = HyperGraphManyWithOrderToOne.Ignored[Value, Id]
+  val Ignored: HyperGraphManyWithOrderToOne.Ignored.type = HyperGraphManyWithOrderToOne.Ignored
+  type HyperEdgePattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne.HyperEdgePattern[Node, EdgeType, Id]
+  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id, This]
 }
