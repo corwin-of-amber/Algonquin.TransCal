@@ -2,7 +2,7 @@ package synthesis
 
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.immutable.HyperGraphManyWithOrderToOne.HyperEdge
 import structures.immutable.{HyperEdgeGenFactory, HyperGraphGenFactory, HyperGraphManyWithOrderToOne}
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
@@ -16,7 +16,8 @@ package object rewrites {
   val hyperGraphGen: Gen[HyperGraph] = HyperGraphGenFactory(hyperGraphEdgeGen)
 
   val hyperPatternGen: Gen[HyperPattern] = hyperGraphGen
-    .map(graph => HyperGraphManyWithOrderToOne(graph.edges.map(edge => HyperEdge[TemplateTerm, TemplateTerm](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm))))) //HyperGraphGenFactory(hyperPatternEdgeGen)
+    .map(graph => graph.edges.map(edge => HyperEdge[TemplateTerm, TemplateTerm](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm))))
+    .map(HyperGraphManyWithOrderToOne(_))
 
   val ruleTypeGen: Gen[RewriteRule.Category.Value] = oneOf(Category.values.toSeq)
 
