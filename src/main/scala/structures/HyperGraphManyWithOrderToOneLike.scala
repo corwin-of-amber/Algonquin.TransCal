@@ -84,6 +84,14 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new graph after the change.
     */
   def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This
+
+  /** Build a new hyper graph with the other hyper graph.
+    *
+    * @param hyperGraph Other hyper graph.
+    * @tparam Other Type of hyper graph
+    * @return New hyper graph includes the other.
+    */
+  def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This
 }
 
 object HyperGraphManyWithOrderToOneLike {
