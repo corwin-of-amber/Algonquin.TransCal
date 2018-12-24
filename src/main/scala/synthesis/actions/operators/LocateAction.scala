@@ -1,44 +1,40 @@
 package synthesis.actions.operators
 
-import relentless.rewriting.{RevisionDiff, Rules}
-import relentless.rewriting.RuleBasedTactic.{Markers, ⇢}
-import syntax.{Identifier, Scheme, Tree}
-import syntax.Scheme.Arity
+import structures.HyperGraphManyWithOrderToOne
+import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 import synthesis.HyperTermIdentifier
 import synthesis.actions.ActionSearchState
+import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 
 /** Finding a hyperterm.
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, scheme: Scheme with Arity) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends AbstractAction {
+  /** Apply after rewriter results.
+    *
+    * @param state          The current state
+    * @param rewriterResult The last rewrites result
+    * @return The next action state
+    */
+  override protected def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState =
+
+  /** To be used during the BFS rewrite search
+    *
+    * @param state the current state
+    * @return is state final
+    */
+  override protected def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findEdges(anchor).nonEmpty
+
   override def apply(state: ActionSearchState): ActionSearchState = {
-    /** Hyperterms representing the anchor (ideally, there should be exactly one) */
-    val anchor_# = state.programs.hyperGraph.findEdges(anchor) map (_.target)
-    /** All placeholder hyperedges where first parameter is in anchor_# */
-    val matches = state.programs.hyperGraph.findEdges(LocateAction.placeholderEx) filter (anchor_# contains _.sources.head)
-
-    // choose the first term for each match for the scheme parameters
-    val allAlternatives =
-      for (edge <- matches) yield {
-        val components = edge.sources.drop(1)  // (the first parameter would be the marker)
-        assert(components.length == scheme.arity)
-        val alts = for (root <- components) yield state.programs.reconstruct(root)
-        alts
-      }
-    allAlternatives.headOption match {
-      case None => state
-      case Some(h) =>
-        val selected = h map (_.next())
-//          Finds equivs (?????)
-        val equiv = new Tree[Identifier](anchor.identifier) ⇢ scheme(selected.toList)
-//          adding the equives (?????)
-        val t = (RevisionDiff(List(), List(), List(equiv)), Rules.empty)
-        new ActionSearchState(null, state.rewriteRules)
-    }
+    val newHole: Int = goal.edgeTypes.map({
+      case ReferenceTerm(x) => x
+      case ExplicitTerm(x) => -1
+    }).max + 1
+    val destPattern = HyperGraphManyWithOrderToOne[TemplateTerm, TemplateTerm](HyperEdge[TemplateTerm, TemplateTerm](ReferenceTerm(newHole), ExplicitTerm(anchor), Seq.empty))
+    val locateRule = RewriteRule(goal, destPattern, Category.Locator)
+    super.apply(new ActionSearchState(state.programs, state.rewriteRules + locateRule))
   }
-}
-
-object LocateAction {
-  private val placeholderEx = HyperTermIdentifier(Markers.placeholderEx.leaf)
 }
