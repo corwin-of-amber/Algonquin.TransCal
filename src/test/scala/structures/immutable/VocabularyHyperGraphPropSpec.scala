@@ -167,7 +167,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
               val foundTarget = results.map(i => i.map {
                 case Right(x) => x
                 case Left(x) => x
-              }).forall(vals => vals.toList.contains(e.target))
+              }).forall(vals => vals.toList.contains(e.sources(i)))
               results.nonEmpty && foundTarget
             }
           }
