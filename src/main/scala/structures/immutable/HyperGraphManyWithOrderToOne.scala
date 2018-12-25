@@ -1,7 +1,7 @@
 package structures.immutable
 
 import structures.HyperGraphManyWithOrderToOneLike
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Item}
 
 /**
   * @author tomer
@@ -14,4 +14,6 @@ object HyperGraphManyWithOrderToOne {
   def empty[Node, EdgeType]: HyperGraphManyWithOrderToOne[Node, EdgeType] = VocabularyHyperGraph.empty
 
   def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): HyperGraphManyWithOrderToOne[Node, EdgeType] = VocabularyHyperGraph(edges)
+
+  type HyperGraphPattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]
 }
