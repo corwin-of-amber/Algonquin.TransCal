@@ -55,6 +55,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
   def addTerm(term: Term): Programs = {
     Programs(hyperGraph ++ Programs.destruct(term))
   }
+  def +(term: Term): Programs = addTerm(term)
 
 
   /* --- Object Impl. --- */
