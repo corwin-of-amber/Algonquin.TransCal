@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.immutable.Trie.Explicit
+import structures.VocabularyLike.Explicit
 
 import scala.util.Random
 
@@ -16,7 +16,7 @@ class TriePropSpec extends PropSpec with Checkers {
 
   def checkRemoved(trie: Trie[Int], i: Int): Boolean = {
     val word = trie.words.toList(i)
-    !trie.remove(word).words.contains(word)
+    !(trie - word).words.contains(word)
   }
 
   property("removes") {
@@ -27,21 +27,21 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("remove non exists") {
     check(forAll { (trie: Trie[Int], word: Seq[Int]) =>
-      !trie.words.contains(word) ==> (trie.remove(word) == trie)
+      !trie.words.contains(word) ==> ((trie - word) == trie)
     })
   }
 
   property("add non exists works") {
     check(forAll { (trie: Trie[Int], word: Seq[Int]) =>
-      !trie.words.contains(word) ==> trie.add(word).words.contains(word)
+      !trie.words.contains(word) ==> (trie + word).words.contains(word)
     })
   }
 
   property("add twice works") {
     check(forAll { word: Seq[Int] =>
       {
-        val onceTrie = Trie.empty.add(word)
-        val twiceTrie = onceTrie.add(word)
+        val onceTrie = Trie.empty + word
+        val twiceTrie = onceTrie + word
         onceTrie == twiceTrie
       }
     })
@@ -61,13 +61,13 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("edges finds all that were added twice") {
     check(forAll { word: Seq[Int] =>
-      Trie.empty[Int].add(word).add(word).words.count(_ == word) == 1
+      (Trie.empty[Int] + word + word).words.count(_ == word) == 1
     })
   }
 
   property("edges finds all that were added") {
     check(forAll { words: Set[Seq[Int]] =>
-      words.intersect(words.foldLeft(Trie.empty[Int])((trie, word) => trie.add(word)).words).size == words.size
+      words.intersect(words.foldLeft(Trie.empty[Int])((trie, word) => trie + word).words).size == words.size
     })
   }
 
@@ -76,7 +76,7 @@ class TriePropSpec extends PropSpec with Checkers {
       !trie.words.contains(word) ==> {
         val trieAdd = trie.add(word)
         trie.words.size + 1 == trieAdd.words.size && {
-          val trieRemove = trie.remove(word)
+          val trieRemove = trie - word
           trieAdd.words.size-1 == trieRemove.words.size && {trieRemove.words.size + 1 == trie.add(word).words.size}
         }
       }
