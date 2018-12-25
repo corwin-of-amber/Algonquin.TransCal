@@ -44,9 +44,9 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     }
 
     // Should crash if we still have holes as its a bug
-    val graph = compactGraph.addEdges(conditionsReferencesMaps.flatMap(m => extractNewEdges(m)).map(e =>
+    val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => extractNewEdges(m)).map(e =>
       HyperEdge(extract[HyperTermId](e.target), extract[HyperTermIdentifier](e.edgeType), e.sources.map(extract[HyperTermId]))
-    ))
+    )
 
     new RewriteSearchState(graph)
   }

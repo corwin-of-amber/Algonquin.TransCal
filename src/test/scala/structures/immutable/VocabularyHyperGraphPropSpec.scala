@@ -15,7 +15,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   def checkRemoved(g: VocabularyHyperGraph[Int, Int], i: Int): Boolean = {
     val e = g.edges.toList(i)
-    !g.removeEdge(e).edges.contains(e)
+    !(g - e).edges.contains(e)
   }
 
   property("removes") {
@@ -26,7 +26,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("remove non existant") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> (g.removeEdge(e) != null)
+      !g.edges.contains(e) ==> ((g - e) != null)
     })
   }
 
@@ -54,7 +54,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
       !g.edges.contains(e) ==> {
         val gAdded = g + e
-        val gRemoved = gAdded.removeEdge(e)
+        val gRemoved = (gAdded - e)
         val gAdded2 = gRemoved + e
         g.edges.size + 1 == gAdded.edges.size && gAdded.edges.size - 1 == gRemoved.edges.size && gRemoved.edges.size + 1 == gAdded2.edges.size
       }

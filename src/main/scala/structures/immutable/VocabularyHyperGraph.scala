@@ -124,10 +124,6 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
 
-  def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other) =
-    VocabularyHyperGraph(edges ++ hyperGraph.edges)
-
-
   /* --- Object Impl. --- */
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
@@ -148,5 +144,5 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 object VocabularyHyperGraph {
   def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(Vocabulary.empty)
 
-  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty.addEdges(edges)
+  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty :+ edges
 }
