@@ -4,8 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.immutable.VocabularyHyperGraph.{Explicit, HyperEdge, Ignored, Item}
-import structures.immutable.VocabularyHyperGraph.Hole
+import structures.HyperGraphManyWithOrderToOneLike._
 
 import scala.util.Random
 
@@ -33,14 +32,14 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("add non existant works") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> g.addEdge(e).edges.contains(e)
+      !g.edges.contains(e) ==> (g + e).edges.contains(e)
     })
   }
 
   property("add edge with empty source") {
     check(forAll { e: HyperEdge[Int, Int] =>
       val e1 = HyperEdge(e.edgeType, e.target, List.empty)
-      VocabularyHyperGraph.empty.addEdge(e1).edges.contains(e1)
+      (VocabularyHyperGraph.empty + e1).edges.contains(e1)
     })
   }
 
@@ -54,9 +53,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("add than remove than add") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
       !g.edges.contains(e) ==> {
-        val gAdded = g.addEdge(e)
+        val gAdded = g + e
         val gRemoved = gAdded.removeEdge(e)
-        val gAdded2 = gRemoved.addEdge(e)
+        val gAdded2 = gRemoved + e
         g.edges.size + 1 == gAdded.edges.size && gAdded.edges.size - 1 == gRemoved.edges.size && gRemoved.edges.size + 1 == gAdded2.edges.size
       }
     })
