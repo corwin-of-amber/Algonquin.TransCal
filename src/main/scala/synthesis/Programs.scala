@@ -92,7 +92,7 @@ object Programs extends LazyLogging {
 
     val hyperEdges = destruct(tree, Stream.from(1).iterator.next)
 
-    hyperEdges.foldLeft[RewriteSearchState.HyperGraph](HyperGraphManyWithOrderToOne.empty)((graph, edge)=>graph.addEdge(edge))
+    HyperGraphManyWithOrderToOne(hyperEdges)
   }
 
   /** Iterator which combines two iterators (return all combinations of their results).
