@@ -1,7 +1,7 @@
 package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.VocabularyLike
+import structures.{Explicit, Hole, Ignored, VocabularyLike}
 import structures.VocabularyLike._
 
 /**

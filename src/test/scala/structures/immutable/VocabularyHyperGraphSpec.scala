@@ -1,8 +1,7 @@
 package structures.immutable
 
 import org.scalatest.{FlatSpec, Matchers}
-import structures.HyperEdge
-import structures.HyperGraphManyWithOrderToOneLike.{Hole, Ignored, Item}
+import structures.{Hole, HyperEdge, Ignored, Item}
 
 class VocabularyHyperGraphSpec extends FlatSpec with Matchers {
 

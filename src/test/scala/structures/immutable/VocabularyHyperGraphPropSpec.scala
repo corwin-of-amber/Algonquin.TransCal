@@ -4,8 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.HyperGraphManyWithOrderToOneLike._
-import structures.HyperEdge
+import structures._
 
 import scala.util.Random
 

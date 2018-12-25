@@ -1,8 +1,7 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperEdge
-import structures.VocabularyLike.Explicit
+import structures.{Explicit, Hole, HyperEdge, Item}
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Uid

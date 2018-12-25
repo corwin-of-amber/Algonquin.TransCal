@@ -76,10 +76,6 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
 
 object VocabularyLike {
   type Word[Letter] = Seq[Letter]
-  trait Item[Value, Id]
-  case class Hole[Value, Id](id: Id) extends Item[Value, Id]
-  case class Explicit[Value, Id](value: Value) extends Item[Value, Id]
-  case class Ignored[Value, Id]() extends Item[Value, Id]
   type LetterPattern[Letter, Id] = Item[Letter, Id]
   type WordPattern[Letter, Id] = Word[LetterPattern[Letter, Id]]
 }

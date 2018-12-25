@@ -99,18 +99,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
 object HyperGraphManyWithOrderToOneLike {
 
-
-  /* --- Public --- */
-
-  // Reference VocabularyLike.Item from HyperGraphManyWithOrderToOneLike
-  type Item[Value, Id] = VocabularyLike.Item[Value, Id]
-  type Hole[Value, Id] = VocabularyLike.Hole[Value, Id]
-  val Hole: VocabularyLike.Hole.type = VocabularyLike.Hole
-  type Explicit[Value, Id] = VocabularyLike.Explicit[Value, Id]
-  val Explicit: VocabularyLike.Explicit.type = VocabularyLike.Explicit
-  type Ignored[Value, Id] = VocabularyLike.Ignored[Value, Id]
-  val Ignored: VocabularyLike.Ignored.type = VocabularyLike.Ignored
-
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
   type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], This]
