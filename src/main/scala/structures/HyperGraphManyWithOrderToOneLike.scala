@@ -1,6 +1,6 @@
 package structures
 
-import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, HyperEdgePattern, HyperGraphPattern}
+import structures.HyperGraphManyWithOrderToOneLike._
 
 /** A hyper graph from many to one.
   *
@@ -14,7 +14,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @param edgeType to search.
     * @return correspond edges.
     */
-  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]]
+  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = edges.filter(_.edgeType == edgeType)
 
   /**Find a pattern of an edge in the graph.
     *
@@ -54,6 +54,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new hyper graph with the edge.
     */
   def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
+  def +(hyperEdge: HyperEdge[Node, EdgeType]): This = addEdge(hyperEdge)
 
   /** Adds edges to the hyper graph.
     *
@@ -61,6 +62,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new hyper graph with the edges.
     */
   def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This
+  def :+(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This = addEdges(hyperEdges)
 
   /** Removes an edge from the hyper graph.
     *
@@ -68,6 +70,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new hyper graph without the edge.
     */
   def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
+  def -(hyperEdge: HyperEdge[Node, EdgeType]): This = removeEdge(hyperEdge)
 
   /** Merges two node to one.
     *
