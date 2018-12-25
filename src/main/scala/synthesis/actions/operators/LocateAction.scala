@@ -2,7 +2,7 @@ package synthesis.actions.operators
 
 import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOne
-import synthesis.{HyperTermIdentifier, Programs}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
@@ -41,8 +41,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val rewriteResult =  rewriteSearch.search(spaceSearch)
 
     // Process result
-    val newEdges = rewriteResult.flatMap(_.graph.findEdges(anchor)).toSet.take(1)
-    val newProgs: Programs = new Programs(state.programs.hyperGraph.addEdges(newEdges))
+    val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
+    val newProgs: Programs = Programs(state.programs.hyperGraph.addEdges(newEdges))
     if (rewriteResult.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else logger.info(newProgs.reconstruct(newEdges.head.target).next().toString())
     new ActionSearchState(newProgs, state.rewriteRules)
