@@ -118,5 +118,5 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 object Trie {
   def empty[Letter]: Trie[Letter] = new Trie(IndexedSeq.empty, Set.empty)
 
-  def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = empty ++ words
+  def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = empty :+ words
 }
