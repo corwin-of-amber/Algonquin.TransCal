@@ -102,8 +102,6 @@ object HyperGraphManyWithOrderToOneLike {
 
   /* --- Public --- */
 
-  case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node])
-
   // Reference VocabularyLike.Item from HyperGraphManyWithOrderToOneLike
   type Item[Value, Id] = VocabularyLike.Item[Value, Id]
   type Hole[Value, Id] = VocabularyLike.Hole[Value, Id]

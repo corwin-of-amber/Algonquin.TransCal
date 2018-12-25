@@ -1,8 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
@@ -31,7 +30,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Iterator.empty
     } else {
-      var hyperTermToEdge = Programs.createMultiMap[HyperTermId, HyperGraphManyWithOrderToOneLike.HyperEdge[HyperTermId, HyperTermIdentifier]]
+      var hyperTermToEdge = Programs.createMultiMap[HyperTermId, HyperEdge[HyperTermId, HyperTermIdentifier]]
       hyperTermToEdge = hyperGraph.edges.groupBy(edge => edge.target).foldLeft(hyperTermToEdge)(Programs.addToMultiMap)
 
       /** Build iterator of program's trees where their root is the current target.

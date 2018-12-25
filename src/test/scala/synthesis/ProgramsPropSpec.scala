@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperEdge
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 

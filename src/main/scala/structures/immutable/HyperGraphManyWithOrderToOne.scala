@@ -1,7 +1,7 @@
 package structures.immutable
 
-import structures.HyperGraphManyWithOrderToOneLike
-import structures.HyperGraphManyWithOrderToOneLike.{HyperEdge, Item}
+import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike}
+import structures.HyperGraphManyWithOrderToOneLike.Item
 
 /**
   * @author tomer

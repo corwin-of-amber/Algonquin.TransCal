@@ -1,7 +1,7 @@
 package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike
+import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike}
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 

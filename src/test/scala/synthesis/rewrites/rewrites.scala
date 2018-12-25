@@ -2,7 +2,7 @@ package synthesis
 
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import structures.immutable.HyperGraphManyWithOrderToOne.HyperEdge
+import structures.HyperEdge
 import structures.immutable.{HyperEdgeGenFactory, HyperGraphGenFactory, HyperGraphManyWithOrderToOne}
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
 import synthesis.rewrites.RewriteSearchState.HyperGraph

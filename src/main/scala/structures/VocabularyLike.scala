@@ -68,7 +68,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
     * @param words The words to add.
     * @return The vocabulary with the words.
     */
-  def addAll(words: Set[Word[Letter]]): This = words.foldLeft(this)((vocabulary, word) => vocabulary + word).asInstanceOf
+  def addAll(words: Set[Word[Letter]]): This
   def :+(words:Set[Word[Letter]]): This = addAll(words)
 
   def ++[Other <: VocabularyLike[Letter, Other]](other: Other): This = this :+ other.words

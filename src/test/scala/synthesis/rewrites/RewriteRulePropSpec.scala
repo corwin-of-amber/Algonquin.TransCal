@@ -4,12 +4,12 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.immutable.HyperGraphManyWithOrderToOne.HyperEdge
+import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.Identifier
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 
 /**
   * @author tomer

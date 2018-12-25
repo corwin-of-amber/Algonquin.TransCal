@@ -1,7 +1,9 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.immutable.HyperGraphManyWithOrderToOne._
+import structures.HyperEdge
+import structures.VocabularyLike.Explicit
+import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Uid
 import syntax.Identifier
@@ -76,7 +78,7 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
     )
-    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges)
+    HyperGraphManyWithOrderToOne(edges)
   }
 
   // Existential cannot be a function

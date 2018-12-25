@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
-import structures.HyperGraphManyWithOrderToOne
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
+import structures.HyperEdge
+import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.HyperTermIdentifier
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
@@ -19,7 +19,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Abst
     * @param rewriterResult The last rewrites result
     * @return The next action state
     */
-  override protected def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState =
+  override protected def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState = null
 
   /** To be used during the BFS rewrite search
     *
@@ -33,8 +33,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Abst
       case ReferenceTerm(x) => x
       case ExplicitTerm(x) => -1
     }).max + 1
-    val destPattern = HyperGraphManyWithOrderToOne[TemplateTerm, TemplateTerm](HyperEdge[TemplateTerm, TemplateTerm](ReferenceTerm(newHole), ExplicitTerm(anchor), Seq.empty))
-    val locateRule = RewriteRule(goal, destPattern, Category.Locator)
+    val destPattern = HyperGraphManyWithOrderToOne(Set(HyperEdge[TemplateTerm, TemplateTerm](ReferenceTerm(newHole), ExplicitTerm(anchor), Seq.empty)))
+    val locateRule = new RewriteRule(goal, destPattern, Category.Locator)
     super.apply(new ActionSearchState(state.programs, state.rewriteRules + locateRule))
   }
 }

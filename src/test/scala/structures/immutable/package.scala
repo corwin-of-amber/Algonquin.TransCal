@@ -2,7 +2,6 @@ package structures
 
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdge
 
 import scala.util.Random
 
