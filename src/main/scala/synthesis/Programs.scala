@@ -29,7 +29,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Iterator.empty
     } else {
-      val hyperTermToEdge = mutable.MultiMap(hyperGraph.edges.groupBy(edge => edge.target))
+      val hyperTermToEdge = mutable.HashMultiMap(hyperGraph.edges.groupBy(edge => edge.target))
 
       /** Build iterator of program's trees where their root is the current target.
         *

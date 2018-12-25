@@ -5,7 +5,7 @@ package mutable
   * @author tomer
   * @since 12/25/18
   */
-object MultiMap {
+object HashMultiMap {
 
   def empty[Key, Value]: mutable.MultiMap[Key, Value] = new mutable.HashMap[Key, mutable.Set[Value]] with mutable.MultiMap[Key, Value]
 
