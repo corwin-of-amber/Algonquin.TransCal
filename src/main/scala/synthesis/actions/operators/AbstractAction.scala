@@ -8,15 +8,13 @@ import synthesis.search.BreadthFirstSearch
   * @author tomer
   * @since 11/18/18
   */
-abstract class AbstractAction[R] extends Action {
-
-
+abstract class AbstractAction extends Action {
   /* --- Action Impl. --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     val rewriteSearch = new BreadthFirstSearch[RewriteSearchState, RewriteSearchSpace]
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
-    val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, null)
+    val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, goalPredicate)
     innerApplyWithRewriter(state, rewriteSearch.search(spaceSearch))
   }
 
@@ -30,4 +28,10 @@ abstract class AbstractAction[R] extends Action {
     */
   protected def innerApplyWithRewriter(state: ActionSearchState, rewriterResult: Option[RewriteSearchState]): ActionSearchState
 
+  /** To be used during the BFS rewrite search
+    *
+    * @param state the current state
+    * @return is state final
+    */
+  protected def goalPredicate(state: RewriteSearchState): Boolean
 }
