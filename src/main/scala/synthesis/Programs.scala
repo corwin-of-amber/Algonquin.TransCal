@@ -1,8 +1,8 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.HyperEdge
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
@@ -29,8 +29,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Iterator.empty
     } else {
-      var hyperTermToEdge = Programs.createMultiMap[HyperTermId, HyperEdge[HyperTermId, HyperTermIdentifier]]
-      hyperTermToEdge = hyperGraph.edges.groupBy(edge => edge.target).foldLeft(hyperTermToEdge)(Programs.addToMultiMap)
+      val hyperTermToEdge = mutable.MultiMap(hyperGraph.edges.groupBy(edge => edge.target))
 
       /** Build iterator of program's trees where their root is the current target.
         *
@@ -54,6 +53,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
   def addTerm(term: Term): Programs = {
     Programs(hyperGraph ++ Programs.destruct(term))
   }
+  def +(term: Term): Programs = addTerm(term)
 
 
   /* --- Object Impl. --- */
@@ -75,10 +75,6 @@ object Programs extends LazyLogging {
 
 
   /* --- Private --- */
-
-  private def createMultiMap[Key, Value]: mutable.MultiMap[Key, Value] = new mutable.HashMap[Key, mutable.Set[Value]] with mutable.MultiMap[Key, Value]
-
-  private def addToMultiMap[Key, Value](multimap: mutable.MultiMap[Key, Value], kvs: (Key, Set[Value])): mutable.MultiMap[Key, Value] = kvs._2.foldLeft(multimap)((multimap, value) => {multimap. addBinding(kvs._1, value)})
 
   private def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")

@@ -74,10 +74,10 @@ class TriePropSpec extends PropSpec with Checkers {
   property("add than remove than add") {
     check(forAll { (trie: Trie[Int], word: Seq[Int]) =>
       !trie.words.contains(word) ==> {
-        val trieAdd = trie.add(word)
+        val trieAdd = trie + word
         trie.words.size + 1 == trieAdd.words.size && {
           val trieRemove = trie - word
-          trieAdd.words.size-1 == trieRemove.words.size && {trieRemove.words.size + 1 == trie.add(word).words.size}
+          trieAdd.words.size-1 == trieRemove.words.size && {trieRemove.words.size + 1 == (trie + word).words.size}
         }
       }
     })

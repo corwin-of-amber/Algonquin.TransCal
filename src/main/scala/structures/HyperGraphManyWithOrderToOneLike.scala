@@ -94,7 +94,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Other Type of hyper graph
     * @return New hyper graph includes the other.
     */
-  def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This
+  def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This = :+(hyperGraph.edges)
 }
 
 object HyperGraphManyWithOrderToOneLike {
