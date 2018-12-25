@@ -2,7 +2,8 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike
-import structures.immutable.VocabularyHyperGraph._
+import structures.HyperGraphManyWithOrderToOneLike._
+import structures.VocabularyLike.Word
 
 import scala.language.postfixOps
 
@@ -19,7 +20,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
-    new VocabularyHyperGraph(vocabulary add hyperEdgeToWord(hyperEdge))
+    new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge))
   }
 
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
@@ -29,7 +30,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Remove edge")
-    new VocabularyHyperGraph(vocabulary remove hyperEdgeToWord(hyperEdge))
+    new VocabularyHyperGraph(vocabulary - hyperEdgeToWord(hyperEdge))
   }
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
@@ -40,11 +41,6 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge edge types")
     new VocabularyHyperGraph(vocabulary replace (Right(keep), Right(change)))
-  }
-
-  override def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = {
-    logger.trace("Find edges")
-    vocabulary.findPatternPrefix[Int](Seq(Explicit(Right(edgeType)), Ignored())).map(wordToHyperEdge)
   }
 
   override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
@@ -145,7 +141,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     HyperEdge(toNode(word(1)), toEdge(word.head), word.drop(2) map toNode)
   }
 
-  private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Seq[Either[Node, EdgeType]] =
+  private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] =
     Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
 }
 
@@ -153,17 +149,4 @@ object VocabularyHyperGraph {
   def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(Vocabulary.empty)
 
   def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty.addEdges(edges)
-
-  // Reference HyperGraphManyWithOrderToOne
-  type HyperEdge[Node, EdgeType] = HyperGraphManyWithOrderToOne.HyperEdge[Node, EdgeType]
-  val HyperEdge: HyperGraphManyWithOrderToOne.HyperEdge.type = HyperGraphManyWithOrderToOneLike.HyperEdge
-  type Item[Value, Id] = HyperGraphManyWithOrderToOne.Item[Value, Id]
-  type Hole[Value, Id] = HyperGraphManyWithOrderToOne.Hole[Value, Id]
-  val Hole: HyperGraphManyWithOrderToOne.Hole.type = HyperGraphManyWithOrderToOne.Hole
-  type Explicit[Value, Id] = HyperGraphManyWithOrderToOne.Explicit[Value, Id]
-  val Explicit: HyperGraphManyWithOrderToOne.Explicit.type = HyperGraphManyWithOrderToOne.Explicit
-  type Ignored[Value, Id] = HyperGraphManyWithOrderToOne.Ignored[Value, Id]
-  val Ignored: HyperGraphManyWithOrderToOne.Ignored.type = HyperGraphManyWithOrderToOne.Ignored
-  type HyperEdgePattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne.HyperEdgePattern[Node, EdgeType, Id]
-  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id, This]
 }
