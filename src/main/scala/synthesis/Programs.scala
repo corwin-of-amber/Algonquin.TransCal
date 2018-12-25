@@ -15,7 +15,6 @@ import scala.collection.mutable
   */
 class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
 
-
   /* --- Public --- */
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -39,7 +38,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
         * @return Iterator with all the programs of root.
         */
       def recursive(root: HyperTermId): Iterator[Term] = {
-        hyperTermToEdge.get(root).map(edges => edges.toIterator.flatMap(edge => {
+        hyperTermToEdge.get(root).map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
           new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
       }
@@ -63,9 +62,10 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
 }
 
 object Programs extends LazyLogging {
-
-
   /* --- Public --- */
+  object Kinds extends Enumeration {
+    val Constructable, NonConstructable = Value
+  }
 
   def empty: Programs = Programs(HyperGraphManyWithOrderToOne.empty[HyperTermId, HyperTermIdentifier])
 
