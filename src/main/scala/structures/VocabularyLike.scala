@@ -53,6 +53,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
     * @return The new vocabulary without the edge.
     */
   def remove(word: Word[Letter]): This
+  def -(word:Word[Letter]): This = remove(word)
 
   /** Adds word.
     *
@@ -60,6 +61,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
     * @return The vocabulary with the word.
     */
   def add(word: Word[Letter]): This
+  def +(word:Word[Letter]): This = add(word)
 
   /** Adds words.
     *
@@ -67,6 +69,9 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
     * @return The vocabulary with the words.
     */
   def addAll(words: Set[Word[Letter]]): This
+  def :+(words:Set[Word[Letter]]): This = addAll(words)
+
+  def ++[Other <: VocabularyLike[Letter, Other]](other: Other): This = this :+ other.words
 }
 
 object VocabularyLike {
