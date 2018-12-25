@@ -2,10 +2,12 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{HyperEdge, MultiMap}
+import structures.HyperEdge
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
+
+import scala.collection.mutable
 
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
   * @author tomer
@@ -28,7 +30,7 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Iterator.empty
     } else {
-      val hyperTermToEdge = MultiMap(hyperGraph.edges.groupBy(edge => edge.target))
+      val hyperTermToEdge = mutable.MultiMap(hyperGraph.edges.groupBy(edge => edge.target))
 
       /** Build iterator of program's trees where their root is the current target.
         *
