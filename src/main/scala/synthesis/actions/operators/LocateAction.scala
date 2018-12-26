@@ -38,7 +38,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val rewriteSearch = new BreadthFirstSearch[RewriteSearchState, RewriteSearchSpace]
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq :+ locateRule, initialState, goalPredicate)
-    val rewriteResult =  rewriteSearch.search(spaceSearch)
+    val rewriteResult = rewriteSearch.search(spaceSearch)
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)

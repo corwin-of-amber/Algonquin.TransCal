@@ -37,7 +37,8 @@ class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends L
         * @return Iterator with all the programs of root.
         */
       def recursive(root: HyperTermId): Iterator[Term] = {
-        hyperTermToEdge.get(root).map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
+        val edges = hyperTermToEdge.get(root)
+        edges.map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
           new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
       }
@@ -79,13 +80,14 @@ object Programs extends LazyLogging {
   private def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
-    def destruct(tree: Term, counter: () => Int): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-      val subHyperEdges = tree.subtrees.flatMap(subtree => destruct(subtree, counter))
+    def innerDestruct(tree: Term, counter: () => Int): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+      val subHyperEdges = tree.subtrees.flatMap(subtree => innerDestruct(subtree, counter))
       val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](HyperTermId(counter()), HyperTermIdentifier(tree.root), subHyperEdges.map(_.target))
       subHyperEdges.toSet + newHyperEdge
     }
 
-    val hyperEdges = destruct(tree, Stream.from(1).iterator.next)
+    val s = Stream.from(1).iterator
+    val hyperEdges = innerDestruct(tree, () => s.next)
 
     HyperGraphManyWithOrderToOne(hyperEdges)
   }

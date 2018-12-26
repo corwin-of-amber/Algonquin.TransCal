@@ -20,7 +20,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
 class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
-
+  // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
     logger.trace("Creating a new state")
     val compactGraph = compact(state.graph) // Should this be only after id ruleType? we don't really need to compact any other time!
@@ -90,6 +90,7 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     )
 
     // TODO: change to Uid from Programs instead of global
+    // TODO: prevent existentials from being recreated.
     val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
       _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty))
     HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges ++ existentialEdges)
