@@ -1,14 +1,14 @@
 package synthesis.actions.operators
 
-import structures.{EmptyMetadata, HyperEdge, Metadata}
 import structures.immutable.HyperGraphManyWithOrderToOne
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import structures.{EmptyMetadata, HyperEdge, Metadata}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
-import synthesis.rewrites.RewriteRule.{Category, HyperPattern, RewriteRuleMetadata}
+import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.BreadthFirstSearch
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 /** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
   * @author tomer
@@ -33,14 +33,17 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
-    def locateDataCreator(referenceMap: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Metadata = {
-      def extract[T](t: TemplateTerm): T = t match {
-        case ReferenceTerm(i) => referenceMap(i) match {case Left(a) => a; case Right(b) => b} asInstanceOf[T]
-        case ExplicitTerm(ht) => ht.asInstanceOf[T]
+    def locateDataCreator(hyperIdMap: Map[Int, HyperTermId], hyperIdent: Map[Int, HyperTermIdentifier]): Metadata = {
+      def extract1(t: TemplateTerm) = t match {
+        case ReferenceTerm(i) => hyperIdMap(i)
+        case ExplicitTerm(ht) => ht.asInstanceOf
       }
-
+      def extract2(t: TemplateTerm) = t match {
+        case ReferenceTerm(i) => hyperIdent(i)
+        case ExplicitTerm(ht) => ht.asInstanceOf
+      }
       val newEdges = goal.edges.map({
-        case HyperEdge(t, et, sources, meta) => HyperEdge[HyperTermId, HyperTermIdentifier](extract(t), extract(et), sources.map(extract), meta)
+        case HyperEdge(t, et, sources, meta) => HyperEdge[HyperTermId, HyperTermIdentifier](extract1(t), extract2(et), sources.map(extract1), meta)
       })
       LocateMetadata(newEdges)
     }

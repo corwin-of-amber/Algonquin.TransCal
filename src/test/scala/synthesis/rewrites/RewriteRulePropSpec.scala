@@ -47,7 +47,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
 
   property("Every state adds edges") {
     check(forAll { (conditions: HyperPattern, destinations: HyperPattern, ruleType: Category.Value) => {
-      val rewriteRule = new RewriteRule(conditions, destinations, a => EmptyMetadata)
+      val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
       val templateTermToHyperTermId: Template.TemplateTerm => HyperTermId = mapper(Stream.from(0).map(HyperTermId).iterator)
       val templateTermToHyperTermIdentifier: Template.TemplateTerm => HyperTermIdentifier = mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
       val state = new RewriteSearchState(HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](conditions.edges.map(edge => {

@@ -83,10 +83,10 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
      .map(wordToHyperEdge)
   }
 
-  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[Map[Id, Either[Node, EdgeType]]] = {
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     logger.trace("Find subgraph")
     type SubPattern = HyperEdgePattern[Node, EdgeType, Id]
-    type ReferencesMap = Map[Id, Either[Node, EdgeType]]
+    type ReferencesMap = (Map[Id, Node], Map[Id, EdgeType])
     /** Creating a new references map from known hyper edge and pattern.
       * @param knownEdge The known edge
       * @param pattern The pattern
@@ -94,15 +94,13 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
       */
     def hyperEdgeAndTemplateToReferencesMap(knownEdge: HyperEdge[Node, EdgeType], pattern: SubPattern): ReferencesMap = {
       val nodesRefs = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Hole[Node, Id]]).map(a=>a._1 match {
-        case Hole(id) => (id, Left[Node, EdgeType](a._2))
+        case Hole(id) => (id, a._2)
       })
       val edgeTypeRef = pattern.edgeType match {
-        case Hole(id) => Some((id,  Right[Node, EdgeType](knownEdge.edgeType)))
+        case Hole(id) => Some((id,  knownEdge.edgeType))
         case _ => None
       }
-      val temp = (nodesRefs ++ edgeTypeRef).toMap
-
-      temp
+      (nodesRefs.toMap, edgeTypeRef.toMap)
     }
 
     /** Fills the pattern with known references.
@@ -111,15 +109,15 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
       * @return A filled pattern
       */
     def fillReferences(pattern: SubPattern, referencesMap: ReferencesMap): SubPattern = {
-      def convert[A](b: Either[Node, EdgeType] => A, item: Item[A, Id]): Item[A, Id] = {
+      def convert[A](b: Map[Id, A], item: Item[A, Id]): Item[A, Id] = {
         item match {
-          case Hole(id) => referencesMap.get(id).map(b).map(Explicit[A, Id]).getOrElse(item)
+          case Hole(id) => b.get(id).map(Explicit[A, Id]).getOrElse(item)
           case _ => item
         }
       }
-      val newTarget = convert[Node]({ case Left(node) => node }, pattern.target)
-      val newEdgeType = convert[EdgeType]({ case Right(edgeType) => edgeType }, pattern.edgeType)
-      val newSources = pattern.sources.map(convert[Node]({ case Left(node) => node }, _))
+      val newTarget = convert(referencesMap._1, pattern.target)
+      val newEdgeType = convert(referencesMap._2, pattern.edgeType)
+      val newSources = pattern.sources.map(convert(referencesMap._1, _))
       val metadata = EmptyMetadata
       HyperEdge(newTarget, newEdgeType, newSources, metadata)
     }
@@ -135,12 +133,13 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
         case itemEdge +: left =>
           val filledEdge= fillReferences(itemEdge, referencesMap)
           (for (hyperEdge <- this.find(filledEdge)) yield {
-            val newReferences = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge) ++ referencesMap
+            val temp = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge)
+            val newReferences = (temp._1 ++ referencesMap._1, temp._2 ++ referencesMap._2)
             getReferencesMap(left, newReferences)
           }).flatten
       }
     }
-    getReferencesMap(hyperPattern.edges.toSeq, Map.empty)
+    getReferencesMap(hyperPattern.edges.toSeq, (Map.empty, Map.empty))
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)

@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.HyperEdge
+import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 
@@ -44,7 +44,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(forAll { (root: Identifier, param1: Identifier, param2:Identifier) =>
       (root != param1 && root != param2  && param1 != param2) ==> {
         val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
-        val hyperEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(root), Seq(HyperTermIdentifier(param1), HyperTermIdentifier(param2)))
+        val hyperEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(root), Seq(HyperTermIdentifier(param1), HyperTermIdentifier(param2)), EmptyMetadata)
 
         val programs = Programs(tree)
 

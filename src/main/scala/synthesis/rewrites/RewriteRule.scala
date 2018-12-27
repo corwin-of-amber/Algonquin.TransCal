@@ -19,7 +19,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   */
 class RewriteRule(conditions: HyperPattern,
                   destination: HyperPattern,
-                  metaCreator: Map[Int, Either[HyperTermId, HyperTermIdentifier]] => Metadata)
+                  metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata)
   extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
@@ -32,13 +32,13 @@ class RewriteRule(conditions: HyperPattern,
 
     val conditionsReferencesMaps = compactGraph.findSubgraph[Int, SubHyperGraphPattern](subGraphConditions)
 
-    def extractNewEdges(m: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Set[HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]] = {
-      m.foldLeft(subGraphDestination)((graph, kv) => {
+    def extractNewEdges(m: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier])): Set[HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]] = {
+      m._1.foldLeft(m._2.foldLeft(subGraphDestination)((graph, kv) => {
         // From each map create new edges from the destination graph
-        kv._2 match {
-          case Right(k) => graph.mergeEdgeTypes(Explicit(k), Hole(kv._1))
-          case Left(k) => graph.mergeNodes(Explicit(k), Hole(kv._1))
-        }
+        graph.mergeEdgeTypes(Explicit(kv._2), Hole(kv._1))
+      }))((graph, kv) => {
+        // From each map create new edges from the destination graph
+        graph.mergeNodes(Explicit(kv._2), Hole(kv._1))
       }).edges
     }
 
@@ -48,7 +48,7 @@ class RewriteRule(conditions: HyperPattern,
 
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m).merge(metadata)
+      val meta = metaCreator(m._1, m._2).merge(metadata)
       extractNewEdges(m).map(e =>
         HyperEdge(extract[HyperTermId](e.target),
           extract[HyperTermIdentifier](e.edgeType),
