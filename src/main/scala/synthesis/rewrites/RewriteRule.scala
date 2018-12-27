@@ -19,7 +19,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   */
 class RewriteRule(conditions: HyperPattern,
                   destination: HyperPattern,
-                  metaCreator: (Map[Int, Either[HyperTermId, HyperTermIdentifier]], RewriteRule) => Metadata)
+                  metaCreator: Map[Int, Either[HyperTermId, HyperTermIdentifier]] => Metadata)
   extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
@@ -48,7 +48,7 @@ class RewriteRule(conditions: HyperPattern,
 
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m, this).merge(metadata)
+      val meta = metaCreator(m).merge(metadata)
       extractNewEdges(m).map(e =>
         HyperEdge(extract[HyperTermId](e.target),
           extract[HyperTermIdentifier](e.edgeType),
