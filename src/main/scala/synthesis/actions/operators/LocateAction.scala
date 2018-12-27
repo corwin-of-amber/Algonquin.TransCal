@@ -29,18 +29,18 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
     assert(roots.size == 1)
     val root = roots.head
-    val destPattern = HyperGraphManyWithOrderToOne(Set(HyperEdge[TemplateTerm, TemplateTerm](root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata)))
+    val destPattern = HyperGraphManyWithOrderToOne(Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata)))
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
     def locateDataCreator(hyperIdMap: Map[Int, HyperTermId], hyperIdent: Map[Int, HyperTermIdentifier]): Metadata = {
-      def extract1(t: TemplateTerm) = t match {
+      def extract1(t: TemplateTerm[HyperTermId]) = t match {
         case ReferenceTerm(i) => hyperIdMap(i)
-        case ExplicitTerm(ht) => ht.asInstanceOf
+        case ExplicitTerm(ht) => ht
       }
-      def extract2(t: TemplateTerm) = t match {
+      def extract2(t: TemplateTerm[HyperTermIdentifier]) = t match {
         case ReferenceTerm(i) => hyperIdent(i)
-        case ExplicitTerm(ht) => ht.asInstanceOf
+        case ExplicitTerm(ht) => ht
       }
       val newEdges = goal.edges.map({
         case HyperEdge(t, et, sources, meta) => HyperEdge[HyperTermId, HyperTermIdentifier](extract1(t), extract2(et), sources.map(extract1), meta)

@@ -10,7 +10,7 @@ import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
-import synthesis.{HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 
 /** Rewrites a program to a new program.
   *
@@ -74,20 +74,15 @@ class RewriteRule(conditions: HyperPattern,
     graph
   }
 
-  private def termToHyperItem(templateTerm: TemplateTerm): Item[HyperTermId, Int] = templateTerm match {
+  private def termToHyperItem[T <: HyperTerm](templateTerm: TemplateTerm[T]): Item[T, Int] = templateTerm match {
     case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermId])
-  }
-
-  private def termToHyperIdentifierItem(templateTerm: TemplateTerm): Item[HyperTermIdentifier, Int] = templateTerm match {
-    case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term.asInstanceOf[HyperTermIdentifier])
+    case ExplicitTerm(term) => Explicit(term)
   }
 
   private val subGraphConditions: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-        termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
+        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
     )
     HyperGraphManyWithOrderToOne(edges)
   }
@@ -100,7 +95,7 @@ class RewriteRule(conditions: HyperPattern,
   private def subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-        termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
+        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
     )
 
     // TODO: change to Uid from Programs instead of global
@@ -115,7 +110,7 @@ object RewriteRule {
 
   /* --- Public --- */
 
-  type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm, TemplateTerm]
+  type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
   case class RewriteRuleMetadata(origin: RewriteRule) extends Metadata {
     override def toStr: String = s"RewriteRuleMetadata($origin)"
@@ -127,7 +122,7 @@ object RewriteRule {
     override protected def toStr: String = this.getClass.getName
   }
 
-  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne.apply(
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne(
     templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata))
   )
 

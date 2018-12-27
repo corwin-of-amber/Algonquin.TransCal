@@ -1,19 +1,16 @@
 package synthesis.rewrites
 
-import synthesis.HyperTerm
+import synthesis.rewrites.Template.TemplateTerm
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 
 /**
   * @author tomer
   * @since 11/16/18
   */
-case class Template(target: Template.TemplateTerm, function: Template.TemplateTerm, parameters: Seq[Template.TemplateTerm])
+case class Template(target: TemplateTerm[HyperTermId], function: TemplateTerm[HyperTermIdentifier], parameters: Seq[TemplateTerm[HyperTermId]])
 
 object Template {
-  trait TemplateTerm
-  case class ExplicitTerm(term: HyperTerm) extends TemplateTerm {
-    def unapply(arg: ExplicitTerm): HyperTerm = arg.term
-  }
-  case class ReferenceTerm(id: Int) extends TemplateTerm {
-    def unapply(arg: ReferenceTerm): Int = arg.id
-  }
+  trait TemplateTerm[T <: HyperTerm]
+  case class ExplicitTerm[T <: HyperTerm](term: T) extends TemplateTerm[T]
+  case class ReferenceTerm[T <: HyperTerm](id: Int) extends TemplateTerm[T]
 }

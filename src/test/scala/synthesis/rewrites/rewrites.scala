@@ -16,7 +16,7 @@ package object rewrites {
   val hyperGraphGen: Gen[HyperGraph] = HyperGraphGenFactory(hyperGraphEdgeGen)
 
   val hyperPatternGen: Gen[HyperPattern] = hyperGraphGen
-    .map(graph => graph.edges.map(edge => HyperEdge[TemplateTerm, TemplateTerm](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm), EmptyMetadata)))
+    .map(graph => graph.edges.map(edge => HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)))
     .map(HyperGraphManyWithOrderToOne(_))
 
   val rewriteRuleGen: Gen[RewriteRule] = for {
