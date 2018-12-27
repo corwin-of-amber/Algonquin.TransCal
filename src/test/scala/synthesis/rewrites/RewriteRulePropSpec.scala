@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.HyperEdge
+import structures.{EmptyMetadata, HyperEdge}
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.Identifier
 import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
@@ -47,11 +47,11 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
 
   property("Every state adds edges") {
     check(forAll { (conditions: HyperPattern, destinations: HyperPattern, ruleType: Category.Value) => {
-      val rewriteRule = new RewriteRule(conditions, destinations, ruleType)
+      val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
       val templateTermToHyperTermId: Template.TemplateTerm => HyperTermId = mapper(Stream.from(0).map(HyperTermId).iterator)
       val templateTermToHyperTermIdentifier: Template.TemplateTerm => HyperTermIdentifier = mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
       val state = new RewriteSearchState(HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](conditions.edges.map(edge => {
-        HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId))
+        HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
       })))
       val newState = rewriteRule.apply(state)
       (newState.graph.edges -- state.graph.edges).size == (destinations.edges -- conditions.edges).size

@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.HyperEdge
+import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
@@ -82,7 +82,7 @@ object Programs extends LazyLogging {
 
     def innerDestruct(tree: Term, counter: () => Int): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
       val subHyperEdges = tree.subtrees.flatMap(subtree => innerDestruct(subtree, counter))
-      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](HyperTermId(counter()), HyperTermIdentifier(tree.root), subHyperEdges.map(_.target))
+      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](HyperTermId(counter()), HyperTermIdentifier(tree.root), subHyperEdges.map(_.target), EmptyMetadata)
       subHyperEdges.toSet + newHyperEdge
     }
 

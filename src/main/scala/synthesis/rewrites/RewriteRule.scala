@@ -1,12 +1,12 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.{Explicit, Hole, HyperEdge, Item}
+import structures._
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Uid
 import syntax.Identifier
-import synthesis.rewrites.RewriteRule.{Category, HyperPattern, SubHyperEdgePattern, SubHyperGraphPattern}
+import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
@@ -17,7 +17,10 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType: Category.Value) extends Operator[RewriteSearchState] with LazyLogging {
+class RewriteRule(conditions: HyperPattern,
+                  destination: HyperPattern,
+                  metaCreator: (Map[Int, Either[HyperTermId, HyperTermIdentifier]], RewriteRule) => Metadata)
+  extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
   // Add metadata creator
@@ -29,7 +32,7 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
 
     val conditionsReferencesMaps = compactGraph.findSubgraph[Int, SubHyperGraphPattern](subGraphConditions)
 
-    def extractNewEdges(m: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Set[HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]] = {
+    def extractNewEdges(m: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Set[HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]] = {
       m.foldLeft(subGraphDestination)((graph, kv) => {
         // From each map create new edges from the destination graph
         kv._2 match {
@@ -44,14 +47,22 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
     }
 
     // Should crash if we still have holes as its a bug
-    val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => extractNewEdges(m)).map(e =>
-      HyperEdge(extract[HyperTermId](e.target), extract[HyperTermIdentifier](e.edgeType), e.sources.map(extract[HyperTermId]))
-    )
+    val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => {
+      val meta = metaCreator(m, this).merge(metadata)
+      extractNewEdges(m).map(e =>
+        HyperEdge(extract[HyperTermId](e.target),
+          extract[HyperTermIdentifier](e.edgeType),
+          e.sources.map(extract[HyperTermId]),
+          e.metadata.merge(meta))
+      )
+    })
 
     new RewriteSearchState(graph)
   }
 
   /* --- Privates --- */
+
+  val metadata: RewriteRuleMetadata = RewriteRuleMetadata(this)
 
   /** This function should work only after "id" rule.
     *
@@ -75,7 +86,8 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
 
   private val subGraphConditions: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
+        termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
     )
     HyperGraphManyWithOrderToOne(edges)
   }
@@ -84,15 +96,17 @@ class RewriteRule(conditions: HyperPattern, destination: HyperPattern, ruleType:
   private val destHoles = destination.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val condHoles = conditions.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
+
   private def subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem))
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
+        termToHyperItem(e.target), termToHyperIdentifierItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
     )
 
     // TODO: change to Uid from Programs instead of global
     // TODO: prevent existentials from being recreated.
     val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty))
+      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
     HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges ++ existentialEdges)
   }
 }
@@ -103,12 +117,16 @@ object RewriteRule {
 
   type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm, TemplateTerm]
 
+  case class RewriteRuleMetadata(origin: RewriteRule) extends Metadata {
+    override def toStr: String = s"RewriteRuleMetadata($origin)"
+  }
+
   object Category extends Enumeration {
     val Basic, Associative, Goal, Locator, Definition, Existential = Value
   }
 
   def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne.apply(
-    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters))
+    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata))
   )
 
   /* --- Privates --- */
