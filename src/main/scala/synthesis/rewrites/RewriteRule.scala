@@ -121,8 +121,10 @@ object RewriteRule {
     override def toStr: String = s"RewriteRuleMetadata($origin)"
   }
 
-  object Category extends Enumeration {
+  object CategoryMetadata extends Enumeration with Metadata {
     val Basic, Associative, Goal, Locator, Definition, Existential = Value
+
+    override protected def toStr: String = this.getClass.getName
   }
 
   def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne.apply(
