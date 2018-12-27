@@ -1,7 +1,7 @@
 package synthesis
 
 import org.scalatest.{FlatSpec, Matchers}
-import structures.HyperEdge
+import structures.{EmptyMetadata, HyperEdge}
 import syntax.{Identifier, Tree}
 
 class ProgramsSpec extends FlatSpec with Matchers {
@@ -11,18 +11,18 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val param1 = new Identifier(1)
     val param2 = new Identifier(2)
     val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
-    val hyperEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(root), Seq(HyperTermIdentifier(param1), HyperTermIdentifier(param2)))
 
     val programs = Programs(tree)
 
-    programs.hyperGraph.edges shouldEqual Set(hyperEdge)
+    programs.hyperGraph.edgeTypes.map(_.identifier) shouldEqual Set(root, param1, param2)
+    programs.hyperGraph.edges.find(e => e.target.id == 3).get shouldEqual HyperEdge(HyperTermId(3), HyperTermIdentifier(root), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata)
   }
 
   it should "be able to handle a tree of one and return it" in {
     val tree = new Tree[Identifier](new Identifier(0), List(new Tree[Identifier](new Identifier(1))))
     val programs = Programs(tree)
 
-    val results = programs.reconstruct(HyperTermId(0)).toList
+    val results = programs.reconstruct(HyperTermId(2)).toList
 
     results should have size 1
     results should contain(tree)
