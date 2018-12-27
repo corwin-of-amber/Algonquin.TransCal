@@ -4,7 +4,8 @@ import structures.{EmptyMetadata, HyperEdge, Metadata}
 import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
-import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
+import synthesis.actions.operators.LocateAction.LocateMetadata
+import synthesis.rewrites.RewriteRule.{Category, HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.BreadthFirstSearch
@@ -32,7 +33,19 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
-    val locateRule = new RewriteRule(goal, destPattern, (a, b) => EmptyMetadata)
+    def locateDataCreator(referenceMap: Map[Int, Either[HyperTermId, HyperTermIdentifier]]): Metadata = {
+      def extract[T](t: TemplateTerm): T = t match {
+        case ReferenceTerm(i) => referenceMap(i) match {case Left(a) => a; case Right(b) => b} asInstanceOf[T]
+        case ExplicitTerm(ht) => ht.asInstanceOf[T]
+      }
+
+      val newEdges = goal.edges.map({
+        case HyperEdge(t, et, sources, meta) => HyperEdge[HyperTermId, HyperTermIdentifier](extract(t), extract(et), sources.map(extract), meta)
+      })
+      LocateMetadata(newEdges)
+    }
+
+    val locateRule = new RewriteRule(goal, destPattern, locateDataCreator)
 
     // Rewrite search
     val rewriteSearch = new BreadthFirstSearch[RewriteSearchState, RewriteSearchSpace]
@@ -42,15 +55,25 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newProgs: Programs = Programs(state.programs.hyperGraph.addEdges(newEdges))
-    if (rewriteResult.isEmpty) logger.warn("Locate did not find the requested pattern.")
-    else logger.info(newProgs.reconstruct(newEdges.head.target).next().toString())
-    new ActionSearchState(newProgs, state.rewriteRules)
+    logFoundEdges(state, newEdges)
+    new ActionSearchState(Programs(state.programs.hyperGraph.addEdges(newEdges)), state.rewriteRules)
+  }
+
+  private def logFoundEdges(state: ActionSearchState, newEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Unit = {
+    val foundEdges = newEdges.headOption.map(_.metadata.find(_.isInstanceOf[LocateMetadata])
+      .map(_.asInstanceOf[LocateMetadata].edges).getOrElse(Set.empty)
+    ).getOrElse(Set.empty)
+    val filterTargets = foundEdges.map(_.target)
+    val reconstructGraph = HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](
+      state.programs.hyperGraph.edges.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges
+    )
+    if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
+    else logger.info(Programs(reconstructGraph).reconstruct(newEdges.head.target).next().toString())
   }
 }
 
 object LocateAction {
-  case class LocateMetadata() extends Metadata {
-    override def toStr: String = "LocateMetadata"
+  case class LocateMetadata(edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) extends Metadata {
+    override def toStr: String = s"LocateMetadata($edges)"
   }
 }
