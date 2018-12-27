@@ -29,27 +29,11 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
     })
   }
 
-  private def mapper[T <: HyperTerm](creator: Iterator[T]): Template.TemplateTerm => T = {
-      val intToT = scala.collection.mutable.Map.empty[Int, T]
-      def templateTermToT(templateTerm: TemplateTerm): T = {
-        templateTerm match {
-          case ReferenceTerm(id) =>
-            if (!intToT.contains(id)) {
-              intToT(id) = creator.next()
-            }
-            intToT(id)
-          case ExplicitTerm(hyperTerm) => hyperTerm.asInstanceOf[T]
-        }
-      }
-    templateTermToT
-  }
-
-
   property("Every state adds edges") {
     check(forAll { (conditions: HyperPattern, destinations: HyperPattern) => {
       val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
-      val templateTermToHyperTermId: Template.TemplateTerm => HyperTermId = mapper(Stream.from(0).map(HyperTermId).iterator)
-      val templateTermToHyperTermIdentifier: Template.TemplateTerm => HyperTermIdentifier = mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
+      val templateTermToHyperTermId: Template.TemplateTerm => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
+      val templateTermToHyperTermIdentifier: Template.TemplateTerm => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
       val state = new RewriteSearchState(HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](conditions.edges.map(edge => {
         HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
       })))
@@ -57,5 +41,22 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
       (newState.graph.edges -- state.graph.edges).size == (destinations.edges -- conditions.edges).size
     }
     })
+  }
+}
+
+object RewriteRulePropSpec {
+  def mapper[T <: HyperTerm](creator: Iterator[T]): Template.TemplateTerm => T = {
+    val intToT = scala.collection.mutable.Map.empty[Int, T]
+    def templateTermToT(templateTerm: TemplateTerm): T = {
+      templateTerm match {
+        case ReferenceTerm(id) =>
+          if (!intToT.contains(id)) {
+            intToT(id) = creator.next()
+          }
+          intToT(id)
+        case ExplicitTerm(hyperTerm) => hyperTerm.asInstanceOf[T]
+      }
+    }
+    templateTermToT
   }
 }
