@@ -4,7 +4,7 @@ import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import structures.{EmptyMetadata, HyperEdge}
 import structures.immutable.{HyperEdgeGenFactory, HyperGraphGenFactory, HyperGraphManyWithOrderToOne}
-import synthesis.rewrites.RewriteRule.{Category, HyperPattern}
+import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 
@@ -19,12 +19,9 @@ package object rewrites {
     .map(graph => graph.edges.map(edge => HyperEdge[TemplateTerm, TemplateTerm](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm), EmptyMetadata)))
     .map(HyperGraphManyWithOrderToOne(_))
 
-  val ruleTypeGen: Gen[RewriteRule.Category.Value] = oneOf(Category.values.toSeq)
-
   val rewriteRuleGen: Gen[RewriteRule] = for {
     conditions <- hyperPatternGen
     destination <- hyperPatternGen
-    ruleType <- ruleTypeGen
   } yield new RewriteRule(conditions, destination, (a, b) => EmptyMetadata)
 
   val rewriteSearchStateGen: Gen[RewriteSearchState] = hyperGraphGen.map(new RewriteSearchState(_))
