@@ -122,7 +122,7 @@ object RewriteRule {
   }
 
   object CategoryMetadata extends Enumeration with Metadata {
-    val Basic, Associative, Goal, Locator, Definition, Existential = Value
+    val Basic, Associative, Goal, Definition, Existential = Value
 
     override protected def toStr: String = this.getClass.getName
   }
