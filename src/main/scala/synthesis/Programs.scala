@@ -6,6 +6,7 @@ import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.RewriteSearchState.HyperGraph
 
 import scala.collection.mutable
 
@@ -13,7 +14,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs private (val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
+class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
 
   /* --- Public --- */
 
