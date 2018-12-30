@@ -40,7 +40,8 @@ class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
       def recursive(root: HyperTermId): Iterator[Term] = {
         val edges = hyperTermToEdge.get(root)
         edges.map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
-          new Programs.CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
+          else new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
       }
       recursive(hyperTermId)
@@ -92,6 +93,28 @@ object Programs extends LazyLogging {
 
     HyperGraphManyWithOrderToOne(hyperEdges)
   }
+}
+
+/** Iterator which combines sequence of iterators (return all combinations of their results).
+  * @param iterators All the iterators to combine.
+  * @tparam T The return type.
+  */
+class CombineSeq[T](iterators: Seq[Iterator[T]]) extends scala.collection.AbstractIterator[Seq[T]] {
+  /* --- AbstractIterator Implementation --- */
+
+  override def hasNext: Boolean = innerIterator.hasNext
+
+  override def next(): Seq[T] = innerIterator.next()
+
+
+  /* --- Privates --- */
+
+  /** Creates inner iterator of CombinedTwo and flat map it out. */
+  private val innerIterator = iterators match {
+    case Nil => Iterator.empty
+    case head +: Nil => head.map(Seq(_))
+    case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
+  }
 
   /** Iterator which combines two iterators (return all combinations of their results).
     *
@@ -131,30 +154,6 @@ object Programs extends LazyLogging {
       Some(iter1.next)
     } else {
       None
-    }
-  }
-
-  /** Iterator which combines sequence of iterators (return all combinations of their results).
-    * @param iterators All the iterators to combine.
-    * @tparam T The return type.
-    */
-  private class CombineSeq[T](iterators: Seq[Iterator[T]]) extends scala.collection.AbstractIterator[Seq[T]] {
-
-
-    /* --- AbstractIterator Implementation --- */
-
-    override def hasNext: Boolean = innerIterator.hasNext
-
-    override def next(): Seq[T] = innerIterator.next()
-
-
-    /* --- Privates --- */
-
-    /** Creates inner iterator of CombinedTwo and flat map it out. */
-    private val innerIterator = iterators match {
-      case Nil => Iterator.empty
-      case head +: Nil => head.map(Seq(_))
-      case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
     }
   }
 }
