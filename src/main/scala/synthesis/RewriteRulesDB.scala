@@ -52,7 +52,7 @@ trait RewriteRulesDB {
         val destination = termToHyperPattern(rightTerm)
         Set(new RewriteRule(conditions, destination, (a, b) => metadata))
       case _ =>
-        println("unknown")
+        println(s"unknown ${ruleTemplate.root}")
         Set()
     }
   }
