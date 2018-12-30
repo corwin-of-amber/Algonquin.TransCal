@@ -32,7 +32,7 @@ class ProgramsSpec extends FlatSpec with Matchers {
     val tree = new Tree[Identifier](new Identifier(0), List(new Tree[Identifier](new Identifier(1)), new Tree[Identifier](new Identifier(2))))
     val programs = Programs(tree)
 
-    val results = programs.reconstruct(HyperTermId(0)).toList
+    val results = programs.reconstruct(HyperTermId(3)).toList
 
     results should have size 1
     results should contain (tree)

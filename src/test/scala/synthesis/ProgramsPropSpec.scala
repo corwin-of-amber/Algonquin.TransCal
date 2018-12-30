@@ -17,7 +17,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("main program is in reconstruct") {
     check(forAll { term: Term => {
       val programs = Programs(term)
-      programs.reconstruct(HyperTermId(1)).contains(term) :| programs.toString
+      programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map(_.id).max)).contains(term) :| programs.toString
     }
     })
   }
@@ -44,11 +44,14 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(forAll { (root: Identifier, param1: Identifier, param2:Identifier) =>
       (root != param1 && root != param2  && param1 != param2) ==> {
         val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
-        val hyperEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(root), Seq(HyperTermIdentifier(param1), HyperTermIdentifier(param2)), EmptyMetadata)
+        val hyperEdges = Set(HyperEdge(HyperTermId(3), HyperTermIdentifier(root), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
+          HyperEdge(HyperTermId(1), HyperTermIdentifier(param1), List.empty, EmptyMetadata),
+          HyperEdge(HyperTermId(2), HyperTermIdentifier(param2), List.empty, EmptyMetadata)
+        )
 
         val programs = Programs(tree)
 
-        programs.hyperGraph.edges == Set(hyperEdge)
+        programs.hyperGraph.edges == hyperEdges
       }
 
     })
