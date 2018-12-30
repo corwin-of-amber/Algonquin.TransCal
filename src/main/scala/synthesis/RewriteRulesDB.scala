@@ -1,5 +1,6 @@
 package synthesis
 
+import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
 import structures.immutable.HyperGraphManyWithOrderToOne
@@ -14,7 +15,7 @@ import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
   * @author tomer
   * @since 12/27/18
   */
-trait RewriteRulesDB {
+trait RewriteRulesDB extends LazyLogging {
   protected def vars: Set[Identifier]
   protected def ruleTemplates: Seq[Term]
   protected def metadata: Metadata
@@ -37,7 +38,7 @@ trait RewriteRulesDB {
       case AstSugar.`=` =>
         val leftTerm = ruleTemplate.subtrees.head
         val rightTerm = ruleTemplate.subtrees.last
-        println(s"equal $leftTerm $rightTerm")
+        logger.debug(s"equal $leftTerm $rightTerm")
         val leftPattern = termToHyperPattern(leftTerm)
         val rightPattern = termToHyperPattern(rightTerm)
         Set(
@@ -47,12 +48,12 @@ trait RewriteRulesDB {
       case relentless.rewriting.RewriteRule.`=>` =>
         val leftTerm = ruleTemplate.subtrees.head
         val rightTerm = ruleTemplate.subtrees.last
-        println(s"directional rewrite $leftTerm $rightTerm")
+        logger.debug(s"directional rewrite $leftTerm $rightTerm")
         val conditions = termToHyperPattern(leftTerm)
         val destination = termToHyperPattern(rightTerm)
         Set(new RewriteRule(conditions, destination, (a, b) => metadata))
       case _ =>
-        println(s"unknown ${ruleTemplate.root}")
+        logger.debug(s"unknown ${ruleTemplate.root}")
         Set()
     }
   }
