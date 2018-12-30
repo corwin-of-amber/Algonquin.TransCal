@@ -140,8 +140,3 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "ExistentialMetadata"
   }
 }
-
-object Main extends App {
-  println(SimpleRewriteRulesDB.rewriteRules)
-  println(SimpleRewriteRulesDB.rewriteRules.size)
-}
