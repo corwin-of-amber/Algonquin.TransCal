@@ -11,7 +11,7 @@ libraryDependencies += "org.xerial" % "sqlite-jdbc" %  "3.25.2"
 
 //libraryDependencies += "com.microsoft.z3"
 //libraryDependencies += "earley"
-//libraryDependencies += "org.rogach" %  "scallop_2.11" %  "3.1.5"
+libraryDependencies += "org.rogach" %% "scallop" % "3.1.5"
 //libraryDependencies += "org.algonquin" %  "bellmaniac"
 
 libraryDependencies += "org.scalatest" %% "scalatest" %  "3.0.5" % Test
