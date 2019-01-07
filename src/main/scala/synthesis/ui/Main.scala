@@ -1,6 +1,10 @@
 package synthesis.ui
 
-import synthesis.SimpleRewriteRulesDB
+import java.io.{BufferedReader, PrintStream, File => JFile}
+
+import synthesis.Language.OldParser
+
+import scala.io.Source
 
 /**
   * @author tomer
@@ -8,18 +12,18 @@ import synthesis.SimpleRewriteRulesDB
   */
 object Main extends App {
 
-  println(SimpleRewriteRulesDB.rewriteRules)
-  println(SimpleRewriteRulesDB.rewriteRules.size)
-//  import org.rogach.scallop.ScallopConf
-//
-//  class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
-//    val file = opt[String]()
-//    verify()
-//  }
-//
-//  val conf = new CommandLineConfiguration(args)
-//  val userInput: BufferedReader = conf.file.map(Source.fromFile).map(_.bufferedReader()).getOrElse(Console.in)
-//  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
-//  val interpreter = new Interpreter(userInput, userOutput)
-//  interpreter.start
+  import org.rogach.scallop.ScallopConf
+
+  class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
+    val file = opt[JFile]()
+    validateFileIsFile(file)
+    verify()
+  }
+
+  val conf = new CommandLineConfiguration(args)
+  val userInput: BufferedReader = conf.file.map(Source.fromFile).map(_.bufferedReader()).getOrElse(Console.in)
+  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+  val parser = new OldParser()
+  val interpreter = new Interpreter(userInput, userOutput, parser)
+  interpreter.start
 }
