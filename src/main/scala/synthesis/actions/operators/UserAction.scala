@@ -2,6 +2,8 @@ package synthesis.actions.operators
 
 import java.io.{BufferedReader, PrintStream}
 
+import syntax.AstSugar.Term
+import synthesis.Language.Parser
 import synthesis.actions.ActionSearchState
 
 import scala.collection.mutable
@@ -10,7 +12,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/18/18
   */
-class UserAction(in: BufferedReader, out:PrintStream) extends Action {
+class UserAction(in: BufferedReader, out:PrintStream, parser: Parser[Term]) extends Action {
 
   /* --- Public --- */
 
@@ -18,6 +20,7 @@ class UserAction(in: BufferedReader, out:PrintStream) extends Action {
     out.print(f"In [${lines.length}]: ")
     out.flush()
     val line: String = in.readLine()
+    val term = parser.apply(line)
 
     // TODO: Add parsing functionality
     // operator = in the main is Let (adding a new hyperterm)
@@ -32,16 +35,16 @@ class UserAction(in: BufferedReader, out:PrintStream) extends Action {
     // operator →: push stack
     // operator ←: pop stack
     // operator □: save state ?!
-    val output: String = line
+    val output: String = term.toString()
 
     out.println(f"Out [${lines.length}]: $output")
     out.flush()
-    lines += ((line, output))
+    lines += ((line, term))
     state
   }
 
 
   /* --- Privates --- */
 
-  private val lines: mutable.Buffer[(String, String)] = new mutable.ListBuffer[(String, String)]()
+  private val lines: mutable.Buffer[(String, Term)] = new mutable.ListBuffer[(String, Term)]()
 }
