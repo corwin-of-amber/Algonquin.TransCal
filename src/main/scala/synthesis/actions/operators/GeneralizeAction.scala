@@ -1,5 +1,6 @@
 package synthesis.actions.operators
 
+import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar._
 import relentless.rewriting._
 import synthesis.actions.operators.GeneralizeAction.{DerivedDefinition, NUM_ALTS_TO_SHOW, generalize}
@@ -13,7 +14,7 @@ import synthesis.actions.ActionSearchState
   * @author tomer
   * @since 11/18/18
   */
-class GeneralizeAction(anchor: Term, leaves: List[Term], name: Term) extends Action {
+class GeneralizeAction(anchor: Term, leaves: List[Term], name: Term) extends Action with LazyLogging {
   override def apply(state: ActionSearchState): ActionSearchState = {
 
     val roots = state.programs.hyperGraph.findEdges(HyperTermIdentifier(anchor.leaf)) map (_.target)
@@ -38,7 +39,7 @@ class GeneralizeAction(anchor: Term, leaves: List[Term], name: Term) extends Act
       case None => state
       case Some(derivedDef) =>
         for (e <- derivedDef.equivs)
-          println(e)
+          logger.debug(e.toString)
         val varIds = derivedDef.vars.toList map (_.leaf)
 //        val rules = new Let((derivedDef.ruleDefs map (new Scheme.Template(varIds, _))).toList).rules
         val rules = new LetAction((derivedDef.ruleDefs map (new Scheme.Template(varIds, _))).toList).rules

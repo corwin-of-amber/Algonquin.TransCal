@@ -28,6 +28,30 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("be able to handle a tree of one and return it") {
+    check(forAll { (root: Identifier, son: Identifier) => {
+      val tree = new Tree[Identifier](root, List(new Tree[Identifier](son)))
+      val programs = Programs(tree)
+
+      val results = programs.reconstruct(HyperTermId(2)).toList
+
+      results.size == 1 && results.contains(tree)
+    }
+    })
+  }
+
+  property("be able to handle a tree with 1 depth and return it") {
+    check(forAll { (root: Identifier, son1: Identifier, son2: Identifier) => {
+      val tree = new Tree[Identifier](root, List(new Tree[Identifier](son1), new Tree[Identifier](son2)))
+      val programs = Programs(tree)
+
+      val results = programs.reconstruct(HyperTermId(3)).toList
+
+      results.size == 1 && results.contains(tree)
+    }
+    })
+  }
+
   property("every edge is constructable") {
     check(forAll { programs: Programs =>
       programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)

@@ -1,8 +1,6 @@
 package synthesis.ui
 
-import java.io.{BufferedReader, PrintStream}
-
-import scala.io.Source
+import synthesis.SimpleRewriteRulesDB
 
 /**
   * @author tomer
@@ -10,6 +8,8 @@ import scala.io.Source
   */
 object Main extends App {
 
+  println(SimpleRewriteRulesDB.rewriteRules)
+  println(SimpleRewriteRulesDB.rewriteRules.size)
 //  import org.rogach.scallop.ScallopConf
 //
 //  class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {

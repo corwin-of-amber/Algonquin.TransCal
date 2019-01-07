@@ -1,7 +1,5 @@
 package structures
 
-import synthesis.rewrites.RewriteRule
-
 /**
   * @author tomer
   * @since 12/25/18
