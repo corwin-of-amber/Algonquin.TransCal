@@ -26,8 +26,12 @@ class UserAction(in: BufferedReader, out:PrintStream, parser: Parser[Term]) exte
     val line: String = in.readLine()
     val term = parser.apply(line)
 
-    term.root.literal match {
+    val newState = term.root.literal match {
+      case "=" => {
       // operator = in the main is Let (adding a new hyperterm)
+        println(s"Found =, adding term $term")
+        new ActionSearchState(state.programs + term, state.rewriteRules)
+      }
       case "->" => {
       // operator ->:
       //   For left is:
@@ -41,25 +45,25 @@ class UserAction(in: BufferedReader, out:PrintStream, parser: Parser[Term]) exte
       //   1) a symbol => easy reference
       //   2) a pattern => Elaborate (finding the pattern - is it needed in case we keep programs?!)
       //   3) a term => extract the left to to match the term (Generalize or extract methods)
-
+        state
       }
       // operator →: push stack
       // operator ←: pop stack
       // operator □: save state ?!
     }
 
-    val output: String = term.toString()
+    val output: String = newState.toString
 
     out.println(f"Out [${lines.length}]: $output")
     out.flush()
-    lines += ((line, term))
-    state
+    lines += ((line, newState))
+   newState
   }
 
 
   /* --- Privates --- */
 
-  private val lines: mutable.Buffer[(String, Term)] = new mutable.ListBuffer[(String, Term)]()
+  private val lines: mutable.Buffer[(String, ActionSearchState)] = new mutable.ListBuffer[(String, ActionSearchState)]()
 
   private def createTemplateFromTerm(term: Term, counter: ()=>Int=Stream.from(0).iterator.next): (HyperTermId, Set[Template]) = {
     val results = term.subtrees.map(createTemplateFromTerm(_, counter))
