@@ -26,23 +26,28 @@ class UserAction(in: BufferedReader, out:PrintStream, parser: Parser[Term]) exte
     val line: String = in.readLine()
     val term = parser.apply(line)
 
-    // operator = in the main is Let (adding a new hyperterm)
-    // operator ->:
-    //   For left is:
-    //   1) a pattern - Locate (locating a pattern)
-    //   2) a symbol - Locate (locating a symbol)
-    val anchor = HyperTermIdentifier(I(term.root.literal, Programs.Kinds.NonConstructable.toString))
-    val hyperPattern = createHyperPatternFromTerm(term.subtrees.head)
-    val newState = new LocateAction(anchor, hyperPattern).apply(state)
+    term.root.literal match {
+      // operator = in the main is Let (adding a new hyperterm)
+      case "->" => {
+      // operator ->:
+      //   For left is:
+      //   1) a pattern - Locate (locating a pattern)
+      //   2) a symbol - Locate (locating a symbol)
+        val anchor = HyperTermIdentifier(I(term.root.literal, Programs.Kinds.NonConstructable.toString))
+        val hyperPattern = createHyperPatternFromTerm(term.subtrees.head)
+        val newState = new LocateAction(anchor, hyperPattern).apply(state)
 
-    //   The right is:
-    //   1) a symbol => easy reference
-    //   2) a pattern => Elaborate (finding the pattern - is it needed in case we keep programs?!)
-    //   3) a term => extract the left to to match the term (Generalize or extract methods)
+      //   The right is:
+      //   1) a symbol => easy reference
+      //   2) a pattern => Elaborate (finding the pattern - is it needed in case we keep programs?!)
+      //   3) a term => extract the left to to match the term (Generalize or extract methods)
 
-    // operator →: push stack
-    // operator ←: pop stack
-    // operator □: save state ?!
+      }
+      // operator →: push stack
+      // operator ←: pop stack
+      // operator □: save state ?!
+    }
+
     val output: String = term.toString()
 
     out.println(f"Out [${lines.length}]: $output")
