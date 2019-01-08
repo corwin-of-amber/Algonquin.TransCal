@@ -17,14 +17,16 @@ import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
   */
 trait RewriteRulesDB extends LazyLogging {
   protected def vars: Set[Identifier]
-  protected def ruleTemplates: Seq[Term]
+
+  protected def ruleTemplates: Set[Term]
+
   protected def metadata: Metadata
-  lazy val rewriteRules: Seq[RewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+
+  lazy val rewriteRules: Set[RewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = {
     def termToHyperPattern(term: Term): HyperPattern = {
-      val ruleTemplateGraph = Programs(term).hyperGraph
-      val hyperPatternEdges = ruleTemplateGraph.edges.filterNot(edge=>vars.contains(edge.edgeType.identifier)).map(edge => {
+      val hyperPatternEdges = Programs.destruct(term).edges.filterNot(edge => vars.contains(edge.edgeType.identifier)).map(edge => {
         HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
           ReferenceTerm(edge.target.id),
           ExplicitTerm(edge.edgeType),
@@ -34,6 +36,7 @@ trait RewriteRulesDB extends LazyLogging {
       })
       HyperGraphManyWithOrderToOne(hyperPatternEdges)
     }
+
     ruleTemplate.root match {
       case AstSugar.`=` =>
         val leftTerm = ruleTemplate.subtrees.head
@@ -59,10 +62,10 @@ trait RewriteRulesDB extends LazyLogging {
   }
 }
 
-object SimpleRewriteRulesDB extends RewriteRulesDB {
+class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
-  override protected val ruleTemplates: Seq[Term] = Seq(
+  override protected val ruleTemplates: Set[Term] = Set(
     `⇒:`(tt, y) =:> id(y),
     `⇒:`(ff, y) =:> ff,
     ~tt =:= ff,
@@ -102,7 +105,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     take(++(xs, `xs'`), x) =:> ++(take(xs, min(len(xs), x)), take(`xs'`, bounded_minus(x, len(xs)))),
 
     // merge range
-    ++(range_exclude(x,y), range_exclude(y, z)) =:> range_exclude(x, z),
+    ++(range_exclude(x, y), range_exclude(y, z)) =:> range_exclude(x, z),
     // exclude to include
     range_exclude(x, y + one) =:= range_include(x, y),
     // singleton range
@@ -113,10 +116,14 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected def metadata: Metadata = EmptyMetadata
 }
 
+object SimpleRewriteRulesDB {
+  def apply(): SimpleRewriteRulesDB = new SimpleRewriteRulesDB()
+}
+
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
 
-  override protected val ruleTemplates: Seq[Term] = Seq(
+  override protected val ruleTemplates: Set[Term] = Set(
     (x & (y & z)) =:= (x & y & z)
   )
 
@@ -125,12 +132,13 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
   case object AssociativeMetadata extends Metadata {
     override def toStr: String = "AssociativeMetadata"
   }
+
 }
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(xs, exist).map(_.root)
 
-  override protected val ruleTemplates: Seq[Term] = Seq(
+  override protected val ruleTemplates: Set[Term] = Set(
     xs =:> ++(take(xs, exist), drop(xs, exist))
   )
 
@@ -139,4 +147,5 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
   case object ExistentialMetadata extends Metadata {
     override def toStr: String = "ExistentialMetadata"
   }
+
 }
