@@ -23,6 +23,8 @@ class RewriteRule(conditions: HyperPattern,
   extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
+  override def toString: String = s"RewriteRule($conditions, $destination)"
+
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
     logger.trace("Creating a new state")
