@@ -1,6 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import semantics.LambdaCalculus.isApp
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
@@ -76,14 +77,22 @@ object Programs extends LazyLogging {
 
   def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
 
+  private def flattenApply(term: Term) = {
+    isApp(term) match {
+      case Some((f, args)) if f.isLeaf => (f.leaf, args)
+      case _ => (term.root, term.subtrees)
+    }
+  }
+
   def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
     def innerDestruct(tree: Term, counter: () => Int): (HyperTermId, Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) = {
-      val targetToSubedges = tree.subtrees.map(subtree => innerDestruct(subtree, counter))
+      val (function, args) = flattenApply(tree)
+      val targetToSubedges = args.map(subtree => innerDestruct(subtree, counter))
       val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
       val target = HyperTermId(counter())
-      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](target, HyperTermIdentifier(tree.root), targetToSubedges.map(_._1), EmptyMetadata)
+      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](target, HyperTermIdentifier(function), targetToSubedges.map(_._1), EmptyMetadata)
       (target, subHyperEdges + newHyperEdge)
     }
 
