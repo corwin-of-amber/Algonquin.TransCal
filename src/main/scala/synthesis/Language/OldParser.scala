@@ -7,7 +7,6 @@ import ontopt.pen.{EarleyParser, Grammar, SimpleSentence, Word}
 import relentless.BasicSignature
 import syntax.AstSugar.{TI, TV, Term}
 import syntax.{Identifier, Tree}
-import ui.Parser
 import syntax.AstSugar._
 
 import scala.collection.JavaConversions._
@@ -204,15 +203,14 @@ object OldParser {
   }
 
   case class DeductionHints(options: List[String]) extends Annotation
-
 }
 
 
 class OldParser(grammar: Grammar) extends Parser[Term] with LazyLogging {
 
-  import Parser._
+  import OldParser._
 
-  def this() = this(new Grammar(Parser.GRAMMAR))
+  def this() = this(new Grammar(OldParser.GRAMMAR))
 
   private lazy val earley = new EarleyParser(grammar)
   private val E: Regex = raw"E\d+".r
