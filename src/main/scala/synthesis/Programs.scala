@@ -76,20 +76,19 @@ object Programs extends LazyLogging {
 
   def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
 
-
-  /* --- Private --- */
-
-  private def destruct(tree: Term): RewriteSearchState.HyperGraph = {
+  def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
-    def innerDestruct(tree: Term, counter: () => Int): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-      val subHyperEdges = tree.subtrees.flatMap(subtree => innerDestruct(subtree, counter))
-      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](HyperTermId(counter()), HyperTermIdentifier(tree.root), subHyperEdges.map(_.target), EmptyMetadata)
-      subHyperEdges.toSet + newHyperEdge
+    def innerDestruct(tree: Term, counter: () => Int): (HyperTermId, Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) = {
+      val targetToSubedges = tree.subtrees.map(subtree => innerDestruct(subtree, counter))
+      val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
+      val target = HyperTermId(counter())
+      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](target, HyperTermIdentifier(tree.root), targetToSubedges.map(_._1), EmptyMetadata)
+      (target, subHyperEdges + newHyperEdge)
     }
 
     val s = Stream.from(1).iterator
-    val hyperEdges = innerDestruct(tree, () => s.next)
+    val hyperEdges = innerDestruct(tree, () => s.next)._2
 
     HyperGraphManyWithOrderToOne(hyperEdges)
   }
