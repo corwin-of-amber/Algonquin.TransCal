@@ -37,13 +37,22 @@ trait RewriteRulesDB extends LazyLogging {
       HyperGraphManyWithOrderToOne(hyperPatternEdges)
     }
 
+    def split(hyperGraph: HyperPattern): (HyperPattern, HyperPattern) = {
+      val baseEdge = hyperGraph.edges.maxBy(_.target match {case ReferenceTerm(id) => id})
+      val maxLeft = baseEdge.sources.head match {case ReferenceTerm(id) => id}
+      val otherEdges = hyperGraph.edges - baseEdge
+      val leftEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id <= maxLeft})
+      val rightEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id >= maxLeft})
+      (HyperGraphManyWithOrderToOne(leftEdges), HyperGraphManyWithOrderToOne(rightEdges))
+    }
+
     ruleTemplate.root match {
       case AstSugar.`=` =>
         val leftTerm = ruleTemplate.subtrees.head
         val rightTerm = ruleTemplate.subtrees.last
         logger.debug(s"equal $leftTerm $rightTerm")
-        val leftPattern = termToHyperPattern(leftTerm)
-        val rightPattern = termToHyperPattern(rightTerm)
+        val testPattern = termToHyperPattern(ruleTemplate)
+        val (leftPattern, rightPattern) = split(testPattern)
         Set(
           new RewriteRule(leftPattern, rightPattern, (a, b) => metadata),
           new RewriteRule(rightPattern, leftPattern, (a, b) => metadata)
@@ -52,8 +61,8 @@ trait RewriteRulesDB extends LazyLogging {
         val leftTerm = ruleTemplate.subtrees.head
         val rightTerm = ruleTemplate.subtrees.last
         logger.debug(s"directional rewrite $leftTerm $rightTerm")
-        val conditions = termToHyperPattern(leftTerm)
-        val destination = termToHyperPattern(rightTerm)
+        val testPattern = termToHyperPattern(ruleTemplate)
+        val (conditions, destination) = split(testPattern)
         Set(new RewriteRule(conditions, destination, (a, b) => metadata))
       case _ =>
         logger.debug(s"unknown ${ruleTemplate.root}")
