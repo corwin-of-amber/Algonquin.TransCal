@@ -44,17 +44,18 @@ class RewriteRule(conditions: HyperPattern,
       }).edges
     }
 
-    def extract[T](i: Item[T, Int]): T = i match {
+    def extract(i: Item[HyperTermId, Int]): HyperTermId = i match {
       case Explicit(v) => v
+      case Hole(v) => HyperTermId(v + compactGraph.nodes.map(_.id).max)
     }
 
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
       extractNewEdges(m).map(e =>
-        HyperEdge(extract[HyperTermId](e.target),
-          extract[HyperTermIdentifier](e.edgeType),
-          e.sources.map(extract[HyperTermId]),
+        HyperEdge(extract(e.target),
+          e.edgeType match { case Explicit(v) => v },
+          e.sources.map(extract),
           e.metadata.merge(meta))
       )
     })
