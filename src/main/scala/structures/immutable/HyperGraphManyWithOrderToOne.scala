@@ -8,6 +8,7 @@ import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Item}
   */
 trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends structures.HyperGraphManyWithOrderToOne[Node, EdgeType]
   with HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]]
+  with scala.collection.immutable.Traversable[HyperEdge[Node, EdgeType]]
 
 object HyperGraphManyWithOrderToOne {
   def empty[Node, EdgeType]: HyperGraphManyWithOrderToOne[Node, EdgeType] = VocabularyHyperGraph.empty

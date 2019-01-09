@@ -2,12 +2,15 @@ package structures
 
 import structures.HyperGraphManyWithOrderToOneLike._
 
+import scala.collection.TraversableLike
+
 /** A hyper graph from many to one.
   *
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]] {
+trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]]
+  extends TraversableLike[HyperEdge[Node, EdgeType], This] {
 
   /** Finds all the edges with the EdgeType
     *
