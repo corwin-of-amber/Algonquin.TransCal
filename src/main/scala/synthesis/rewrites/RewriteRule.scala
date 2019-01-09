@@ -44,9 +44,10 @@ class RewriteRule(conditions: HyperPattern,
       }).edges
     }
 
+    val lastId = compactGraph.nodes.map(_.id).max
     def extract(i: Item[HyperTermId, Int]): HyperTermId = i match {
       case Explicit(v) => v
-      case Hole(v) => HyperTermId(v + compactGraph.nodes.map(_.id).max)
+      case Hole(v) => HyperTermId(v + lastId)
     }
 
     // Should crash if we still have holes as its a bug
