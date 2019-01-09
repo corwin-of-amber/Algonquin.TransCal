@@ -11,6 +11,7 @@ import scala.collection.TraversableLike
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]]
   extends TraversableLike[HyperEdge[Node, EdgeType], This] {
+  // TODO: Make HyperGraphManyWithOrderToOneLike to inheritance from SetLike?
 
   /** Finds all the edges with the EdgeType
     *
