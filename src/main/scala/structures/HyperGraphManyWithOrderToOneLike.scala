@@ -98,6 +98,8 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return New hyper graph includes the other.
     */
   def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This = :+(hyperGraph.edges)
+
+  override def foreach[U](f: HyperEdge[Node, EdgeType] => U): Unit = edges.foreach(f)
 }
 
 object HyperGraphManyWithOrderToOneLike {

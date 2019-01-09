@@ -162,8 +162,6 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] =
     Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
-
-  override def foreach[U](f: HyperEdge[Node, EdgeType] => U): Unit = edges.foreach(f)
 }
 
 object VocabularyHyperGraph {
