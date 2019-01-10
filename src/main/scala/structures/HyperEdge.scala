@@ -29,7 +29,7 @@ case object EmptyMetadata extends Metadata {
   override def toStr: String = "EmptyMetadata"
 }
 
-case class UnionMetadata(datas: Set[Metadata]) extends Metadata {
+final case class UnionMetadata(datas: Set[Metadata]) extends Metadata {
   override def iterator: Iterator[Metadata] = datas.toIterator.flatMap(_.iterator)
   override def toStr: String = iterator mkString ", "
 }

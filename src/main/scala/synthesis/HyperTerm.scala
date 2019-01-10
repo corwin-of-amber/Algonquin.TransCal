@@ -7,6 +7,5 @@ import syntax.Identifier
   * @since 11/16/18
   */
 sealed trait HyperTerm
-case class HyperTermId(id: Int) extends HyperTerm
-
-case class HyperTermIdentifier(identifier: Identifier) extends HyperTerm
+final case class HyperTermId(id: Int) extends HyperTerm
+final case class HyperTermIdentifier(identifier: Identifier) extends HyperTerm
