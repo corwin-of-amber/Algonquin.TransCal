@@ -5,8 +5,6 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
-import scala.language.postfixOps
-
 /**
   * @author tomer
   * @since 11/15/18
@@ -15,6 +13,11 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
   extends HyperGraphManyWithOrderToOne[Node, EdgeType]
     with HyperGraphManyWithOrderToOneLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with LazyLogging {
 
+  def this(edges: Set[HyperEdge[Node, EdgeType]]=Set.empty[HyperEdge[Node, EdgeType]]) =
+    this(
+      Trie(edges.map(VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType])),
+      edges.map(edge => ((edge.target, edge.edgeType, edge.sources), edge.metadata)).toMap
+    )
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -169,11 +172,16 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
   }
 
   private def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] =
-    Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
+    VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType](hyperEdge)
 }
 
 object VocabularyHyperGraph {
-  def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(Vocabulary.empty, Map.empty)
+  def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph()
 
-  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = empty :+ edges
+  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(edges)
+
+  /* --- Private Functions --- */
+
+  private def hyperEdgeToWord[Node, EdgeType](hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] =
+    Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
 }
