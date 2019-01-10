@@ -123,7 +123,8 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     pattern match {
       case Nil => words
       case item +: more =>
-        item match {
+        if (subtries.isEmpty) Set.empty
+        else item match {
           case Explicit(value: Letter) => specificValue(value, more, placeholdersMap)
           case Hole(id: Id) =>
             placeholdersMap.get(id)
