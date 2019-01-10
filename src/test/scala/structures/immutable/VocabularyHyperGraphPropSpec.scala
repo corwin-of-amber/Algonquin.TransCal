@@ -26,7 +26,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("remove non existant") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> ((g - e) != null)
+      !g.edges.contains(e) ==> ((g - e) != null) && ((g - e).edges == g.edges)
     })
   }
 
