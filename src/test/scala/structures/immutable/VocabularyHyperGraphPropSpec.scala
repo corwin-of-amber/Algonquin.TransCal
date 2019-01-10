@@ -18,6 +18,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     !(g - e).edges.contains(e)
   }
 
+  property("all constructor") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es).edges == es
+    })
+  }
+
   property("removes") {
     check(forAll { g: VocabularyHyperGraph[Int, Int] =>
       g.edges.nonEmpty ==> checkRemoved(g, Random.nextInt(g.edges.size))

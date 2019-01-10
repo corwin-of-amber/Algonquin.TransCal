@@ -19,6 +19,12 @@ class TriePropSpec extends PropSpec with Checkers {
     !(trie - word).words.contains(word)
   }
 
+  property("all constructor") {
+    check(forAll { words: Set[Seq[Int]] =>
+      new Trie(words).words == words && Trie(words).words == words
+    })
+  }
+
   property("removes") {
     check(forAll { trie: Trie[Int] =>
       trie.words.nonEmpty ==> checkRemoved(trie, Random.nextInt(trie.words.size))
