@@ -1,9 +1,9 @@
 package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures._
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
+import structures._
 
 import scala.language.postfixOps
 
@@ -148,6 +148,14 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
 
+
+  // TODO: Use TraversableLike on HyperGraphManyWithOrderToOneLike
+  def filter(f: HyperEdge[Node, EdgeType] => Boolean): VocabularyHyperGraph[Node, EdgeType] = {
+    VocabularyHyperGraph(edges.filter(f))
+  }
+  def map[Node1, EdgeType1](f: HyperEdge[Node, EdgeType] => HyperEdge[Node1, EdgeType1]): VocabularyHyperGraph[Node1, EdgeType1] = {
+    VocabularyHyperGraph(edges.map(f))
+  }
 
   /* --- Private Methods --- */
 
