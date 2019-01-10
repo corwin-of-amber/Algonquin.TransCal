@@ -11,6 +11,27 @@ import structures.VocabularyLike._
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
   extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
+  /** Empty constructor for easy initialization */
+  def this() = this(IndexedSeq.empty[Map[Letter, Trie[Letter]]], Set.empty[Word[Letter]])
+
+  /** Inner constructor that adds words where this Trie is for specific place */
+  private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
+    this({
+      val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map(t => (t._2 + trieIndex, t._1, word)))
+      val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map(t => {
+        val (index, wordsToIndexes) = t
+        val entry = wordsToIndexes.groupBy(_._2).map(tt => {
+          val (letter, wordsToLetters) = tt
+          val words = wordsToLetters.map(_._3)
+          (letter, new Trie(words, index + 1))
+        })
+        entry
+      })
+      subtries
+    }, wordsFull)
+
+  /** Constructors of all words **/
+  def this(words: Set[Word[Letter]]) = this(words, 0)
 
   /* --- Vocabulary Impl. --- */
 
@@ -118,7 +139,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 }
 
 object Trie {
-  def empty[Letter]: Trie[Letter] = new Trie(IndexedSeq.empty, Set.empty)
+  def empty[Letter]: Trie[Letter] = new Trie()
 
-  def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = empty :+ words
+  def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = new Trie(words)
 }
