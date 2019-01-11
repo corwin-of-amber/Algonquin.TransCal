@@ -5,6 +5,8 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
+import scala.collection.mutable
+
 /**
   * @author tomer
   * @since 11/15/18
@@ -151,14 +153,14 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
 
+  /* --- TraversableLike Impl. --- */
 
-  // TODO: Use TraversableLike on HyperGraphManyWithOrderToOneLike
-  def filter(f: HyperEdge[Node, EdgeType] => Boolean): VocabularyHyperGraph[Node, EdgeType] = {
-    VocabularyHyperGraph(edges.filter(f))
-  }
-  def map[Node1, EdgeType1](f: HyperEdge[Node, EdgeType] => HyperEdge[Node1, EdgeType1]): VocabularyHyperGraph[Node1, EdgeType1] = {
-    VocabularyHyperGraph(edges.map(f))
-  }
+  override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+      override def result(): VocabularyHyperGraph[Node, EdgeType] = {
+        new VocabularyHyperGraph(parts.flatten.toSet)
+      }
+    }
 
   /* --- Private Methods --- */
 

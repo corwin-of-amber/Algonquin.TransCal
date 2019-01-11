@@ -2,14 +2,15 @@ package structures
 
 import structures.HyperGraphManyWithOrderToOneLike._
 
+import scala.collection.TraversableLike
+
 /** A hyper graph from many to one.
   *
   * @author tomer
   * @since 11/15/18
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]]
-  /*extends TraversableLike[HyperEdge[Node, EdgeType], This]*/ {
-  // TODO: Make HyperGraphManyWithOrderToOneLike to inheritance from SetLike?
+  extends TraversableLike[HyperEdge[Node, EdgeType], This] {
 
   /** Finds all the edges with the EdgeType
     *
@@ -98,7 +99,11 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This = :+(hyperGraph.edges)
 
-//  override def foreach[U](f: HyperEdge[Node, EdgeType] => U): Unit = edges.foreach(f)
+  /* --- TraversableLike Impl. --- */
+
+  override def seq: TraversableOnce[HyperEdge[Node, EdgeType]] = this
+
+  override def foreach[U](f: HyperEdge[Node, EdgeType] => U): Unit = edges.foreach(f)
 }
 
 object HyperGraphManyWithOrderToOneLike {
