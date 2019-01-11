@@ -153,7 +153,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
 
-  /* --- TraversableLike Impl. --- */
+  /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
     new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {

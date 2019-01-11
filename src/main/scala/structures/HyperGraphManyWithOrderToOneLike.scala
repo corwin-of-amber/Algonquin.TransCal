@@ -99,7 +99,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This = :+(hyperGraph.edges)
 
-  /* --- TraversableLike Impl. --- */
+  /* --- IterableLike Impl. --- */
 
   override def iterator: Iterator[HyperEdge[Node, EdgeType]] = edges.iterator
 

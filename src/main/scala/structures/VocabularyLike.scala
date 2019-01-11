@@ -1,12 +1,17 @@
 package structures
 
+import structures.VocabularyLike.Word
+
+import scala.collection.IterableLike
+
 /**
   * @author tomer
   * @since 11/15/18
   */
-trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
+trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
+  extends IterableLike[Word[Letter], This] {
 
-  import VocabularyLike.{Word, WordPattern}
+  import VocabularyLike.WordPattern
 
   /** Find words by a prefix.
     *
@@ -23,11 +28,6 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
     * @return The matching words.
     */
   def findPattern[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = findPatternPrefix(pattern).filter(_.length == pattern.length)
-
-  /**
-    * @return True is the vocabulary is empty, otherwise False.
-    */
-  def isEmpty: Boolean = words.isEmpty
 
   /**
     * @return The words in the vocabulary
@@ -72,6 +72,12 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]] {
   def :+(words:Set[Word[Letter]]): This = addAll(words)
 
   def ++[Other <: VocabularyLike[Letter, Other]](other: Other): This = this :+ other.words
+
+  /* --- IterableLike Impl. --- */
+
+  override def iterator: Iterator[Word[Letter]] = words.iterator
+
+  override def seq: TraversableOnce[Word[Letter]] = this
 }
 
 object VocabularyLike {

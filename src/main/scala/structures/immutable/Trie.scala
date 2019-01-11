@@ -1,8 +1,10 @@
 package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.{Explicit, Hole, Ignored, VocabularyLike}
+import structures._
 import structures.VocabularyLike._
+
+import scala.collection.mutable
 
 /**
   * @author tomer
@@ -51,6 +53,14 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   override def toString: String = f"Trie (${words.mkString(", ")})"
 
+  /* --- IterableLike Impl. --- */
+
+  override def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
+    new mutable.LazyBuilder[Word[Letter], Trie[Letter]] {
+      override def result(): Trie[Letter] = {
+        new Trie(parts.flatten.toSet)
+      }
+    }
 
   /* --- Private Methods --- */
 
