@@ -2,7 +2,7 @@ package structures
 
 import structures.HyperGraphManyWithOrderToOneLike._
 
-import scala.collection.TraversableLike
+import scala.collection.IterableLike
 
 /** A hyper graph from many to one.
   *
@@ -10,7 +10,7 @@ import scala.collection.TraversableLike
   * @since 11/15/18
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]]
-  extends TraversableLike[HyperEdge[Node, EdgeType], This] {
+  extends IterableLike[HyperEdge[Node, EdgeType], This] {
 
   /** Finds all the edges with the EdgeType
     *
@@ -101,9 +101,10 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   /* --- TraversableLike Impl. --- */
 
+  override def iterator: Iterator[HyperEdge[Node, EdgeType]] = edges.iterator
+
   override def seq: TraversableOnce[HyperEdge[Node, EdgeType]] = this
 
-  override def foreach[U](f: HyperEdge[Node, EdgeType] => U): Unit = edges.foreach(f)
 }
 
 object HyperGraphManyWithOrderToOneLike {
