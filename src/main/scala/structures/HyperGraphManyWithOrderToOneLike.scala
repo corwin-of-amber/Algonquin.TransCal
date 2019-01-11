@@ -11,6 +11,7 @@ import scala.collection.IterableLike
   */
 trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This]]
   extends IterableLike[HyperEdge[Node, EdgeType], This] {
+  // TODO: extend Set when we understand how
 
   /** Finds all the edges with the EdgeType
     *

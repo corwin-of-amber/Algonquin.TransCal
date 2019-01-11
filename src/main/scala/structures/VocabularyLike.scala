@@ -10,6 +10,7 @@ import scala.collection.IterableLike
   */
 trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
   extends IterableLike[Word[Letter], This] {
+  // TODO: extend Set when we understand how
 
   import VocabularyLike.WordPattern
 
