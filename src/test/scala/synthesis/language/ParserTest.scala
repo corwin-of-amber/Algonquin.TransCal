@@ -14,12 +14,14 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
       logger.info(s"Working on $f")
       val text = Source.fromFile(f).getLines().mkString("\n")
+      logger.info(text)
+      logger.info("")
       val term = p.apply(text)
       term shouldEqual p.apply(text)
     }
   }
 
-  test("Apply alot of underscores") {
+  test("Apply alot of abcd") {
     val parsed = p("c a b d")
     parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 3
     parsed.root shouldEqual "@"
@@ -67,12 +69,19 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   test("Parse alot of booleans") {
     val parsed = p("a = b /\\ c < b -> d ∈ e")
     parsed.root shouldEqual "->"
-    parsed.subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "∧"
-    parsed.subtrees(0).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).root shouldEqual "∧"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "="
+    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "a"
+    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(1).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root shouldEqual "<"
+    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual "c"
     parsed.subtrees(1).root shouldEqual "@"
-    parsed.subtrees(1).subtrees(0).root shouldEqual "∈"
-    parsed.subtrees(1).subtrees(1).root shouldEqual "d"
+    parsed.subtrees(1).subtrees(0).subtrees(0).root shouldEqual "∈"
+    parsed.subtrees(1).subtrees(0).subtrees(1).root shouldEqual "d"
+    parsed.subtrees(1).subtrees(1).root shouldEqual "e"
   }
 }
 
