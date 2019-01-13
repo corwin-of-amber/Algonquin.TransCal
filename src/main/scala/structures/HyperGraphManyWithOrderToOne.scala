@@ -6,4 +6,3 @@ package structures
   */
 trait HyperGraphManyWithOrderToOne[Node, EdgeType]
   extends HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]]
-//  with Traversable[HyperEdge[Node, EdgeType]]
