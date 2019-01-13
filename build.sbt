@@ -13,6 +13,7 @@ libraryDependencies += "org.xerial" % "sqlite-jdbc" %  "3.25.2"
 //libraryDependencies += "earley"
 libraryDependencies += "org.rogach" %% "scallop" % "3.1.5"
 //libraryDependencies += "org.algonquin" %  "bellmaniac"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1"
 
 libraryDependencies += "org.scalatest" %% "scalatest" %  "3.0.5" % Test
 libraryDependencies += "com.typesafe.play" %% "play-json" %  "2.6.10" % Test

@@ -142,8 +142,7 @@ object OldParser {
   def getBlocks(f: BufferedReader): Stream[String] = splitBlocks(getLines(f))
   def getBlocks(f: Reader): Stream[String] = getBlocks(new BufferedReader(f))
 
-  class BabyLexer(val patterns: List[(Regex, String)])
-  {
+  class BabyLexer(val patterns: List[(Regex, String)]) {
     def tokenize(text: String): List[Token] = {
       val l = ListBuffer.empty[Token]
       var pos = 0
