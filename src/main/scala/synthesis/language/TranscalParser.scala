@@ -166,6 +166,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   /** The known left operators at the moment */
   override def lefters: Map[Int, Set[String]] = Map(
+    (Infixer.MIDDLE - 1, Set("++", "+", "-", "∪")),
     (Infixer.MIDDLE, Set(":+"))
   )
 
