@@ -7,6 +7,8 @@ import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
+import synthesis.language.TranscalParser
+import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
 
@@ -89,5 +91,15 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
     })
+  }
+
+  property("destruct pattern has right amount of references") {
+    val parser = new TranscalParser
+    val pattern1 = parser("_ + _")
+    check(Programs.destructPattern(pattern1).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 2)
+    val pattern2 = parser("_ + _ - _")
+    check(Programs.destructPattern(pattern2).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
+    val pattern3 = parser("?x ?y -> _ + x + y")
+    check(Programs.destructPattern(pattern3).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
   }
 }
