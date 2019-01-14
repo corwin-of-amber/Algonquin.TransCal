@@ -1,5 +1,6 @@
 package synthesis.language
 
+import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 
@@ -9,7 +10,7 @@ import scala.util.parsing.combinator._
   * @author tomer
   * @since 1/10/19
   */
-trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers {
+trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with LazyLogging {
   /** The known left operators at the moment */
   def lefters: Map[Int, Set[String]]
 
@@ -64,7 +65,10 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers {
       }
 
       // Create the parser now
-      val newParser = lastParser ~ rep(operatorsInLevel ~ lastParser) ^^ { x => recursiveBuilder(x._1 :: x._2.map(_._2), x._2.map(_._1))}
+      val newParser = lastParser ~ rep(operatorsInLevel ~ lastParser) ^^ { x =>
+        if (x._2.nonEmpty) logger.debug(s"infix level $level - $x")
+        recursiveBuilder(x._1 :: x._2.map(_._2), x._2.map(_._1))
+      }
       lastParser = newParser
     }
     lastParser
