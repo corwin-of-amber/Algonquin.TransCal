@@ -39,7 +39,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers {
     * @return A parser to parse with the prefixes.
     */
   def operatorsParser(lowerParser: Parser[Return]): Parser[Return] = {
-    val levels = (lefters.keys ++ righters.keys).toSet.toList.sorted
+    val levels = (lefters.keys ++ righters.keys).toSet.toList.sorted.reverse
     var lastParser: Parser[Return] = lowerParser
     for(level <- levels) {
       val leftOperators: Set[String] = lefters.getOrElse(level, Set.empty)
@@ -73,6 +73,10 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers {
   def buildReturn(left: Return, operator: String, right: Return): Return
 }
 
+object Infixer {
+  val MIDDLE = 5
+}
+
 trait TermInfixer extends Infixer[Term, TermInfixer] {
-  def buildReturn(left: Term, operator: String, right: Term): Term = new Tree[Identifier](new Identifier(operator), List(left, right))
+  override def buildReturn(left: Term, operator: String, right: Term): Term = new Tree[Identifier](new Identifier(operator), List(left, right))
 }
