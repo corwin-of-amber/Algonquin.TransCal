@@ -8,7 +8,7 @@ import syntax.{Identifier, Tree}
 import scala.util.parsing.combinator.RegexParsers
 
 
-class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
+class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] with TermInfixer {
   def apply(programText: String): Term = {
     // Clean comments and new lines inside parenthesis
     def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
@@ -92,18 +92,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     }
   }
 
-  def exprListConstruct: Parser[Term] = exprSetAndArith ~ rep((":+" | "::") ~ exprSetAndArith) ^^ { x =>
-    if (x._2.nonEmpty) logger.debug(s"List construction - $x")
-    val firstExp ~ csExpList = x
-    def buildList(exps: List[Term], ops: List[String]): Term = (exps, ops) match {
-      case (exp :: eRest, "::" :: oRest) => TERM("::", List(exp, buildList(eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])))
-      case (exp1 :: exp2 :: eRest, ":+" :: oRest) =>
-        buildList(TERM(":+", List(exp1, exp2)) :: eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])
-      case (exp, Nil) =>
-        exp.head
-    }
-    buildList(firstExp :: csExpList.map(_._2), csExpList.map(_._1))
-  }
+  def exprListConstruct: Parser[Term] = operatorsParser(exprNot)
 
   private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
@@ -174,6 +163,20 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     assert(exps.nonEmpty && ops.size == exps.size - 1)
     ops.zip(exps.take(exps.length - 1)).foldRight(exps.last)((tup, exp) => tup._1 :@ (exp, tup._2))
   }
+
+  /** The known left operators at the moment */
+  override def lefters: Map[Int, Set[String]] = Map(
+    (Infixer.MIDDLE, Set(":+"))
+  )
+
+  /** The known right operators at the moment */
+  override def righters: Map[Int, Set[String]] = Map(
+    (Infixer.MIDDLE, Set("::"))
+  )
+
+  /** A way to rebuild the the class */
+  override def build(lefters: Map[Int, Set[String]], righters: Map[Int, Set[String]]): TermInfixer =
+    throw new NotImplementedError()
 }
 
 object TranscalParser {
