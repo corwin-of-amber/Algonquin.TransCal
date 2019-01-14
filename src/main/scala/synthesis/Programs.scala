@@ -6,16 +6,19 @@ import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
+import synthesis.rewrites.RewriteRule.{HyperPattern, HyperPatternEdge}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 
 import scala.collection.mutable
 
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
+  *
   * @author tomer
   * @since 11/19/18
   */
-class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
+class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
 
   /* --- Public --- */
 
@@ -45,6 +48,7 @@ class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
           else new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
       }
+
       recursive(hyperTermId)
     }
   }
@@ -57,6 +61,7 @@ class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
   def addTerm(term: Term): Programs = {
     Programs(hyperGraph ++ Programs.destruct(term))
   }
+
   def +(term: Term): Programs = addTerm(term)
 
 
@@ -66,6 +71,7 @@ class Programs private (val hyperGraph: HyperGraph) extends LazyLogging {
 }
 
 object Programs extends LazyLogging {
+
   /* --- Public --- */
   object Kinds extends Enumeration {
     val Constructable, NonConstructable = Value
@@ -84,6 +90,43 @@ object Programs extends LazyLogging {
     }
   }
 
+  protected def destructPatternVars(hyperGraph: HyperGraph) = {
+    val holeEdges = hyperGraph.filter(e => e.edgeType.identifier.literal.toString.startsWith("?"))
+    val holePartners = {
+      val edgeTypes = holeEdges.edgeTypes.map(i => HyperTermIdentifier(new Identifier(i.identifier.literal.toString.drop(1), i.identifier.kind, i.identifier.ns)))
+      hyperGraph.filter(e => edgeTypes.contains(e.edgeType)).nodes
+    }
+    val holes = holeEdges.nodes
+    val references = holes.zip(holePartners).zipWithIndex.flatMap { tup => {
+      val h = tup._1._1
+      val hp = tup._1._2
+      val ref = ReferenceTerm[HyperTermId](tup._2)
+      Map(h -> ref, hp -> ref)
+    }}.toMap
+    HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !references.contains(e.target)).map(e =>
+      new HyperPatternEdge(ExplicitTerm(e.target), ExplicitTerm(e.edgeType), e.sources.map( i => references.getOrElse(i, ExplicitTerm(i))), e.metadata)
+    ).toSet)
+  }
+
+  protected def destructMissingVars(hyperGraph: HyperPattern): HyperPattern = {
+    var maxRef = hyperGraph.nodes.map { case ReferenceTerm(i) => i; case _ => 0 }.max
+
+    val sourcesToHoles: Map[TemplateTerm[HyperTermId], ReferenceTerm[HyperTermId]] = {
+      val edges = hyperGraph.findEdges(ExplicitTerm(HyperTermIdentifier(new Identifier("_"))))
+      edges.zip(Stream from maxRef+1).map( t => (t._1.target, ReferenceTerm[HyperTermId](t._2))).toMap
+    }
+
+    HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !sourcesToHoles.contains(e.target)).map(e =>
+      new HyperPatternEdge(e.target, e.edgeType, e.sources.map(i => sourcesToHoles.getOrElse(i, i)), e.metadata)
+    ).toSet)
+  }
+
+  def destructPattern(tree: Term): HyperPattern = {
+    val graph = destruct(tree)
+    val removedVars = destructPatternVars(graph)
+    destructMissingVars(removedVars)
+  }
+
   def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
@@ -92,8 +135,11 @@ object Programs extends LazyLogging {
       val targetToSubedges = args.map(subtree => innerDestruct(subtree, counter))
       val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
       val target = HyperTermId(counter())
-      val newHyperEdge = HyperEdge[HyperTermId, HyperTermIdentifier](target, HyperTermIdentifier(function), targetToSubedges.map(_._1), EmptyMetadata)
-      (target, subHyperEdges + newHyperEdge)
+      val newHyperEdges =
+        if (function.literal == "/") targetToSubedges.map { t => HyperEdge(target, HyperTermIdentifier(new Identifier("id")), List(t._1), EmptyMetadata) }
+        else Set(HyperEdge(target, HyperTermIdentifier(function), targetToSubedges.map(_._1), EmptyMetadata))
+
+      (target, subHyperEdges ++ newHyperEdges)
     }
 
     val s = Stream.from(1).iterator
@@ -104,6 +150,7 @@ object Programs extends LazyLogging {
 }
 
 /** Iterator which combines sequence of iterators (return all combinations of their results).
+  *
   * @param iterators All the iterators to combine.
   * @tparam T The return type.
   */
@@ -164,4 +211,5 @@ class CombineSeq[T](iterators: Seq[Iterator[T]]) extends scala.collection.Abstra
       None
     }
   }
+
 }

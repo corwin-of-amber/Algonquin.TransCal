@@ -117,6 +117,7 @@ object RewriteRule {
   /* --- Public --- */
 
   type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
+  type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
   case class RewriteRuleMetadata(origin: RewriteRule) extends Metadata {
     override def toStr: String = s"RewriteRuleMetadata($origin)"

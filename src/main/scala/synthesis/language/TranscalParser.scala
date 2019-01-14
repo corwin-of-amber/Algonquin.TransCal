@@ -105,23 +105,33 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     buildList(firstExp :: csExpList.map(_._2), csExpList.map(_._1))
   }
 
+  private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
+  private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
+
   def exprBooleanOp: Parser[Term] = exprListConstruct ~ rep(("<->"|"\\/"|"∨"|"/\\"|"∧"|"="|"≠"|"!="|"∈"|"∉"|"||"|"‖"|"<"|">"|"<="|">="|"≤"|"≥") ~ exprListConstruct) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"bool op - $x")
     x match {
       case exp ~ expOpList =>
         val ops = expOpList.map(_._1)
         val exps = exp :: expOpList.map(_._2)
-        leftFolder(exps, ops)
+        leftFolder(exps, ops.map(translateUnicode))
     }
   }
 
   def exprDrags: Parser[Term] = (exprBooleanOp ~ rep((":"|"/"|"↦"|"->"|"=>") ~ exprBooleanOp)) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"drags op - $x")
+    def merge(exps: List[Term], ops: List[String]): Term = {
+      if (exps.length == 1) exps.head
+      else {
+        new Tree(I(ops.head), List(exps.head, merge(exps.tail, ops.tail)))
+      }
+    }
+
     x match {
       case exp ~ expOpList =>
-        val ops = expOpList.map(_._1)
+        val ops = expOpList.map(_._1).map(translateUnicode)
         val exps = exp :: expOpList.map(_._2)
-        rightFolder(exps, ops)
+        merge(exps, ops)
     }
   }
 

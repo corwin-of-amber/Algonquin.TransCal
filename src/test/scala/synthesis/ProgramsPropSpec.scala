@@ -7,6 +7,8 @@ import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
+import synthesis.language.TranscalParser
+import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
 
@@ -65,8 +67,8 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("destruct the tree to the right graph") {
-    check(forAll { (root: Identifier, param1: Identifier, param2:Identifier) =>
-      (root != param1 && root != param2  && param1 != param2) ==> {
+    check(forAll { (root: Identifier, param1: Identifier, param2: Identifier) =>
+      (root != param1 && root != param2 && param1 != param2) ==> {
         val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
         val hyperEdges = Set(HyperEdge(HyperTermId(3), HyperTermIdentifier(root), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
           HyperEdge(HyperTermId(1), HyperTermIdentifier(param1), List.empty, EmptyMetadata),
@@ -79,5 +81,25 @@ class ProgramsPropSpec extends PropSpec with Checkers {
       }
 
     })
+  }
+
+  property("destruct splitted term and find using pattern") {
+    check(forAll { (term1: Term, term2: Term) =>
+      (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
+        val progs = Programs(new Tree[Identifier](new Identifier("/"), List(term1, term2)))
+        val edges = progs.hyperGraph.findEdges(new HyperTermIdentifier(new Identifier("id")))
+        edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
+      }
+    })
+  }
+
+  property("destruct pattern has right amount of references") {
+    val parser = new TranscalParser
+    val pattern1 = parser("_ + _")
+    check(Programs.destructPattern(pattern1).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 2)
+    val pattern2 = parser("_ + _ - _")
+    check(Programs.destructPattern(pattern2).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
+    val pattern3 = parser("?x ?y -> _ + x + y")
+    check(Programs.destructPattern(pattern3).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
   }
 }
