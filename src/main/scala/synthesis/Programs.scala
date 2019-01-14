@@ -105,7 +105,7 @@ object Programs extends LazyLogging {
     }}.toMap
     HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !references.contains(e.target)).map(e =>
       new HyperPatternEdge(ExplicitTerm(e.target), ExplicitTerm(e.edgeType), e.sources.map( i => references.getOrElse(i, ExplicitTerm(i))), e.metadata)
-    ).toSet)
+    ).toSeq:_*)
   }
 
   protected def destructMissingVars(hyperGraph: HyperPattern): HyperPattern = {
@@ -118,7 +118,7 @@ object Programs extends LazyLogging {
 
     HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !sourcesToHoles.contains(e.target)).map(e =>
       new HyperPatternEdge(e.target, e.edgeType, e.sources.map(i => sourcesToHoles.getOrElse(i, i)), e.metadata)
-    ).toSet)
+    ).toSeq:_*)
   }
 
   def destructPattern(tree: Term): HyperPattern = {
