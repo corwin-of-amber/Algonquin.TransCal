@@ -65,8 +65,8 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("destruct the tree to the right graph") {
-    check(forAll { (root: Identifier, param1: Identifier, param2:Identifier) =>
-      (root != param1 && root != param2  && param1 != param2) ==> {
+    check(forAll { (root: Identifier, param1: Identifier, param2: Identifier) =>
+      (root != param1 && root != param2 && param1 != param2) ==> {
         val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
         val hyperEdges = Set(HyperEdge(HyperTermId(3), HyperTermIdentifier(root), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
           HyperEdge(HyperTermId(1), HyperTermIdentifier(param1), List.empty, EmptyMetadata),
@@ -78,6 +78,16 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         programs.hyperGraph.edges == hyperEdges
       }
 
+    })
+  }
+
+  property("destruct splitted term and find using pattern") {
+    check(forAll { (term1: Term, term2: Term) =>
+      (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
+        val progs = Programs(new Tree[Identifier](new Identifier("/"), List(term1, term2)))
+        val edges = progs.hyperGraph.findEdges(new HyperTermIdentifier(new Identifier("id")))
+        edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
+      }
     })
   }
 }
