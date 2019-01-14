@@ -44,7 +44,7 @@ class RewriteRule(conditions: HyperPattern,
       }).edges
     }
 
-    val lastId = compactGraph.nodes.map(_.id).max
+    val lastId = compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0)
     def extract(i: Item[HyperTermId, Int]): HyperTermId = i match {
       case Explicit(v) => v
       case Hole(v) => HyperTermId(v + lastId)

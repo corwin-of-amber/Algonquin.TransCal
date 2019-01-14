@@ -9,7 +9,7 @@ import syntax.Identifier
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB}
-import synthesis.language.OldParser
+import synthesis.language.TranscalParser
 import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 
@@ -19,7 +19,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val rules: Set[RewriteRule] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
-    val mainTerm = (new OldParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
+    val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
     val progs = Programs(mainTerm)
     val state = new ActionSearchState(progs, rules)
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
@@ -37,7 +37,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val rules: Set[RewriteRule] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
-    val mainTerm = (new OldParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
+    val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
     val progs = Programs(mainTerm)
     val state = new ActionSearchState(progs, rules)
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](

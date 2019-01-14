@@ -12,18 +12,18 @@ import scala.io.Source
   */
 object Main extends App {
 
-  import org.rogach.scallop.ScallopConf
-
-  class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
-    val file = opt[JFile]()
-    validateFileIsFile(file)
-    verify()
-  }
-
-  val conf = new CommandLineConfiguration(args)
-  val userInput: BufferedReader = conf.file.map(Source.fromFile).map(_.bufferedReader()).getOrElse(Console.in)
-  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
-  val parser = new OldParser()
-  val interpreter = new Interpreter(userInput, userOutput, parser)
-  interpreter.start
+//  import org.rogach.scallop.ScallopConf
+//
+//  class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
+//    val file = opt[JFile]()
+//    validateFileIsFile(file)
+//    verify()
+//  }
+//
+//  val conf = new CommandLineConfiguration(args)
+//  val userInput: BufferedReader = conf.file.map(Source.fromFile).map(_.bufferedReader()).getOrElse(Console.in)
+//  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+//  val parser = new OldParser()
+//  val interpreter = new Interpreter(userInput, userOutput, parser)
+//  interpreter.start
 }
