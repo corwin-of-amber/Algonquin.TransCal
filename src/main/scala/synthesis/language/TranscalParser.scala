@@ -82,16 +82,6 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def exprSetAndArith: Parser[Term] = exprNot ~ rep(("++"|"+"|"-"|"∪") ~ exprNot)  ^^ { x =>
-    if (x._2.nonEmpty) logger.debug(s"set and arith - $x")
-    x match {
-      case exp ~ expOpList=>
-        val ops = expOpList.map(_._1)
-        val exps = exp :: expOpList.map(_._2)
-        leftFolder(exps, ops)
-    }
-  }
-
   def exprListConstruct: Parser[Term] = operatorsParser(exprNot)
 
   private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
