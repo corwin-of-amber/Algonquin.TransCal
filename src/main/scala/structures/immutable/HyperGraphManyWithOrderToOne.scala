@@ -1,6 +1,8 @@
 package structures.immutable
 
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Item}
+import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, HyperGraphManyWithOrderToOneLikeGenericCompanion, Item}
+
+import scala.collection.mutable
 
 /**
   * @author tomer
@@ -9,10 +11,13 @@ import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Item}
 trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends structures.HyperGraphManyWithOrderToOne[Node, EdgeType]
   with HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]]
 
-object HyperGraphManyWithOrderToOne {
-  def empty[Node, EdgeType]: HyperGraphManyWithOrderToOne[Node, EdgeType] = VocabularyHyperGraph.empty
-
-  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): HyperGraphManyWithOrderToOne[Node, EdgeType] = VocabularyHyperGraph(edges)
-
+object HyperGraphManyWithOrderToOne extends HyperGraphManyWithOrderToOneLikeGenericCompanion[HyperGraphManyWithOrderToOne] {
   type HyperGraphPattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]
+
+  /** The default builder for `$Coll` objects.
+    *
+    * @tparam A the type of the ${coll}'s elements
+    */
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], HyperGraphManyWithOrderToOne[A, B]] =
+    VocabularyHyperGraph.newBuilder
 }

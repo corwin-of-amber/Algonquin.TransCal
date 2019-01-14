@@ -15,7 +15,7 @@ package object immutable {
 
   val integerEdgesGen: Gen[HyperEdge[Int, Int]] = HyperEdgeGenFactory(oneOf(0 to 50), oneOf(0 to 20))
 
-  def grapher[Node, Edge](se: Set[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = VocabularyHyperGraph(se)
+  def grapher[Node, Edge](se: Set[HyperEdge[Node, Edge]]): VocabularyHyperGraph[Node, Edge] = VocabularyHyperGraph(se.toSeq:_*)
 
   def HyperGraphGenFactory[Node, Edge](edgeSource: Gen[HyperEdge[Node, Edge]]): Gen[VocabularyHyperGraph[Node, Edge]] = {
     containerOf[Set, HyperEdge[Node, Edge]](edgeSource) map grapher

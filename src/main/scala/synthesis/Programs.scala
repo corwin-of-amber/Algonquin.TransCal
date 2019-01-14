@@ -99,7 +99,7 @@ object Programs extends LazyLogging {
     val s = Stream.from(1).iterator
     val hyperEdges = innerDestruct(tree, () => s.next)._2
 
-    HyperGraphManyWithOrderToOne(hyperEdges)
+    HyperGraphManyWithOrderToOne(hyperEdges.toSeq:_*)
   }
 }
 

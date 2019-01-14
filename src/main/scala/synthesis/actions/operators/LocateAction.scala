@@ -29,7 +29,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
     assert(roots.size == 1)
     val root = roots.head
-    val destPattern = HyperGraphManyWithOrderToOne(Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata)))
+    val destPattern = HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata))
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
@@ -68,7 +68,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     ).getOrElse(Set.empty)
     val filterTargets = foundEdges.map(_.target)
     val reconstructGraph = HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](
-      state.programs.hyperGraph.edges.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges
+      (state.programs.hyperGraph.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges).toSeq:_*
     )
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else logger.info(Programs(reconstructGraph).reconstruct(newEdges.head.target).next().toString())

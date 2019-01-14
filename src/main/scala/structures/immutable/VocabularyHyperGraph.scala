@@ -144,7 +144,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
           }).flatten
       }
     }
-    getReferencesMap(hyperPattern.edges.toSeq, (Map.empty, Map.empty))
+    getReferencesMap(hyperPattern.toSeq, (Map.empty, Map.empty))
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
@@ -177,10 +177,16 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType](hyperEdge)
 }
 
-object VocabularyHyperGraph {
-  def empty[Node, EdgeType]: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph()
-
-  def apply[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(edges)
+object VocabularyHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanion[VocabularyHyperGraph] {
+  /** The default builder for `$Coll` objects.
+    *
+    * @tparam A the type of the ${coll}'s elements
+    */
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] {
+    override def result(): VocabularyHyperGraph[A, B] = {
+      new VocabularyHyperGraph(parts.flatten.toSet)
+    }
+  }
 
   /* --- Private Functions --- */
 
