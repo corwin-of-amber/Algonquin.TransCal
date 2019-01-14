@@ -82,12 +82,12 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def exprListConstruct: Parser[Term] = operatorsParser(exprNot)
+  def exprInfixOperator: Parser[Term] = operatorsParser(exprNot)
 
   private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
 
-  def exprBooleanOp: Parser[Term] = exprListConstruct ~ rep(("<->"|"\\/"|"∨"|"/\\"|"∧"|"="|"≠"|"!="|"∈"|"∉"|"||"|"‖"|"<"|">"|"<="|">="|"≤"|"≥") ~ exprListConstruct) ^^ { x =>
+  def exprBooleanOp: Parser[Term] = exprInfixOperator ~ rep(("<->"|"\\/"|"∨"|"/\\"|"∧"|"="|"≠"|"!="|"∈"|"∉"|"||"|"‖"|"<"|">"|"<="|">="|"≤"|"≥") ~ exprInfixOperator) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"bool op - $x")
     x match {
       case exp ~ expOpList =>
