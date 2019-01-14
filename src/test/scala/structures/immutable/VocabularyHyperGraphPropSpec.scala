@@ -87,7 +87,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("merge nodes renames edges") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      (es.size > 1) ==> {
+      ((es.size > 1) && (es.head.target != es.tail.head.target)) ==> {
         val g = grapher(es)
         val toChange = es.toList(1)
         val source = es.toList(0)
