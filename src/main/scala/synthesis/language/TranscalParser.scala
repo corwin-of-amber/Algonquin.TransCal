@@ -117,11 +117,18 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
 
   def exprDrags: Parser[Term] = (exprBooleanOp ~ rep((":"|"/"|"↦"|"->"|"=>") ~ exprBooleanOp)) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"drags op - $x")
+    def merge(exps: List[Term], ops: List[String]): Term = {
+      if (exps.length == 1) exps.head
+      else {
+        new Tree(I(ops.head), List(exps.head, merge(exps.tail, ops.tail)))
+      }
+    }
+
     x match {
       case exp ~ expOpList =>
         val ops = expOpList.map(_._1)
         val exps = exp :: expOpList.map(_._2)
-        rightFolder(exps, ops)
+        merge(exps, ops)
     }
   }
 
