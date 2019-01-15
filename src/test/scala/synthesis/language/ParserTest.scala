@@ -18,6 +18,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
       logger.info("")
       val term = p.apply(text)
       term shouldEqual p.apply(text)
+      logger.info(s"Finished test. Result Term is $term")
     }
   }
 
@@ -48,7 +49,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   test("Can have annotations") {
     val parsed = p("_ [Anno]")
     parsed.root shouldEqual "Annotation"
-    parsed.root.kind shouldEqual "Anno"
+    parsed.subtrees(1).root shouldEqual "Anno"
     parsed.subtrees(0).root shouldEqual "_"
   }
 
@@ -67,17 +68,25 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse alot of booleans") {
-    val parsed = p("a = b /\\ c < b -> d ∈ e")
+    val parsed = p("(a = b) /\\ (c < b) -> d ∈ e")
     parsed.root shouldEqual "->"
-    parsed.subtrees(0).root shouldEqual "∧"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "="
-    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "a"
-    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "b"
+    // Next function is and and has 2 params so 2 applys
+    parsed.subtrees(0).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "∧"
+    // First parameter is = which has 2 params so 2 applys
+    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(0).root shouldEqual "="
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual "a"
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
+    // Second param for and is <
     parsed.subtrees(0).subtrees(1).root shouldEqual "@"
     parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
     parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root shouldEqual "<"
     parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual "c"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
+    // Second part of drags is set_in
     parsed.subtrees(1).root shouldEqual "@"
     parsed.subtrees(1).subtrees(0).subtrees(0).root shouldEqual "∈"
     parsed.subtrees(1).subtrees(0).subtrees(1).root shouldEqual "d"
