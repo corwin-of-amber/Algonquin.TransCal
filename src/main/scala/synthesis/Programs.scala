@@ -45,7 +45,7 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
         val edges = hyperTermToEdge.get(root)
         edges.map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
-          else new CombineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          else Programs.combineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
       }
 
@@ -147,69 +147,28 @@ object Programs extends LazyLogging {
 
     HyperGraphManyWithOrderToOne(hyperEdges.toSeq:_*)
   }
-}
 
-/** Iterator which combines sequence of iterators (return all combinations of their results).
-  *
-  * @param iterators All the iterators to combine.
-  * @tparam T The return type.
-  */
-class CombineSeq[T](iterators: Seq[Iterator[T]]) extends scala.collection.AbstractIterator[Seq[T]] {
-  /* --- AbstractIterator Implementation --- */
-
-  override def hasNext: Boolean = innerIterator.hasNext
-
-  override def next(): Seq[T] = innerIterator.next()
-
-
-  /* --- Privates --- */
-
-  /** Creates inner iterator of CombinedTwo and flat map it out. */
-  private val innerIterator = iterators match {
-    case Nil => Iterator.empty
-    case head +: Nil => head.map(Seq(_))
-    case head +: tail => new CombineTwo(head, new CombineSeq(tail)).map(t => t._1 +: t._2)
+  /** Iterator which combines sequence of iterators (return all combinations of their results).
+    *
+    * @param iterators All the iterators to combine.
+    * @tparam T The return type.
+    */
+  def combineSeq[T](iterators: Seq[Iterator[T]]): Iterator[Seq[T]] = {
+    iterators match {
+      case Nil => Iterator.empty
+      case head +: Nil => head.map(Seq(_))
+      case head +: tail => combineTwo(head, combineSeq(tail)).map(t => t._1 +: t._2)
+    }
   }
 
   /** Iterator which combines two iterators (return all combinations of their results).
     *
     * @param iter1 First iterator.
-    * @param given Second iterator.
+    * @param iter2 Second iterator.
     * @tparam A The first type
     * @tparam B The second type
     */
-  private class CombineTwo[A, B](iter1: Iterator[A], given: Iterator[B]) extends scala.collection.AbstractIterator[(A, B)] {
-
-
-    /* --- AbstractIterator Implementation --- */
-
-    override def hasNext: Boolean = (iter1.hasNext && kept.hasNext) || // can reload
-      (cached.isDefined && iter2.hasNext) // reload is readable
-
-    override def next(): (A, B) = {
-      if (!iter2.hasNext) { // Reload
-        this.cached = Some(iter1.next())
-        val two = kept.duplicate
-        this.kept = two._1
-        this.iter2 = two._2
-      }
-      (cached.get, iter2.next())
-    }
-
-
-    /* --- Privates --- */
-
-    /** Kept holds the last state.
-      * iter2 holds the current second state.
-      */
-    private var (kept, iter2) = given.duplicate
-
-    /** Cached  last first result. */
-    private var cached: Option[A] = if (iter1.hasNext) {
-      Some(iter1.next)
-    } else {
-      None
-    }
+  private def combineTwo[A, B](iter1: Iterator[A], iter2: Iterator[B]): Iterator[(A, B)] = {
+    iter1.flatMap(elem1 => iter2.duplicate._2.map(elem2 => (elem1, elem2)))
   }
-
 }
