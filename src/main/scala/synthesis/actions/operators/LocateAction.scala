@@ -67,8 +67,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
       .map(_.asInstanceOf[LocateMetadata].edges).getOrElse(Set.empty)
     ).getOrElse(Set.empty)
     val filterTargets = foundEdges.map(_.target)
-    val reconstructGraph = HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](
-      (state.programs.hyperGraph.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges).toSeq:_*
+    val reconstructGraph = HyperGraphManyWithOrderToOne(
+      (state.programs.hyperGraph.edges.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges).toSeq:_*
     )
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else logger.info(Programs(reconstructGraph).reconstruct(newEdges.head.target).next().toString())
