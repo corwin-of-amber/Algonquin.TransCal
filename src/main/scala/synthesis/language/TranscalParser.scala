@@ -11,6 +11,7 @@ import scala.util.parsing.combinator.RegexParsers
 class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
   def apply(programText: String): Term = {
     // Clean comments and new lines inside parenthesis
+    // TODO: replace comments with whitespace for receiving errorl location correctly
     def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
     def cleanMultilineComments(text: String): String = "/\\*(.|\n)*?\\*/".r.replaceAllIn(text, "")
     val text = cleanMultilineComments(programText).split("\n").map(cleanLineComments).mkString("\n")
@@ -25,9 +26,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
 
   override val whiteSpace = """[ \t]+""".r
 
-  private def TERM(x: Any) = TI(x)
-
-  private def TREE(x: Identifier) = T(x)
+  private def TREE(x: Identifier, subtrees: List[Tree[Identifier]] = List.empty): Term = T(x, subtrees)
 
   // Example of defining a parser for a word
   // def word: Parser[String]    = """[a-z]+""".r ^^ { _.toString }
@@ -41,7 +40,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
 
   def numeral: Parser[Term] = "\\d+".r ^^ { x =>
     logger.trace(s"numeral - $x")
-    TERM(x.toInt)
+    TREE(I(x.toInt))
   }
 
   def identifier: Parser[Identifier] = "[?]?[\\w'_]+".r ^^ { x =>
@@ -75,7 +74,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     else applied.head :@ applied.tail
   }
 
-  def exprNot: Parser[Term] = rep("(~|¬)".r) ~ exprApply ^^ { x =>
+  def exprNot: Parser[Term] = rep("~"|"¬") ~ exprApply ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
       case applied ~ exp => applied.foldLeft(exp)((t, _) => ~DSL(t))
@@ -96,9 +95,9 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     if (x._2.nonEmpty) logger.debug(s"List construction - $x")
     val firstExp ~ csExpList = x
     def buildList(exps: List[Term], ops: List[String]): Term = (exps, ops) match {
-      case (exp :: eRest, "::" :: oRest) => TERM("::", List(exp, buildList(eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])))
+      case (exp :: eRest, "::" :: oRest) => TREE(I("::"), List(exp, buildList(eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])))
       case (exp1 :: exp2 :: eRest, ":+" :: oRest) =>
-        buildList(TERM(":+", List(exp1, exp2)) :: eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])
+        buildList(TREE(I(":+"), List(exp1, exp2)) :: eRest.asInstanceOf[List[Term]], oRest.asInstanceOf[List[String]])
       case (exp, Nil) =>
         exp.head
     }
@@ -137,14 +136,14 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
 
   def expression: Parser[Term] = exprDrags
 
-  def annotation: Parser[String] = "\\[.+?\\]".r ^^ {
-    case anno => anno.tail.take(anno.length - 2)
+  def annotation: Parser[Term] = "[" ~ "[^\\]]+".r ~ "]" ^^ {
+    case _ ~ anno ~ _ => TREE(I(anno))
   }
 
   def statement: Parser[Term] = (expression ~ annotation.?) ^^ { x =>
     logger.debug(s"statement - $x")
     x match {
-      case expr ~ anno => anno.map(a => new Tree(new Identifier("Annotation", a), List(expr))) getOrElse expr
+      case expr ~ anno => anno.map(a => new Tree(new Identifier("Annotation"), List(expr, a))) getOrElse expr
     }
   }
 
@@ -154,14 +153,14 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
       new Tree(new Identifier("Command", x))
   }
 
-  def program: Parser[Term] = phrase(rep(";"|"\n") ~ (statement | commands) ~ rep(rep1(";"|"\n") ~ (statement | commands).?)) ^^ {
+  def program: Parser[Term] = phrase((";"|"\n").* ~ (statement | commands) ~ rep((";"|"\n").+ ~ (statement | commands).?)) ^^ {
     case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(I(";"), List(t1, t2)))
   }
 
   private def leftFolder(exps: List[Term], op: String): Term = leftFolder(exps, List.fill(exps.length - 1)(op))
 
   private def leftFolder(exps: List[Term], ops1: List[String]): Term = {
-    val ops = ops1.map(TERM)
+    val ops = ops1.map(x => TREE(I(x)))
     assert(exps.nonEmpty && ops.size == exps.size - 1)
     // Use apply for each op from left to right (right should be highest in tree)
     ops.zip(exps.tail).foldLeft(exps.head)((exp, tup) => tup._1 :@ (exp, tup._2))
@@ -170,12 +169,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
   private def rightFolder(exps: List[Term], op: String): Term = rightFolder(exps, List.fill(exps.length - 1)(op))
 
   private def rightFolder(exps: List[Term], ops1: List[String]): Term = {
-    val ops = ops1.map(TERM)
+    val ops = ops1.map(x => TREE(I(x)))
     assert(exps.nonEmpty && ops.size == exps.size - 1)
     ops.zip(exps.take(exps.length - 1)).foldRight(exps.last)((tup, exp) => tup._1 :@ (exp, tup._2))
   }
-}
-
-object TranscalParser {
-  val builtins = Set("<->","\\/","∨","/\\","∧","=","≠","!=","||","‖")
 }
