@@ -74,14 +74,14 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     else applied.head :@ applied.tail
   }
 
-  def exprNot: Parser[Term] = rep("~"|"¬") ~ exprApply ^^ { x =>
+  def exprNot: Parser[Term] = rep(seqToOrParser(builtinNotOps)) ~ exprApply ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
       case applied ~ exp => applied.foldLeft(exp)((t, _) => ~DSL(t))
     }
   }
 
-  def exprSetAndArith: Parser[Term] = exprNot ~ rep(("++"|"+"|"-"|"∪") ~ exprNot)  ^^ { x =>
+  def exprSetAndArith: Parser[Term] = exprNot ~ rep(seqToOrParser(builtinSetArithOps) ~ exprNot)  ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"set and arith - $x")
     x match {
       case exp ~ expOpList=>
@@ -91,7 +91,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     }
   }
 
-  def exprListConstruct: Parser[Term] = exprSetAndArith ~ rep((":+" | "::") ~ exprSetAndArith) ^^ { x =>
+  def exprListConstruct: Parser[Term] = exprSetAndArith ~ rep(seqToOrParser(builtinSetBuildingOps) ~ exprSetAndArith) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"List construction - $x")
     val firstExp ~ csExpList = x
     def buildList(exps: List[Term], ops: List[String]): Term = (exps, ops) match {
@@ -107,7 +107,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
   private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
 
-  def exprBooleanOp: Parser[Term] = exprListConstruct ~ rep(("<->"|"\\/"|"∨"|"/\\"|"∧"|"="|"≠"|"!="|"∈"|"∉"|"||"|"‖"|"<"|">"|"<="|">="|"≤"|"≥") ~ exprListConstruct) ^^ { x =>
+  def exprBooleanOp: Parser[Term] = exprListConstruct ~ rep(seqToOrParser(builtinBooleanOps) ~ exprListConstruct) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"bool op - $x")
     x match {
       case exp ~ expOpList =>
@@ -117,7 +117,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     }
   }
 
-  def exprDrags: Parser[Term] = (exprBooleanOp ~ rep((":"|"/"|"↦"|"->"|"=>") ~ exprBooleanOp)) ^^ { x =>
+  def exprDrags: Parser[Term] = (exprBooleanOp ~ rep(seqToOrParser(builtinDragOps) ~ exprBooleanOp)) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"drags op - $x")
     def merge(exps: List[Term], ops: List[String]): Term = {
       if (exps.length == 1) exps.head
@@ -147,7 +147,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     }
   }
 
-  def commands: Parser[Term] = ("->"|"→"|"<-"|"←"|"[]"|"□") ^^ {
+  def commands: Parser[Term] = seqToOrParser(builtinCommands) ^^ {
     x =>
       logger.debug(s"command - $x")
       new Tree(new Identifier("Command", x))
@@ -173,4 +173,6 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     assert(exps.nonEmpty && ops.size == exps.size - 1)
     ops.zip(exps.take(exps.length - 1)).foldRight(exps.last)((tup, exp) => tup._1 :@ (exp, tup._2))
   }
+
+  private def seqToOrParser(seq: Seq[String]): Parser[String] = seq.map(literal).reduce((p1, p2) => p1 | p2)
 }
