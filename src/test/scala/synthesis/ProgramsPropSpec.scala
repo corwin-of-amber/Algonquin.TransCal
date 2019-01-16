@@ -35,7 +35,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
       val tree = new Tree[Identifier](root, List(new Tree[Identifier](son)))
       val programs = Programs(tree)
 
-      val results = programs.reconstruct(HyperTermId(2)).toList
+      val results = programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
 
       results.size == 1 && results.contains(tree)
     }
@@ -47,7 +47,10 @@ class ProgramsPropSpec extends PropSpec with Checkers {
       val tree = new Tree[Identifier](root, List(new Tree[Identifier](son1), new Tree[Identifier](son2)))
       val programs = Programs(tree)
 
-      val results = programs.reconstruct(HyperTermId(3)).toList
+      val results = {
+        val mainHyperTermId = programs.hyperGraph.findEdges(HyperTermIdentifier(root))
+        programs.reconstruct(mainHyperTermId.head.target).toList
+      }
 
       results.size == 1 && results.contains(tree)
     }
@@ -63,23 +66,6 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("unknown term returns empty iterator") {
     check(forAll { programs: Programs =>
       programs.reconstruct(HyperTermId(-1)).isEmpty
-    })
-  }
-
-  property("destruct the tree to the right graph") {
-    check(forAll { (root: Identifier, param1: Identifier, param2: Identifier) =>
-      (root != param1 && root != param2 && param1 != param2) ==> {
-        val tree = new Tree[Identifier](root, List(new Tree[Identifier](param1), new Tree[Identifier](param2)))
-        val hyperEdges = Set(HyperEdge(HyperTermId(3), HyperTermIdentifier(root), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
-          HyperEdge(HyperTermId(1), HyperTermIdentifier(param1), List.empty, EmptyMetadata),
-          HyperEdge(HyperTermId(2), HyperTermIdentifier(param2), List.empty, EmptyMetadata)
-        )
-
-        val programs = Programs(tree)
-
-        programs.hyperGraph.edges == hyperEdges
-      }
-
     })
   }
 
@@ -101,5 +87,12 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(Programs.destructPattern(pattern2).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
     val pattern3 = parser("?x ?y -> _ + x + y")
     check(Programs.destructPattern(pattern3).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
+  }
+
+  property("destruct twice gives different HyperTermId") {
+    check(forAll { (term1: Term, term2: Term) =>
+      val commons = Programs.destruct(new Tree(new Identifier("\\/")))
+      Programs.destruct(term1).nodes.diff(commons.nodes).intersect(Programs.destruct(term2).nodes).isEmpty
+    })
   }
 }

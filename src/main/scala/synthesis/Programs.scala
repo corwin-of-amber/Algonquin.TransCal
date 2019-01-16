@@ -127,14 +127,25 @@ object Programs extends LazyLogging {
     destructMissingVars(removedVars)
   }
 
+  private val hyperTermIdCreator = {
+    val creator = Stream.from(language.arity.size).iterator
+    () => creator.next()
+  }
+
+  private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+    val builtinToHyperTermId = language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
+    builtinEdges.toSet ++ language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+  }
+
   def destruct(tree: Term): RewriteSearchState.HyperGraph = {
     logger.trace("Destruct a program")
 
-    def innerDestruct(tree: Term, counter: () => Int): (HyperTermId, Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) = {
+    def innerDestruct(tree: Term): (HyperTermId, Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) = {
       val (function, args) = flattenApply(tree)
-      val targetToSubedges = args.map(subtree => innerDestruct(subtree, counter))
+      val targetToSubedges = args.map(subtree => innerDestruct(subtree))
       val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
-      val target = HyperTermId(counter())
+      val target = HyperTermId(hyperTermIdCreator())
       val newHyperEdges =
         if (function.literal == "/") targetToSubedges.map { t => HyperEdge(target, HyperTermIdentifier(new Identifier("id")), List(t._1), EmptyMetadata) }
         else Set(HyperEdge(target, HyperTermIdentifier(function), targetToSubedges.map(_._1), EmptyMetadata))
@@ -142,8 +153,7 @@ object Programs extends LazyLogging {
       (target, subHyperEdges ++ newHyperEdges)
     }
 
-    val s = Stream.from(1).iterator
-    val hyperEdges = innerDestruct(tree, () => s.next)._2
+    val hyperEdges = innerDestruct(tree)._2
 
     HyperGraphManyWithOrderToOne(hyperEdges)
   }
