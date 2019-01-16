@@ -20,7 +20,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("all constructor") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es).edges == es
+      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es.toSeq:_*).edges == es
     })
   }
 
@@ -60,7 +60,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
       !g.edges.contains(e) ==> {
         val gAdded = g + e
-        val gRemoved = (gAdded - e)
+        val gRemoved = gAdded - e
         val gAdded2 = gRemoved + e
         g.edges.size + 1 == gAdded.edges.size && gAdded.edges.size - 1 == gRemoved.edges.size && gRemoved.edges.size + 1 == gAdded2.edges.size
       }

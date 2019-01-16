@@ -1,8 +1,8 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures._
 import structures.HyperGraphManyWithOrderToOneLike._
+import structures._
 import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.AstSugar.Uid
 import syntax.Identifier
@@ -83,12 +83,14 @@ class RewriteRule(conditions: HyperPattern,
     case ExplicitTerm(term) => Explicit(term)
   }
 
+
+
   private val subGraphConditions: SubHyperGraphPattern = {
-    val edges: Set[SubHyperEdgePattern] = conditions.edges.map(e =>
+    val edges = conditions.map(e =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
         termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
     )
-    HyperGraphManyWithOrderToOne(edges)
+    HyperGraphManyWithOrderToOne(edges.toSeq:_*)
   }
 
   // Existential cannot be a function
@@ -106,7 +108,7 @@ class RewriteRule(conditions: HyperPattern,
     // TODO: prevent existentials from being recreated.
     val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
       _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
-    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edges ++ existentialEdges)
+    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]((edges ++ existentialEdges).toSeq:_*)
   }
 }
 
@@ -128,7 +130,7 @@ object RewriteRule {
   }
 
   def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne(
-    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata))
+    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq:_*
   )
 
   /* --- Privates --- */

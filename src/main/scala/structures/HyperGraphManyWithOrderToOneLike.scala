@@ -108,6 +108,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
 }
 
+
 object HyperGraphManyWithOrderToOneLike {
 
   // Shortcuts

@@ -73,7 +73,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(forAll { (term1: Term, term2: Term) =>
       (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
         val progs = Programs(new Tree[Identifier](new Identifier("/"), List(term1, term2)))
-        val edges = progs.hyperGraph.findEdges(new HyperTermIdentifier(new Identifier("id")))
+        val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(new Identifier("id")))
         edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
     })

@@ -34,7 +34,7 @@ trait RewriteRulesDB extends LazyLogging {
           EmptyMetadata
         )
       })
-      HyperGraphManyWithOrderToOne(hyperPatternEdges)
+      HyperGraphManyWithOrderToOne(hyperPatternEdges.toSeq:_*)
     }
 
     def split(hyperGraph: HyperPattern): (HyperPattern, HyperPattern) = {
@@ -43,7 +43,7 @@ trait RewriteRulesDB extends LazyLogging {
       val otherEdges = hyperGraph.edges - baseEdge
       val leftEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id <= maxLeft})
       val rightEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id >= maxLeft})
-      (HyperGraphManyWithOrderToOne(leftEdges), HyperGraphManyWithOrderToOne(rightEdges))
+      (HyperGraphManyWithOrderToOne(leftEdges.toSeq:_*), HyperGraphManyWithOrderToOne(rightEdges.toSeq:_*))
     }
 
     ruleTemplate.root match {

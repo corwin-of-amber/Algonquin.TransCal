@@ -237,7 +237,8 @@ class Let(equalities: List[Scheme.Template], incorporate: Boolean = false) exten
     case ST(vars, T(`=`, List(lhs, rhs@T(/, _)))) =>
       derivedFrom( rhs split / map (lhs =:= _) map (new Scheme.Template(vars, _)) )
     //rhs split / collect { case T(↦, List(pat, expr)) => (lhs :@ pat) =:= expr } map (new Scheme.Template(vars, _))
-    case ST(vars, T(`=`, List(lhs, ↦⁺(va, body)))) => List(new Scheme.Template(vars, (lhs :@ va) =:= body))
+    case ST(vars, T(`=`, List(lhs, ↦⁺(va, body)))) =>
+      List(new Scheme.Template(vars, (lhs :@ va) =:= body))
     case _ => List()
   }
 

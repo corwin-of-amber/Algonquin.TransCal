@@ -35,7 +35,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
       val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
       val state = new RewriteSearchState(HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](conditions.edges.map(edge => {
         HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
-      })))
+      }).toSeq:_*))
       val newState = rewriteRule.apply(state)
       (newState.graph.edges -- state.graph.edges).size == (destinations.edges -- conditions.edges).size
     }
