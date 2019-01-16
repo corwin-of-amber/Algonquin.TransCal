@@ -48,7 +48,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] {
     I(x)
   }
 
-  def consts: Parser[Term] = ("⟨⟩"|"true"|"false"|"⊤"|"⊥") ^^ { x =>
+  def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ { x =>
     logger.trace(s"const - $x")
     x match {
       case "⟨⟩" => BasicSignature._nil
