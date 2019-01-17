@@ -111,6 +111,18 @@ object BasicSignature {
   def ≤(x: Term, y: Term): Tree[Identifier] = _le :@ (x, y)
   def ≥(x: Term, y: Term): Tree[Identifier] = _ge :@ (x, y)
 
+  implicit class ListDSL(private val term: Term) extends AnyVal {
+    def elem(that: Term) = BasicSignature.elem(term, that)
+    def ++(that: Term) = BasicSignature.++(term, that)
+    def cons(that: Term) = BasicSignature.cons(term, that)
+    def snoc(that: Term) = BasicSignature.snoc(term, that)
+    def take(that: Term) = BasicSignature.take(term, that)
+    def drop(that: Term) = BasicSignature.drop(term, that)
+  }
+  implicit class NumberDSL(private val term: Term) extends AnyVal {
+    def ≤(that: Term) = BasicSignature.≤(term, that)
+    def ≥(that: Term) = BasicSignature.≥(term, that)
+  }
   class Brackets(left: String, right: String) extends Formula.Notation {
 
     import Formula._
