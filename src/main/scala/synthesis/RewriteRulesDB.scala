@@ -1,6 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import relentless.BasicSignature
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
 import structures.immutable.HyperGraphManyWithOrderToOne
@@ -74,6 +75,7 @@ trait RewriteRulesDB extends LazyLogging {
 class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
+  import BasicSignature._
   override protected val ruleTemplates: Set[Term] = Set(
     `⇒:`(tt, y) =:> id(y),
     `⇒:`(ff, y) =:> ff,
@@ -84,7 +86,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     id(id(x)) =:> id(x),
 
     (x =:= `x'`) =:= in(`x'`, `{}`(x)),
-    elem(x, cons(`x'`, `xs'`)) =:= ((x =:= `x'`) | elem(x, `xs'`)),
+    (x elem (`x'` cons `xs'`)) =:= ((x =:= `x'`) | (x elem `xs'`)),
     ~(x =:= y) =:= `!=:=`(x, y),
     ~in(x, y) =:= not_in(x, y),
     not_in(x, xs) =:= set_disj(`{}`(x), xs),
@@ -93,33 +95,33 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     ~(x & y) =:= (~x | ~y),
     (set_disj(x, xs) & set_disj(y, xs)) =:= set_disj(set_union(x, y), xs),
     (set_disj(xs, x) & set_disj(xs, y)) =:= set_disj(xs, set_union(x, y)),
-    elem(x, xs) =:= in(x, elems(xs)),
-    elems(cons(`x'`, `xs'`)) =:= set_union(`{}`(`x'`), elems(`xs'`)), // <-- this one is somewhat superfluous?
+    (x elem xs) =:= in(x, elems(xs)),
+    elems(`x'` cons `xs'`) =:= set_union(`{}`(`x'`), elems(`xs'`)), // <-- this one is somewhat superfluous?
 
-    snoc(y, x) =:= ++(y, cons(x, nil)),
-    ++(nil, `xs'`) =:> id(`xs'`),
-    ++(`xs'`, nil) =:> id(`xs'`),
-    ++(x, ++(y, z)) =:= ++(++(x, y), z),
-    ++(cons(x, xs), `xs'`) =:= cons(x, ++(xs, `xs'`)),
+    (y snoc x) =:= (y ++ (x cons nil)),
+    nil ++ `xs'` =:> id(`xs'`),
+    `xs'` ++ nil =:> id(`xs'`),
+    x ++ (y ++ z) =:= (x ++ y) ++ z,
+    (x cons xs) ++ `xs'` =:= (x cons (xs ++ `xs'`)),
 
-    (<(x, y) ||| tt) =:> ≤(x, y),
-    ≤(x, y) ||> (min(x, y) =:> id(x)),
-    ≤(x, y) ||> (min(y, x) =:> id(x)),
+    ((x < y) ||| tt) =:> (x ≤ y),
+    (x ≤ y) ||> (min(x, y) =:> id(x)),
+    (x ≤ y) ||> (min(y, x) =:> id(x)),
     //    min(x, y) =:> min(y,x),
 
-    ≤(x, y) ||> (bounded_minus(x, y) =:> zero),
+    (x ≤ y) ||> (bounded_minus(x, y) =:> zero),
 
-    take(xs, zero) =:> nil,
-    take(xs, len(xs)) =:> xs,
-    take(++(xs, `xs'`), x) =:> ++(take(xs, min(len(xs), x)), take(`xs'`, bounded_minus(x, len(xs)))),
+    (xs take zero) =:> nil,
+    (xs take len(xs)) =:> xs,
+    ((xs ++ `xs'`) take x) =:> ((xs take min(len(xs), x)) ++ (`xs'` take bounded_minus(x, len(xs)))),
 
     // merge range
-    ++(range_exclude(x, y), range_exclude(y, z)) =:> range_exclude(x, z),
+    (range_exclude(x, y) ++ range_exclude(y, z)) =:> range_exclude(x, z),
     // exclude to include
     range_exclude(x, y + one) =:= range_include(x, y),
     // singleton range
-    range_include(x, x) =:= cons(x, nil),
-    (in(z, range_exclude(x, y)) ||| tt) =:> (≤(x, z) ||| <(z, y))
+    range_include(x, x) =:= (x cons nil),
+    (in(z, range_exclude(x, y)) ||| tt) =:> ((x ≤ z) ||| (z < y))
   )
 
   override protected def metadata: Metadata = EmptyMetadata
@@ -148,7 +150,7 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(xs, exist).map(_.root)
 
   override protected val ruleTemplates: Set[Term] = Set(
-    xs =:> ++(take(xs, exist), drop(xs, exist))
+    xs =:> ((xs take exist) ++ (xs drop exist))
   )
 
   override protected def metadata: Metadata = ExistentialMetadata
