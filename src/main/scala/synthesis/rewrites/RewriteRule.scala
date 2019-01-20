@@ -11,6 +11,7 @@ import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
+import synthesis.rewrites.rewrites._
 
 /** Rewrites a program to a new program.
   *
@@ -83,13 +84,10 @@ class RewriteRule(conditions: HyperPattern,
     case ExplicitTerm(term) => Explicit(term)
   }
 
-
-
   private val subGraphConditions: SubHyperGraphPattern = {
-    val edges = conditions.map(e =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
-    )
+    val edges = conditions.map(e => rewrites.patternEdgeCreator(
+        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem)
+    ))
     HyperGraphManyWithOrderToOne(edges.toSeq:_*)
   }
 
@@ -100,14 +98,14 @@ class RewriteRule(conditions: HyperPattern,
 
   private def subGraphDestination: SubHyperGraphPattern = {
     val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem), EmptyMetadata)
+      patternEdgeCreator(termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem))
     )
 
     // TODO: change to Uid from Programs instead of global
     // TODO: prevent existentials from being recreated.
-    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
+//    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
+//      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
+    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
     HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]((edges ++ existentialEdges).toSeq:_*)
   }
 }

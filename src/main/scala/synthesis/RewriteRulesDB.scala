@@ -8,9 +8,10 @@ import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge, Metadata}
 import syntax.AstSugar._
 import syntax.{AstSugar, Identifier}
-import synthesis.rewrites.RewriteRule
+import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.search.Operator
 
 /**
   * @author tomer
@@ -23,7 +24,7 @@ trait RewriteRulesDB extends LazyLogging {
 
   protected def metadata: Metadata
 
-  lazy val rewriteRules: Set[RewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set(FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = {
     def termToHyperPattern(term: Term): HyperPattern = {
