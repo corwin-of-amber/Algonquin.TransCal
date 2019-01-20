@@ -24,26 +24,23 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
 
   test("Apply alot of abcd") {
     val parsed = p("c a b d")
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 3
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 1
     parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "@"
-    parsed.subtrees(1).root shouldEqual "d"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).root shouldEqual "b"
-    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "c"
-    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "a"
+    parsed.subtrees(0).root shouldEqual "c"
+    parsed.subtrees(1).root shouldEqual "a"
+    parsed.subtrees(2).root shouldEqual "b"
+    parsed.subtrees(3).root shouldEqual "d"
   }
 
   test("Able to catch parentheses") {
     val parsed = p("c (a b) d")
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 3
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 2
     parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "@"
-    parsed.subtrees(1).root shouldEqual "d"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "c"
-    parsed.subtrees(0).subtrees(1).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "a"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).root shouldEqual "c"
+    parsed.subtrees(1).root shouldEqual "@"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "a"
+    parsed.subtrees(1).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(2).root shouldEqual "d"
   }
 
   test("Can have annotations") {
@@ -72,25 +69,25 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.root shouldEqual "->"
     // Next function is and and has 2 params so 2 applys
     parsed.subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "∧"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "∧"
+
     // First parameter is = which has 2 params so 2 applys
-    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(0).root shouldEqual "="
-    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual "a"
-    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
-    // Second param for and is <
     parsed.subtrees(0).subtrees(1).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root shouldEqual "<"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual "c"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "="
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "a"
+    parsed.subtrees(0).subtrees(1).subtrees(2).root shouldEqual "b"
+
+    // Second param is < with c and b
+    parsed.subtrees(0).subtrees(2).root shouldEqual "@"
+    parsed.subtrees(0).subtrees(2).subtrees(0).root shouldEqual "<"
+    parsed.subtrees(0).subtrees(2).subtrees(1).root shouldEqual "c"
+    parsed.subtrees(0).subtrees(2).subtrees(2).root shouldEqual "b"
+
     // Second part of drags is set_in
     parsed.subtrees(1).root shouldEqual "@"
-    parsed.subtrees(1).subtrees(0).subtrees(0).root shouldEqual "∈"
-    parsed.subtrees(1).subtrees(0).subtrees(1).root shouldEqual "d"
-    parsed.subtrees(1).subtrees(1).root shouldEqual "e"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "∈"
+    parsed.subtrees(1).subtrees(1).root shouldEqual "d"
+    parsed.subtrees(1).subtrees(2).root shouldEqual "e"
   }
 }
 

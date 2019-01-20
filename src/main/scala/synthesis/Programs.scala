@@ -84,10 +84,8 @@ object Programs extends LazyLogging {
   def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
 
   private def flattenApply(term: Term) = {
-    isApp(term) match {
-      case Some((f, args)) if f.isLeaf => (f.leaf, args)
-      case _ => (term.root, term.subtrees)
-    }
+    if (term.root.literal == "@") (term.subtrees.head.root, term.subtrees.tail)
+    else (term.root, term.subtrees)
   }
 
   protected def destructPatternVars(hyperGraph: HyperGraph) = {

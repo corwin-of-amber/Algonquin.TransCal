@@ -69,9 +69,11 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   }
 
   def exprApply: Parser[Term] = rep1(exprValuesAndParens) ^^ { applied =>
-    if (applied.size > 1) logger.trace(s"apply - $applied")
     if (applied.tail.isEmpty) applied.head
-    else applied.head :@ applied.tail
+    else {
+      logger.trace(s"apply - $applied")
+      TREE(I("@"), applied)
+    }
   }
 
   def exprNot: Parser[Term] = rep(seqToOrParser(builtinNotOps)) ~ exprApply ^^ { x =>
@@ -92,6 +94,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
       case exp ~ expOpList =>
         val ops = expOpList.map(_._1)
         val exps = exp :: expOpList.map(_._2)
+        // TODO: solve ordering
         leftFolder(exps, ops.map(translateUnicode))
     }
   }
@@ -138,11 +141,12 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   private def leftFolder(exps: List[Term], op: String): Term = leftFolder(exps, List.fill(exps.length - 1)(op))
 
-  private def leftFolder(exps: List[Term], ops1: List[String]): Term = {
-    val ops = ops1.map(x => TREE(I(x)))
-    assert(exps.nonEmpty && ops.size == exps.size - 1)
-    // Use apply for each op from left to right (right should be highest in tree)
-    ops.zip(exps.tail).foldLeft(exps.head)((exp, tup) => tup._1 :@ (exp, tup._2))
+  private def leftFolder(exps: List[Term], ops: List[String]): Term = {
+    if (ops.isEmpty) exps.head
+    else {
+      assert(exps.nonEmpty && ops.size == exps.size - 1)
+      TREE(I("@"), List(TREE(I(ops.head)), exps.head, leftFolder(exps.tail, ops.tail)))
+    }
   }
 
   private def rightFolder(exps: List[Term], op: String): Term = rightFolder(exps, List.fill(exps.length - 1)(op))

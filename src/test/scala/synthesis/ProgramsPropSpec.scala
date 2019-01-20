@@ -43,7 +43,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("be able to handle a tree with 1 depth and return it") {
-    check(forAll { (root: Identifier, son1: Identifier, son2: Identifier) => {
+    check(forAll { (root: Identifier, son1: Identifier, son2: Identifier) => (root != son1 && root != son2) ==> {
       val tree = new Tree[Identifier](root, List(new Tree[Identifier](son1), new Tree[Identifier](son2)))
       val programs = Programs(tree)
 
