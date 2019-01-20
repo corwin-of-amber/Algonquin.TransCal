@@ -1,6 +1,4 @@
-package synthesis
-
-import syntax.Identifier
+package language
 
 package object language {
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")

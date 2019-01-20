@@ -2,7 +2,7 @@ package synthesis.ui
 
 import java.io.{BufferedReader, PrintStream, File => JFile}
 
-import synthesis.language.OldParser
+import language.OldParser
 
 import scala.io.Source
 

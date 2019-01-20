@@ -3,7 +3,7 @@ package synthesis.actions.operators
 import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.{I, Term}
-import synthesis.language.Parser
+import language.Parser
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern

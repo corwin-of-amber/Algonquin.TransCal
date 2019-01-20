@@ -3,7 +3,7 @@ package synthesis.ui
 import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.Term
-import synthesis.language.Parser
+import language.Parser
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction

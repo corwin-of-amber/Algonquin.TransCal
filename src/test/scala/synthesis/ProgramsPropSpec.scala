@@ -7,7 +7,7 @@ import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
-import synthesis.language.TranscalParser
+import language.TranscalParser
 import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {

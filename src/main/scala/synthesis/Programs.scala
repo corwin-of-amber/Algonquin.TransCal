@@ -126,14 +126,14 @@ object Programs extends LazyLogging {
   }
 
   private val hyperTermIdCreator = {
-    val creator = Stream.from(language.arity.size).iterator
+    val creator = Stream.from(language.language.arity.size).iterator
     () => creator.next()
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinToHyperTermId = language.language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
     val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+    builtinEdges.toSet ++ language.language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   def destruct(tree: Term): RewriteSearchState.HyperGraph = {

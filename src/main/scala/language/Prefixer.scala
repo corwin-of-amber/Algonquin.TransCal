@@ -1,4 +1,4 @@
-package synthesis.language
+package language
 
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}

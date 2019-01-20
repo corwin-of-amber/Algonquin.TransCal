@@ -1,9 +1,10 @@
-package synthesis.language
+package language
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
+import language._
 
 import scala.util.parsing.combinator.RegexParsers
 
@@ -129,7 +130,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def commands: Parser[Term] = seqToOrParser(builtinCommands) ^^ {
+  def commands: Parser[Term] = seqToOrParser(language.builtinCommands) ^^ {
     x =>
       logger.debug(s"command - $x")
       new Tree(new Identifier("Command", x))

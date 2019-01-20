@@ -1,4 +1,4 @@
-package synthesis.language
+package language
 
 import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar.Term

@@ -9,7 +9,7 @@ import syntax.Identifier
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB}
-import synthesis.language.TranscalParser
+import language.TranscalParser
 import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 

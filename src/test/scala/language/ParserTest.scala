@@ -1,4 +1,4 @@
-package synthesis.language
+package language
 
 import java.io.File
 
