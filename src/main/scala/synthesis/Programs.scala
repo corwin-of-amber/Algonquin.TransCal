@@ -1,6 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import language.Language
 import semantics.LambdaCalculus.isApp
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge}
@@ -84,7 +85,7 @@ object Programs extends LazyLogging {
   def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
 
   private def flattenApply(term: Term) = {
-    if (term.root.literal == "@") (term.subtrees.head.root, term.subtrees.tail)
+    if (term.root == Language.applyId) (term.subtrees.head.root, term.subtrees.tail)
     else (term.root, term.subtrees)
   }
 
@@ -110,7 +111,7 @@ object Programs extends LazyLogging {
     var maxRef = hyperGraph.nodes.map { case ReferenceTerm(i) => i; case _ => 0 }.max
 
     val sourcesToHoles: Map[TemplateTerm[HyperTermId], ReferenceTerm[HyperTermId]] = {
-      val edges = hyperGraph.findEdges(ExplicitTerm(HyperTermIdentifier(new Identifier("_"))))
+      val edges = hyperGraph.findEdges(ExplicitTerm(HyperTermIdentifier(Language.holeId)))
       edges.zip(Stream from maxRef+1).map( t => (t._1.target, ReferenceTerm[HyperTermId](t._2))).toMap
     }
 
@@ -126,14 +127,14 @@ object Programs extends LazyLogging {
   }
 
   private val hyperTermIdCreator = {
-    val creator = Stream.from(language.language.arity.size).iterator
+    val creator = Stream.from(language.Language.arity.size).iterator
     () => creator.next()
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = language.language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinToHyperTermId = language.Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
     val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ language.language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+    builtinEdges.toSet ++ language.Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   def destruct(tree: Term): RewriteSearchState.HyperGraph = {
@@ -145,7 +146,7 @@ object Programs extends LazyLogging {
       val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
       val target = HyperTermId(hyperTermIdCreator())
       val newHyperEdges =
-        if (function.literal == "/") targetToSubedges.map { t => HyperEdge(target, HyperTermIdentifier(new Identifier("id")), List(t._1), EmptyMetadata) }
+        if (function == Language.splitId) targetToSubedges.map { t => HyperEdge(target, HyperTermIdentifier(Language.idId), List(t._1), EmptyMetadata) }
         else Set(HyperEdge(target, HyperTermIdentifier(function), targetToSubedges.map(_._1), EmptyMetadata))
 
       (target, subHyperEdges ++ newHyperEdges)

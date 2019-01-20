@@ -8,6 +8,7 @@ import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import language.TranscalParser
+import language.Language._
 import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
@@ -72,7 +73,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("destruct splitted term and find using pattern") {
     check(forAll { (term1: Term, term2: Term) =>
       (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
-        val progs = Programs(new Tree[Identifier](new Identifier("/"), List(term1, term2)))
+        val progs = Programs(new Tree[Identifier](splitId, List(term1, term2)))
         val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(new Identifier("id")))
         edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
