@@ -11,10 +11,15 @@ import synthesis.rewrites.rewrites._
 import synthesis.search.Operator
 
 object FlattenRewrite extends Operator[RewriteSearchState] {
-  private val outerApply: HyperEdge[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)] =
-    patternEdgeCreator(HyperTermId(0), Language.applyId, Seq(Hole[HyperTermId, Int](1))).copy(edgeType = (Explicit[HyperTermIdentifier, Int](HyperTermIdentifier(Language.applyId)), true))
-  private val innerApply: HyperEdge[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)] =
-    patternEdgeCreator(HyperTermId(1), Language.applyId, Seq(Hole[HyperTermId, Int](2))).copy(edgeType = (Explicit[HyperTermIdentifier, Int](HyperTermIdentifier(Language.applyId)), true))
+  private val outerApply: HyperEdge[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)] = {
+    val temp = patternEdgeCreator(Hole[HyperTermId, Int](0), Language.applyId, Seq(Hole[HyperTermId, Int](1)))
+      temp.copy(edgeType = (temp.edgeType, true))
+  }
+
+  private val innerApply: HyperEdge[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)] = {
+    val temp = patternEdgeCreator(Hole[HyperTermId, Int](1), Language.applyId, Seq(Hole[HyperTermId, Int](2)))
+    temp.copy(edgeType = (temp.edgeType, true))
+  }
 
   private val twoAppliesSubgraph: VocabularyHyperGraph[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)] =
     VocabularyHyperGraph[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)](Seq(outerApply, innerApply): _*)
