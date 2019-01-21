@@ -2,7 +2,7 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
-import structures.VocabularyLike.{Word, WordPattern}
+import structures.VocabularyLike.Word
 import structures._
 
 import scala.collection.mutable
@@ -69,18 +69,13 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
   }
 
   override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
-    findPrefix(patternToPrefix(pattern))
-  }
-
-  override def findPrefix[Id](prefix: HyperEdgePrefix[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find prefix")
-    val isFully = prefix.edgeType._2
-    val pattern = prefix.copy(edgeType = prefix.edgeType._1)
     def convertNode(item: Item[Node, Id]): Item[Either[Node, EdgeType], Id] = {
       item match {
         case Explicit(value) => Explicit(Left(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
+        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, convertNode(rep)).get
       }
     }
     def convertEdgeType(item: Item[EdgeType, Id]): Item[Either[Node, EdgeType], Id] = {
@@ -88,20 +83,16 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
         case Explicit(value) => Explicit(Right(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
+        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, convertEdgeType(rep)).get
       }
     }
     val regexAsWord = convertEdgeType(pattern.edgeType) +: (pattern.target +: pattern.sources).map(convertNode)
-    choose(isFully)(regexAsWord).map(wordToHyperEdge)
+    vocabulary.findRegex(regexAsWord).map(wordToHyperEdge)
   }
 
   def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    val hyperRegex = VocabularyHyperGraph(hyperPattern.map(patternToPrefix).toSeq:_*)
-    findSubgraphPrefix(hyperRegex)
-  }
-
-  def findSubgraphPrefix[Id, Prefix <: HyperGraphPrefix[Node, EdgeType, Id, Prefix]](hyperPrefix: Prefix): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     logger.trace("Find subgraph")
-    type SubRegex = HyperEdgePrefix[Node, EdgeType, Id]
+    type SubRegex = HyperEdgePattern[Node, EdgeType, Id]
     type ReferencesMap = (Map[Id, Node], Map[Id, EdgeType])
     /** Creating a new references map from known hyper edge and pattern.
       * @param knownEdge The known edge
@@ -112,7 +103,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
       val nodesRefs = (pattern.target +: pattern.sources).zip(knownEdge.target +: knownEdge.sources).filter(a=>a._1.isInstanceOf[Hole[Node, Id]]).map(a=>a._1 match {
         case Hole(id) => (id, a._2)
       })
-      val edgeTypeRef = pattern.edgeType._1 match {
+      val edgeTypeRef = pattern.edgeType match {
         case Hole(id) => Some((id,  knownEdge.edgeType))
         case _ => None
       }
@@ -132,7 +123,7 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
         }
       }
       val newTarget = convert(referencesMap._1, pattern.target)
-      val newEdgeType = (convert(referencesMap._2, pattern.edgeType._1), pattern.edgeType._2)
+      val newEdgeType = convert(referencesMap._2, pattern.edgeType)
       val newSources = pattern.sources.map(convert(referencesMap._1, _))
       val metadata = EmptyMetadata
       HyperEdge(newTarget, newEdgeType, newSources, metadata)
@@ -148,14 +139,14 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
         case Nil => Set(referencesMap)
         case itemEdge +: left =>
           val filledEdge= fillReferences(itemEdge, referencesMap)
-          (for (hyperEdge <- findPrefix(filledEdge)) yield {
+          (for (hyperEdge <- find(filledEdge)) yield {
             val temp = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge)
             val newReferences = (temp._1 ++ referencesMap._1, temp._2 ++ referencesMap._2)
             getReferencesMap(left, newReferences)
           }).flatten
       }
     }
-    getReferencesMap(hyperPrefix.toSeq, (Map.empty, Map.empty))
+    getReferencesMap(hyperPattern.toSeq, (Map.empty, Map.empty))
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
@@ -174,18 +165,6 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
     }
 
   /* --- Private Methods --- */
-
-  private def patternToPrefix[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): HyperEdgePrefix[Node, EdgeType, Id] = {
-    pattern.copy(edgeType = (pattern.edgeType, true))
-  }
-
-  private def choose[Id](isFully: Boolean): WordPattern[Either[Node, EdgeType], Id] => Set[Word[Either[Node, EdgeType]]] = {
-    if (isFully) {
-      vocabulary.findPattern
-    } else {
-      vocabulary.findPatternPrefix
-    }
-  }
 
   private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] = {
     def toNode(either: Either[Node, EdgeType]): Node = either match { case Left(node) => node }

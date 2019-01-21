@@ -140,7 +140,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       val g = grapher(es)
       val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
         grapher(es map (e => HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]), EmptyMetadata)))
-      g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).size == 1
+      g.findSubgraph[Int](pg).size == 1
     })
   }
 
@@ -152,7 +152,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored[Int, Int](), Ignored[Int, Int](), Seq[Item[Int, Int]](Explicit[Int, Int](800)), EmptyMetadata)).map(Set(_))
       edges.forall(e => {
         val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] = grapher(e)
-        g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).isEmpty
+        g.findSubgraph[Int](pg).isEmpty
       }
       )
     })
@@ -168,7 +168,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
               val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
                 grapher(Set(HyperEdge[Item[Int, Int], Item[Int, Int]](Hole(0), Ignored[Int, Int](), (0 until j).map(_ => Ignored[Int, Int]()), EmptyMetadata),
                   HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored[Int, Int](), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole[Int, Int](0) else Ignored[Int, Int]()), EmptyMetadata)))
-              val results = g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg)
+              val results = g.findSubgraph[Int](pg)
               val resultsValues = results.map(t=> (t._1.values, t._2.values))
               val foundTarget = resultsValues.map(t => t._1 ++ t._2).forall(vals => vals.toList.contains(e.sources(i)))
               results.nonEmpty && foundTarget

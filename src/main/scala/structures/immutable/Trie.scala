@@ -42,12 +42,12 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
 
-  override def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
+  override def findRegex[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = {
     logger.trace("find pattern prefix")
     if (isEmpty) {
       Set.empty
     } else {
-      recursiveFindPatternPrefix[Id](pattern, Map.empty)
+      recursiveFindRegex[Id](pattern, Map.empty, 0)
     }
   }
 
@@ -127,11 +127,11 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     otherTrie.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
   }
 
-  private def recursiveFindPatternPrefix[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] = {
+  private def recursiveFindRegex[Id](pattern: WordPattern[Letter, Id], placeholdersMap: Map[Id, Letter], length: Int): Set[Word[Letter]] = {
     def specificValue(value: Letter, more: WordPattern[Letter, Id],  placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] =
-      subtries.head.get(value).map(_.recursiveFindPatternPrefix(more, placeholdersMap)).getOrElse(Set.empty)
+      subtries.head.get(value).map(_.recursiveFindRegex(more, placeholdersMap, length + 1)).getOrElse(Set.empty)
     pattern match {
-      case Nil => words
+      case Nil => words.filter(_.length == length)
       case item +: more =>
         if (subtries.isEmpty) Set.empty
         else item match {
@@ -139,8 +139,13 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
           case Hole(id: Id) =>
             placeholdersMap.get(id)
               .map(specificValue(_, more, placeholdersMap))
-              .getOrElse((for ((letter, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap updated(id, letter))).flatten.toSet)
-          case Ignored() => (for ((_, subtrie) <- subtries.head) yield subtrie.recursiveFindPatternPrefix(more, placeholdersMap)).flatten.toSet
+              .getOrElse((for ((letter, subtrie) <- subtries.head) yield subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1)).flatten.toSet)
+          case Ignored() => (for ((_, subtrie) <- subtries.head) yield subtrie.recursiveFindRegex(more, placeholdersMap, length + 1)).flatten.toSet
+          case Repetition(minR, maxR, repeated) =>
+            (for (newPattern <- (minR until math.min(maxR, subtries.length)).map(i => (0 until i).map(_ => repeated) ++ more);
+                  (_, subtrie) <- subtries.head) yield {
+              subtrie.recursiveFindRegex(newPattern, placeholdersMap, length + 1)
+            }).flatten.toSet
         }
     }
   }

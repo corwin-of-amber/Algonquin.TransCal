@@ -14,21 +14,21 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
 
   import VocabularyLike.WordPattern
 
-  /** Find words by a prefix.
+  /** Find words by a regex.
     *
     * @param pattern The prefix to find.
     * @tparam Id A reference type to show repetition connection in the pattern.
     * @return The matching words.
     */
-  def findPatternPrefix[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]]
+  def findRegex[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]]
 
-  /** Find words by a pattern.
+  /** Find words by a prefix.
     *
-    * @param pattern The pattern to find.
+    * @param prefix The prefix to find.
     * @tparam Id A reference type to show repetition connection in the pattern.
     * @return The matching words.
     */
-  def findPattern[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]] = findPatternPrefix(pattern).filter(_.length == pattern.length)
+  def findPatternPrefix[Id](prefix: WordPattern[Letter, Id]): Set[Word[Letter]] = findRegex(prefix :+ Repetition.rep0[Letter, Id](Int.MaxValue, Ignored()).get)
 
   /**
     * @return The words in the vocabulary

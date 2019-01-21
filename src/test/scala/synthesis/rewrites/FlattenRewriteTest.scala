@@ -1,17 +1,12 @@
 package synthesis.rewrites
 
-import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
+import language.Language
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.{EmptyMetadata, HyperEdge}
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
-import language.{Language, TranscalParser}
-import language.Language._
 import structures.immutable.VocabularyHyperGraph
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import synthesis.rewrites.Template.ReferenceTerm
+import structures.{EmptyMetadata, HyperEdge}
+import syntax.Identifier
+import synthesis.{HyperTermId, HyperTermIdentifier}
 
 
 class FlattenRewriteTest extends PropSpec with Checkers  {
@@ -24,7 +19,7 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
       HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
     val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
-    val newEdge = FlattenRewrite(state).graph.edges -- state.graph.edges
+    val newEdge = FlattenRewrite()(state).graph.edges -- state.graph.edges
     check(newEdge.size == 1)
     check(newEdge.head.sources.size == 2)
     check(newEdge.head.edgeType.identifier.literal == "@")

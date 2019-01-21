@@ -37,23 +37,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])]
 
-  /**Find a pattern of an edge in the graph.
-    *
-    * @param prefix The pattern of an edge.
-    * @tparam Id A reference type to show a wanted connection in the pattern.
-    * @return The matched edges
-    */
-  def findPrefix[Id](prefix: HyperEdgePrefix[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]]
-
-  /** Finds subgraphs by a pattern graph.
-    *
-    * @param hyperPrefix The pattern graph to match with
-    * @tparam Id A reference type to show a wanted connection in the pattern.
-    * @tparam Prefix The type of the pattern subgraph
-    * @return The matched references.
-    */
-  def findSubgraphPrefix[Id, Prefix <: HyperGraphPrefix[Node, EdgeType, Id, Prefix]](hyperPrefix: Prefix): Set[(Map[Id, Node], Map[Id, EdgeType])]
-
   /**
     * @return all the nodes in the hyper graph.
     */
@@ -131,7 +114,4 @@ object HyperGraphManyWithOrderToOneLike {
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
   type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], This]
-
-  type HyperEdgePrefix[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], (Item[EdgeType, Id], Boolean)]
-  type HyperGraphPrefix[Node, EdgeType, Id, +This <: HyperGraphPrefix[Node, EdgeType, Id, This]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], (Item[EdgeType, Id], Boolean), This]
 }

@@ -55,13 +55,14 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("empty find prefix returns all") {
     check(forAll { trie: Trie[Int] =>
+      val a = trie.findPatternPrefix(Seq())
       trie.words == trie.findPatternPrefix(Seq())
     })
   }
 
   property("added should be findable as sparse") {
     check(forAll { trie: Trie[Int] =>
-      trie.words.forall(word => trie.findPattern(word.map(Explicit(_))).contains(word))
+      trie.words.forall(word => trie.findRegex(word.map(Explicit(_))).contains(word))
     })
   }
 
