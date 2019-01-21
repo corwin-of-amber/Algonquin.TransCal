@@ -21,7 +21,7 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
     val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
     val newEdge = FlattenRewrite(state).graph.edges -- state.graph.edges
     check(newEdge.size == 1)
-    check(newEdge.head.sources.size == 2)
+    check(newEdge.head.sources.size == 4)
     check(newEdge.head.edgeType.identifier.literal == "@")
   }
 
