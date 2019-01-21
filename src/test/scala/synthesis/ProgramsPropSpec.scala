@@ -90,6 +90,15 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(Programs.destructPattern(pattern3).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
   }
 
+  property("destruct apply and reconstruct should work correctly") {
+    val parser = new TranscalParser
+    val term = parser("(a b) c d")
+    val graph = Programs.destruct(term)
+    check(graph.edgeTypes.count(_.identifier.literal == "@") == 1)
+    check(graph.edgeTypes.count(_.identifier.literal == "a") == 1)
+    check(graph.edgeTypes.count(_.identifier.literal == "b") == 1)
+  }
+
   property("destruct twice gives different HyperTermId") {
     check(forAll { (term1: Term, term2: Term) =>
       val commons = Programs.destruct(new Tree(new Identifier("\\/")))

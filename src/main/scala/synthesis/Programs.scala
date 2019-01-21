@@ -84,8 +84,11 @@ object Programs extends LazyLogging {
 
   def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
 
-  private def flattenApply(term: Term) = {
-    if (term.root == Language.applyId) (term.subtrees.head.root, term.subtrees.tail)
+  private def flattenApply(term: Term): (Identifier, List[Term]) = {
+    if (term.root == Language.applyId && term.subtrees.head.root == Language.applyId) {
+      val (fun, args) = flattenApply(term.subtrees.head)
+      (fun, args ++ term.subtrees.tail)
+    }
     else (term.root, term.subtrees)
   }
 
@@ -101,10 +104,11 @@ object Programs extends LazyLogging {
       val hp = tup._1._2
       val ref = ReferenceTerm[HyperTermId](tup._2)
       Map(h -> ref, hp -> ref)
-    }}.toMap
+    }
+    }.toMap
     HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !references.contains(e.target)).map(e =>
-      new HyperPatternEdge(ExplicitTerm(e.target), ExplicitTerm(e.edgeType), e.sources.map( i => references.getOrElse(i, ExplicitTerm(i))), e.metadata)
-    ).toSeq:_*)
+      new HyperPatternEdge(ExplicitTerm(e.target), ExplicitTerm(e.edgeType), e.sources.map(i => references.getOrElse(i, ExplicitTerm(i))), e.metadata)
+    ).toSeq: _*)
   }
 
   protected def destructMissingVars(hyperGraph: HyperPattern): HyperPattern = {
@@ -112,12 +116,12 @@ object Programs extends LazyLogging {
 
     val sourcesToHoles: Map[TemplateTerm[HyperTermId], ReferenceTerm[HyperTermId]] = {
       val edges = hyperGraph.findEdges(ExplicitTerm(HyperTermIdentifier(Language.holeId)))
-      edges.zip(Stream from maxRef+1).map( t => (t._1.target, ReferenceTerm[HyperTermId](t._2))).toMap
+      edges.zip(Stream from maxRef + 1).map(t => (t._1.target, ReferenceTerm[HyperTermId](t._2))).toMap
     }
 
     HyperGraphManyWithOrderToOne(hyperGraph.filter(e => !sourcesToHoles.contains(e.target)).map(e =>
       new HyperPatternEdge(e.target, e.edgeType, e.sources.map(i => sourcesToHoles.getOrElse(i, i)), e.metadata)
-    ).toSeq:_*)
+    ).toSeq: _*)
   }
 
   def destructPattern(tree: Term): HyperPattern = {
@@ -154,7 +158,7 @@ object Programs extends LazyLogging {
 
     val hyperEdges = innerDestruct(tree)._2
 
-    HyperGraphManyWithOrderToOne(hyperEdges.toSeq:_*)
+    HyperGraphManyWithOrderToOne(hyperEdges.toSeq: _*)
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).
