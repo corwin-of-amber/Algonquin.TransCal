@@ -55,7 +55,6 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("empty find prefix returns all") {
     check(forAll { trie: Trie[Int] =>
-      val a = trie.findPatternPrefix(Seq())
       trie.words == trie.findPatternPrefix(Seq())
     })
   }
