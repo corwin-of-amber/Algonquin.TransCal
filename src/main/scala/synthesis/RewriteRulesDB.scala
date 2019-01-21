@@ -24,7 +24,7 @@ trait RewriteRulesDB extends LazyLogging {
 
   protected def metadata: Metadata
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set(FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = {
     def termToHyperPattern(term: Term): HyperPattern = {
