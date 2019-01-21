@@ -14,7 +14,9 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     // Clean comments and new lines inside parenthesis
     // TODO: replace comments with whitespace for receiving errorl location correctly
     def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
+
     def cleanMultilineComments(text: String): String = "/\\*(.|\n)*?\\*/".r.replaceAllIn(text, "")
+
     val text = cleanMultilineComments(programText).split("\n").map(cleanLineComments).mkString("\n")
     parse(program, text) match {
       case Success(matched, text) => matched
@@ -86,22 +88,18 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   def exprInfixOperator: Parser[Term] = operatorsParser(exprNot)
 
-  private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" ->"≤", ">=" -> "≥", "=>" -> "⇒")
+  private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" -> "≤", ">=" -> "≥", "=>" -> "⇒")
+
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
 
-  def exprBooleanOp: Parser[Term] = exprInfixOperator ~ rep(seqToOrParser(builtinBooleanOps) ~ exprInfixOperator) ^^ { x =>
-    if (x._2.nonEmpty) logger.debug(s"bool op - $x")
-    x match {
-      case exp ~ expOpList =>
-        val ops = expOpList.map(_._1)
-        val exps = exp :: expOpList.map(_._2)
-        // TODO: solve ordering
-        leftFolder(exps, ops.map(translateUnicode))
-    }
+  private def replaceUnicode(t: Term): Term = t match {
+    case t: Term if t.isLeaf => t
+    case t: Term => new Tree[Identifier](new Identifier(translateUnicode(t.root.literal.toString), t.root.kind, t.root.ns), t.subtrees.map(replaceUnicode))
   }
 
-  def exprDrags: Parser[Term] = (exprBooleanOp ~ rep(seqToOrParser(builtinDragOps) ~ exprBooleanOp)) ^^ { x =>
+  def exprDrags: Parser[Term] = (exprInfixOperator ~ rep(seqToOrParser(builtinDragOps) ~ exprInfixOperator)) ^^ { x =>
     if (x._2.nonEmpty) logger.debug(s"drags op - $x")
+
     def merge(exps: List[Term], ops: List[String]): Term = {
       if (exps.length == 1) exps.head
       else {
@@ -117,7 +115,9 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def expression: Parser[Term] = exprDrags
+  def expression: Parser[Term] = exprDrags ^^ { x: Term =>
+    replaceUnicode(x)
+  }
 
   def annotation: Parser[Term] = "[" ~ "[^\\]]+".r ~ "]" ^^ {
     case _ ~ anno ~ _ => TREE(I(anno))
@@ -136,7 +136,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
       new Tree(new Identifier("Command", x))
   }
 
-  def program: Parser[Term] = phrase((";"|"\n").* ~ (statement | commands) ~ rep((";"|"\n").+ ~ (statement | commands).?)) ^^ {
+  def program: Parser[Term] = phrase((";" | "\n").* ~ (statement | commands) ~ rep((";" | "\n").+ ~ (statement | commands).?)) ^^ {
     case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(I(";"), List(t1, t2)))
   }
 
@@ -160,8 +160,12 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   /** The known left operators at the moment */
   override def lefters: Map[Int, Set[String]] = Map(
-    (Infixer.MIDDLE - 1, Set("++", "+", "-", "∪")),
-    (Infixer.MIDDLE, Set(":+"))
+    (Infixer.MIDDLE - 1, builtinSetArithOps.toSet),
+    (Infixer.MIDDLE, Set(":+")),
+    (Infixer.MIDDLE + 1, builtinBooleanOps.toSet),
+    (Infixer.MIDDLE + 2, builtinAndOps.toSet),
+    (Infixer.MIDDLE + 3, builtinOrOps.toSet),
+    (Infixer.MIDDLE + 4, builtinIFFOps.toSet)
   )
 
   /** The known right operators at the moment */

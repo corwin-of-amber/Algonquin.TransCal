@@ -68,26 +68,20 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     val parsed = p("(a = b) /\\ (c < b) -> d ∈ e")
     parsed.root shouldEqual "->"
     // Next function is and and has 2 params so 2 applys
-    parsed.subtrees(0).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "∧"
+    parsed.subtrees(0).root shouldEqual "∧"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "="
 
     // First parameter is = which has 2 params so 2 applys
-    parsed.subtrees(0).subtrees(1).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "="
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "a"
-    parsed.subtrees(0).subtrees(1).subtrees(2).root shouldEqual "b"
-
-    // Second param is < with c and b
-    parsed.subtrees(0).subtrees(2).root shouldEqual "@"
-    parsed.subtrees(0).subtrees(2).subtrees(0).root shouldEqual "<"
-    parsed.subtrees(0).subtrees(2).subtrees(1).root shouldEqual "c"
-    parsed.subtrees(0).subtrees(2).subtrees(2).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "a"
+    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(1).root shouldEqual "<"
+    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual "c"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual "b"
 
     // Second part of drags is set_in
-    parsed.subtrees(1).root shouldEqual "@"
-    parsed.subtrees(1).subtrees(0).root shouldEqual "∈"
-    parsed.subtrees(1).subtrees(1).root shouldEqual "d"
-    parsed.subtrees(1).subtrees(2).root shouldEqual "e"
+    parsed.subtrees(1).root shouldEqual "∈"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "d"
+    parsed.subtrees(1).subtrees(1).root shouldEqual "e"
   }
 }
 

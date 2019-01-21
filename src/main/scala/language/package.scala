@@ -7,7 +7,10 @@ package object Language {
   val builtinNotOps: Seq[String] = Seq("~", "¬")
   val builtinSetArithOps: Seq[String] = Seq("++", "+", "-", "∪")
   val builtinSetBuildingOps: Seq[String] = Seq(":+", "::")
-  val builtinBooleanOps: Seq[String] = Seq("<->", "\\/", "∨", "/\\", "∧", "=", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
+  val builtinAndOps: Seq[String] = Seq("/\\", "∧")
+  val builtinOrOps: Seq[String] = Seq("\\/", "∨")
+  val builtinIFFOps: Seq[String] = Seq("<->")
+  val builtinBooleanOps: Seq[String] = Seq("=", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinDragOps: Seq[String] = Seq(":", "/", "↦", "->", "=>")
   
   val builtinCommands: Seq[String] = Seq("->", "→", "<-", "←", "[]", "□")
