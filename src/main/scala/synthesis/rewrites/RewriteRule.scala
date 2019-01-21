@@ -33,7 +33,7 @@ class RewriteRule(conditions: HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsReferencesMaps = compactGraph.findSubgraph[Int, SubHyperGraphPattern](subGraphConditions)
+    val conditionsReferencesMaps = compactGraph.findSubgraph(subGraphConditions)
 
     def extractNewEdges(m: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier])): Set[HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]] = {
       m._1.foldLeft(m._2.foldLeft(subGraphDestination)((graph, kv) => {
