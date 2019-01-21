@@ -1,6 +1,5 @@
 package synthesis.rewrites
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperGraphPrefix
 import structures._
 import syntax.Identifier
 import synthesis.{HyperTermId, HyperTermIdentifier}
