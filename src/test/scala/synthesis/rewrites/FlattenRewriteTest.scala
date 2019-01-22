@@ -28,23 +28,22 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
     check(newEdge.head.sources.last.id == 2)
   }
 
-  property("flatten works on multiple depths") {
-    val edges = Set(HyperEdge(HyperTermId(10), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(0), HyperTermId(2)), EmptyMetadata),
-      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
-      HyperEdge(HyperTermId(1), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(3), HyperTermId(4), HyperTermId(5)), EmptyMetadata),
-      HyperEdge(HyperTermId(2), HyperTermIdentifier(new Identifier("x")), Seq(), EmptyMetadata),
-      HyperEdge(HyperTermId(3), HyperTermIdentifier(new Identifier("f")), Seq(), EmptyMetadata),
-      HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
-      HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
-    val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
-    val newEdges = FlattenRewrite(state).graph.edges -- state.graph.edges
-    check(newEdges.exists(e => e.sources.size == 5))
-  }
+//  property("flatten works on multiple depths") {
+//    val edges = Set(HyperEdge(HyperTermId(10), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(0), HyperTermId(2)), EmptyMetadata),
+//      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
+//      HyperEdge(HyperTermId(1), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(3), HyperTermId(4), HyperTermId(5)), EmptyMetadata),
+//      HyperEdge(HyperTermId(2), HyperTermIdentifier(new Identifier("x")), Seq(), EmptyMetadata),
+//      HyperEdge(HyperTermId(3), HyperTermIdentifier(new Identifier("f")), Seq(), EmptyMetadata),
+//      HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
+//      HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
+//    val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
+//    val newEdges = FlattenRewrite(state).graph.edges -- state.graph.edges
+//    check(newEdges.exists(e => e.sources.size == 5))
+//  }
 
   property("flatten works on funcs") {
     val edges = Set(
       HyperEdge(HyperTermId(1), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(3), HyperTermId(4), HyperTermId(5)), EmptyMetadata),
-      HyperEdge(HyperTermId(2), HyperTermIdentifier(new Identifier("x")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(3), HyperTermIdentifier(new Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
