@@ -23,6 +23,9 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
     check(newEdge.size == 1)
     check(newEdge.head.sources.size == 4)
     check(newEdge.head.edgeType.identifier.literal == "@")
+    check(newEdge.head.sources.head.id == 3)
+    check(newEdge.head.sources(1).id == 4)
+    check(newEdge.head.sources.last.id == 2)
   }
 
 }
