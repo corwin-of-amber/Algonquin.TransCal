@@ -23,7 +23,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Apply alot of abcd") {
-    val parsed = p("c a b d")
+    val parsed = p("_ -> c a b d").subtrees(1)
     parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 1
     parsed.root shouldEqual "@"
     parsed.subtrees(0).root shouldEqual "c"
@@ -33,7 +33,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Able to catch parentheses") {
-    val parsed = p("c (a b) d")
+    val parsed = p("f = c (a b) d").subtrees(1)
     parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 2
     parsed.root shouldEqual "@"
     parsed.subtrees(0).root shouldEqual "c"
@@ -44,32 +44,32 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Can have annotations") {
-    val parsed = p("_ [Anno]")
+    val parsed = p("f = _ [Anno]")
     parsed.root shouldEqual "Annotation"
     parsed.subtrees(1).root shouldEqual "Anno"
-    parsed.subtrees(0).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(1).root shouldEqual "_"
   }
 
   test("Can have two statements") {
-    val parsed = p("_;_")
+    val parsed = p("f = _ ; g = _")
     parsed.root shouldEqual ";"
-    parsed.subtrees(0).root shouldEqual "_"
-    parsed.subtrees(1).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "f"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "g"
   }
 
   test("Can have two statements with newline") {
-    val parsed = p("_ \n _")
+    val parsed = p("f = _ \n g = _")
     parsed.root shouldEqual ";"
-    parsed.subtrees(0).root shouldEqual "_"
-    parsed.subtrees(1).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "f"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "g"
   }
 
   test("Parse alot of booleans") {
-    val parsed = p("(a = b) /\\ (c < b) -> d ∈ e")
+    val parsed = p("(a == b) /\\ (c < b) -> d ∈ e")
     parsed.root shouldEqual "->"
     // Next function is and and has 2 params so 2 applys
     parsed.subtrees(0).root shouldEqual "∧"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "="
+    parsed.subtrees(0).subtrees(0).root shouldEqual "=="
 
     // First parameter is = which has 2 params so 2 applys
     parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "a"
@@ -82,6 +82,13 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(1).root shouldEqual "∈"
     parsed.subtrees(1).subtrees(0).root shouldEqual "d"
     parsed.subtrees(1).subtrees(1).root shouldEqual "e"
+  }
+
+  test("Parse tuples and parenthesised expressions") {
+    val parsed = p("(a,) 0 -> (a)")
+    parsed.root shouldEqual "->"
+    parsed.subtrees(0).root == Language.tupleId
+    parsed.subtrees(0).subtrees(0).subtrees(0) == parsed.subtrees(1)
   }
 }
 

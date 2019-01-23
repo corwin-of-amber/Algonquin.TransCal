@@ -62,7 +62,15 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def exprValuesAndParens: Parser[Term] = (("(" ~ exprDrags ~ ")") | ("{" ~ exprDrags ~ "}") | identifier | numeral | consts) ^^ { x =>
+  def tuple: Parser[Term] = ("(,)" | ("(" ~ (exprInfixOperator ~ ",").+ ~ exprInfixOperator.? ~ ")")) ^^ { x =>
+    val subtrees = x match {
+      case "(" ~ (others: List[TranscalParser.this.~[Term, String]]) ~ (one: Option[Term]) ~ ")" => one.map(others.map(t => t._1) :+ _) getOrElse others.map(t => t._1)
+      case "(,)" => List.empty
+    }
+    TREE(Language.tupleId, subtrees)
+  }
+
+  def exprValuesAndParens: Parser[Term] = (tuple | ("(" ~ exprInfixOperator ~ ")") | ("{" ~ exprInfixOperator ~ "}") | identifier | numeral | consts) ^^ { x =>
     if (x.isInstanceOf[TranscalParser.this.~[Any, Any]]) logger.trace(s"value or parens - $x")
     x match {
       case m: Term => m
@@ -79,7 +87,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def exprNot: Parser[Term] = rep(seqToOrParser(builtinNotOps)) ~ exprApply ^^ { x =>
+  def exprNot: Parser[Term] = (rep(seqToOrParser(builtinNotOps)) ~ exprApply) ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
       case applied ~ exp => applied.foldLeft(exp)((t, _) => ~DSL(t))
@@ -97,38 +105,33 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     case t: Term => new Tree[Identifier](new Identifier(translateUnicode(t.root.literal.toString), t.root.kind, t.root.ns), t.subtrees.map(replaceUnicode))
   }
 
-  def exprDrags: Parser[Term] = (exprInfixOperator ~ rep(seqToOrParser(builtinDragOps) ~ exprInfixOperator)) ^^ { x =>
-    if (x._2.nonEmpty) logger.debug(s"drags op - $x")
-
-    def merge(exps: List[Term], ops: List[String]): Term = {
-      if (exps.length == 1) exps.head
-      else {
-        new Tree(I(ops.head), List(exps.head, merge(exps.tail, ops.tail)))
-      }
-    }
-
-    x match {
-      case exp ~ expOpList =>
-        val ops = expOpList.map(_._1).map(translateUnicode)
-        val exps = exp :: expOpList.map(_._2)
-        merge(exps, ops)
-    }
-  }
-
-  def expression: Parser[Term] = exprDrags ^^ { x: Term =>
+  def expression: Parser[Term] = exprInfixOperator ^^ { x: Term =>
     replaceUnicode(x)
   }
 
-  def annotation: Parser[Term] = "[" ~ "[^\\]]+".r ~ "]" ^^ {
+  def annotation: Parser[Term] = ("[" ~ "[^\\]]+".r ~ "]") ^^ {
     case _ ~ anno ~ _ => TREE(I(anno))
   }
 
-  def statement: Parser[Term] = (expression ~ annotation.?) ^^ { x =>
-    logger.debug(s"statement - $x")
+  def statementCommand: Parser[Term] = (expression ~ Language.commandId.literal.toString ~ expression ~ annotation.?) ^^ { x =>
+    logger.debug(s"statement expr - $x")
     x match {
-      case expr ~ anno => anno.map(a => new Tree(new Identifier("Annotation"), List(expr, a))) getOrElse expr
+      case left ~ dir ~ right ~ anno =>
+        val definitionTerm = new Tree(Language.commandId, List(left, right))
+        anno.map(a => new Tree(new Identifier("Annotation"), List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
+
+  def statementDefinition: Parser[Term] = (expression ~ ("=" | ">>") ~ expression ~ annotation.?) ^^ { x =>
+    logger.debug(s"statement let - $x")
+    x match {
+      case left ~ dir ~ right ~ anno =>
+        val definitionTerm = new Tree(I(dir), List(left, right))
+        anno.map(a => new Tree(new Identifier("Annotation"), List(definitionTerm, a))) getOrElse definitionTerm
+    }
+  }
+
+  def statement: Parser[Term] = statementDefinition | statementCommand
 
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
     x =>
@@ -165,7 +168,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     (Infixer.MIDDLE + 1, builtinBooleanOps.toSet),
     (Infixer.MIDDLE + 2, builtinAndOps.toSet),
     (Infixer.MIDDLE + 3, builtinOrOps.toSet),
-    (Infixer.MIDDLE + 4, builtinIFFOps.toSet)
+    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
+    (Infixer.HIGH, builtinHighLevel.toSet)
   )
 
   /** The known right operators at the moment */
