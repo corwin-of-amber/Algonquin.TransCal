@@ -2,6 +2,8 @@ package language
 
 import syntax.Identifier
 
+import scala.util.matching.Regex
+
 package object Language {
   val applyLiteral: String ="@"
   val lambdaLiteral: String ="↦"
@@ -30,6 +32,8 @@ package object Language {
   val commandId: Identifier = new Identifier(commandLiteral)
   val tupleId: Identifier = new Identifier(tupleLiteral)
   val annotationId: Identifier = new Identifier(annotationLiteral)
+
+  val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
   val builtinNotOps: Seq[String] = Seq("~", "¬")

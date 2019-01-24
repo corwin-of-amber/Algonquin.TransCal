@@ -46,7 +46,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     TREE(I(x.toInt))
   }
 
-  def identifier: Parser[Identifier] = "[?]?[\\w'_]+".r ^^ { x =>
+  def identifier: Parser[Identifier] = Language.identifierRegex ^^ { x =>
     logger.trace(s"identifier - $x")
     I(x)
   }
@@ -126,7 +126,16 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     logger.debug(s"statement let - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
-        val definitionTerm = new Tree(I(dir), List(left, right))
+        // This means lhs is a function
+        val definitionTerm = right.root match {
+        case Language.lambdaId =>
+          val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
+          val newRight = right.subtrees(1)
+          val leftChildren = if (left.root == Language.applyId) left.subtrees else List(left)
+          val newLeft = TREE(Language.applyId, leftChildren ++ rightParams)
+          TREE(I(dir), List(newLeft, newRight))
+        case _ => TREE(I(dir), List(left, right))
+        }
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }

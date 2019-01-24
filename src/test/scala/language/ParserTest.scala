@@ -90,6 +90,14 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(0).root == Language.tupleId
     parsed.subtrees(0).subtrees(0).subtrees(0) == parsed.subtrees(1)
   }
+
+  test("Syntax sugar for function definition should create lhs apply") {
+    val parsed = p("f = ?x ↦ x + 1")
+    parsed.root shouldEqual "="
+    parsed.subtrees(0).root == Language.applyId
+    parsed.subtrees(0).subtrees(0).root.literal == "f"
+    parsed.subtrees(0).subtrees(1).root.literal == "?x"
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())
