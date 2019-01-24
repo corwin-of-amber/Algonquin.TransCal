@@ -128,34 +128,33 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
       case left ~ dir ~ right ~ anno =>
         // This means lhs is a function
         val definitionTerm = right.root match {
-        case Language.lambdaId =>
-          val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
-          val newRight = right.subtrees(1)
-          val leftChildren = if (left.root == Language.applyId) left.subtrees else List(left)
-          val newLeft = TREE(Language.applyId, leftChildren ++ rightParams)
-          TREE(I(dir), List(newLeft, newRight))
-        case _ => TREE(I(dir), List(left, right))
+          case Language.lambdaId =>
+            val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
+            val newRight = right.subtrees(1)
+            val leftChildren = if (left.root == Language.applyId) left.subtrees else List(left)
+            val newLeft = TREE(Language.applyId, leftChildren ++ rightParams)
+            TREE(I(dir), List(newLeft, newRight))
+          case _ => TREE(I(dir), List(left, right))
         }
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
   def statement: Parser[Term] = statementDefinition | statementCommand ^^ { t =>
-      def expandParams(env: Set[Identifier], t: Term): Term = {
-        t.root match {
-          case Language.lambdaId =>
-            val params = t.subtrees(0).leaves.filterNot(_.root.literal.toString.startsWith("?")).toList
-            assert(env.intersect(params.map(_.root).toSet).isEmpty)
-            val paramsTree = t.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, params ++ t.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, params :+ t.subtrees(0))
-            }
-            TREE(Language.applyId, TREE(Language.lambdaId, List(paramsTree, t.subtrees(1))) :: params)
-          case i: Identifier => TREE(i, t.subtrees map (s => expandParams(env, s)))
-        }
+    def expandParams(env: Set[Identifier], t: Term): Term = {
+      t.root match {
+        case Language.lambdaId =>
+          val params = t.subtrees(0).leaves.filterNot(_.root.literal.toString.startsWith("?")).toList
+          assert(env.intersect(params.map(_.root).toSet).isEmpty)
+          val paramsTree = t.subtrees(0).root match {
+            case Language.tupleId => TREE(Language.tupleId, params ++ t.subtrees(0).subtrees)
+            case i: Identifier => TREE(Language.tupleId, params :+ t.subtrees(0))
+          }
+          TREE(Language.applyId, TREE(Language.lambdaId, List(paramsTree, t.subtrees(1))) :: params)
+        case i: Identifier => TREE(i, t.subtrees map (s => expandParams(env, s)))
       }
-
-      expandParams(Set.empty, t)
+    }
+    expandParams(Set.empty, t)
   }
 
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
