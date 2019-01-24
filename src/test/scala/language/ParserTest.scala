@@ -92,7 +92,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 }
 
-class OldParserTest extends ParserTest(new OldParser())
+//class OldParserTest extends ParserTest(new OldParser())
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser = p.asInstanceOf[TranscalParser]

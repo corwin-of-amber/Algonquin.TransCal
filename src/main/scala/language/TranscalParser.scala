@@ -113,25 +113,41 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     case _ ~ anno ~ _ => TREE(I(anno))
   }
 
-  def statementCommand: Parser[Term] = (expression ~ Language.commandId.literal.toString ~ expression ~ annotation.?) ^^ { x =>
+  def statementCommand: Parser[Term] = (expression ~ Language.commandLiteral ~ expression ~ annotation.?) ^^ { x =>
     logger.debug(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
         val definitionTerm = new Tree(Language.commandId, List(left, right))
-        anno.map(a => new Tree(new Identifier("Annotation"), List(definitionTerm, a))) getOrElse definitionTerm
+        anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
-  def statementDefinition: Parser[Term] = (expression ~ ("=" | ">>") ~ expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[Term] = (expression ~ seqToOrParser(builtinDefinitions) ~ expression ~ annotation.?) ^^ { x =>
     logger.debug(s"statement let - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
         val definitionTerm = new Tree(I(dir), List(left, right))
-        anno.map(a => new Tree(new Identifier("Annotation"), List(definitionTerm, a))) getOrElse definitionTerm
+        anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
-  def statement: Parser[Term] = statementDefinition | statementCommand
+  def statement: Parser[Term] = statementDefinition | statementCommand ^^ { t =>
+      def expandParams(env: Set[Identifier], t: Term): Term = {
+        t.root match {
+          case Language.lambdaId =>
+            val params = t.subtrees(0).leaves.filterNot(_.root.literal.toString.startsWith("?")).toList
+            assert(env.intersect(params.map(_.root).toSet).isEmpty)
+            val paramsTree = t.subtrees(0).root match {
+              case Language.tupleId => TREE(Language.tupleId, params ++ t.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, params :+ t.subtrees(0))
+            }
+            TREE(Language.applyId, TREE(Language.lambdaId, List(paramsTree, t.subtrees(1))) :: params)
+          case i: Identifier => TREE(i, t.subtrees map (s => expandParams(env, s)))
+        }
+      }
+
+      expandParams(Set.empty, t)
+  }
 
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
     x =>
@@ -141,24 +157,6 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   def program: Parser[Term] = phrase((";" | "\n").* ~ (statement | commands) ~ rep((";" | "\n").+ ~ (statement | commands).?)) ^^ {
     case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(I(";"), List(t1, t2)))
-  }
-
-  private def leftFolder(exps: List[Term], op: String): Term = leftFolder(exps, List.fill(exps.length - 1)(op))
-
-  private def leftFolder(exps: List[Term], ops: List[String]): Term = {
-    if (ops.isEmpty) exps.head
-    else {
-      assert(exps.nonEmpty && ops.size == exps.size - 1)
-      TREE(I("@"), List(TREE(I(ops.head)), exps.head, leftFolder(exps.tail, ops.tail)))
-    }
-  }
-
-  private def rightFolder(exps: List[Term], op: String): Term = rightFolder(exps, List.fill(exps.length - 1)(op))
-
-  private def rightFolder(exps: List[Term], ops1: List[String]): Term = {
-    val ops = ops1.map(x => TREE(I(x)))
-    assert(exps.nonEmpty && ops.size == exps.size - 1)
-    ops.zip(exps.take(exps.length - 1)).foldRight(exps.last)((tup, exp) => tup._1 :@ (exp, tup._2))
   }
 
   /** The known left operators at the moment */

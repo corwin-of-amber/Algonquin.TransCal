@@ -3,7 +3,7 @@
 filterMap ?p ?f ?l = filter p (map f l)    [++]
 
 map ?f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
-filter ?p = ((⟨⟩ ↦ ⟨⟩) / ((?x :: ?xs) ↦ ( ((p , x) => x :: (filter p xs)) / ((~p, x) => filter p xs) )))
+filter ?p = ((⟨⟩ ↦ ⟨⟩) / ((?x :: ?xs) ↦ ( ((p x) => x :: (filter p xs)) / ~(p x) => filter p xs) ))
 
 l = ?x :: ?xs
 ->

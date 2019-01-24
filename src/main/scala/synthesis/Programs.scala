@@ -146,6 +146,8 @@ object Programs extends LazyLogging {
 
     def innerDestruct(tree: Term): (HyperTermId, Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) = {
       val (function, args) = flattenApply(tree)
+      // Skipping annotations, shouldn't be part of the graph, at least for now
+      if (function.literal == "Annotation") return innerDestruct(tree.subtrees(0))
       val targetToSubedges = args.map(subtree => innerDestruct(subtree))
       val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
       val target = HyperTermId(hyperTermIdCreator())

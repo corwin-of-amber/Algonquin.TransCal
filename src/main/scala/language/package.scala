@@ -3,18 +3,33 @@ package language
 import syntax.Identifier
 
 package object Language {
-  val applyId: Identifier = new Identifier("@")
-  val lambdaId: Identifier = new Identifier("↦")
-  val splitId: Identifier = new Identifier("/")
-  val idId: Identifier = new Identifier("id")
-  val trueId: Identifier = new Identifier("⊤")
-  val falseId: Identifier = new Identifier("⊥")
-  val nilId: Identifier = new Identifier("⟨⟩")
-  val negId: Identifier = new Identifier("¬")
-  val holeId: Identifier = new Identifier("_")
-  val guardedId: Identifier = new Identifier("=>")
-  val commandId: Identifier = new Identifier("->")
-  val tupleId: Identifier = new Identifier("(,)")
+  val applyLiteral: String ="@"
+  val lambdaLiteral: String ="↦"
+  val splitLiteral: String ="/"
+  val idLiteral: String ="id"
+  val trueLiteral: String ="⊤"
+  val falseLiteral: String ="⊥"
+  val nilLiteral: String ="⟨⟩"
+  val negLiteral: String ="¬"
+  val holeLiteral: String ="_"
+  val guardedLiteral: String ="=>"
+  val commandLiteral: String ="->"
+  val tupleLiteral: String ="(,)"
+  val annotationLiteral: String ="Annotation"
+
+  val applyId: Identifier = new Identifier(applyLiteral)
+  val lambdaId: Identifier = new Identifier(lambdaLiteral)
+  val splitId: Identifier = new Identifier(splitLiteral)
+  val idId: Identifier = new Identifier(idLiteral)
+  val trueId: Identifier = new Identifier(trueLiteral)
+  val falseId: Identifier = new Identifier(falseLiteral)
+  val nilId: Identifier = new Identifier(nilLiteral)
+  val negId: Identifier = new Identifier(negLiteral)
+  val holeId: Identifier = new Identifier(holeLiteral)
+  val guardedId: Identifier = new Identifier(guardedLiteral)
+  val commandId: Identifier = new Identifier(commandLiteral)
+  val tupleId: Identifier = new Identifier(tupleLiteral)
+  val annotationId: Identifier = new Identifier(annotationLiteral)
 
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
   val builtinNotOps: Seq[String] = Seq("~", "¬")
@@ -25,6 +40,7 @@ package object Language {
   val builtinIFFOps: Seq[String] = Seq("<->")
   val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinHighLevel: Seq[String] = Seq(":", "/", "=>", "↦")
+  val builtinDefinitions: Seq[String] = Seq("=", ">>")
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 
