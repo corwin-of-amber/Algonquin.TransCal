@@ -18,6 +18,7 @@ package object Language {
   val commandLiteral: String ="->"
   val tupleLiteral: String ="(,)"
   val annotationLiteral: String ="Annotation"
+  val letLiteral: String ="="
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -32,6 +33,7 @@ package object Language {
   val commandId: Identifier = new Identifier(commandLiteral)
   val tupleId: Identifier = new Identifier(tupleLiteral)
   val annotationId: Identifier = new Identifier(annotationLiteral)
+  val letId: Identifier = new Identifier(letLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
