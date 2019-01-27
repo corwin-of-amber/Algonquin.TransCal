@@ -24,23 +24,20 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
 
   test("Apply alot of abcd") {
     val parsed = p("_ -> c a b d").subtrees(1)
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 1
-    parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "c"
-    parsed.subtrees(1).root shouldEqual "a"
-    parsed.subtrees(2).root shouldEqual "b"
-    parsed.subtrees(3).root shouldEqual "d"
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
+    parsed.root shouldEqual "c"
+    parsed.subtrees(0).root shouldEqual "a"
+    parsed.subtrees(1).root shouldEqual "b"
+    parsed.subtrees(2).root shouldEqual "d"
   }
 
   test("Able to catch parentheses") {
     val parsed = p("f = c (a b) d").subtrees(1)
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 2
-    parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "c"
-    parsed.subtrees(1).root shouldEqual "@"
-    parsed.subtrees(1).subtrees(0).root shouldEqual "a"
-    parsed.subtrees(1).subtrees(1).root shouldEqual "b"
-    parsed.subtrees(2).root shouldEqual "d"
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
+    parsed.root shouldEqual "c"
+    parsed.subtrees(0).root shouldEqual "a"
+    parsed.subtrees(1).root shouldEqual "d"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "b"
   }
 
   test("Can have annotations") {
@@ -98,6 +95,8 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(0).subtrees(0).root.literal == "f"
     parsed.subtrees(0).subtrees(1).root.literal == "?x"
   }
+
+
 }
 
 //class OldParserTest extends ParserTest(new OldParser())

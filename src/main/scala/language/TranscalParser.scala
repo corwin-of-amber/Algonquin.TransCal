@@ -83,7 +83,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     if (applied.tail.isEmpty) applied.head
     else {
       logger.trace(s"apply - $applied")
-      TREE(I("@"), applied)
+      TREE(applied.head.root, applied.head.subtrees ++ applied.drop(1))
     }
   }
 
