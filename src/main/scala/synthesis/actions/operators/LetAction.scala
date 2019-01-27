@@ -31,47 +31,54 @@ class LetAction(term: Term) extends Action {
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
-  def renameLambdas(t: Term): (Set[RewriteRule], Term) = {
-    val results = t.subtrees map renameLambdas
-    val subtrees = results.map(_._2)
-    val rewrites = results.flatMap(_._1)
-    t.root match {
-      case Language.lambdaId =>
-        val knownHoles: Set[Set[Term]] = {
-          val definitions = t.nodes.filter(n => n.root.literal.toString.startsWith("?"))
-          val partners = definitions.map(i => new Tree(new Identifier(i.root.literal.toString.drop(1), i.root.kind, i.root.ns)))
-          definitions zip partners map (t => Set(t._1, t._2)) toSet
-        }
-
-        val newFunc = LetAction.functionNamer()
-        val params = if(subtrees(0).root == Language.tupleId) subtrees(0).subtrees else List(subtrees(0))
-        val condTerm = new Tree(newFunc, params)
-        val destTerm = subtrees(1)
-        val pattern = Programs.destructPattern(condTerm, knownHoles)
-        val conditions: HyperPattern = {
-          val rootEdge = conditions.findEdges(ExplicitTerm(HyperTermIdentifier(newFunc))).head
-          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId, Int](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-          conditions.addEdge(newRootEdge).removeEdge(rootEdge)
-        }
-        val destination = Programs.destructPattern(destTerm, knownHoles)
-        ((RewriteRule(conditions, destination, metadataCreator(newFunc)) :: rewrites).toSet, new Tree(newFunc))
-      case _ => (rewrites.toSet, new Tree(t.root, subtrees))
-    }
-  }
-
-  protected val (rewrites, updatedTerm) = renameLambdas(term)
-  protected val mainRewrite = {
-    // TODO: fix copy paste
-    val knownHoles: Set[Set[Term]] = {
-      val definitions = updatedTerm.nodes.filter(n => n.root.literal.toString.startsWith("?"))
+  private def createRewrites(t: Term, env: Set[Set[Term]]): (Set[RewriteRule], Term) = {
+    def getNewHoles(t: Term) = {
+      val definitions = t.nodes.filter(n => n.root.literal.toString.startsWith("?"))
       val partners = definitions.map(i => new Tree(new Identifier(i.root.literal.toString.drop(1), i.root.kind, i.root.ns)))
       definitions zip partners map (t => Set(t._1, t._2)) toSet
     }
 
-    RewriteRule(Programs.destructPattern(updatedTerm.subtrees(0), knownHoles),
-      Programs.destructPattern(updatedTerm.subtrees(1), knownHoles),
-      metadataCreator(updatedTerm.subtrees(0).root))
+    t.root match {
+      case Language.lambdaId =>
+        val newFunc = LetAction.functionNamer()
+        val newEnv = env ++ getNewHoles(t.subtrees.head)
+        val (innerRewrites, newTerm) = createRewrites(t.subtrees(1), newEnv)
+
+        val params = if (t.subtrees(0).root == Language.tupleId) t.subtrees(0).subtrees else List(t.subtrees(0))
+        val condTerm = new Tree(newFunc, params)
+        val pattern = Programs.destructPattern(condTerm, newEnv)
+        val conditions: HyperPattern = {
+          val rootEdge = pattern.findEdges(ExplicitTerm(HyperTermIdentifier(newFunc))).head
+          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId, Int](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
+          conditions.addEdge(newRootEdge).removeEdge(rootEdge)
+        }
+
+        val destination = Programs.destructPattern(newTerm, newEnv)
+
+        ((RewriteRule(conditions, destination, metadataCreator(newFunc)) :: innerRewrites).toSet, new Tree(newFunc))
+      case Language.letId | Language.directedLetId =>
+        val newEnv = env ++ getNewHoles(t.subtrees.head)
+        val results = t.subtrees map (s => createRewrites(s, newEnv))
+        val condition = Programs.destructPattern(results(0)._2, newEnv)
+        val destination = Programs.destructPattern(results(1)._2, newEnv)
+        val newRules: Set[RewriteRule] = {
+          val optionalRule: Set[RewriteRule] =
+            if (t.root == Language.directedLetId) Set.empty
+            else Set(RewriteRule(destination, condition, metadataCreator(t.subtrees(1).root)))
+          optionalRule + RewriteRule(condition, destination, metadataCreator(t.subtrees.head.root))
+        }
+        (newRules ++ results.flatMap(_._1), t)
+        // TODO: split is 'or' or an 'and'
+//      case Language.splitId =>
+      case _ =>
+        val results = t.subtrees map (s => createRewrites(s, env))
+        val subtrees = results.map(_._2)
+        val innerRewrites = results.flatMap(_._1)
+        (innerRewrites.toSet, new Tree(t.root, subtrees))
+    }
   }
+
+  protected val (rewrites, updatedTerm) = createRewrites(term, Set.empty)
 
   def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
     (m1: Map[Int, HyperTermId], m2: Map[Int, HyperTermIdentifier]) => LetMetadata(funcName)
@@ -92,4 +99,5 @@ object LetAction {
   case class LetMetadata(funcName: Identifier) extends Metadata {
     override val toStr = s"LetMetadata($funcName)"
   }
+
 }

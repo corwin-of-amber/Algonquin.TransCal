@@ -18,7 +18,8 @@ package object Language {
   val commandLiteral: String ="->"
   val tupleLiteral: String ="(,)"
   val annotationLiteral: String ="Annotation"
-  val letLiteral: String ="="
+  val letLiteral: String = "="
+  val directedLetLiteral: String = ">>"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -34,6 +35,7 @@ package object Language {
   val tupleId: Identifier = new Identifier(tupleLiteral)
   val annotationId: Identifier = new Identifier(annotationLiteral)
   val letId: Identifier = new Identifier(letLiteral)
+  val directedLetId: Identifier = new Identifier(directedLetLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
@@ -46,7 +48,7 @@ package object Language {
   val builtinIFFOps: Seq[String] = Seq("<->")
   val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinHighLevel: Seq[String] = Seq(":", "/", "=>", "↦")
-  val builtinDefinitions: Seq[String] = Seq("=", ">>")
+  val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 
