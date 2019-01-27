@@ -96,9 +96,9 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val parser = new TranscalParser
     val term = parser("_ -> (a b) c d")
     val graph = Programs.destruct(term)
-    check(graph.edgeTypes.count(_.identifier.literal == "@") == 1)
     check(graph.edgeTypes.count(_.identifier.literal == "a") == 1)
     check(graph.edgeTypes.count(_.identifier.literal == "b") == 1)
+    check(graph.edges.filter(_.edgeType.identifier.literal == "a").head.sources.size == 3)
   }
 
   property("destruct twice gives different HyperTermId") {

@@ -3,12 +3,13 @@ package language
 import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
+import org.scalatest.prop.Checkers
 import org.scalatest.{FunSuite, Inspectors, Matchers}
 import syntax.AstSugar.Term
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with Matchers with Inspectors with LazyLogging {
+abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
   test("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
@@ -37,7 +38,7 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.root shouldEqual "c"
     parsed.subtrees(0).root shouldEqual "a"
     parsed.subtrees(1).root shouldEqual "d"
-    parsed.subtrees(1).subtrees(0).root shouldEqual "b"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "b"
   }
 
   test("Can have annotations") {
@@ -84,19 +85,22 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   test("Parse tuples and parenthesised expressions") {
     val parsed = p("(a,) 0 -> (a)")
     parsed.root shouldEqual "->"
-    parsed.subtrees(0).root == Language.tupleId
-    parsed.subtrees(0).subtrees(0).subtrees(0) == parsed.subtrees(1)
+    parsed.subtrees(0).root shouldEqual Language.tupleId
+    parsed.subtrees(0).subtrees(0) shouldEqual parsed.subtrees(1)
   }
 
   test("Syntax sugar for function definition should create lhs apply") {
     val parsed = p("f = ?x ↦ x + 1")
     parsed.root shouldEqual "="
-    parsed.subtrees(0).root == Language.applyId
-    parsed.subtrees(0).subtrees(0).root.literal == "f"
-    parsed.subtrees(0).subtrees(1).root.literal == "?x"
+    parsed.subtrees(0).root.literal shouldEqual "f"
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
   }
 
-
+  test("apply of f translated correctly") {
+    val parsed = p("f ?x = x + 1")
+    parsed.root shouldEqual "="
+    parsed.subtrees(0).root.literal shouldEqual "f"
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())

@@ -131,8 +131,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
           case Language.lambdaId =>
             val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
             val newRight = right.subtrees(1)
-            val leftChildren = if (left.root == Language.applyId) left.subtrees else List(left)
-            val newLeft = TREE(Language.applyId, leftChildren ++ rightParams)
+            val newLeft = TREE(left.root, left.subtrees ++ rightParams)
             TREE(I(dir), List(newLeft, newRight))
           case _ => TREE(I(dir), List(left, right))
         }
