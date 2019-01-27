@@ -127,17 +127,19 @@ object Programs extends LazyLogging {
     HyperGraphManyWithOrderToOne(hyperEdges.toSeq: _*)
   }
 
+  val holeCreator = {
+    // TODO: Hack to prevent intersection with known terms. Fix to something norml
+    val creator = Stream.from(300).iterator
+    () => ReferenceTerm[HyperTermId](creator.next())
+  }
+
   def destructPattern(tree: Term, vars: Set[Set[Term]]): HyperPattern = {
-    val holeCreator = {
-      val creator = Stream.from(0).iterator
-      () => ReferenceTerm[HyperTermId](creator.next())
-    }
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
     val knownTerms: Term => Option[ReferenceTerm[HyperTermId]] = {
-      val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = vars.flatMap(t => {
-        val newHole = holeCreator()
-        t.map((_, newHole))
+      val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = vars.zipWithIndex.flatMap(t => {
+        val newHole = ReferenceTerm[HyperTermId](t._2)
+        t._1.map((_, newHole))
       }).toMap
       t: Term => if(t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }

@@ -68,8 +68,6 @@ class LetAction(term: Term) extends Action {
           optionalRule + new RewriteRule(condition, destination, metadataCreator(t.subtrees.head.root))
         }
         (newRules ++ results.flatMap(_._1), t)
-        // TODO: split is 'or' or an 'and'
-//      case Language.splitId =>
       case _ =>
         val results = t.subtrees map (s => createRewrites(s, env))
         val subtrees = results.map(_._2)
