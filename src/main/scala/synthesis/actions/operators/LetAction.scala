@@ -12,7 +12,7 @@ import synthesis.rewrites.{RewriteRule, Template}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 
 /** Let action adds a rewrite rule to show the equality between the two templates.
   * This action also adds all equalities
@@ -48,14 +48,14 @@ class LetAction(term: Term) extends Action {
         val condTerm = new Tree(newFunc, params)
         val pattern = Programs.destructPattern(condTerm, newEnv)
         val conditions: HyperPattern = {
-          val rootEdge = pattern.findEdges(ExplicitTerm(HyperTermIdentifier(newFunc))).head
-          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId, Int](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-          conditions.addEdge(newRootEdge).removeEdge(rootEdge)
+          val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(newFunc))).head
+          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
+          pattern.addEdge(newRootEdge).removeEdge(rootEdge)
         }
 
         val destination = Programs.destructPattern(newTerm, newEnv)
 
-        ((RewriteRule(conditions, destination, metadataCreator(newFunc)) :: innerRewrites).toSet, new Tree(newFunc))
+        (innerRewrites + new RewriteRule(conditions, destination, metadataCreator(newFunc)), new Tree(newFunc))
       case Language.letId | Language.directedLetId =>
         val newEnv = env ++ getNewHoles(t.subtrees.head)
         val results = t.subtrees map (s => createRewrites(s, newEnv))
@@ -64,8 +64,8 @@ class LetAction(term: Term) extends Action {
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
             if (t.root == Language.directedLetId) Set.empty
-            else Set(RewriteRule(destination, condition, metadataCreator(t.subtrees(1).root)))
-          optionalRule + RewriteRule(condition, destination, metadataCreator(t.subtrees.head.root))
+            else Set(new RewriteRule(destination, condition, metadataCreator(t.subtrees(1).root)))
+          optionalRule + new RewriteRule(condition, destination, metadataCreator(t.subtrees.head.root))
         }
         (newRules ++ results.flatMap(_._1), t)
         // TODO: split is 'or' or an 'and'
