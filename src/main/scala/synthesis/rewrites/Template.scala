@@ -1,5 +1,6 @@
 package synthesis.rewrites
 
+import structures._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 
@@ -10,7 +11,31 @@ import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 final case class Template(target: TemplateTerm[HyperTermId], function: TemplateTerm[HyperTermIdentifier], parameters: Seq[TemplateTerm[HyperTermId]])
 
 object Template {
-  sealed trait TemplateTerm[T <: HyperTerm]
-  case class ExplicitTerm[T <: HyperTerm](term: T) extends TemplateTerm[T]
-  case class ReferenceTerm[T <: HyperTerm](id: Int) extends TemplateTerm[T]
+  type TemplateTerm[T <: HyperTerm] = Item[T, Int]
+
+  type ExplicitTerm[T <: HyperTerm] = Explicit[T, Int]
+  object ExplicitTerm {
+    def apply[T <: HyperTerm](t: T): ExplicitTerm[T] = new ExplicitTerm(t)
+    def unapply[T <: HyperTerm](arg: ExplicitTerm[T]): Option[T] = Some(arg.value)
+  }
+
+  type ReferenceTerm[T <: HyperTerm] = Hole[T, Int]
+  object ReferenceTerm{
+    def apply[T <: HyperTerm](i: Int): ReferenceTerm[T] = new ReferenceTerm(i)
+    def unapply[T <: HyperTerm](arg: ReferenceTerm[T]): Option[Int] = Some(arg.id)
+  }
+
+  type IgnoreTerm[T <: HyperTerm] = Ignored[T, Int]
+  type RepetitionTerm[T <: HyperTerm] = Repetition[T, Int]
+
+  object RepetitionTerm {
+    def rep0[T <: HyperTerm](maxRepetition: Int, repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.rep0(maxRepetition, repeated)
+
+    def rep1[T <: HyperTerm](maxRepetition: Int, repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.rep1(maxRepetition, repeated)
+
+    def option[T <: HyperTerm](repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.option(repeated)
+
+    def rep[T <: HyperTerm](minRepetition: Int, maxRepetition: Int, repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.rep(minRepetition, maxRepetition, repeated)
+  }
+
 }
