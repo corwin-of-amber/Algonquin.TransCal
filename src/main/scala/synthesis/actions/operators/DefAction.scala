@@ -9,7 +9,7 @@ class DefAction(term: Term) extends Action {
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     val newProgs =
-      if (term.root == Language.directedLetId) state.programs.addTerm(term.subtrees(0))
+      if (term.root == Language.directedLetId) state.programs.addTerm(term.subtrees(1))
       else state.programs.addTerm(term.subtrees(0)).addTerm(term.subtrees(1))
     new ActionSearchState(newProgs, letAction(state).rewriteRules)
   }
