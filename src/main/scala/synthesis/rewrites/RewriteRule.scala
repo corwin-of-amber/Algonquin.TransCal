@@ -91,8 +91,9 @@ class RewriteRule(conditions: HyperPattern,
     // TODO: prevent existentials from being recreated.
 //    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
 //      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
-    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
-    destination.addEdges(existentialEdges)
+//    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
+//    destination.addEdges(existentialEdges)
+    destination
   }
 }
 

@@ -33,6 +33,6 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val newEdges = searchState.graph.findEdges(HyperTermIdentifier(new Identifier("+")))
     newEdges.size shouldEqual 1
-    newState.programs.reconstruct(newEdges.head.target) contains (new TranscalParser).apply("_ -> x + 1").subtrees(1) shouldEqual true
+    Programs(searchState.graph).reconstruct(newEdges.head.target) contains (new TranscalParser).apply("_ -> 3 + 1").subtrees(1) shouldEqual true
   }
 }
