@@ -42,7 +42,7 @@ class GeneralizeAction(anchor: Term, leaves: List[Term], name: Term) extends Act
           logger.debug(e.toString)
         val varIds = derivedDef.vars.toList map (_.leaf)
 //        val rules = new Let((derivedDef.ruleDefs map (new Scheme.Template(varIds, _))).toList).rules
-        val rules = derivedDef.ruleDefs.toSet flatMap (new LetAction(_).rules)
+        val rules = derivedDef.ruleDefs flatMap (r => new LetAction(r).rules)
         state.copy(rewriteRules = state.rewriteRules ++ rules)
     }
   }
