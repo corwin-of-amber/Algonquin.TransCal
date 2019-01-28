@@ -8,4 +8,4 @@ import synthesis.search.State
   * @author tomer
   * @since 11/18/18
   */
-class ActionSearchState(val programs: Programs, val rewriteRules: Set[RewriteRule]) extends State
+case class ActionSearchState(programs: Programs, rewriteRules: Set[RewriteRule]) extends State

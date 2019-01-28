@@ -77,6 +77,7 @@ class LetAction(term: Term) extends Action {
   }
 
   protected val (rewrites, updatedTerm) = createRewrites(term, Set.empty)
+  val rules: Set[RewriteRule] = rewrites
 
   def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
     (m1: Map[Int, HyperTermId], m2: Map[Int, HyperTermIdentifier]) => LetMetadata(funcName)
