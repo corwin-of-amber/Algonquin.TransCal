@@ -27,6 +27,7 @@ trait RewriteRulesDB extends LazyLogging {
   lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = {
+    // TODO: use destruct pattern
     def termToHyperPattern(term: Term): HyperPattern = {
       val hyperPatternEdges = Programs.destruct(term).edges.filterNot(edge => vars.contains(edge.edgeType.identifier)).map(edge => {
         HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
