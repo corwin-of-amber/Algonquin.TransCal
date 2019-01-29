@@ -1,10 +1,12 @@
 package structures.immutable
 
+import language.Language
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures._
+import synthesis.{HyperTermId, HyperTermIdentifier}
 
 import scala.util.Random
 
@@ -157,6 +159,36 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       )
     })
   }
+
+  property("find graph finds edges by type") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] => es.nonEmpty ==> {
+      val g = grapher(es)
+      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] =
+        es.head.copy(target = Explicit[Int, Int](es.head.target), edgeType = Hole[Int, Int](0), sources = es.head.sources.map(Explicit[Int, Int]))
+      g.find(pattern).contains(es.head)
+  }})}
+
+  property("find with one ignore finds something") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
+      val g = grapher(es)
+      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Hole[Int, Int](0), Hole[Int, Int](1), List(Ignored[Int, Int]()), EmptyMetadata)
+      g.find(pattern).nonEmpty
+    }})}
+
+  property("find regex rep0 with 0 sources") {
+    val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
+    val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit[Int, Int](0), Explicit[Int, Int](1), List(Repetition.rep0(500, Ignored[Int, Int]()).get), EmptyMetadata)
+    val found = graph.find(pattern)
+    val edges = graph.edges
+    check(found == edges)
+  }
+
+  property("find by ignore regex finds all") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
+      val g = grapher(es)
+      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Hole[Int, Int](0), Hole[Int, Int](1), List(Repetition.rep0(500, Ignored[Int, Int]()).get), EmptyMetadata)
+      g.find(pattern) == es
+    }})}
 
   property("find graph finds edge and replacer") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
