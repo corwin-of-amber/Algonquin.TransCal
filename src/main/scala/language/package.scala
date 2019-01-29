@@ -15,11 +15,12 @@ package object Language {
   val negLiteral: String ="¬"
   val holeLiteral: String ="_"
   val guardedLiteral: String ="=>"
-  val commandLiteral: String ="->"
+  val tacticLiteral: String ="->"
   val tupleLiteral: String ="(,)"
   val annotationLiteral: String ="Annotation"
   val letLiteral: String = "="
   val directedLetLiteral: String = ">>"
+  val commandLiteral: String = "Command"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -31,11 +32,12 @@ package object Language {
   val negId: Identifier = new Identifier(negLiteral)
   val holeId: Identifier = new Identifier(holeLiteral)
   val guardedId: Identifier = new Identifier(guardedLiteral)
-  val commandId: Identifier = new Identifier(commandLiteral)
+  val tacticId: Identifier = new Identifier(tacticLiteral)
   val tupleId: Identifier = new Identifier(tupleLiteral)
   val annotationId: Identifier = new Identifier(annotationLiteral)
   val letId: Identifier = new Identifier(letLiteral)
   val directedLetId: Identifier = new Identifier(directedLetLiteral)
+  val commandId: Identifier = new Identifier(commandLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
