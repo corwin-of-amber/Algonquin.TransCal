@@ -10,7 +10,7 @@ import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.rewrites.rewrites._
 
 /** Rewrites a program to a new program.
@@ -35,32 +35,18 @@ class RewriteRule(conditions: HyperPattern,
 
     val conditionsReferencesMaps = compactGraph.findSubgraph(subGraphConditions)
 
-    def extractNewEdges(m: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier])): Set[HyperEdgePattern[HyperTermId, HyperTermIdentifier, Int]] = {
-      m._1.foldLeft(m._2.foldLeft(subGraphDestination)((graph, kv) => {
-        // From each map create new edges from the destination graph
-        graph.mergeEdgeTypes(Explicit(kv._2), Hole(kv._1))
-      }))((graph, kv) => {
-        // From each map create new edges from the destination graph
-        graph.mergeNodes(Explicit(kv._2), Hole(kv._1))
-      }).edges
+    val nextHyperId: () => HyperTermId = {
+      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
+      () => creator.next
     }
 
-    val lastId = compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0)
-    def extract(i: Item[HyperTermId, Int]): HyperTermId = i match {
-      case Explicit(v) => v
-      case Hole(v) => HyperTermId(v + lastId)
-    }
-
-    // Should crash if we still have holes as its a bug
-    val graph = compactGraph :+ conditionsReferencesMaps.flatMap(m => {
+    val newEdges = conditionsReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
-      extractNewEdges(m).map(e =>
-        HyperEdge(extract(e.target),
-          e.edgeType match { case Explicit(v) => v },
-          e.sources.map(extract),
-          e.metadata.merge(meta))
-      )
+      HyperGraphManyWithOrderToOneLike.fillPattern(subGraphDestination, m, nextHyperId).map(e =>
+        e.copy(metadata=e.metadata.merge(meta)))
     })
+    // Should crash if we still have holes as its a bug
+    val graph = compactGraph :+ newEdges
 
     new RewriteSearchState(graph)
   }
