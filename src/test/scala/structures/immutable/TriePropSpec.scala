@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.Explicit
+import structures.{Explicit, Ignored, Repetition}
 
 import scala.util.Random
 
@@ -55,11 +55,21 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("empty find prefix returns all") {
     check(forAll { trie: Trie[Int] =>
-      trie.words == trie.findPatternPrefix(Seq())
+      trie.words == trie.findRegex(Seq(Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get))
     })
   }
 
   property("added should be findable as sparse") {
+    check(forAll { trie: Trie[Int] =>
+      trie.words.forall(word => {
+        val repetitionInf = Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get
+        val regex = word.flatMap(i => Seq(repetitionInf, Explicit(i))) :+ repetitionInf
+        trie.findRegex(regex).contains(word)
+      })
+    })
+  }
+
+  property("added should be findable") {
     check(forAll { trie: Trie[Int] =>
       trie.words.forall(word => trie.findRegex(word.map(Explicit(_))).contains(word))
     })
