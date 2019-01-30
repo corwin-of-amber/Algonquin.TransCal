@@ -12,7 +12,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
   extends IterableLike[Word[Letter], This] {
   // TODO: extend Set when we understand how
 
-  import VocabularyLike.WordPattern
+  import VocabularyLike.WordRegex
 
   /** Find words by a regex.
     *
@@ -20,7 +20,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     * @tparam Id A reference type to show repetition connection in the pattern.
     * @return The matching words.
     */
-  def findRegex[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]]
+  def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]]
 
   /**
     * @return The words in the vocabulary
@@ -76,5 +76,5 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
 object VocabularyLike {
   type Word[Letter] = Seq[Letter]
   type LetterPattern[Letter, Id] = Item[Letter, Id]
-  type WordPattern[Letter, Id] = Word[LetterPattern[Letter, Id]]
+  type WordRegex[Letter, Id] = Word[LetterPattern[Letter, Id]]
 }
