@@ -14,9 +14,8 @@ import scala.io.BufferedSource
   * @author tomer
   * @since 11/24/18
   */
-class Interpreter(userInput: BufferedSource, userOutput: PrintStream, parser: Parser[Term]) {
-  private val lines = userInput.getLines()
-  private val actions = Seq(new UserAction(lines, userOutput, parser))
+class Interpreter(terms: Iterator[Term], userOutput: PrintStream) {
+  private val actions = Seq(new UserAction(terms, userOutput))
 
   def start: Unit = {
     var oldState: ActionSearchState = null
@@ -26,6 +25,6 @@ class Interpreter(userInput: BufferedSource, userOutput: PrintStream, parser: Pa
       for(action <- actions) {
         newState = action.apply(newState)
       }
-    } while(lines.hasNext)
+    } while(terms.hasNext)
   }
 }

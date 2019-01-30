@@ -19,15 +19,12 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/18/18
   */
-class UserAction(in: Iterator[String], out:PrintStream, parser: Parser[Term]) extends Action {
+class UserAction(in: Iterator[Term], out:PrintStream) extends Action {
 
   /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    out.print(f"In [${lines.length}]: ")
-    out.flush()
-    val line: String = in.next()
-    val baseTerm = parser.apply(line)
+    val baseTerm = in.next()
     val (term, annotation) = if (baseTerm.root == Language.annotationId) (baseTerm.subtrees(0), Some(baseTerm.subtrees(1)))
                 else (baseTerm, None)
 
@@ -85,10 +82,6 @@ class UserAction(in: Iterator[String], out:PrintStream, parser: Parser[Term]) ex
       }
 
     val output: String = newState.toString
-
-    out.println(f"Out [${lines.length}]: $output")
-    out.flush()
-    lines += ((line, newState))
    newState
   }
 
