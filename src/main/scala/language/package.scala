@@ -21,6 +21,7 @@ package object Language {
   val letLiteral: String = "="
   val directedLetLiteral: String = ">>"
   val commandLiteral: String = "Command"
+  val semicolonLiteral: String = ";"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -38,6 +39,7 @@ package object Language {
   val letId: Identifier = new Identifier(letLiteral)
   val directedLetId: Identifier = new Identifier(directedLetLiteral)
   val commandId: Identifier = new Identifier(commandLiteral)
+  val semicolonId: Identifier = new Identifier(semicolonLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 

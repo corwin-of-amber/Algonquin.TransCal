@@ -162,8 +162,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
       new Tree(Language.commandId, List(TREE(new Identifier(x))))
   }
 
-  def program: Parser[Term] = phrase((";" | "\n").* ~ (statement | commands) ~ rep((";" | "\n").+ ~ (statement | commands).?)) ^^ {
-    case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(I(";"), List(t1, t2)))
+  def program: Parser[Term] = phrase((semicolonLiteral | "\n").* ~ (statement | commands) ~ rep((semicolonLiteral | "\n").+ ~ (statement | commands).?)) ^^ {
+    case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(semicolonId, List(t1, t2)))
   }
 
   /** The known left operators at the moment */
