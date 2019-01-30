@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import language.Language
 import semantics.LambdaCalculus.isApp
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, Hole, HyperEdge}
+import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.RewriteRule.{HyperPattern, HyperPatternEdge}
@@ -22,6 +22,17 @@ import scala.collection.mutable
 class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
 
   /* --- Public --- */
+  /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
+    *
+    * @param hyperTermId The hyper term to build.
+    * @param pattern graph pattern to limit output terms
+    * @param root pattern root node
+    * @return all conforming terms
+    */
+  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, root: TemplateTerm[HyperTermId]): Iterator[Term] = {
+    val edgeTypes = pattern.edges.filter(_.target == root).map(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier)
+    reconstruct(hyperTermId).filter(t => edgeTypes.contains(t.root) && Programs.destruct(t).findSubgraph(pattern).nonEmpty)
+  }
 
   /** Builds trees from of programs where the hyper term is the base program.
     *
