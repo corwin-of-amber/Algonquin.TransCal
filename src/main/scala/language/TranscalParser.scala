@@ -113,11 +113,11 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     case _ ~ anno ~ _ => TREE(I(anno))
   }
 
-  def statementCommand: Parser[Term] = (expression ~ Language.commandLiteral ~ expression ~ annotation.?) ^^ { x =>
+  def statementCommand: Parser[Term] = (expression ~ Language.tacticLiteral ~ expression ~ annotation.?) ^^ { x =>
     logger.debug(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
-        val definitionTerm = new Tree(Language.commandId, List(left, right))
+        val definitionTerm = new Tree(Language.tacticId, List(left, right))
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
@@ -159,7 +159,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
     x =>
       logger.debug(s"command - $x")
-      new Tree(new Identifier("Command", x))
+      new Tree(Language.commandId, List(TREE(new Identifier(x))))
   }
 
   def program: Parser[Term] = phrase((";" | "\n").* ~ (statement | commands) ~ rep((";" | "\n").+ ~ (statement | commands).?)) ^^ {

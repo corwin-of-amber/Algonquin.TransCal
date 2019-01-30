@@ -10,13 +10,14 @@ import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB}
 import language.TranscalParser
-import synthesis.rewrites.RewriteRule
+import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.search.Operator
 
 class LocateActionTest extends FunSuite with Matchers with LazyLogging {
 
   test("can locate the whole term") {
-    val rules: Set[RewriteRule] = Set.empty
+    val rules: Set[Operator[RewriteSearchState]] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
@@ -34,7 +35,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
   }
 
   test("locate one out of two") {
-    val rules: Set[RewriteRule] = Set.empty
+    val rules: Set[Operator[RewriteSearchState]] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")

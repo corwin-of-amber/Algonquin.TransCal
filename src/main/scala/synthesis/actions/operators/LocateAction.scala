@@ -2,6 +2,7 @@ package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge, Metadata}
+import syntax.Identifier
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
@@ -76,6 +77,13 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 }
 
 object LocateAction {
+  val createTemporaryAnchor: () => HyperTermIdentifier = {
+    val anchors = Stream.from(0).map( i =>
+      HyperTermIdentifier(new Identifier(s"temp anchor $i", kind=Programs.Kinds.NonConstructable.toString))
+    ).toIterator
+    anchors.next
+  }
+
   case class LocateMetadata(edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) extends Metadata {
     override def toStr: String = s"LocateMetadata($edges)"
   }

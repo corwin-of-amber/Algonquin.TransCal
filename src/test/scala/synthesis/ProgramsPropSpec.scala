@@ -100,11 +100,4 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(graph.edgeTypes.count(_.identifier.literal == "b") == 1)
     check(graph.edges.filter(_.edgeType.identifier.literal == "a").head.sources.size == 3)
   }
-
-  property("destruct twice gives different HyperTermId") {
-    check(forAll { (term1: Term, term2: Term) =>
-      val commons = Programs.destruct(new Tree(new Identifier("\\/")))
-      Programs.destruct(term1).nodes.diff(commons.nodes).intersect(Programs.destruct(term2).nodes).isEmpty
-    })
-  }
 }
