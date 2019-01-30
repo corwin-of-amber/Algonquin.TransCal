@@ -8,21 +8,24 @@ import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
 
+import scala.io.BufferedSource
+
 /**
   * @author tomer
   * @since 11/24/18
   */
-class Interpreter(userInput: BufferedReader, userOutput: PrintStream, parser: Parser[Term]) {
-  private val actions = Seq(new UserAction(userInput, userOutput, parser))
+class Interpreter(userInput: BufferedSource, userOutput: PrintStream, parser: Parser[Term]) {
+  private val lines = userInput.getLines()
+  private val actions = Seq(new UserAction(lines, userOutput, parser))
 
   def start: Unit = {
     var oldState: ActionSearchState = null
-    var newState = new ActionSearchState(Programs.empty, Set())
+    var newState = ActionSearchState(Programs.empty, Set())
     do {
       oldState = newState
       for(action <- actions) {
         newState = action.apply(newState)
       }
-    } while(oldState != newState)
+    } while(lines.hasNext)
   }
 }
