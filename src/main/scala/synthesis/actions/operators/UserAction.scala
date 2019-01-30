@@ -4,6 +4,7 @@ import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.{I, Term}
 import language.{Language, Parser}
+import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike}
 import syntax.Tree
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
@@ -56,10 +57,10 @@ class UserAction(in: BufferedReader, out:PrintStream, parser: Parser[Term]) exte
           case t: Term if t.subtrees.isEmpty && t.root.literal != "_" =>
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
-            new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOneLike(
-              Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
+            new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
+              Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
               ExplicitTerm(foundId.get), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
-              ))).apply(state)
+              ): _*)).apply(state)
           case t: Term if t.root.literal.toString.startsWith("?") =>
             // A term to generalize - run generalize Action as is
             new GeneralizeAction(anchor, t.subtrees, new Tree(t.root)).apply(state)
