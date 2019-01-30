@@ -3,12 +3,13 @@ package language
 import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
+import org.scalatest.prop.Checkers
 import org.scalatest.{FunSuite, Inspectors, Matchers}
 import syntax.AstSugar.Term
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with Matchers with Inspectors with LazyLogging {
+abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
   test("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
@@ -23,53 +24,50 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Apply alot of abcd") {
-    val parsed = p("c a b d")
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 1
-    parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "c"
-    parsed.subtrees(1).root shouldEqual "a"
-    parsed.subtrees(2).root shouldEqual "b"
-    parsed.subtrees(3).root shouldEqual "d"
-  }
-
-  test("Able to catch parentheses") {
-    val parsed = p("c (a b) d")
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 2
-    parsed.root shouldEqual "@"
-    parsed.subtrees(0).root shouldEqual "c"
-    parsed.subtrees(1).root shouldEqual "@"
-    parsed.subtrees(1).subtrees(0).root shouldEqual "a"
-    parsed.subtrees(1).subtrees(1).root shouldEqual "b"
+    val parsed = p("_ -> c a b d").subtrees(1)
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
+    parsed.root shouldEqual "c"
+    parsed.subtrees(0).root shouldEqual "a"
+    parsed.subtrees(1).root shouldEqual "b"
     parsed.subtrees(2).root shouldEqual "d"
   }
 
+  test("Able to catch parentheses") {
+    val parsed = p("f = c (a b) d").subtrees(1)
+    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
+    parsed.root shouldEqual "c"
+    parsed.subtrees(0).root shouldEqual "a"
+    parsed.subtrees(1).root shouldEqual "d"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "b"
+  }
+
   test("Can have annotations") {
-    val parsed = p("_ [Anno]")
+    val parsed = p("f = _ [Anno]")
     parsed.root shouldEqual "Annotation"
     parsed.subtrees(1).root shouldEqual "Anno"
-    parsed.subtrees(0).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(1).root shouldEqual "_"
   }
 
   test("Can have two statements") {
-    val parsed = p("_;_")
+    val parsed = p("f = _ ; g = _")
     parsed.root shouldEqual ";"
-    parsed.subtrees(0).root shouldEqual "_"
-    parsed.subtrees(1).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "f"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "g"
   }
 
   test("Can have two statements with newline") {
-    val parsed = p("_ \n _")
+    val parsed = p("f = _ \n g = _")
     parsed.root shouldEqual ";"
-    parsed.subtrees(0).root shouldEqual "_"
-    parsed.subtrees(1).root shouldEqual "_"
+    parsed.subtrees(0).subtrees(0).root shouldEqual "f"
+    parsed.subtrees(1).subtrees(0).root shouldEqual "g"
   }
 
   test("Parse alot of booleans") {
-    val parsed = p("(a = b) /\\ (c < b) -> d ∈ e")
+    val parsed = p("(a == b) /\\ (c < b) -> d ∈ e")
     parsed.root shouldEqual "->"
     // Next function is and and has 2 params so 2 applys
     parsed.subtrees(0).root shouldEqual "∧"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "="
+    parsed.subtrees(0).subtrees(0).root shouldEqual "=="
 
     // First parameter is = which has 2 params so 2 applys
     parsed.subtrees(0).subtrees(0).subtrees(0).root shouldEqual "a"
@@ -83,9 +81,29 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(1).subtrees(0).root shouldEqual "d"
     parsed.subtrees(1).subtrees(1).root shouldEqual "e"
   }
+
+  test("Parse tuples and parenthesised expressions") {
+    val parsed = p("(a,) 0 -> (a)")
+    parsed.root shouldEqual "->"
+    parsed.subtrees(0).root shouldEqual Language.tupleId
+    parsed.subtrees(0).subtrees(0) shouldEqual parsed.subtrees(1)
+  }
+
+  test("Syntax sugar for function definition should create lhs apply") {
+    val parsed = p("f = ?x ↦ x + 1")
+    parsed.root shouldEqual "="
+    parsed.subtrees(0).root.literal shouldEqual "f"
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
+  }
+
+  test("apply of f translated correctly") {
+    val parsed = p("f ?x = x + 1")
+    parsed.root shouldEqual "="
+    parsed.subtrees(0).root.literal shouldEqual "f"
+  }
 }
 
-class OldParserTest extends ParserTest(new OldParser())
+//class OldParserTest extends ParserTest(new OldParser())
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser = p.asInstanceOf[TranscalParser]

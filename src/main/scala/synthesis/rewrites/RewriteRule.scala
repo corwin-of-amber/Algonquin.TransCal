@@ -79,34 +79,21 @@ class RewriteRule(conditions: HyperPattern,
     graph
   }
 
-  private def termToHyperItem[T <: HyperTerm](templateTerm: TemplateTerm[T]): Item[T, Int] = templateTerm match {
-    case ReferenceTerm(i) => Hole(i)
-    case ExplicitTerm(term) => Explicit(term)
-  }
-
-  private val subGraphConditions: SubHyperGraphPattern = {
-    val edges = conditions.map(e => rewrites.patternEdgeCreator(
-        termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem)
-    ))
-    HyperGraphManyWithOrderToOne(edges.toSeq:_*)
-  }
+  private val subGraphConditions: SubHyperGraphPattern = conditions
 
   // Existential cannot be a function
-  private val destHoles = destination.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
-  private val condHoles = conditions.nodes.map(termToHyperItem).filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val destHoles = destination.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val condHoles = conditions.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
   private def subGraphDestination: SubHyperGraphPattern = {
-    val edges: Set[SubHyperEdgePattern] = destination.edges.map(e =>
-      patternEdgeCreator(termToHyperItem(e.target), termToHyperItem(e.edgeType), e.sources.map(termToHyperItem))
-    )
-
     // TODO: change to Uid from Programs instead of global
     // TODO: prevent existentials from being recreated.
 //    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
 //      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
-    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
-    HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]((edges ++ existentialEdges).toSeq:_*)
+//    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
+//    destination.addEdges(existentialEdges)
+    destination
   }
 }
 

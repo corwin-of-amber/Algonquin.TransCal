@@ -82,21 +82,23 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("destruct pattern has right amount of references") {
     val parser = new TranscalParser
-    val pattern1 = parser("_ + _")
-    check(Programs.destructPattern(pattern1).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 2)
-    val pattern2 = parser("_ + _ - _")
-    check(Programs.destructPattern(pattern2).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
-    val pattern3 = parser("?x ?y -> _ + x + y")
-    check(Programs.destructPattern(pattern3).nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
+    val pattern1 = Programs.destructPattern(parser("_ -> _ + _").subtrees(1), Set.empty)
+    check(pattern1.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
+    val pattern2 = Programs.destructPattern(parser("_ -> _ + _ - _").subtrees(1), Set.empty)
+    check(pattern2.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
+    val pattern3 = Programs.destructPattern(parser("?x ?y -> _ + x + y").subtrees(1),
+      Set[Set[Term]](Set(new Tree(new Identifier("?x")), new Tree(new Identifier("x"))),
+          Set(new Tree(new Identifier("?y")), new Tree(new Identifier("y")))))
+    check(pattern3.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
   }
 
   property("destruct apply and reconstruct should work correctly") {
     val parser = new TranscalParser
-    val term = parser("(a b) c d")
+    val term = parser("_ -> (a b) c d")
     val graph = Programs.destruct(term)
-    check(graph.edgeTypes.count(_.identifier.literal == "@") == 1)
     check(graph.edgeTypes.count(_.identifier.literal == "a") == 1)
     check(graph.edgeTypes.count(_.identifier.literal == "b") == 1)
+    check(graph.edges.filter(_.edgeType.identifier.literal == "a").head.sources.size == 3)
   }
 
   property("destruct twice gives different HyperTermId") {

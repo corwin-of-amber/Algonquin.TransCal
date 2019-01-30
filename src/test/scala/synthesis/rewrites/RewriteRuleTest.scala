@@ -19,7 +19,7 @@ class RewriteRuleTest extends FunSuite with Matchers {
       HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
     }).toSeq:_*))
     val newState = rewriteRule.apply(state)
-    val expectedEdges = (destinations.edges -- conditions.edges).map(e => HyperEdge(e.target.asInstanceOf[ExplicitTerm[HyperTermId]].term, e.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].term, e.sources.map(_.asInstanceOf[ExplicitTerm[HyperTermId]].term), e.metadata))
+    val expectedEdges = (destinations.edges -- conditions.edges).map(e => HyperEdge(e.target.asInstanceOf[ExplicitTerm[HyperTermId]].value, e.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value, e.sources.map(_.asInstanceOf[ExplicitTerm[HyperTermId]].value), e.metadata))
     expectedEdges.size shouldEqual (newState.graph.edges -- state.graph.edges).size
   }
 

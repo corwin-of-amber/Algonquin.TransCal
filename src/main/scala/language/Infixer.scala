@@ -79,6 +79,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
 
 object Infixer {
   val MIDDLE = 5
+  val HIGH = 50
 }
 
 trait TermInfixer extends Infixer[Term, TermInfixer] {
