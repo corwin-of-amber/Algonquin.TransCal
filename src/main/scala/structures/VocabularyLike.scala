@@ -22,14 +22,6 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     */
   def findRegex[Id](pattern: WordPattern[Letter, Id]): Set[Word[Letter]]
 
-  /** Find words by a prefix.
-    *
-    * @param prefix The prefix to find.
-    * @tparam Id A reference type to show repetition connection in the pattern.
-    * @return The matching words.
-    */
-  def findPatternPrefix[Id](prefix: WordPattern[Letter, Id]): Set[Word[Letter]] = findRegex(prefix :+ Repetition.rep0[Letter, Id](Int.MaxValue, Ignored()).get)
-
   /**
     * @return The words in the vocabulary
     */
