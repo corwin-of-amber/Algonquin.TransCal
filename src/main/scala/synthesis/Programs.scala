@@ -71,7 +71,7 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
     * @return New programs with the term in it.
     */
   def addTerm(term: Term): Programs = {
-    Programs(hyperGraph ++ Programs.destruct(term, hyperGraph.nodes.maxBy(_.id)))
+    Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.nodes.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
   }
 
   def +(term: Term): Programs = addTerm(term)
