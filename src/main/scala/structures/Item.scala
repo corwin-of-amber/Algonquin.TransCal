@@ -4,11 +4,11 @@ package structures
   * @author tomer
   * @since 12/25/18
   */
-sealed trait Item[Value, Id]
-final case class Explicit[Value, Id](value: Value) extends Item[Value, Id]
-final case class Hole[Value, Id](id: Id) extends Item[Value, Id]
-final case class Ignored[Value, Id]() extends Item[Value, Id]
-final case class Repetition[Value, Id] private (minRepetition: Int, maxRepetition: Int, repeated: Item[Value, Id]) extends Item[Value, Id]
+sealed trait Item[+Value, +Id]
+final case class Explicit[+Value, +Id](value: Value) extends Item[Value, Id]
+final case class Hole[+Value, +Id](id: Id) extends Item[Value, Id]
+final case class Ignored[+Value, +Id]() extends Item[Value, Id]
+final case class Repetition[+Value, +Id] private (minRepetition: Int, maxRepetition: Int, repeated: Item[Value, Id]) extends Item[Value, Id]
 object Repetition {
   def rep0[Value, Id](maxRepetition: Int, repeated: Item[Value, Id]): Option[Repetition[Value, Id]] = rep(0, maxRepetition, repeated)
   def rep1[Value, Id](maxRepetition: Int, repeated: Item[Value, Id]): Option[Repetition[Value, Id]] = rep(1, maxRepetition, repeated)

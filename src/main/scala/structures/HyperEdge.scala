@@ -4,7 +4,7 @@ package structures
   * @author tomer
   * @since 12/25/18
   */
-final case class HyperEdge[Node, EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node], metadata: Metadata) {
+final case class HyperEdge[+Node, +EdgeType](target: Node, edgeType: EdgeType, sources:Seq[Node], metadata: Metadata) {
   private val tup = (target, edgeType, sources)
 
   override def hashCode(): Int = tup.hashCode()
