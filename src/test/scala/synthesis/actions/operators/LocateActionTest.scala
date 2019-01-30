@@ -1,18 +1,17 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
+import language.TranscalParser
 import org.scalatest.{FunSuite, Matchers}
+import structures.immutable.VocabularyHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
-import syntax.AstSugar.Term
 import syntax.Identifier
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB}
-import language.TranscalParser
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
+import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 class LocateActionTest extends FunSuite with Matchers with LazyLogging {
 
@@ -22,7 +21,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
     val progs = Programs(mainTerm)
-    val state = new ActionSearchState(progs, rules)
+    val state = ActionSearchState(progs, rules)
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(new Identifier("="))), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )
@@ -40,7 +39,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
     val progs = Programs(mainTerm)
-    val state = new ActionSearchState(progs, rules)
+    val state = ActionSearchState(progs, rules)
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(new Identifier("↦"))), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )

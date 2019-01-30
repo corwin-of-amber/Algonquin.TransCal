@@ -17,7 +17,7 @@ class Interpreter(userInput: BufferedReader, userOutput: PrintStream, parser: Pa
 
   def start: Unit = {
     var oldState: ActionSearchState = null
-    var newState = new ActionSearchState(Programs.empty, Set())
+    var newState = ActionSearchState(Programs.empty, Set())
     do {
       oldState = newState
       for(action <- actions) {
