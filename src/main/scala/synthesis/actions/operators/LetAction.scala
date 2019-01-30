@@ -1,18 +1,15 @@
 package synthesis.actions.operators
 
-import semantics.LambdaCalculus
-import syntax.{Identifier, Scheme, Tree}
-import synthesis.actions.ActionSearchState
-import LambdaCalculus.↦⁺
 import language.Language
 import structures._
 import syntax.AstSugar._
+import syntax.{Identifier, Tree}
+import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LetAction.LetMetadata
-import synthesis.rewrites.{RewriteRule, Template}
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 /** Let action adds a rewrite rule to show the equality between the two templates.
   * This action also adds all equalities
@@ -85,7 +82,7 @@ class LetAction(term: Term) extends Action {
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Take main expression and create a rewrite
-    new ActionSearchState(state.programs, state.rewriteRules ++ rewrites)
+    ActionSearchState(state.programs, state.rewriteRules ++ rewrites)
   }
 }
 

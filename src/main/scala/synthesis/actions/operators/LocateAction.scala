@@ -60,7 +60,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
     logFoundEdges(state, newEdges)
-    new ActionSearchState(Programs(state.programs.hyperGraph.addEdges(newEdges)), state.rewriteRules)
+    ActionSearchState(Programs(state.programs.hyperGraph.addEdges(newEdges)), state.rewriteRules)
   }
 
   private def logFoundEdges(state: ActionSearchState, newEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Unit = {

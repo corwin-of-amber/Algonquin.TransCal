@@ -1,12 +1,10 @@
 package structures.immutable
 
-import language.Language
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures._
-import synthesis.{HyperTermId, HyperTermIdentifier}
 
 import scala.util.Random
 
@@ -106,7 +104,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       (es.size > 1) ==> {
         val g = grapher(es)
-        es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.find(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored[Int, Int]()), EmptyMetadata)))
+        es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.find(HyperEdge(Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored()), EmptyMetadata)))
       }
     })
   }
@@ -116,7 +114,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
       (es.size > 1) ==> {
         val g = grapher(es)
         0 to 8 forall { i =>
-          val pat = HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
+          val pat = HyperEdge(Ignored(), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
           g.find(pat).size == es.count(_.sources.length == i)
         }
       }
@@ -129,7 +127,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         val g = grapher(es)
         es.map(_.target) forall { t =>
           0 to 8 forall { i =>
-            val pat = HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(t), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
+            val pat = HyperEdge(Explicit(t), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
             g.find(pat).size == es.count(e => e.sources.length == i && e.target == t)
           }
         }
@@ -140,8 +138,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("find graph finds itself") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
-      val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
-        grapher(es map (e => HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]), EmptyMetadata)))
+      val pg = grapher[Item[Int, Int], Item[Int, Int]](es map (e => HyperEdge(Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]), EmptyMetadata)))
       g.findSubgraph[Int](pg).size == 1
     })
   }
@@ -149,11 +146,11 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("find graph finds nothing") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
-      val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored[Int, Int](), Explicit[Int, Int](800), Seq[Item[Int, Int]](Ignored[Int, Int](), Ignored[Int, Int]()), EmptyMetadata),
-        HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit[Int, Int](800), Ignored[Int, Int](), Seq[Item[Int, Int]](), EmptyMetadata),
-        HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored[Int, Int](), Ignored[Int, Int](), Seq[Item[Int, Int]](Explicit[Int, Int](800)), EmptyMetadata)).map(Set(_))
+      val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
+        HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
+        HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
       edges.forall(e => {
-        val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] = grapher(e)
+        val pg = grapher[Item[Int, Int], Item[Int, Int]](e)
         g.findSubgraph[Int](pg).isEmpty
       }
       )
@@ -163,21 +160,21 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("find graph finds edges by type") {
     check(forAll { es: Set[HyperEdge[Int, Int]] => es.nonEmpty ==> {
       val g = grapher(es)
-      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] =
-        es.head.copy(target = Explicit[Int, Int](es.head.target), edgeType = Hole[Int, Int](0), sources = es.head.sources.map(Explicit[Int, Int]))
+      val pattern =
+        es.head.copy(target = Explicit(es.head.target), edgeType = Hole(0), sources = es.head.sources.map(Explicit[Int, Int]))
       g.find(pattern).contains(es.head)
   }})}
 
   property("find with one ignore finds something") {
     check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
       val g = grapher(es)
-      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Hole[Int, Int](0), Hole[Int, Int](1), List(Ignored[Int, Int]()), EmptyMetadata)
+      val pattern = HyperEdge(Hole(0), Hole(1), List(Ignored()), EmptyMetadata)
       g.find(pattern).nonEmpty
     }})}
 
   property("find regex rep0 with 0 sources") {
     val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
-    val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Explicit[Int, Int](0), Explicit[Int, Int](1), List(Repetition.rep0(500, Ignored[Int, Int]()).get), EmptyMetadata)
+    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
     val found = graph.find(pattern)
     val edges = graph.edges
     check(found == edges)
@@ -186,7 +183,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
   property("find by ignore regex finds all") {
     check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
       val g = grapher(es)
-      val pattern: HyperEdge[Item[Int, Int], Item[Int, Int]] = HyperEdge[Item[Int, Int], Item[Int, Int]](Hole[Int, Int](0), Hole[Int, Int](1), List(Repetition.rep0(500, Ignored[Int, Int]()).get), EmptyMetadata)
+      val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
       g.find(pattern) == es
     }})}
 
@@ -197,9 +194,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         es.exists(e => {
           e.sources.indices exists { i =>
             0 until 10 exists { j =>
-              val pg: VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]] =
-                grapher(Set(HyperEdge[Item[Int, Int], Item[Int, Int]](Hole(0), Ignored[Int, Int](), (0 until j).map(_ => Ignored[Int, Int]()), EmptyMetadata),
-                  HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Ignored[Int, Int](), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole[Int, Int](0) else Ignored[Int, Int]()), EmptyMetadata)))
+              val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(HyperEdge(Hole(0), Ignored(), (0 until j).map(_ => Ignored()), EmptyMetadata),
+                  HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)))
               val results = g.findSubgraph[Int](pg)
               val resultsValues = results.map(t=> (t._1.values, t._2.values))
               val foundTarget = resultsValues.map(t => t._1 ++ t._2).forall(vals => vals.toList.contains(e.sources(i)))
