@@ -81,7 +81,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
     logger.trace("Remove with index")
-    logger.debug(f"Trying to remove $word")
+    logger.trace(f"Trying to remove $word")
     val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
       val subtrieRemoved = mapSubtries(letter).removeRecursive(word.drop(1 + mapIndex), originalWord)
       if (subtrieRemoved.isEmpty) {
