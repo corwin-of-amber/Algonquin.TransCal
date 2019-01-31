@@ -44,7 +44,8 @@ class UserAction(in: Iterator[Term], out:PrintStream) extends Action {
         val newState = new LocateAction(anchor, hyperPattern).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         logger.info(s"Locate Action: ${term.subtrees.head} with temporary anchor $anchor")
         val foundId = newState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
-        logger.info(s"${newState.programs.reconstructWithPattern(foundId.getOrElse(HyperTermId(-999999999)), hyperPattern, root)}")
+        val terms = newState.programs.reconstructWithPattern(foundId.getOrElse(HyperTermId(-999999999)), hyperPattern, root)
+        logger.info(s"${if (terms.hasNext) terms.next() else "failed"}")
 
       //   The right is:
       //   1) a symbol

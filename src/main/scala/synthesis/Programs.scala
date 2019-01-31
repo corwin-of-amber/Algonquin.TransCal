@@ -7,6 +7,7 @@ import structures.immutable.HyperGraphManyWithOrderToOne
 import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
+import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.{HyperPattern, HyperPatternEdge}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
@@ -55,7 +56,7 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
         */
       def recursive(root: HyperTermId): Iterator[Term] = {
         val edges = hyperTermToEdge.get(root)
-        edges.map(edges => edges.filter(_.edgeType.identifier.kind != Programs.Kinds.NonConstructable.toString).toIterator.flatMap(edge => {
+        edges.map(edges => edges.filter(_.metadata.forall(_ != NonConstructableMetadata)).toIterator.flatMap(edge => {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
           else Programs.combineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })).get
@@ -85,8 +86,8 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
 object Programs extends LazyLogging {
 
   /* --- Public --- */
-  object Kinds extends Enumeration {
-    val Constructable, NonConstructable = Value
+  object NonConstructableMetadata extends Metadata {
+    override protected def toStr: String = "Non Constructable"
   }
 
   def empty: Programs = Programs(HyperGraphManyWithOrderToOne.empty[HyperTermId, HyperTermIdentifier])

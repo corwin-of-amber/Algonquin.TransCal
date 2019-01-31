@@ -3,6 +3,7 @@ package synthesis.actions.operators
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge, Metadata}
 import syntax.Identifier
+import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
@@ -16,8 +17,6 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @since 11/18/18
   */
 class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Action {
-  assert(anchor.identifier.kind == Programs.Kinds.NonConstructable.toString)
-
   /** To be used during the BFS rewrite search
     *
     * @param state the current state
@@ -30,7 +29,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
     assert(roots.size == 1)
     val root = roots.head
-    val destPattern = HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata))
+    val destPattern = HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, NonConstructableMetadata))
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
@@ -79,7 +78,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map( i =>
-      HyperTermIdentifier(new Identifier(s"temp anchor $i", kind=Programs.Kinds.NonConstructable.toString))
+      HyperTermIdentifier(new Identifier(s"temp anchor $i"))
     ).toIterator
     anchors.next
   }
