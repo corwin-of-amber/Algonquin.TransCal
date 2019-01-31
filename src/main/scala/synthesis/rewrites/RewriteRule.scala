@@ -28,8 +28,8 @@ class RewriteRule(conditions: HyperPattern,
 
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
-    logger.trace("Creating a new state")
-    val compactGraph = compact(state.graph) // Should this be only after id ruleType? we don't really need to compact any other time!
+    logger.debug(s"Running rewrite rule $this")
+    val compactGraph = state.graph
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
@@ -42,7 +42,9 @@ class RewriteRule(conditions: HyperPattern,
 
     val newEdges = conditionsReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
-      HyperGraphManyWithOrderToOneLike.fillPattern(subGraphDestination, m, nextHyperId).map(e =>
+      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphDestination, m)
+      if (compactGraph.findSubgraph(merged).nonEmpty) Seq.empty
+      else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
         e.copy(metadata=e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
@@ -54,16 +56,6 @@ class RewriteRule(conditions: HyperPattern,
   /* --- Privates --- */
 
   val metadata: RewriteRuleMetadata = RewriteRuleMetadata(this)
-
-  /** This function should work only after "id" rule.
-    *
-    * @param graph
-    * @return
-    */
-  private def compact(graph: HyperGraph): HyperGraph = {
-    logger.trace("Compacting graph")
-    graph
-  }
 
   private val subGraphConditions: SubHyperGraphPattern = conditions
 

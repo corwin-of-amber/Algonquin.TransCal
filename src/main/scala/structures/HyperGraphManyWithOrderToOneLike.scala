@@ -113,38 +113,43 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
 
 object HyperGraphManyWithOrderToOneLike {
+  def mergeMap[Node, EdgeType, Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern,
+                                                                                              maps: (Map[Id, Node], Map[Id, EdgeType])): Pattern = {
+    val (nodeMap, edgeMap) = maps
+    val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
+      // From each map create new edges from the destination graph
+      graph.mergeNodes(Explicit[Node, Id](kv._2), Hole[Node, Id](kv._1))
+    })
+
+    val mergedAll = edgeMap.foldLeft(mergedNodes)((graph, kv) => {
+      // From each map create new edges from the destination graph
+      graph.mergeEdgeTypes(Explicit[EdgeType, Id](kv._2), Hole[EdgeType, Id](kv._1))
+    })
+    mergedAll
+  }
+
+  def fillWithNewHoles[Node, EdgeType, Id,
+  Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern, nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
+    val newTerms = hyperPattern.nodes.filter(_.isInstanceOf[Hole[Node, Id]]).map((_, nodeCreator()))
+
+    def translateEdge(hyperEdgePattern: HyperEdgePattern[Node, EdgeType, Id]): HyperEdge[Node, EdgeType] = {
+      hyperEdgePattern.copy(hyperEdgePattern.target.asInstanceOf[Explicit[Node, Id]].value, hyperEdgePattern.edgeType.asInstanceOf[Explicit[EdgeType, Id]].value,
+        hyperEdgePattern.sources.map(s => s.asInstanceOf[Explicit[Node, Id]].value))
+    }
+
+    newTerms.foldLeft(hyperPattern)((graph, kv) => {
+      // From each map create new edges from the destination graph
+      graph.mergeNodes(Explicit[Node, Id](kv._2), kv._1)
+    }).map(translateEdge).toSet
+  }
+
   def fillPattern[Node, EdgeType, Id,
     Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern,
                                                                maps: (Map[Id, Node], Map[Id, EdgeType]),
                                                                nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
-
-    def extractNewEdges(m: (Map[Id, Node], Map[Id, EdgeType])): Set[HyperEdge[Node, EdgeType]] = {
-      val (nodeMap, edgeMap) = m
-      val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
-        // From each map create new edges from the destination graph
-        graph.mergeNodes(Explicit[Node, Id](kv._2), Hole[Node, Id](kv._1))
-      })
-
-      val mergedAll = edgeMap.foldLeft(mergedNodes)((graph, kv) => {
-        // From each map create new edges from the destination graph
-        graph.mergeEdgeTypes(Explicit[EdgeType, Id](kv._2), Hole[EdgeType, Id](kv._1))
-      })
-
-      val newTerms = mergedAll.nodes.filter(_.isInstanceOf[Hole[Node, Id]]).map((_, nodeCreator()))
-
-      def translateEdge(hyperEdgePattern: HyperEdgePattern[Node, EdgeType, Id]): HyperEdge[Node, EdgeType] = {
-        hyperEdgePattern.copy(hyperEdgePattern.target.asInstanceOf[Explicit[Node, Id]].value, hyperEdgePattern.edgeType.asInstanceOf[Explicit[EdgeType, Id]].value,
-          hyperEdgePattern.sources.map(s => s.asInstanceOf[Explicit[Node, Id]].value))
-      }
-
-      newTerms.foldLeft(mergedAll)((graph, kv) => {
-        // From each map create new edges from the destination graph
-        graph.mergeNodes(Explicit[Node, Id](kv._2), kv._1)
-      }).map(translateEdge).toSet
-    }
-
     // Should crash if we still have holes as its a bug
-    extractNewEdges(maps)
+    val mergedAll = mergeMap[Node, EdgeType, Id, Pattern](hyperPattern, maps)
+    fillWithNewHoles[Node, EdgeType, Id, Pattern](mergedAll, nodeCreator)
   }
 
   // Shortcuts
