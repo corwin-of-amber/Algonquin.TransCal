@@ -16,7 +16,7 @@ import synthesis.actions.ActionSearchState
   */
 class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term) extends Action with LazyLogging {
   override def apply(state: ActionSearchState): ActionSearchState = {
-
+    logger.debug(s"Running generalize action on $anchor")
     val roots = state.programs.hyperGraph.findEdges(anchor) map (_.target)
 
     val context: Set[Term] = Set.empty  // s.env.vars.toSet

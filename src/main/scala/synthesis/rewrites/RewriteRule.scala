@@ -28,7 +28,7 @@ class RewriteRule(conditions: HyperPattern,
 
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
-    logger.debug(s"Running rewrite rule $this")
+    logger.trace(s"Running rewrite rule $this")
     val compactGraph = state.graph
 
     // Fill conditions - maybe subgraph matching instead of current temple
