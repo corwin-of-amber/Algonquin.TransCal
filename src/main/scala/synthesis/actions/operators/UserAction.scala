@@ -42,7 +42,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
       //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
         val (hyperPattern, root) = Programs.destructPatternWithRoot(term.subtrees.head, Set.empty)
-        val tempState = new LocateAction(anchor, hyperPattern).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
+        val tempState = new LocateAction(anchor, hyperPattern, root).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         logger.info(s"Locate Action: ${term.subtrees.head} with temporary anchor $anchor")
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
@@ -64,10 +64,10 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
             logger.debug("Found locate to symbol. Running locate.")
-            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
+            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
               ExplicitTerm(foundId.get), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
-              ): _*)).apply(tempState)
+              ): _*), ExplicitTerm(foundId.get)).apply(tempState)
             logger.debug("Finished adding symbol.")
             res
           case t: Term if t.root.literal.toString.startsWith("?") =>
@@ -79,7 +79,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             logger.debug("Found locate to pattern. Running locate as elaborate.")
             val (hyperPattern, root) = Programs.destructPatternWithRoot(t, Set.empty)
             val newPattern = hyperPattern.addEdge(HyperEdge(root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata))
-            new LocateAction(anchor, newPattern).apply(tempState)
+            new LocateAction(anchor, newPattern, root).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")

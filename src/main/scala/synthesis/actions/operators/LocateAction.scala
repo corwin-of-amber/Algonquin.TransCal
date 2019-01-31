@@ -16,7 +16,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, root: TemplateTerm[HyperTermId]) extends Action {
   /** To be used during the BFS rewrite search
     *
     * @param state the current state
@@ -58,20 +58,14 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    logFoundEdges(state, newEdges)
-    ActionSearchState(Programs(state.programs.hyperGraph.addEdges(newEdges)), state.rewriteRules)
-  }
-
-  private def logFoundEdges(state: ActionSearchState, newEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Unit = {
-    val foundEdges = newEdges.headOption.map(_.metadata.find(_.isInstanceOf[LocateMetadata])
-      .map(_.asInstanceOf[LocateMetadata].edges).getOrElse(Set.empty)
-    ).getOrElse(Set.empty)
-    val filterTargets = foundEdges.map(_.target)
-    val reconstructGraph = HyperGraphManyWithOrderToOne(
-      (state.programs.hyperGraph.edges.filterNot(e => filterTargets.contains(e.target)) ++ foundEdges).toSeq:_*
-    )
+    val newPrograms = Programs(state.programs.hyperGraph.addEdges(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
-    else logger.info(Programs(reconstructGraph).reconstruct(newEdges.head.target).next().toString())
+    else {
+      val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, root)
+      if (terms.hasNext) logger.debug(terms.next().toString())
+      else logger.debug("Found term not constructable (probably a symbol)")
+    }
+    ActionSearchState(newPrograms, state.rewriteRules)
   }
 }
 
