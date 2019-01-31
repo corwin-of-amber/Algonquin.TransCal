@@ -79,7 +79,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             logger.debug("Found locate to pattern. Running locate as elaborate.")
             val (hyperPattern, root) = Programs.destructPatternWithRoot(t, Set.empty)
             val newPattern = hyperPattern.addEdge(HyperEdge(root, ExplicitTerm(anchor), Seq.empty, EmptyMetadata))
-            new LocateAction(anchor, newPattern, root).apply(tempState)
+            new LocateAction(LocateAction.createTemporaryAnchor(), newPattern, root).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")
