@@ -19,7 +19,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/18/18
   */
-class UserAction(in: Iterator[Term], out:PrintStream) extends Action {
+class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
 
   /* --- Public --- */
 
