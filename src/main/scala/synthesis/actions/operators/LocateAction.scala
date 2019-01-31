@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, Metadata}
+import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
 import syntax.Identifier
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -33,18 +33,11 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, root: Templa
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
-    def locateDataCreator(hyperIdMap: Map[Int, HyperTermId], hyperIdent: Map[Int, HyperTermIdentifier]): Metadata = {
-      def extract1(t: TemplateTerm[HyperTermId]) = t match {
-        case ReferenceTerm(i) => hyperIdMap(i)
-        case ExplicitTerm(ht) => ht
+    def locateDataCreator(idMap: Map[Int, HyperTermId], identMap: Map[Int, HyperTermIdentifier]): Metadata = {
+      val hyperTermCreator: () => HyperTermId = {
+        () => throw new RuntimeException("there should not be any leftover holes")
       }
-      def extract2(t: TemplateTerm[HyperTermIdentifier]) = t match {
-        case ReferenceTerm(i) => hyperIdent(i)
-        case ExplicitTerm(ht) => ht
-      }
-      val newEdges = goal.edges.map({
-        case HyperEdge(t, et, sources, meta) => HyperEdge[HyperTermId, HyperTermIdentifier](extract1(t), extract2(et), sources.map(extract1), meta)
-      })
+      val newEdges = HyperGraphManyWithOrderToOneLike.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -58,7 +51,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, root: Templa
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newPrograms = Programs(state.programs.hyperGraph.addEdges(newEdges))
+    val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).addEdges(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else {
       val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, root)
