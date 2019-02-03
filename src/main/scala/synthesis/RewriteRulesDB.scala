@@ -37,16 +37,18 @@ trait RewriteRulesDB extends LazyLogging {
           EmptyMetadata
         )
       })
-      HyperGraphManyWithOrderToOne(hyperPatternEdges.toSeq:_*)
+      HyperGraphManyWithOrderToOne(hyperPatternEdges.toSeq: _*)
     }
 
     def split(hyperGraph: HyperPattern): (HyperPattern, HyperPattern) = {
-      val baseEdge = hyperGraph.edges.maxBy(_.target match {case ReferenceTerm(id) => id})
-      val maxLeft = baseEdge.sources.head match {case ReferenceTerm(id) => id}
+      val baseEdge = hyperGraph.edges.maxBy(_.target match { case ReferenceTerm(id) => id })
+      val maxLeft = baseEdge.sources.head match {
+        case ReferenceTerm(id) => id
+      }
       val otherEdges = hyperGraph.edges - baseEdge
-      val leftEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id <= maxLeft})
-      val rightEdges = otherEdges.filter(_.target match {case ReferenceTerm(id) => id >= maxLeft})
-      (HyperGraphManyWithOrderToOne(leftEdges.toSeq:_*), HyperGraphManyWithOrderToOne(rightEdges.toSeq:_*))
+      val leftEdges = otherEdges.filter(_.target match { case ReferenceTerm(id) => id <= maxLeft })
+      val rightEdges = otherEdges.filter(_.target match { case ReferenceTerm(id) => id >= maxLeft })
+      (HyperGraphManyWithOrderToOne(leftEdges.toSeq: _*), HyperGraphManyWithOrderToOne(rightEdges.toSeq: _*))
     }
 
     ruleTemplate.root match {
@@ -78,6 +80,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
   import BasicSignature._
+
   override protected val ruleTemplates: Set[Term] = Set(
     `⇒:`(tt, y) =:> id(y),
     `⇒:`(ff, y) =:> ff,
@@ -137,7 +140,9 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
 
   override protected val ruleTemplates: Set[Term] = Set(
-    (x & (y & z)) =:= (x & y & z)
+    (x & (y & z)) =:= ((x & y) & z),
+    (x + (y + z)) =:= ((x + y) + z),
+    (x * (y * z)) =:= ((x * y) * z)
   )
 
   override protected def metadata: Metadata = AssociativeMetadata
