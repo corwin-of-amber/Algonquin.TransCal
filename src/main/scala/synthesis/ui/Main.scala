@@ -31,7 +31,7 @@ object Main extends App {
 
   val parser = new TranscalParser()
   val conf = new CommandLineConfiguration(args)
-  val consolein = Source.createBufferedSource(System.in).getLines().map(parser.apply)
+  val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
   val optionalFile: ScallopOption[Iterator[Term]] = conf.file.map(Source.fromFile).map(bs => splitByStatements(parser(bs.getLines().mkString("\n"))))
   val userInput: Iterator[Term] = optionalFile.getOrElse(consolein)
   val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
