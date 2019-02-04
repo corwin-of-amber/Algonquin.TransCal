@@ -27,54 +27,7 @@ trait RewriteRulesDB extends LazyLogging {
 
   lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 
-  private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = {
-    // TODO: use destruct pattern
-    def termToHyperPattern(term: Term): HyperPattern = {
-      val hyperPatternEdges = Programs.destruct(term).edges.filterNot(edge => vars.contains(edge.edgeType.identifier)).map(edge => {
-        HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
-          ReferenceTerm(edge.target.id),
-          ExplicitTerm(edge.edgeType),
-          edge.sources.map(hti => ReferenceTerm[HyperTermId](hti.id)),
-          EmptyMetadata
-        )
-      })
-      HyperGraphManyWithOrderToOne(hyperPatternEdges.toSeq: _*)
-    }
-
-    def split(hyperGraph: HyperPattern): (HyperPattern, HyperPattern) = {
-      val baseEdge = hyperGraph.edges.maxBy(_.target match { case ReferenceTerm(id) => id })
-      val maxLeft = baseEdge.sources.head match {
-        case ReferenceTerm(id) => id
-      }
-      val otherEdges = hyperGraph.edges - baseEdge
-      val leftEdges = otherEdges.filter(_.target match { case ReferenceTerm(id) => id <= maxLeft })
-      val rightEdges = otherEdges.filter(_.target match { case ReferenceTerm(id) => id >= maxLeft })
-      (HyperGraphManyWithOrderToOne(leftEdges.toSeq: _*), HyperGraphManyWithOrderToOne(rightEdges.toSeq: _*))
-    }
-
-    ruleTemplate.root match {
-      case AstSugar.`=` =>
-        val leftTerm = ruleTemplate.subtrees.head
-        val rightTerm = ruleTemplate.subtrees.last
-        logger.debug(s"equal $leftTerm $rightTerm")
-        val testPattern = termToHyperPattern(ruleTemplate)
-        val (leftPattern, rightPattern) = split(testPattern)
-        Set(
-          new RewriteRule(leftPattern, rightPattern, (a, b) => metadata),
-          new RewriteRule(rightPattern, leftPattern, (a, b) => metadata)
-        )
-      case relentless.rewriting.RewriteRule.`=>` =>
-        val leftTerm = ruleTemplate.subtrees.head
-        val rightTerm = ruleTemplate.subtrees.last
-        logger.debug(s"directional rewrite $leftTerm $rightTerm")
-        val testPattern = termToHyperPattern(ruleTemplate)
-        val (conditions, destination) = split(testPattern)
-        Set(new RewriteRule(conditions, destination, (a, b) => metadata))
-      case _ =>
-        logger.debug(s"unknown ${ruleTemplate.root}")
-        Set()
-    }
-  }
+  private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new Let
 }
 
 class SimpleRewriteRulesDB extends RewriteRulesDB {
@@ -83,20 +36,20 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ y) -> id(y)",
-    "(false ⇒ y) -> false",
+    "(true ⇒ y) >> id(y)",
+    "(false ⇒ y) >> false",
     "~true = false",
     "~false = true",
-    "x / false -> id x",
-    "false / x -> id x",
-    "id (id x) -> id x",
+    "x / false >> id x",
+    "false / x >> id x",
+    "id (id x) >> id x",
 
     "x == x' = x' ∈ { x }",
     "(x elem (x' :: xs')) = ((x == x') \\/ (x elem xs'))",
     "~(x == y) = (x != y)",
     "~(x ∈ y) = (x ∉ y)",
     "(x ∈ xs) = { x } ‖ xs",
-    "xs  { x } -> (x ∉ xs)",
+    "xs  { x } >> (x ∉ xs)",
     "~(x \\/ y) = (~x /\\ ~y)",
     "~(x /\\ y) = (~x \\/ ~y)",
     "((x ‖ xs) /\\ (y ‖ xs)) = ((x ∪ y) ‖ xs)",
@@ -105,29 +58,29 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "elems(x' :: xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
     "(y :+ x) = (y ++ (x :: ⟨⟩))",
-    "⟨⟩ ++ xs' -> id(xs')",
-    "xs' ++ ⟨⟩ -> id(xs')",
+    "⟨⟩ ++ xs' >> id(xs')",
+    "xs' ++ ⟨⟩ >> id(xs')",
     "x ++ (y ++ z) = (x ++ y) ++ z",
     "(x :: xs) ++ xs' = (x :: (xs ++ xs'))",
 
-    "((x < y) ||| true) -> (x ≤ y)",
-    "(x ≤ y) ||> min(x, y) -> id(x)",
-    "(x ≤ y) ||> min(y, x) -> id(x)",
+    "((x < y) ||| true) >> (x ≤ y)",
+    "(x ≤ y) ||> min(x, y) >> id(x)",
+    "(x ≤ y) ||> min(y, x) >> id(x)",
     //    min(x, y) =:> min(y,x),
 
-    "(x ≤ y) ||> bounded_minus x y -> zero",
+    "(x ≤ y) ||> bounded_minus x y >> zero",
 
-    "(xs take 0) -> ⟨⟩",
-    "(xs take (len xs)) -> xs",
-    "((xs ++ xs') take x) -> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len(xs))))",
+    "(xs take 0) >> ⟨⟩",
+    "(xs take (len xs)) >> xs",
+    "((xs ++ xs') take x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len(xs))))",
 
     // merge range
-    "(range_exclude(x, y) ++ range_exclude(y, z)) -> range_exclude(x, z)",
+    "(range_exclude(x, y) ++ range_exclude(y, z)) >> range_exclude(x, z)",
     // exclude to include
     "range_exclude(x, y + 1) = range_include(x, y)",
     // singleton range
     "range_include(x, x) = (x :: ⟨⟩)",
-    "(z ∈ range_exclude(x, y) ||| true) -> ((x ≤ z) ||| (z < y))"
+    "(z ∈ range_exclude(x, y) ||| true) >> ((x ≤ z) ||| (z < y))"
   )
 
   override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
