@@ -4,7 +4,7 @@ import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.Term
 import language.Parser
-import synthesis.{Programs, SimpleRewriteRulesDB}
+import synthesis.{AssociativeRewriteRulesDB, Programs, SimpleRewriteRulesDB}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
 
@@ -19,7 +19,7 @@ class Interpreter(terms: Iterator[Term], userOutput: PrintStream) {
 
   def start: Unit = {
     var oldState: ActionSearchState = null
-    var newState = ActionSearchState(Programs.empty, SimpleRewriteRulesDB().rewriteRules)
+    var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++  SimpleRewriteRulesDB().rewriteRules)
     do {
       oldState = newState
       for(action <- actions) {
