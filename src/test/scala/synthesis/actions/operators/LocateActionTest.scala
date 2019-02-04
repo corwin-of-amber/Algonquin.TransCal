@@ -33,7 +33,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     newEdges.head.metadata.count(_.isInstanceOf[LocateMetadata]) should be (1)
   }
 
-  test("locate one out of two") {
+  test("locate two out of two (rewrite rule should return all possibilities after one apply)") {
     val rules: Set[Operator[RewriteSearchState]] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
@@ -46,7 +46,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val template = VocabularyHyperGraph.empty.addEdge(equalEdge)
     val newState = new LocateAction(HyperTermIdentifier(new Identifier("anchor")), template, ReferenceTerm(0))(state)
     val newEdges = newState.programs.hyperGraph.edges.diff(state.programs.hyperGraph.edges)
-    newEdges.size should be (1)
+    newEdges.size should be (2)
     newEdges.head.edgeType.identifier.literal should be ("anchor")
     newEdges.head.metadata.count(_.isInstanceOf[LocateMetadata]) should be (1)
   }
