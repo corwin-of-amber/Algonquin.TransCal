@@ -101,6 +101,23 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.root shouldEqual "="
     parsed.subtrees(0).root.literal shouldEqual "f"
   }
+
+  test("apply on tuple becomes flattened apply") {
+    val parsed = p("f(?x, ?y) = f x y")
+    parsed.root shouldEqual "="
+    parsed.subtrees(0).root.literal shouldEqual "f"
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
+    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
+  }
+
+  test("use the condition builders") {
+    val t1 = p("_ -> (x ≤ y)")
+    val t2 = p("min(x, y) -> id(x)")
+    val parsed = p("(x ≤ y) ||> min(x, y) -> id(x)")
+    parsed.root shouldEqual "||>"
+    parsed.subtrees(0).root.literal shouldEqual "≤"
+    parsed.subtrees(1).root.literal shouldEqual "->"
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())

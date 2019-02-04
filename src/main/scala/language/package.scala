@@ -22,6 +22,8 @@ package object Language {
   val directedLetLiteral: String = ">>"
   val commandLiteral: String = "Command"
   val semicolonLiteral: String = ";"
+  val trueCondBuilderLiteral: String = "||>"
+  val orCondBuilderLiteral: String = "|||"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -40,6 +42,8 @@ package object Language {
   val directedLetId: Identifier = new Identifier(directedLetLiteral)
   val commandId: Identifier = new Identifier(commandLiteral)
   val semicolonId: Identifier = new Identifier(semicolonLiteral)
+  val trueCondBuilderId: Identifier = new Identifier(trueCondBuilderLiteral)
+  val orCondBuilderId: Identifier = new Identifier(orCondBuilderLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
@@ -51,7 +55,8 @@ package object Language {
   val builtinOrOps: Seq[String] = Seq("\\/", "∨")
   val builtinIFFOps: Seq[String] = Seq("<->")
   val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
-  val builtinHighLevel: Seq[String] = Seq(":", "/", "=>", "↦")
+  val builtinCondBuilders: Seq[String] = Seq("||>")
+  val builtinHighLevel: Seq[String] = Seq(":", "/", "=>", "↦", "⇒", "|||")
   val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")

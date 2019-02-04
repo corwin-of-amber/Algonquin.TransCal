@@ -66,7 +66,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
 
       // Create the parser now
       val newParser = lastParser ~ rep(operatorsInLevel ~ lastParser) ^^ { x =>
-        if (x._2.nonEmpty) logger.debug(s"infix level $level - $x")
+        if (x._2.nonEmpty) logger.trace(s"infix level $level - $x")
         recursiveBuilder(x._1 :: x._2.map(_._2), x._2.map(_._1))
       }
       lastParser = newParser

@@ -42,24 +42,19 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   // You can google the rest.
 
   def numeral: Parser[Term] = "\\d+".r ^^ { x =>
-    logger.trace(s"numeral - $x")
     TREE(I(x.toInt))
   }
 
   def identifier: Parser[Identifier] = Language.identifierRegex ^^ { x =>
-    logger.trace(s"identifier - $x")
     I(x)
   }
 
-  def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ { x =>
-    logger.trace(s"const - $x")
-    x match {
-      case "⟨⟩" => BasicSignature._nil
-      case "true" => BasicSignature.tt
-      case "⊤" => BasicSignature.tt
-      case "false" => BasicSignature.ff
-      case "⊥" => BasicSignature.ff
-    }
+  def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ {
+    case "⟨⟩" => BasicSignature._nil
+    case "true" => BasicSignature.tt
+    case "⊤" => BasicSignature.tt
+    case "false" => BasicSignature.ff
+    case "⊥" => BasicSignature.ff
   }
 
   def tuple: Parser[Term] = ("(,)" | ("(" ~ (exprInfixOperator ~ ",").+ ~ exprInfixOperator.? ~ ")")) ^^ { x =>
@@ -83,7 +78,10 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     if (applied.tail.isEmpty) applied.head
     else {
       logger.trace(s"apply - $applied")
-      TREE(applied.head.root, applied.head.subtrees ++ applied.drop(1))
+      applied.tail match {
+        case t: List[Term] if t.head.root == Language.tupleId && t.size == 1 => TREE(applied.head.root, applied.head.subtrees ++ applied.last.subtrees)
+        case _ => TREE(applied.head.root, applied.head.subtrees ++ applied.drop(1))
+      }
     }
   }
 
@@ -114,7 +112,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   }
 
   def statementCommand: Parser[Term] = (expression ~ Language.tacticLiteral ~ expression ~ annotation.?) ^^ { x =>
-    logger.debug(s"statement expr - $x")
+    logger.trace(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
         val definitionTerm = new Tree(Language.tacticId, List(left, right))
@@ -123,7 +121,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   }
 
   def statementDefinition: Parser[Term] = (expression ~ seqToOrParser(builtinDefinitions) ~ expression ~ annotation.?) ^^ { x =>
-    logger.debug(s"statement let - $x")
+    logger.trace(s"statement let - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
         // This means lhs is a function
@@ -139,7 +137,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def statement: Parser[Term] = statementDefinition | statementCommand ^^ { t =>
+  def statement: Parser[Term] = (expression ~ trueCondBuilderLiteral).? ~ (statementDefinition | statementCommand) ^^ { t =>
+    logger.debug(s"statement - $t")
     def expandParams(env: Set[Identifier], t: Term): Term = {
       t.root match {
         case Language.lambdaId =>
@@ -153,7 +152,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
         case i: Identifier => TREE(i, t.subtrees map (s => expandParams(env, s)))
       }
     }
-    expandParams(Set.empty, t)
+    val res = expandParams(Set.empty, t._2)
+    t._1.map(x => TREE(trueCondBuilderId, List(x._1, res))).getOrElse(res)
   }
 
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
