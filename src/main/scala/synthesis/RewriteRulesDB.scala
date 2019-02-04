@@ -1,6 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import language.TranscalParser
 import relentless.BasicSignature
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
@@ -79,55 +80,58 @@ trait RewriteRulesDB extends LazyLogging {
 class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
-  import BasicSignature._
+  private val parser = new TranscalParser
 
-  override protected val ruleTemplates: Set[Term] = Set(
-    `⇒:`(tt, y) =:> id(y),
-    `⇒:`(ff, y) =:> ff,
-    ~tt =:= ff,
-    ~ff =:= tt,
-    (x /: ff) =:> id(x),
-    (ff /: x) =:> id(x),
-    id(id(x)) =:> id(x),
+  private val templates: Set[String] = Set(
+    "(true ⇒ y) => id(y)",
+    "(false ⇒ y) => false",
+    "~true = false",
+    "~false = true",
+    "x / false => id x",
+    "false / x => id x",
+    "id (id x) => id x",
 
-    (x =:= `x'`) =:= in(`x'`, `{}`(x)),
-    (x elem (`x'` cons `xs'`)) =:= ((x =:= `x'`) | (x elem `xs'`)),
-    ~(x =:= y) =:= `!=:=`(x, y),
-    ~in(x, y) =:= not_in(x, y),
-    not_in(x, xs) =:= set_disj(`{}`(x), xs),
-    set_disj(xs, `{}`(x)) =:> not_in(x, xs),
-    ~(x | y) =:= (~x & ~y),
-    ~(x & y) =:= (~x | ~y),
-    (set_disj(x, xs) & set_disj(y, xs)) =:= set_disj(set_union(x, y), xs),
-    (set_disj(xs, x) & set_disj(xs, y)) =:= set_disj(xs, set_union(x, y)),
-    (x elem xs) =:= in(x, elems(xs)),
-    elems(`x'` cons `xs'`) =:= set_union(`{}`(`x'`), elems(`xs'`)), // <-- this one is somewhat superfluous?
+    "x == x' = x' ∈ { x }",
+    "(x elem (x' :: xs')) = ((x == x') \\/ (x elem xs'))",
+    "~(x == y) = (x != y)",
+    "~(x ∈ y) = (x ∉ y)",
+    "(x ∈ xs) = { x } ‖ xs",
+    "xs  { x } => (x ∉ xs)",
+    "~(x \\/ y) = (~x /\\ ~y)",
+    "~(x /\\ y) = (~x \\/ ~y)",
+    "((x ‖ xs) /\\ (y ‖ xs)) = ((x ∪ y) ‖ xs)",
+    "((xs ‖ x) /\\ (xs ‖ y)) = (xs ‖ (x ∪ y))",
+    "(x elem xs) = (x ∈ elems(xs))",
+    "elems(x' :: xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
-    (y snoc x) =:= (y ++ (x cons nil)),
-    nil ++ `xs'` =:> id(`xs'`),
-    `xs'` ++ nil =:> id(`xs'`),
-    x ++ (y ++ z) =:= (x ++ y) ++ z,
-    (x cons xs) ++ `xs'` =:= (x cons (xs ++ `xs'`)),
+    "(y :+ x) = (y ++ (x :: ⟨⟩))",
+    "⟨⟩ ++ xs' => id(xs')",
+    "xs' ++ ⟨⟩ => id(xs')",
+    "x ++ (y ++ z) = (x ++ y) ++ z",
+    "(x :: xs) ++ xs' = (x :: (xs ++ xs'))",
 
-    ((x < y) ||| tt) =:> (x ≤ y),
-    (x ≤ y) ||> (min(x, y) =:> id(x)),
-    (x ≤ y) ||> (min(y, x) =:> id(x)),
+    "((x < y) ||| true) => (x ≤ y)",
+    "(x ≤ y) ||> (min(x, y) => id(x))",
+    "(x ≤ y) ||> (min(y, x) => id(x))",
     //    min(x, y) =:> min(y,x),
 
-    (x ≤ y) ||> (bounded_minus(x, y) =:> zero),
+    "(x ≤ y) ||> (bounded_minus x y => zero)",
 
-    (xs take zero) =:> nil,
-    (xs take len(xs)) =:> xs,
-    ((xs ++ `xs'`) take x) =:> ((xs take min(len(xs), x)) ++ (`xs'` take bounded_minus(x, len(xs)))),
+    "(xs take 0) => ⟨⟩",
+    "(xs take (len xs)) => xs",
+    "((xs ++ xs') take x) => ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len(xs))))",
 
     // merge range
-    (range_exclude(x, y) ++ range_exclude(y, z)) =:> range_exclude(x, z),
+    "(range_exclude(x, y) ++ range_exclude(y, z)) => range_exclude(x, z)",
     // exclude to include
-    range_exclude(x, y + one) =:= range_include(x, y),
+    "range_exclude(x, y + 1) = range_include(x, y)",
     // singleton range
-    range_include(x, x) =:= (x cons nil),
-    (in(z, range_exclude(x, y)) ||| tt) =:> ((x ≤ z) ||| (z < y))
+    "range_include(x, x) = (x :: ⟨⟩)",
+    "(z ∈ range_exclude(x, y) ||| true) => ((x ≤ z) ||| (z < y))"
   )
+
+
+  override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
 
   override protected def metadata: Metadata = EmptyMetadata
 }
@@ -139,11 +143,12 @@ object SimpleRewriteRulesDB {
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
 
+  private val parser = new TranscalParser
+
   override protected val ruleTemplates: Set[Term] = Set(
-    (x & (y & z)) =:= ((x & y) & z),
-    (x + (y + z)) =:= ((x + y) + z),
-    (x * (y * z)) =:= ((x * y) * z)
-  )
+    "(x ∧ (y ∧ z)) = ((x ∧ y) ∧ z)",
+    "(x + (y + z)) = ((x + y) + z)"
+  ).map(t => parser.apply(t))
 
   override protected def metadata: Metadata = AssociativeMetadata
 
