@@ -52,6 +52,11 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     */
   def edges: Set[HyperEdge[Node, EdgeType]]
 
+  /**
+    * @return all the edges in the hyper graph ordered by target.
+    */
+  def edgesOrdered(implicit ordering: Ordering[HyperEdge[Node, EdgeType]]): Seq[HyperEdge[Node, EdgeType]] = edges.toSeq.sorted(ordering)
+
   /** Adds an edge to the hyper graph.
     *
     * @param hyperEdge The edge to add.

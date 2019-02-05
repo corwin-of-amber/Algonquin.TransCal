@@ -26,13 +26,16 @@ class VocabularyHyperGraph[Node, EdgeType] private (vocabulary: Vocabulary[Eithe
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
     val newMetadata = metadatas + (((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata))
-    new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
+    // Always one edge maximum as we merge them each time.
+    val toCompact = find(HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)).headOption
+    val res = new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
+    if (toCompact.nonEmpty) res.mergeNodes(toCompact.get.target, hyperEdge.target)
+    else res
   }
 
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edges")
-    val newMetadata = metadatas ++ hyperEdges.map(hyperEdge=>((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata))
-    new VocabularyHyperGraph(vocabulary :+ hyperEdges.map(hyperEdgeToWord), newMetadata)
+    hyperEdges.foldLeft(this)((g, e) => g.addEdge(e))
   }
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
