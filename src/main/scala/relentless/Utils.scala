@@ -63,11 +63,11 @@ object Utils extends LazyLogging {
     def fmtNode(node: Int) = node
     def fmtNodeLong(node: Int) = enc.dumpTermHint(node)
 
-    val tupf = new FileWriter(filename)
-    for (w <- edges sortBy (_.target)) {
-      tupf.write(s"${ljust(s"${fmtLabel(w.edgeType)} ${w.drop(1) map fmtNode mkString " "}", 20)}  [${w map fmtNodeLong mkString "] ["}]\n")
-    }
-    tupf.close()
+//    val tupf = new FileWriter(filename)
+//    for (w <- edges sortBy (_.target)) {
+//      tupf.write(s"${ljust(s"${fmtLabel(w.edgeType)} ${w.drop(1) map fmtNode mkString " "}", 20)}  [${w map fmtNodeLong mkString "] ["}]\n")
+//    }
+//    tupf.close()
 
     /*
     val progf = new FileWriter("prog.json")
