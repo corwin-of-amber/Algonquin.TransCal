@@ -1,7 +1,6 @@
 package language
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.BasicSignature
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 import Language._
@@ -50,11 +49,11 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   }
 
   def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ {
-    case "⟨⟩" => BasicSignature._nil
-    case "true" => BasicSignature.tt
-    case "⊤" => BasicSignature.tt
-    case "false" => BasicSignature.ff
-    case "⊥" => BasicSignature.ff
+    case "⟨⟩" => TREE(Language.nilId)
+    case "true" => TREE(Language.trueId)
+    case "⊤" => TREE(Language.trueId)
+    case "false" => TREE(Language.falseId)
+    case "⊥" => TREE(Language.falseId)
   }
 
   def tuple: Parser[Term] = ("(,)" | ("(" ~ (exprInfixOperator ~ ",").+ ~ exprInfixOperator.? ~ ")")) ^^ { x =>
@@ -139,20 +138,35 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   def statement: Parser[Term] = (expression ~ trueCondBuilderLiteral).? ~ (statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - $t")
-    def expandParams(env: Set[Identifier], t: Term): Term = {
+    def applyClojure(env: Seq[Term], t: Term): Term = {
+      assert(env.forall(_.subtrees.isEmpty))
       t.root match {
+        case Language.letId | Language.directedLetId =>
+          val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?"))
+          assert(env.intersect(newParams).isEmpty)
+          TREE(t.root, List(t.subtrees(0), applyClojure(newParams ++ env, t.subtrees(1))))
         case Language.lambdaId =>
-          val params = t.subtrees(0).leaves.filterNot(_.root.literal.toString.startsWith("?")).toList
-          assert(env.intersect(params.map(_.root).toSet).isEmpty)
-          val paramsTree = t.subtrees(0).root match {
-            case Language.tupleId => TREE(Language.tupleId, params ++ t.subtrees(0).subtrees)
-            case i: Identifier => TREE(Language.tupleId, params :+ t.subtrees(0))
+          val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?")).toList
+          assert(env.intersect(newParams).isEmpty)
+
+          val toAddParams = t.subtrees(1).leaves.map(i =>
+            new Identifier("?" + i.root.literal.toString, i.root.kind, i.root.ns)
+          ).map(i => TREE(i)).filter(env contains _).toList
+          val paramsTree = {
+            if (toAddParams.isEmpty) t.subtrees(0)
+            else t.subtrees(0).root match {
+              case Language.tupleId => TREE(Language.tupleId, toAddParams ++ t.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, toAddParams :+ t.subtrees(0))
+            }
           }
-          TREE(Language.applyId, TREE(Language.lambdaId, List(paramsTree, t.subtrees(1))) :: params)
-        case i: Identifier => TREE(i, t.subtrees map (s => expandParams(env, s)))
+
+          val updatedLambda = TREE(Language.lambdaId, List(paramsTree, t.subtrees(1)))
+          if (toAddParams.isEmpty) updatedLambda
+          else TREE(Language.applyId,  updatedLambda +: env.toList)
+        case i: Identifier => TREE(i, t.subtrees map (s => applyClojure(env, s)))
       }
     }
-    val res = expandParams(Set.empty, t._2)
+    val res = applyClojure(Seq.empty, t._2)
     t._1.map(x => TREE(trueCondBuilderId, List(x._1, res))).getOrElse(res)
   }
 
@@ -174,7 +188,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     (Infixer.MIDDLE + 2, builtinAndOps.toSet),
     (Infixer.MIDDLE + 3, builtinOrOps.toSet),
     (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.HIGH, builtinHighLevel.toSet)
+    (Infixer.MIDDLE + 5, builtinHighLevel.toSet)
   )
 
   /** The known right operators at the moment */

@@ -118,6 +118,27 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(0).root.literal shouldEqual "≤"
     parsed.subtrees(1).root.literal shouldEqual "->"
   }
+
+  test("split lambdas with params works correctly") {
+    val anno = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss) ↦ xs ++ concat xss)   [++]")
+    anno.root shouldEqual Language.annotationId
+    anno.subtrees(1).root.literal shouldEqual "++"
+    val parsed = anno.subtrees(0)
+    parsed.root shouldEqual Language.letId
+    parsed.subtrees(0).root.literal shouldEqual "concat"
+    parsed.subtrees(1).root shouldEqual Language.splitId
+    val lhs = parsed.subtrees(1).subtrees(0)
+    val rhs = parsed.subtrees(1).subtrees(1)
+    lhs.root shouldEqual Language.lambdaId
+    lhs.subtrees(0).root shouldEqual Language.nilId
+    lhs.subtrees(1).root shouldEqual Language.nilId
+
+    rhs.root shouldEqual Language.lambdaId
+    rhs.subtrees(0).root shouldEqual Language.consId
+    rhs.subtrees(0).subtrees(0).root.literal shouldEqual "?xs"
+    rhs.subtrees(0).subtrees(1).root.literal shouldEqual "?xss"
+    rhs.subtrees(1).root.literal shouldEqual "++"
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())

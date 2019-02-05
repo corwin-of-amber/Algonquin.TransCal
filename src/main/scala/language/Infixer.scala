@@ -23,7 +23,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
   /** Adds a new operator to known prefixes.
     *
     * @param operator The operator to add.
-    * @param level The level ot the operator.
+    * @param level The level of the operator.
     * @param righter Is the operators stick to the right.
     * @return A Infixer which knows the the new operator.
     */
