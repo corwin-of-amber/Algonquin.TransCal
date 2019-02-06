@@ -38,7 +38,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("add non existant works") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> (g + e).edges.contains(e)
+      (!g.edges.contains(e) && g.edges.forall(e1 => e1.sources != e.sources || e1.edgeType != e.edgeType)) ==>
+        (g + e).edges.contains(e)
     })
   }
 
