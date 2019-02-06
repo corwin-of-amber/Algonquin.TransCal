@@ -37,7 +37,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val rules: Set[Operator[RewriteSearchState]] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
-    val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))   [++]")
+    val mainTerm = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss) ↦ xs ++ concat xss)   [++]")
     val progs = Programs(mainTerm)
     val state = ActionSearchState(progs, rules)
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
@@ -48,6 +48,5 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val newEdges = newState.programs.hyperGraph.edges.diff(state.programs.hyperGraph.edges)
     newEdges.size should be (2)
     newEdges.head.edgeType.identifier.literal should be ("anchor")
-    newEdges.head.metadata.count(_.isInstanceOf[LocateMetadata]) should be (1)
   }
 }
