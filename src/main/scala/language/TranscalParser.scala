@@ -138,8 +138,10 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
 
   def statement: Parser[Term] = (expression ~ trueCondBuilderLiteral).? ~ (statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - $t")
+
     def applyClojure(env: Seq[Term], t: Term): Term = {
       assert(env.forall(_.subtrees.isEmpty))
+      val replacemnetVarPrefix = "?autovar"
       t.root match {
         case Language.letId | Language.directedLetId =>
           val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?"))
@@ -149,23 +151,44 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
           val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?")).toList
           assert(env.intersect(newParams).isEmpty)
 
-          val toAddParams = t.subtrees(1).leaves.map(i =>
-            new Identifier("?" + i.root.literal.toString, i.root.kind, i.root.ns)
-          ).map(i => TREE(i)).filter(env contains _).toList
+          // Renaming params to add to clojure
+          val nextVar =
+            if ((env ++ newParams).isEmpty) 0
+            else (env ++ newParams).map(_.root.literal.toString match {
+              case a: String if a.startsWith(replacemnetVarPrefix) => a.drop(replacemnetVarPrefix.length).toInt
+              case _ => -1
+            }).max + 1
+
+          val toAddParamsDefinitions: List[(Term, Term)] = t.subtrees(1).leaves.zip(Stream.from(nextVar)).map(i =>
+            (new Identifier("?" + i._1.root.literal.toString, i._1.root.kind, i._1.root.ns),
+              new Identifier(replacemnetVarPrefix + i._2, i._1.root.kind, i._1.root.ns))
+          ).map(i => (TREE(i._1), TREE(i._2))).filter(env contains _._1).toList
+
+          val toAddParamsUses: List[(Term, Term)] = toAddParamsDefinitions.map(i =>
+            (new Identifier(i._1.root.literal.toString.drop(1), i._1.root.kind, i._1.root.ns),
+              new Identifier(i._2.root.literal.toString.drop(1), i._2.root.kind, i._2.root.ns))
+          ).map(i => (TREE(i._1), TREE(i._2)))
+
+          // Updating AST to include clojure
           val paramsTree = {
-            if (toAddParams.isEmpty) t.subtrees(0)
+            if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, toAddParams ++ t.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, toAddParams :+ t.subtrees(0))
+              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(_._2) ++ t.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(_._2) :+ t.subtrees(0))
             }
           }
 
-          val updatedLambda = TREE(Language.lambdaId, List(paramsTree, t.subtrees(1)))
-          if (toAddParams.isEmpty) updatedLambda
-          else TREE(Language.applyId,  updatedLambda +: env.toList)
+          val updatedLambda = TREE(
+            Language.lambdaId,
+            List(paramsTree, applyClojure(newParams ++ env, t.subtrees(1).replaceDescendants(toAddParamsUses)))
+          )
+
+          if (toAddParamsDefinitions.isEmpty) updatedLambda
+          else TREE(Language.applyId, updatedLambda +: toAddParamsUses.map(i => i._1))
         case i: Identifier => TREE(i, t.subtrees map (s => applyClojure(env, s)))
       }
     }
+
     val res = applyClojure(Seq.empty, t._2)
     t._1.map(x => TREE(trueCondBuilderId, List(x._1, res))).getOrElse(res)
   }

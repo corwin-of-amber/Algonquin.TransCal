@@ -139,6 +139,37 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     rhs.subtrees(0).subtrees(1).root.literal shouldEqual "?xss"
     rhs.subtrees(1).root.literal shouldEqual "++"
   }
+
+  test("Parser adds clojure when needed") {
+    val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ x + y")
+    parsed.root shouldEqual Language.tacticId
+    parsed.subtrees(0).root.literal shouldEqual "_"
+    val rhs = parsed.subtrees(1)
+    rhs.root shouldEqual Language.lambdaId
+    rhs.subtrees(0).root.literal shouldEqual "?x"
+    rhs.subtrees(1).root shouldEqual Language.applyId
+    rhs.subtrees(1).subtrees(1).root.literal shouldEqual "x"
+  }
+
+  test("Adding clojure renames variables") {
+    val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ x + y")
+    val rhs = parsed.subtrees(1)
+    rhs.subtrees(1).root shouldEqual Language.applyId
+    rhs.subtrees(1).subtrees(0).subtrees(0).subtrees(0).root.literal should not equal "?x"
+    rhs.subtrees(1).subtrees(1).root.literal shouldEqual "x"
+    rhs.subtrees(1).subtrees(0).subtrees(1).leaves.map(_.root.literal) should not contain "x"
+  }
+
+  test("Parser doesnt add unneeded clojures") {
+    val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ y")
+    parsed.root shouldEqual Language.tacticId
+    parsed.subtrees(0).root.literal shouldEqual "_"
+    parsed.subtrees(1).root shouldEqual Language.lambdaId
+    val rhs = parsed.subtrees(1)
+    rhs.root shouldEqual Language.lambdaId
+    rhs.subtrees(0).root.literal shouldEqual "?x"
+    rhs.subtrees(1).root shouldEqual Language.lambdaId
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())
