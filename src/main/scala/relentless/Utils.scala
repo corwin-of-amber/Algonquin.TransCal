@@ -53,10 +53,10 @@ object Utils extends LazyLogging {
   def dump(edges: Seq[BaseHyperEdge[Int]], filename: String = "peg")(implicit enc: Encoding) {
 
     // Dump the encoding
-    val encf = new FileWriter("enc")
-    val pairs = enc.dumpIdentifiers
-    for ((k, v) <- pairs) { encf.write(s"$k $v\n"); }
-    encf.close()
+//    val encf = new FileWriter("enc")
+//    val pairs = enc.dumpIdentifiers
+//    for ((k, v) <- pairs) { encf.write(s"$k $v\n"); }
+//    encf.close()
 
     // Dump hyper-edges (PEG)
     def fmtLabel(lab: Int) = enc <-- lab match { case Some(id) => id case None => lab}
