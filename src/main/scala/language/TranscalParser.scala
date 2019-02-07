@@ -69,6 +69,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     x match {
       case m: Term => m
       case i: Identifier => TREE(i)
+      case "{" ~ t ~ "}" => TREE(Language.setId, List(t.asInstanceOf[Term]))
       case _ ~ t ~ _ => t.asInstanceOf[Term]
     }
   }

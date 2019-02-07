@@ -23,8 +23,9 @@ package object Language {
   val commandLiteral: String = "Command"
   val semicolonLiteral: String = ";"
   val trueCondBuilderLiteral: String = "||>"
-  val orCondBuilderLiteral: String = "|||"
+  val andCondBuilderLiteral: String = "|||"
   val consLiteral: String = "::"
+  val setLiteral: String = "{.}"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
@@ -44,8 +45,9 @@ package object Language {
   val commandId: Identifier = new Identifier(commandLiteral)
   val semicolonId: Identifier = new Identifier(semicolonLiteral)
   val trueCondBuilderId: Identifier = new Identifier(trueCondBuilderLiteral)
-  val orCondBuilderId: Identifier = new Identifier(orCondBuilderLiteral)
+  val andCondBuilderId: Identifier = new Identifier(andCondBuilderLiteral)
   val consId: Identifier = new Identifier(consLiteral)
+  val setId: Identifier = new Identifier(setLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
 
