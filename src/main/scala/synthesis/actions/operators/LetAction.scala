@@ -24,7 +24,7 @@ class LetAction(term: Term) extends Action {
 
   // Beta reduction is done by adding rewrite rules and using flatten
 
-  assert(Language.builtinDefinitions contains term.root.literal.toString)
+  assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral) contains term.root.literal.toString)
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes

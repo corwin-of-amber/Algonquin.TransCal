@@ -2,17 +2,13 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import language.TranscalParser
-import relentless.BasicSignature
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
-import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, Metadata}
+import structures.{EmptyMetadata, Metadata}
 import syntax.AstSugar._
-import syntax.{AstSugar, Identifier}
+import syntax.Identifier
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
-import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.Operator
 
 /**
@@ -37,7 +33,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ ?y) >> id(y)",
+    "(true ⇒ ?y) >> id y",
     "(false ⇒ ?y) >> false",
     "~true = false",
     "~false = true",
@@ -59,21 +55,19 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
-    "⟨⟩ ++ ?xs' >> id(xs')",
-    "?xs' ++ ⟨⟩ >> id(xs')",
-    "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
-    "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
+    "⟨⟩ ++ ?xs' >> id xs'",
+    "?xs' ++ ⟨⟩ >> id xs'",
 
     "((?x < ?y) ||| true) >> (x ≤ y)",
-    "(?x ≤ ?y) ||> min(x, y) >> id(x)",
-    "(?x ≤ ?y) ||> min(y, x) >> id(x)",
+    "(?x ≤ ?y) ||> min(x, y) >> id x",
+    "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 
-    "(?x ≤ ?y) ||> bounded_minus x y >> 0",
+    "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
 
     "(?xs take 0) >> ⟨⟩",
     "(?xs take (len xs)) >> xs",
-    "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len(xs))))",
+    "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
 
     // merge range
     "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
@@ -100,6 +94,8 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 
   override protected val ruleTemplates: Set[Term] = Set(
     "(?x ∧ (?y ∧ ?z)) = ((x ∧ y) ∧ z)",
+    "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
+    "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
     "(?x + (?y + ?z)) = ((x + y) + z)"
   ).map(t => parser.apply(t))
 
