@@ -120,25 +120,27 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def statementDefinition: Parser[Term] = (expression ~ seqToOrParser(builtinDefinitions) ~ expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[Term] = ((expression ~ trueCondBuilderLiteral).? ~ expression ~ seqToOrParser(builtinDefinitions) ~ expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement let - $x")
     x match {
-      case left ~ dir ~ right ~ anno =>
+      case op ~ left ~ dir ~ right ~ anno =>
         // This means lhs is a function
-        val definitionTerm = right.root match {
+        val (fixedLeft, fixedRight) = right.root match {
           case Language.lambdaId =>
             val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
             val newRight = right.subtrees(1)
             val newLeft = TREE(left.root, left.subtrees ++ rightParams)
-            TREE(I(dir), List(newLeft, newRight))
-          case _ => TREE(I(dir), List(left, right))
+            (newLeft, newRight)
+          case _ => (left, right)
         }
+        val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o._1, fixedLeft))).getOrElse(fixedLeft)
+        val definitionTerm = TREE(I(dir), List(conditionedLeft, fixedRight))
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
-  def statement: Parser[Term] = (expression ~ trueCondBuilderLiteral).? ~ (statementDefinition | statementCommand) ^^ { t =>
-    logger.debug(s"statement - $t")
+  def statement: Parser[Term] = (statementDefinition | statementCommand) ^^ { t =>
+    logger.debug(s"statement - ${t}")
 
     def applyClojure(env: Seq[Term], t: Term): Term = {
       assert(env.forall(_.subtrees.isEmpty))
@@ -190,8 +192,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
       }
     }
 
-    val res = applyClojure(Seq.empty, t._2)
-    t._1.map(x => TREE(trueCondBuilderId, List(x._1, res))).getOrElse(res)
+    applyClojure(Seq.empty, t)
   }
 
   def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
