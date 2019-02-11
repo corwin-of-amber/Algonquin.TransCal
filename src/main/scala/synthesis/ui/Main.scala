@@ -2,11 +2,11 @@ package synthesis.ui
 
 import java.io.{PrintStream, File => JFile}
 
-import language.{OldParser, TranscalParser}
+import language.TranscalParser
 import org.rogach.scallop.ScallopOption
 import syntax.AstSugar.Term
 
-import scala.io.{BufferedSource, Source}
+import scala.io.Source
 
 /**
   * @author tomer
@@ -19,6 +19,7 @@ object Main extends App {
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
     val file = opt[JFile]()
     validateFileIsFile(file)
+    validateFileExists(file)
     verify()
   }
 
