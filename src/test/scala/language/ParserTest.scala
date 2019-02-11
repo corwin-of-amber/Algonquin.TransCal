@@ -111,12 +111,13 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("use the condition builders") {
-    val t1 = p("_ -> (x ≤ y)")
-    val t2 = p("min(x, y) -> id(x)")
-    val parsed = p("(x ≤ y) ||> min(x, y) -> id(x)")
-    parsed.root shouldEqual "||>"
-    parsed.subtrees(0).root.literal shouldEqual "≤"
-    parsed.subtrees(1).root.literal shouldEqual "->"
+    val t1 = p("min(x, y) -> (x ≤ y)")
+    val t2 = p("_ -> id(x)")
+    val parsed = p("(x ≤ y) ||> min(x, y) >> id(x)")
+    parsed.root shouldEqual ">>"
+    parsed.subtrees(0).root.literal shouldEqual "||>"
+    parsed.subtrees(0).subtrees(0) shouldEqual t1.subtrees(1)
+    parsed.subtrees(1) shouldEqual t2.subtrees(1)
   }
 
   test("split lambdas with params works correctly") {
