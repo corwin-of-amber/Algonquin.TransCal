@@ -152,18 +152,20 @@ object Programs extends LazyLogging {
   Seq[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]]] = {
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
-    val holeCreator = {
+    val holeCreator: () => ReferenceTerm[HyperTermId] = {
       val creator = Stream.from(0).iterator
       () => ReferenceTerm[HyperTermId](creator.next())
     }
 
     val knownTerms: Term => Option[ReferenceTerm[HyperTermId]] = {
       val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = {
-        val newHole: ReferenceTerm[HyperTermId] = holeCreator()
         val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.toString.startsWith("?"))).map(t =>
           Set(t, new Tree(new Identifier(t.root.literal.toString.drop(1), t.root.kind, t.root.ns)))
         )
-        vars.flatMap(s => Set((s.head, newHole), (s.last, newHole)))
+        vars.flatMap(s => {
+          val newHole: ReferenceTerm[HyperTermId] = holeCreator()
+          Set((s.head, newHole), (s.last, newHole))
+        })
       }.toMap
       t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
@@ -172,8 +174,7 @@ object Programs extends LazyLogging {
   }
 
   def destructPatterns(trees: Term*): Seq[HyperPattern] = {
-    val edges = innerDestructPattern(trees: _*)
-    edges.map(es => HyperGraphManyWithOrderToOne(es.toSeq: _*))
+    destructPatternsWithRoots(trees: _*).map(_._1)
   }
 
   def destructPatternsWithRoots(trees: Term*): Seq[(HyperPattern, ReferenceTerm[HyperTermId])] = {
