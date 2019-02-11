@@ -5,6 +5,7 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -25,23 +26,12 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
-    val newMetadata = metadatas + (((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata))
-    // Always one edge maximum as we merge them each time.
-    val toCompact = find(HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)).headOption
-    val res = new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
-    if (toCompact.nonEmpty) res.mergeNodes(toCompact.get.target, hyperEdge.target)
-    else res
+    compact(List(hyperEdge))
   }
 
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edges")
-    val toCompact = hyperEdges.map(hyperEdge =>
-      (hyperEdge,
-        find(HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)).headOption))
-      .filter(t => t._2.nonEmpty).map(t => (t._1, t._2.get))
-    val newMetadata = metadatas ++ hyperEdges.map(hyperEdge=>((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata))
-    val res = new VocabularyHyperGraph(vocabulary :+ hyperEdges.map(hyperEdgeToWord), newMetadata)
-    toCompact.foldLeft(res)((g, t) => g.mergeNodes(t._2.target, t._1.target))
+    compact(hyperEdges.toList)
   }
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
@@ -185,6 +175,23 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     }
 
   /* --- Private Methods --- */
+
+  @tailrec
+  private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node,Node]=Map.empty): VocabularyHyperGraph[Node, EdgeType] = {
+    hyperEdges match {
+      case Nil => this
+      case hyperEdge +: otherHyperEdges =>
+        val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(changedToKept.getOrElse(x, x))), EmptyMetadata)
+        val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
+        val g = new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadatas)
+        find(regex).headOption match {
+          case None => g.compact(otherHyperEdges, changedToKept)
+          case Some(existsHyperEdge) =>
+            val merged = g.mergeNodes(existsHyperEdge.target, hyperEdge.target)
+            merged.compact(otherHyperEdges, changedToKept.updated(hyperEdge.target, existsHyperEdge.target))
+        }
+    }
+  }
 
   private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] = {
     def toNode(either: Either[Node, EdgeType]): Node = either match {
