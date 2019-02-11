@@ -1,15 +1,15 @@
 package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
+import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
 import syntax.Identifier
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
-import synthesis.search.{DepthFirstSearch, IterativeDeepening}
+import synthesis.search.NaiveSearch
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 /** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
@@ -44,7 +44,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, root: Templa
     val locateRule = new RewriteRule(goal, destPattern, locateDataCreator)
 
     // Rewrite search
-    val rewriteSearch = new IterativeDeepening(new DepthFirstSearch[RewriteSearchState, RewriteSearchSpace]())
+    val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq :+ locateRule, initialState, goalPredicate)
     val rewriteResult = rewriteSearch.search(spaceSearch)
