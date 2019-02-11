@@ -19,12 +19,13 @@ sealed trait Complexity {
 }
 object ConstantComplexity extends Complexity
 case class ContainerComplexity(contained: Term) extends Complexity
-case class LogComplexity(inner: Complexity) extends Complexity
+class LogComplexity(val inner: Complexity) extends Complexity
 object LogComplexity {
   def apply(inner: Complexity): Complexity = inner match {
     case PolynomialComplexity(_, exponent) => exponent
     case _ => new LogComplexity(inner)
   }
+  def unapply(arg: LogComplexity): Option[Complexity] = Some(arg.inner)
 }
 case class PolynomialComplexity(base: Complexity, exponent: Complexity) extends Complexity {
   override def log: Complexity = exponent
