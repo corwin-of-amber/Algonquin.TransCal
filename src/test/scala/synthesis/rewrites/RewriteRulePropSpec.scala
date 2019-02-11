@@ -2,15 +2,14 @@ package synthesis.rewrites
 
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.{PropSpec, fixture}
+import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne.HyperGraphPattern
+import structures.immutable.HyperGraphManyWithOrderToOne
 import syntax.Identifier
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 
 /**
   * @author tomer
@@ -29,32 +28,6 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
       (state.graph.edges -- newState.graph.edges).isEmpty
     }
     })
-  }
-
-  property("Generated spec adds edges") {
-    val condEdges = Set(
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(50)), Explicit(HyperTermIdentifier(new Identifier("13"))), Vector(Explicit(HyperTermId(50)), Explicit(HyperTermId(50)), Explicit(HyperTermId(50))), EmptyMetadata),
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(50)), Explicit(HyperTermIdentifier(new Identifier("17"))), Vector(Explicit(HyperTermId(50)), Explicit(HyperTermId(1))), EmptyMetadata)
-    )
-    val conditions = VocabularyHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](condEdges.toSeq: _*)
-    val destEdges = Seq(
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(50)), Explicit(HyperTermIdentifier(new Identifier("22"))), Vector(Explicit(HyperTermId(50)), Explicit(HyperTermId(1))), EmptyMetadata),
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(1)), Explicit(HyperTermIdentifier(new Identifier("22"))), Vector(Explicit(HyperTermId(50)), Explicit(HyperTermId(1))), EmptyMetadata),
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(50)), Explicit(HyperTermIdentifier(new Identifier("46"))), Vector(Explicit(HyperTermId(50)), Explicit(HyperTermId(50)), Explicit(HyperTermId(1))), EmptyMetadata),
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(1)), Explicit(HyperTermIdentifier(new Identifier("48"))), Vector(Explicit(HyperTermId(1)), Explicit(HyperTermId(1)), Explicit(HyperTermId(50)), Explicit(HyperTermId(50))), EmptyMetadata),
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](Explicit(HyperTermId(50)), Explicit(HyperTermIdentifier(new Identifier("26"))), Vector(Explicit(HyperTermId(1)), Explicit(HyperTermId(1))), EmptyMetadata)
-    )
-    val destinations = VocabularyHyperGraph(destEdges: _*)
-
-    val dontcount = destinations.edges.filter(e1 => conditions.edges.exists(e2 => e1.edgeType == e2.edgeType && e1.sources == e2.sources))
-    val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
-    val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
-    val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
-    val state = new RewriteSearchState(HyperGraphManyWithOrderToOne[HyperTermId, HyperTermIdentifier](conditions.edges.map(edge => {
-      HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
-    }).toSeq: _*))
-    val newState = rewriteRule.apply(state)
-    check((newState.graph.edges -- state.graph.edges).size == (destinations.edges -- conditions.edges).size)
   }
 
   // TODO: We need to predict merges for this to work
