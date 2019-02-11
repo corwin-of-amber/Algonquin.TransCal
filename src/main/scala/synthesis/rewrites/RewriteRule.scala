@@ -18,13 +18,13 @@ import synthesis.rewrites.rewrites._
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(conditions: HyperPattern,
-                  destination: HyperPattern,
+class RewriteRule(premise: HyperPattern,
+                  conclusion: HyperPattern,
                   metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata)
   extends Operator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
-  override def toString: String = s"RewriteRule($conditions, $destination)"
+  override def toString: String = s"RewriteRule($premise, $conclusion)"
 
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
@@ -33,16 +33,16 @@ class RewriteRule(conditions: HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val conditionsReferencesMaps = compactGraph.findSubgraph(subGraphConditions)
+    val premiseReferencesMaps = compactGraph.findSubgraph(subGraphPremise)
 
     val nextHyperId: () => HyperTermId = {
       val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
       () => creator.next
     }
 
-    val newEdges = conditionsReferencesMaps.flatMap(m => {
+    val newEdges = premiseReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
-      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphDestination, m)
+      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion, m)
       if (compactGraph.findSubgraph(merged).nonEmpty) Seq.empty
       else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
         e.copy(metadata=e.metadata.merge(meta)))
@@ -57,21 +57,21 @@ class RewriteRule(conditions: HyperPattern,
 
   val metadata: RewriteRuleMetadata = RewriteRuleMetadata(this)
 
-  private val subGraphConditions: SubHyperGraphPattern = conditions
+  private val subGraphPremise: SubHyperGraphPattern = premise
 
   // Existential cannot be a function
-  private val destHoles = destination.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
-  private val condHoles = conditions.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val destHoles = conclusion.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
-  private def subGraphDestination: SubHyperGraphPattern = {
+  private def subGraphConclusion: SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
     // TODO: prevent existentials from being recreated.
 //    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
 //      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
 //    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
 //    destination.addEdges(existentialEdges)
-    destination
+    conclusion
   }
 }
 

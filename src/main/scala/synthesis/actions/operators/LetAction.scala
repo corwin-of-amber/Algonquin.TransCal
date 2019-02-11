@@ -36,29 +36,29 @@ class LetAction(term: Term) extends Action {
 
         val params = if (t.subtrees(0).root == Language.tupleId) t.subtrees(0).subtrees else List(t.subtrees(0))
         val condTerm = new Tree(newFunc, params)
-        val (pattern, destination) = {
+        val (pattern, conclusion) = {
           val patterns = Programs.destructPatterns(condTerm, newTerm)
           (patterns(0), patterns(1))
         }
 
-        val conditions: HyperPattern = {
+        val premise: HyperPattern = {
           val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(newFunc))).head
           val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
           pattern.addEdge(newRootEdge).removeEdge(rootEdge)
         }
 
-        (innerRewrites + new RewriteRule(conditions, destination, metadataCreator(newFunc)), new Tree(newFunc))
+        (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(newFunc)), new Tree(newFunc))
       case Language.letId | Language.directedLetId =>
         val results = t.subtrees map (s => createRewrites(s))
-        val (condition, destination) = {
+        val (premise, conclusion) = {
           val temp = Programs.destructPatterns(results(0)._2, results(1)._2)
           (temp(0), temp(1))
         }
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
             if (t.root == Language.directedLetId) Set.empty
-            else Set(new RewriteRule(destination, condition, metadataCreator(t.subtrees(1).root)))
-          optionalRule + new RewriteRule(condition, destination, metadataCreator(t.subtrees.head.root))
+            else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
+          optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }
         (newRules ++ results.flatMap(_._1), t)
       case _ =>
