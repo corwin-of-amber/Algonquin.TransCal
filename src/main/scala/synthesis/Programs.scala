@@ -26,8 +26,8 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
   /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
     *
     * @param hyperTermId The hyper term to build.
-    * @param pattern graph pattern to limit output terms
-    * @param root pattern root node
+    * @param pattern     graph pattern to limit output terms
+    * @param root        pattern root node
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, root: TemplateTerm[HyperTermId]): Iterator[Term] = {
@@ -126,15 +126,15 @@ object Programs extends LazyLogging {
 
   /** Create hyper graph from ast. Removes annotations. Root is always max HyperTermId.
     *
-    * @param tree - program to be transformed into hypergraph
+    * @param tree  - program to be transformed into hypergraph
     * @param maxId - Max id so no ids will cross
     * @return
     */
-  def destruct(tree: Term, maxId: HyperTermId=HyperTermId(0)): RewriteSearchState.HyperGraph = {
+  def destruct(tree: Term, maxId: HyperTermId = HyperTermId(0)): RewriteSearchState.HyperGraph = {
     destructWithRoot(tree, maxId)._1
   }
 
-  def destructWithRoot(tree: Term, maxId: HyperTermId=HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
     def knownTerms(t: Term): Option[HyperTermId] = None
@@ -148,36 +148,37 @@ object Programs extends LazyLogging {
     (HyperGraphManyWithOrderToOne(hyperEdges.toSeq: _*), hyperEdges.last.target)
   }
 
-  private val holeCreator = {
-    // TODO: Hack to prevent intersection with known terms. Fix to something norml
-    val creator = Stream.from(300).iterator
-    () => ReferenceTerm[HyperTermId](creator.next())
-  }
-
-  private def innerDestructPattern(tree: Term, vars: Set[Set[Term]]):
-  Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+  private def innerDestructPattern(trees: Term*):
+  Seq[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]]] = {
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
+    val holeCreator = {
+      val creator = Stream.from(0).iterator
+      () => ReferenceTerm[HyperTermId](creator.next())
+    }
+
     val knownTerms: Term => Option[ReferenceTerm[HyperTermId]] = {
-      val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = vars.zipWithIndex.flatMap(t => {
-        val newHole = ReferenceTerm[HyperTermId](t._2)
-        t._1.map((_, newHole))
-      }).toMap
+      val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = {
+        val newHole: ReferenceTerm[HyperTermId] = holeCreator()
+        val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.toString.startsWith("?"))).map(t =>
+          Set(t, new Tree(new Identifier(t.root.literal.toString.drop(1), t.root.kind, t.root.ns)))
+        )
+        vars.flatMap(s => Set((s.head, newHole), (s.last, newHole)))
+      }.toMap
       t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
 
-    innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)._2
+    trees.map(tree => innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)._2)
   }
 
-  def destructPattern(tree: Term, vars: Set[Set[Term]]): HyperPattern = {
-    val edges = innerDestructPattern(tree, vars)
-    HyperGraphManyWithOrderToOne(edges.toSeq: _*)
+  def destructPatterns(trees: Term*): Seq[HyperPattern] = {
+    val edges = innerDestructPattern(trees: _*)
+    edges.map(es => HyperGraphManyWithOrderToOne(es.toSeq: _*))
   }
 
-  def destructPatternWithRoot(tree: Term, vars: Set[Set[Term]]): (HyperPattern, ReferenceTerm[HyperTermId]) = {
-    val edges = innerDestructPattern(tree, vars)
-    (HyperGraphManyWithOrderToOne(edges.toSeq: _*),
-      edges.last.target.asInstanceOf[ReferenceTerm[HyperTermId]])
+  def destructPatternsWithRoots(trees: Term*): Seq[(HyperPattern, ReferenceTerm[HyperTermId])] = {
+    val edges = innerDestructPattern(trees: _*)
+    edges.map(es => (HyperGraphManyWithOrderToOne(es.toSeq: _*), es.last.target.asInstanceOf[ReferenceTerm[HyperTermId]]))
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
