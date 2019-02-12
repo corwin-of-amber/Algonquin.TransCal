@@ -82,11 +82,11 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("destruct pattern has right amount of references") {
     val parser = new TranscalParser
-    val pattern1 = Programs.destructPatterns(parser("_ -> _ + _").subtrees(1)).head
+    val pattern1 = Programs.destructPattern(parser("_ -> _ + _").subtrees(1))
     check(pattern1.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
-    val pattern2 = Programs.destructPatterns(parser("_ -> _ + _ - _").subtrees(1)).head
+    val pattern2 = Programs.destructPattern(parser("_ -> _ + _ - _").subtrees(1))
     check(pattern2.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
-    val pattern3 = Programs.destructPatterns(parser("?x ?y -> _ + x + y").subtrees(1)).head
+    val pattern3 = Programs.destructPattern(parser("?x ?y -> _ + x + y").subtrees(1))
     check(pattern3.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
   }
 

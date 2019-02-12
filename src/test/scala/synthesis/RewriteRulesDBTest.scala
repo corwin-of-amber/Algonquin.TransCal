@@ -14,7 +14,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   test("rewriteRules manage to rewrite a + b + c to (a + b) + c") {
     val term = new TranscalParser().apply("1 -> a + (b + c)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> ((_ + _) + _)").subtrees(1)
-    val pattern = Programs.destructPatterns(patternTerm).head
+    val pattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = AssociativeRewriteRulesDB.rewriteRules
     rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty) shouldEqual true
@@ -41,7 +41,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   test("rewriteRules manage to rewrite (?x le ?y) ||> min(x, y) >> id x") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
-    val resultPattern = Programs.destructPatterns(patternTerm).head
+    val resultPattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term).addEdges(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
@@ -55,7 +55,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   test("rewriteRules doesnt rewrite (?x le ?y) ||> min(x, y) >> id(x) by mistake") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
-    val pattern = Programs.destructPatterns(patternTerm).head
+    val pattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = new SimpleRewriteRulesDB().rewriteRules
     rules.exists(_.apply(state).graph.findSubgraph(pattern).isEmpty) shouldEqual true
