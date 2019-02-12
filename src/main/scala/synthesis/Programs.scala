@@ -112,14 +112,28 @@ object Programs extends LazyLogging {
                                             knownTerms: Term => Option[Node]): (Node, Set[HyperEdge[Node, EdgeType]]) = {
     if (knownTerms(tree).nonEmpty) return (knownTerms(tree).get, Set.empty)
     val (function, args) = flattenApply(tree)
+
     // Skipping annotations, shouldn't be part of the graph, at least for now
     if (function.literal == "Annotation") return innerDestruct(tree.subtrees(0), nodeCreator, identToEdge, knownTerms)
+
     val targetToSubedges = args.map(subtree => innerDestruct(subtree, nodeCreator, identToEdge, knownTerms))
     val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
-    val target = nodeCreator()
-    val newHyperEdges =
-      if (function == Language.splitId) targetToSubedges.map { t => HyperEdge(target, identToEdge(Language.idId), List(t._1), EmptyMetadata) }
-      else Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+    var target = nodeCreator()
+
+    val newHyperEdges = function match {
+      case Language.splitId =>
+        val createdTarget = target
+        target = targetToSubedges.head._1
+        targetToSubedges.map {t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata)}
+      case Language.trueCondBuilderId =>
+        val precondRoot = targetToSubedges.head._1
+//        val precondEdge = targetToSubedges.head._2.find(_.target == precondRoot).get
+        target = targetToSubedges.last._1
+        Set(
+          HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
+        )
+      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+    }
 
     (target, subHyperEdges ++ newHyperEdges)
   }
