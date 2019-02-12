@@ -3,21 +3,21 @@ package synthesis
 import java.util.Locale.LanguageRange
 
 import language.{Language, TranscalParser}
-import org.scalatest.PropSpec
+import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
 import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.Identifier
 import synthesis.rewrites.RewriteSearchState
 
-class RewriteRulesDBTest extends PropSpec with Checkers {
+class RewriteRulesDBTest extends FunSuite with Matchers {
 
-  property("rewriteRules manage to rewrite a + b + c to (a + b) + c") {
+  test("rewriteRules manage to rewrite a + b + c to (a + b) + c") {
     val term = new TranscalParser().apply("1 -> a + (b + c)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> ((_ + _) + _)").subtrees(1)
     val pattern = Programs.destructPatterns(patternTerm).head
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = AssociativeRewriteRulesDB.rewriteRules
-    check(rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty))
+    rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty) shouldEqual true
   }
 
   //  property("rewriteRules manage to rewrite ?x / false >> id x") {
@@ -38,26 +38,26 @@ class RewriteRulesDBTest extends PropSpec with Checkers {
   //    check(rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty))
   //  }
 
-  property("rewriteRules manage to rewrite (?x ≤ ?y) ||> min(x, y) >> id a") {
+  test("rewriteRules manage to rewrite (?x le ?y) ||> min(x, y) >> id x") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
-    val pattern = Programs.destructPatterns(patternTerm).head
+    val resultPattern = Programs.destructPatterns(patternTerm).head
     val state = new RewriteSearchState(Programs.destruct(term).addEdges(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(101), HyperTermId(102)), EmptyMetadata)
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     )))
     val rules = new SimpleRewriteRulesDB().rewriteRules
-    check(rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty))
+    rules.exists(_.apply(state).graph.findSubgraph(resultPattern).nonEmpty) shouldEqual true
   }
 
-  property("rewriteRules doesnt rewrite (?x ≤ ?y) ||> min(x, y) >> id(x) by mistake") {
+  test("rewriteRules doesnt rewrite (?x le ?y) ||> min(x, y) >> id(x) by mistake") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
     val pattern = Programs.destructPatterns(patternTerm).head
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = new SimpleRewriteRulesDB().rewriteRules
-    check(rules.exists(_.apply(state).graph.findSubgraph(pattern).isEmpty))
+    rules.exists(_.apply(state).graph.findSubgraph(pattern).isEmpty) shouldEqual true
   }
 }
