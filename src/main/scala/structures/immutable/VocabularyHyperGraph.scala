@@ -5,7 +5,6 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -26,12 +25,13 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
-    compact(List(hyperEdge))
+    val newMetadata = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
+    new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edges")
-    compact(hyperEdges.toList)
+    hyperEdges.foldLeft(this)(_ addEdge _)
   }
 
   override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
@@ -175,23 +175,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     }
 
   /* --- Private Methods --- */
-
-  @tailrec
-  private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node,Node]=Map.empty): VocabularyHyperGraph[Node, EdgeType] = {
-    hyperEdges match {
-      case Nil => this
-      case hyperEdge +: otherHyperEdges =>
-        val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(changedToKept.getOrElse(x, x))), EmptyMetadata)
-        val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
-        val g = new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadatas)
-        find(regex).headOption match {
-          case Some(existsHyperEdge) if existsHyperEdge != hyperEdge =>
-            val merged = g.mergeNodes(existsHyperEdge.target, hyperEdge.target)
-            merged.compact(otherHyperEdges, changedToKept.updated(hyperEdge.target, existsHyperEdge.target))
-          case _ => g.compact(otherHyperEdges, changedToKept)
-        }
-    }
-  }
 
   private def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] = {
     def toNode(either: Either[Node, EdgeType]): Node = either match {
