@@ -1,14 +1,13 @@
 package synthesis
 
+import language.Language._
+import language.TranscalParser
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.{EmptyMetadata, HyperEdge}
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
-import language.TranscalParser
-import language.Language._
 import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
@@ -19,8 +18,9 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("main program is in reconstruct") {
     check(forAll { term: Term => {
-      val programs = Programs(term)
-      programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map(_.id).max)).contains(term) :| programs.toString
+      val (graph, root) = Programs.destructWithRoot(term)
+      val programs = Programs(graph)
+      programs.reconstruct(root).contains(term) :| programs.toString
     }
     })
   }
