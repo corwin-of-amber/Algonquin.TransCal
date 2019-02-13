@@ -3,7 +3,7 @@ package synthesis.rewrites
 import language.Language
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.immutable.VocabularyHyperGraph
+import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.Identifier
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -18,7 +18,7 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(new Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
-    val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
+    val state = new RewriteSearchState(CompactHyperGraph(edges.toSeq: _*))
     val newEdges = FlattenRewrite(state).graph.edges -- state.graph.edges
     val newEdge = newEdges.filter(_.sources.size == 4)
     check(newEdges.size == 2)
@@ -48,7 +48,7 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(new Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(new Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(new Identifier("y")), Seq(), EmptyMetadata))
-    val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
+    val state = new RewriteSearchState(CompactHyperGraph(edges.toSeq: _*))
     val flattened = FlattenRewrite(state)
     val newEdge = (flattened.graph.edges -- state.graph.edges).filter(e => e.edgeType.identifier.literal == "f")
     check(newEdge.size == 1)

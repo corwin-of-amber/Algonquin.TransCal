@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import language.Language
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne}
 import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
@@ -88,7 +88,7 @@ object Programs extends LazyLogging {
     override protected def toStr: String = "Non Constructable"
   }
 
-  def empty: Programs = Programs(HyperGraphManyWithOrderToOne.empty[HyperTermId, HyperTermIdentifier])
+  def empty: Programs = Programs(CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier])
 
   def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(hyperGraph)
 
@@ -155,7 +155,7 @@ object Programs extends LazyLogging {
     }
 
     val hyperEdges = innerDestruct(tree, hyperTermIdCreator, HyperTermIdentifier, knownTerms)._2
-    (HyperGraphManyWithOrderToOne(hyperEdges.toSeq: _*), hyperEdges.last.target)
+    (CompactHyperGraph(hyperEdges.toSeq: _*), hyperEdges.last.target)
   }
 
   private def innerDestructPattern(trees: Seq[Term]):
