@@ -33,13 +33,13 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ ?y) >> y",
+    "(true ⇒ ?y) >> id y",
     "(false ⇒ ?y) >> false",
     "~true = false",
     "~false = true",
-    "?x / false >> x",
-    "false / ?x >> x",
-    "id ?x >> x",
+    "?x / false >> id x",
+    "false / ?x >> id x",
+    "id (id ?x) >> id x",
 
     "?x == ?x' = x' ∈ { x }",
     "(?x elem (?x' :: ?xs')) = ((x == x') \\/ (x elem xs'))",
@@ -55,18 +55,18 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
-    "⟨⟩ ++ ?xs' >> xs'",
-    "?xs' ++ ⟨⟩ >> xs'",
+    "⟨⟩ ++ ?xs' >> id xs'",
+    "?xs' ++ ⟨⟩ >> id xs'",
 
     "((?x < ?y) ||| true) >> (x ≤ y)",
-    "(?x ≤ ?y) ||> min(x, y) >> x",
-    "(?x ≤ ?y) ||> min(y, x) >> x",
+    "(?x ≤ ?y) ||> min(x, y) >> id x",
+    "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 
     "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
 
     "(?xs take 0) >> ⟨⟩",
-    "(?xs take (len xs)) >> xs",
+    "(?xs take (len xs)) >> id xs",
     "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
 
     // merge range
