@@ -19,7 +19,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
+class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
 
   /* --- Public --- */
   /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
@@ -144,7 +144,7 @@ object Programs extends LazyLogging {
     destructWithRoot(tree, maxId)._1
   }
 
-  private def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
     def knownTerms(t: Term): Option[HyperTermId] = None
@@ -154,8 +154,8 @@ object Programs extends LazyLogging {
       () => creator.next
     }
 
-    val hyperEdges = innerDestruct(tree, hyperTermIdCreator, HyperTermIdentifier, knownTerms)._2
-    (CompactHyperGraph(hyperEdges.toSeq: _*), hyperEdges.last.target)
+    val hyperEdges = innerDestruct(tree, hyperTermIdCreator, HyperTermIdentifier, knownTerms)
+    (CompactHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
   }
 
   private def innerDestructPattern(trees: Seq[Term]):
@@ -191,7 +191,7 @@ object Programs extends LazyLogging {
     destructPatternsWithRoots(trees, mergeRoots).map(_._1)
   }
 
-  private def destructPatternsWithRoots(trees: Seq[Term], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
+  def destructPatternsWithRoots(trees: Seq[Term], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
     val edges = innerDestructPattern(trees)
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
       val mainRoot = edges.head._1
