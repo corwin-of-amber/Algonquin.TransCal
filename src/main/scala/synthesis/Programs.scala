@@ -2,13 +2,12 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import language.Language
-import semantics.LambdaCalculus.isApp
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.Programs.NonConstructableMetadata
-import synthesis.rewrites.RewriteRule.{HyperPattern, HyperPatternEdge}
+import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
