@@ -37,7 +37,7 @@ class LetAction(term: Term) extends Action {
         val params = if (t.subtrees(0).root == Language.tupleId) t.subtrees(0).subtrees else List(t.subtrees(0))
         val condTerm = new Tree(newFunc, params)
         val (pattern, conclusion) = {
-          val patterns = Programs.destructPatterns(condTerm, newTerm)
+          val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
           (patterns(0), patterns(1))
         }
 
@@ -51,7 +51,7 @@ class LetAction(term: Term) extends Action {
       case Language.letId | Language.directedLetId =>
         val results = t.subtrees map (s => createRewrites(s))
         val (premise, conclusion) = {
-          val temp = Programs.destructPatterns(results(0)._2, results(1)._2)
+          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2))
           (temp(0), temp(1))
         }
         val newRules: Set[RewriteRule] = {

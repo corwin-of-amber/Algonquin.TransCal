@@ -185,10 +185,10 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
         val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
         val g = new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadatas)
         find(regex).headOption match {
-          case None => g.compact(otherHyperEdges, changedToKept)
-          case Some(existsHyperEdge) =>
+          case Some(existsHyperEdge) if existsHyperEdge != hyperEdge =>
             val merged = g.mergeNodes(existsHyperEdge.target, hyperEdge.target)
             merged.compact(otherHyperEdges, changedToKept.updated(hyperEdge.target, existsHyperEdge.target))
+          case _ => g.compact(otherHyperEdges, changedToKept)
         }
     }
   }

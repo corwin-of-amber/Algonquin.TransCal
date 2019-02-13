@@ -59,7 +59,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
 
   property("add than remove than add") {
     check(forAll { (g: VocabularyHyperGraph[Int, Int], e: HyperEdge[Int, Int]) =>
-      !g.edges.contains(e) ==> {
+      g.edges.forall(e1 => e1.sources != e.sources || e1.edgeType != e.edgeType) ==> {
         val gAdded = g + e
         val gRemoved = gAdded - e
         val gAdded2 = gRemoved + e

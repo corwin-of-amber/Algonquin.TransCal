@@ -29,11 +29,8 @@ class Programs private(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param root        pattern root node
     * @return all conforming terms
     */
-  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, root: TemplateTerm[HyperTermId]): Iterator[Term] = {
-    val edgeTypes = pattern.edges.filter(_.target == root).map(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier)
-    reconstruct(hyperTermId).filter(t =>
-      edgeTypes.contains(t.root) && Programs.destruct(t).findSubgraph(pattern).nonEmpty
-    )
+  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern): Iterator[Term] = {
+    reconstruct(hyperTermId).filter(t => Programs.destruct(t).findSubgraph(pattern).nonEmpty)
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -111,14 +108,28 @@ object Programs extends LazyLogging {
                                             knownTerms: Term => Option[Node]): (Node, Set[HyperEdge[Node, EdgeType]]) = {
     if (knownTerms(tree).nonEmpty) return (knownTerms(tree).get, Set.empty)
     val (function, args) = flattenApply(tree)
+
     // Skipping annotations, shouldn't be part of the graph, at least for now
     if (function.literal == "Annotation") return innerDestruct(tree.subtrees(0), nodeCreator, identToEdge, knownTerms)
+
     val targetToSubedges = args.map(subtree => innerDestruct(subtree, nodeCreator, identToEdge, knownTerms))
     val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
-    val target = nodeCreator()
-    val newHyperEdges =
-      if (function == Language.splitId) targetToSubedges.map { t => HyperEdge(target, identToEdge(Language.idId), List(t._1), EmptyMetadata) }
-      else Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+    var target = nodeCreator()
+
+    val newHyperEdges = function match {
+      case Language.splitId | Language.andCondBuilderId =>
+        val createdTarget = target
+        target = targetToSubedges.head._1
+        targetToSubedges.map {t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata)}
+      case Language.trueCondBuilderId =>
+        val precondRoot = targetToSubedges.head._1
+//        val precondEdge = targetToSubedges.head._2.find(_.target == precondRoot).get
+        target = targetToSubedges.last._1
+        Set(
+          HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
+        )
+      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+    }
 
     (target, subHyperEdges ++ newHyperEdges)
   }
@@ -133,7 +144,7 @@ object Programs extends LazyLogging {
     destructWithRoot(tree, maxId)._1
   }
 
-  def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  private def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
     def knownTerms(t: Term): Option[HyperTermId] = None
@@ -147,8 +158,8 @@ object Programs extends LazyLogging {
     (HyperGraphManyWithOrderToOne(hyperEdges.toSeq: _*), hyperEdges.last.target)
   }
 
-  private def innerDestructPattern(trees: Term*):
-  Seq[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]]] = {
+  private def innerDestructPattern(trees: Seq[Term]):
+  Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
     val holeCreator: () => ReferenceTerm[HyperTermId] = {
@@ -169,16 +180,27 @@ object Programs extends LazyLogging {
       t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
 
-    trees.map(tree => innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)._2)
+    trees.map(tree => innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms))
   }
 
-  def destructPatterns(trees: Term*): Seq[HyperPattern] = {
-    destructPatternsWithRoots(trees: _*).map(_._1)
+  def destructPattern(tree: Term): HyperPattern = {
+    destructPatternsWithRoots(Seq(tree)).head._1
   }
 
-  def destructPatternsWithRoots(trees: Term*): Seq[(HyperPattern, ReferenceTerm[HyperTermId])] = {
-    val edges = innerDestructPattern(trees: _*)
-    edges.map(es => (HyperGraphManyWithOrderToOne(es.toSeq: _*), es.last.target.asInstanceOf[ReferenceTerm[HyperTermId]]))
+  def destructPatterns(trees: Seq[Term], mergeRoots: Boolean = true): Seq[HyperPattern] = {
+    destructPatternsWithRoots(trees, mergeRoots).map(_._1)
+  }
+
+  private def destructPatternsWithRoots(trees: Seq[Term], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
+    val edges = innerDestructPattern(trees)
+    val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
+      val mainRoot = edges.head._1
+      val roots = edges.map(_._1).toSet
+      def switcher(templateTerm: TemplateTerm[HyperTermId]) = if (roots.contains(templateTerm)) mainRoot else templateTerm
+      if (mergeRoots) edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
+      else edges
+    }
+    modifiedEdges.map(es => (HyperGraphManyWithOrderToOne(es._2.toSeq: _*), es._1))
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {

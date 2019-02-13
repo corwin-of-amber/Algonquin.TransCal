@@ -75,18 +75,18 @@ class ProgramsPropSpec extends PropSpec with Checkers {
       (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
         val progs = Programs(new Tree[Identifier](splitId, List(term1, term2)))
         val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(new Identifier("id")))
-        edges.map(_.sources.head).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
+        edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
     })
   }
 
   property("destruct pattern has right amount of references") {
     val parser = new TranscalParser
-    val pattern1 = Programs.destructPatterns(parser("_ -> _ + _").subtrees(1)).head
+    val pattern1 = Programs.destructPattern(parser("_ -> _ + _").subtrees(1))
     check(pattern1.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
-    val pattern2 = Programs.destructPatterns(parser("_ -> _ + _ - _").subtrees(1)).head
+    val pattern2 = Programs.destructPattern(parser("_ -> _ + _ - _").subtrees(1))
     check(pattern2.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
-    val pattern3 = Programs.destructPatterns(parser("?x ?y -> _ + x + y").subtrees(1)).head
+    val pattern3 = Programs.destructPattern(parser("?x ?y -> _ + x + y").subtrees(1))
     check(pattern3.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
   }
 
