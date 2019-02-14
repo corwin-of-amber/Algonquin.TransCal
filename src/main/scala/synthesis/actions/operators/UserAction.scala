@@ -42,17 +42,17 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
         val (lhs, rhs) = {
-          val temp = Programs.destructPatterns(term.subtrees)
+          val temp = Programs.destructPatternsWithRoots(term.subtrees)
           (temp.head, temp.last)
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
-        val tempState = new LocateAction(anchor, lhs).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
+        val tempState = new LocateAction(anchor, lhs._1).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         logger.info(s"Locate Action: ${term.subtrees.head} with temporary anchor $anchor")
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
-            val res = tempState.programs.reconstructWithPattern(foundId.get, lhs)
+            val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1)
             if (res.hasNext) res
             else tempState.programs.reconstruct(foundId.get)
           }
@@ -82,7 +82,8 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
           case t: Term =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.debug("Found locate to pattern. Running locate as elaborate.")
-            new LocateAction(LocateAction.createTemporaryAnchor(), lhs).apply(tempState)
+            val newPattern = rhs._1.mergeNodes(ExplicitTerm(foundId.get), rhs._2)
+            new LocateAction(LocateAction.createTemporaryAnchor(), newPattern).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")
