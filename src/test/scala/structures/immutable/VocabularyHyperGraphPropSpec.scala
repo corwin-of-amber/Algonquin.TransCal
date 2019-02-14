@@ -1,15 +1,19 @@
 package structures.immutable
 
+import language.{Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.PropSpec
+import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.Checkers
 import structures._
+import syntax.Identifier
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.rewrites.Template.ExplicitTerm
 
 import scala.util.Random
 
 
-class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
+class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers {
   implicit val edgeCreator = Arbitrary(integerEdgesGen)
   implicit val graphCreator = Arbitrary(integerGraphGen)
 
@@ -207,5 +211,23 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers {
         )
       }
     })
+  }
+
+  property("Compactions works correctly on mutliple swithces of same var") {
+    val graphs = Programs.destructPatterns(new TranscalParser apply "(?x ≤ ?y) ||> min(x, y) >> id x" subtrees)
+    check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head)
+    check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head)
+  }
+
+  property("Compation works correctly when adding precondition after creation") {
+    val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
+    val graph = Programs.destruct(term).addEdges(Set(
+      HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
+    ))
+    graph.nodes should not contain HyperTermId(100)
+    graph.nodes should not contain HyperTermId(101)
   }
 }
