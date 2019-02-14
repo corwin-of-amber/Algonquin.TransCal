@@ -1,7 +1,7 @@
 package synthesis.actions
 
 import synthesis.actions.operators.Action
-import synthesis.search.SearchSpace
+import synthesis.search.{Operator, SearchSpace}
 
 /**
   * @author tomer
@@ -17,4 +17,6 @@ class ActionSearchSpace(initialState: ActionSearchState , operators: Seq[Action]
   override def isGoal(state: ActionSearchState): Boolean = true
 
   override def initialStates: Set[ActionSearchState] = Set(initialState)
+
+  override def operators(state: ActionSearchState): Stream[Operator[ActionSearchState]] = operators.toStream
 }

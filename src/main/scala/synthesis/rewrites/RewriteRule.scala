@@ -49,6 +49,9 @@ class RewriteRule(premise: HyperPattern,
     })
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ newEdges
+    if (newEdges.nonEmpty) {
+      logger.debug(s"Used RewriteRule $this")
+    }
 
     new RewriteSearchState(graph)
   }

@@ -13,4 +13,6 @@ class RewriteSearchSpace(rewriteRules: Seq[Operator[RewriteSearchState]], initia
   override def isGoal(state: RewriteSearchState): Boolean = goalPredicate(state)
 
   override def initialStates: Set[RewriteSearchState] = Set(initialState)
+
+  override def operators(state: RewriteSearchState): Stream[Operator[RewriteSearchState]] = rewriteRules.toStream
 }

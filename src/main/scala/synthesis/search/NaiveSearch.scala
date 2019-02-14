@@ -14,11 +14,7 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
     var i = 0
 
     while (i < maxDepth && !searchSpace.isGoal(state)) {
-      val neighbors = searchSpace.neighbors(state).map(s=>{
-        logger.trace(f"In the stream!!! $i")
-        s
-      })
-      state = neighbors.drop(i % neighbors.size).head
+      state = searchSpace.operators(state).drop(i % searchSpace.operators(state).size).head(state)
       i += 1
     }
 
