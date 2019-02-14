@@ -82,8 +82,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
           case t: Term =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.debug("Found locate to pattern. Running locate as elaborate.")
-            val newPattern = rhs._1.mergeNodes(ExplicitTerm(foundId.get), rhs._2)
-            new LocateAction(LocateAction.createTemporaryAnchor(), newPattern).apply(tempState)
+            new ElaborateAction(anchor, rhs._1, rhs._2).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")
