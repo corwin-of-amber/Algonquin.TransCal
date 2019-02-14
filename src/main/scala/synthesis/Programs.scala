@@ -34,6 +34,7 @@ class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
+    * Disallow loops in buildings - each edges can be chose once in each branch.
     *
     * @param hyperTermId The hyper term to build.
     * @return All the trees.
@@ -45,22 +46,21 @@ class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Iterator.empty
     } else {
-      val hyperTermToEdge = mutable.HashMultiMap(hyperGraph.edges.groupBy(edge => edge.target))
-
       /** Build iterator of program's trees where their root is the current target.
         *
         * @param root The root of the programs we find
         * @return Iterator with all the programs of root.
         */
-      def recursive(root: HyperTermId): Iterator[Term] = {
+      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[Term] = {
+        val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
         val edges = hyperTermToEdge.get(root)
-        edges.map(edges => edges.filter(_.metadata.forall(_ != NonConstructableMetadata)).toIterator.flatMap(edge => {
+        edges.get.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
-          else Programs.combineSeq(edge.sources.map(recursive)).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
-        })).get
+          else Programs.combineSeq(edge.sources.map(recursive(edgesInGraph - edge, _))).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+        })
       }
 
-      recursive(hyperTermId)
+      recursive(hyperGraph.edges, hyperTermId)
     }
   }
 
