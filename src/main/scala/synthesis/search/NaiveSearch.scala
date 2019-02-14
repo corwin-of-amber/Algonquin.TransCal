@@ -1,9 +1,11 @@
 package synthesis.search
 
+import com.typesafe.scalalogging.LazyLogging
+
 /**
   * BFS returns last state only.
   */
-class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] {
+class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] with LazyLogging {
 
   /* --- Search Impl. --- */
 
@@ -13,7 +15,7 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
 
     while (i < maxDepth && !searchSpace.isGoal(state)) {
       val neighbors = searchSpace.neighbors(state).map(s=>{
-        println(f"In the stream!!! $i")
+        logger.trace(f"In the stream!!! $i")
         s
       })
       state = neighbors.drop(i % neighbors.size).head
