@@ -26,6 +26,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // We assume only one root as it is a pattern from user.
+    logger.debug(s"Running Locate with $anchor")
     val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
     assert(roots.size == 1)
     val root = roots.head
