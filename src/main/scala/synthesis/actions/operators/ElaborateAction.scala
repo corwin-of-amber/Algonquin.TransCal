@@ -18,6 +18,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: TemplateTerm[HyperTermId]) extends Action {
   override def apply(state: ActionSearchState): ActionSearchState = {
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
+      logger.info(s"Running elaborate action on $anchor")
 
     val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
     val updatedGoal = goal.mergeNodes(ExplicitTerm(root), goalRoot)
@@ -31,8 +32,8 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
     // Process result
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))
     val terms = newPrograms.reconstructWithPattern(root, goal)
-    if (terms.hasNext) logger.debug(terms.next().toString())
-    else logger.debug("Found term not constructable (probably a symbol)")
+    if (terms.hasNext) logger.info(terms.next().toString())
+    else logger.info("Found term not constructable (probably a symbol)")
     ActionSearchState(newPrograms, state.rewriteRules)
   }
 }

@@ -18,7 +18,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LetAction(term: Term) extends Action {
+class LetAction(val term: Term) extends Action {
   // TODO: check what skolemize was
   // TODO: Take care of splitting by adding inner lets
 

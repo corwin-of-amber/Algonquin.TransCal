@@ -15,7 +15,7 @@ import synthesis.{HyperTermIdentifier, Programs}
 class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term) extends Action with LazyLogging {
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    logger.debug(s"Running generalize action on $anchor")
+    logger.info(s"Running generalize action on $anchor")
 
     val roots = state.programs.hyperGraph.findEdges(anchor) map (_.target)
     val updatedGraph = new Programs(state.programs.hyperGraph.filter(e => e.sources.nonEmpty || leaves.map(_.root).contains(e.edgeType.identifier)))
@@ -32,15 +32,18 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
             new Tree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))))
           }
 
-          new LetAction(functionDef).rules
+          new LetAction(functionDef)
         }).take(NUM_ALTS_TO_SHOW)
       }
 
     /* select just the first generalization */
     gen.flatten.headOption match {
-      case None => state
+      case None =>
+        logger.info("Failed to generalize term")
+        state
       case Some(newRules) =>
-        state.copy(rewriteRules = state.rewriteRules ++ newRules)
+        logger.info(s"Generalized term is ${newRules.term}")
+        state.copy(rewriteRules = state.rewriteRules ++ newRules.rules)
     }
   }
 }
