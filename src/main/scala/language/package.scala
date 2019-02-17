@@ -22,6 +22,7 @@ package object Language {
   val directedLetLiteral: String = ">>"
   val commandLiteral: String = "Command"
   val semicolonLiteral: String = ";"
+  val typeBuilderLiteral: String = ":"
   val trueCondBuilderLiteral: String = "||>"
   val andCondBuilderLiteral: String = "|||"
   val consLiteral: String = "::"
@@ -44,12 +45,14 @@ package object Language {
   val directedLetId: Identifier = new Identifier(directedLetLiteral)
   val commandId: Identifier = new Identifier(commandLiteral)
   val semicolonId: Identifier = new Identifier(semicolonLiteral)
+  val typeBuilderId: Identifier = new Identifier(typeBuilderLiteral)
   val trueCondBuilderId: Identifier = new Identifier(trueCondBuilderLiteral)
   val andCondBuilderId: Identifier = new Identifier(andCondBuilderLiteral)
   val consId: Identifier = new Identifier(consLiteral)
   val setId: Identifier = new Identifier(setLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
+  val typeRegex: Regex = "\\w+".r
 
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
   val builtinNotOps: Seq[String] = Seq("~", "¬")
