@@ -113,7 +113,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
           } else {
             subtrieRemoved
           }
-          mapSubtriesRemoved + ((keep, newKeep))
+          (mapSubtriesRemoved - change) + ((keep, newKeep))
         case None => mapSubtriesRemoved
       }
     })
