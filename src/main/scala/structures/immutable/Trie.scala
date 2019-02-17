@@ -103,9 +103,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     logger.trace("Replace in subtries")
     val newSubtries: IndexedSeq[Map[Letter, Trie[Letter]]] = for (mapSubtries <- subtries) yield {
       logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = for ((letter, subtrie) <- mapSubtries) yield {
-        (letter, subtrie.replaceWithIndex(keep, change, index + 1))
-      }
+      val mapSubtriesRemoved = mapSubtries.map(t => (t._1, t._2.replaceWithIndex(keep, change, index + 1)))
 
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
