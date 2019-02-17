@@ -110,8 +110,8 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
         case Some(subtrieRemoved) =>
-          val newKeep = if (mapSubtries.contains(keep)) {
-            mapSubtries(keep).addAll(subtrieRemoved, index)
+          val newKeep = if (mapSubtriesRemoved.contains(keep)) {
+            mapSubtriesRemoved(keep).addAll(subtrieRemoved, index)
           } else {
             subtrieRemoved
           }
