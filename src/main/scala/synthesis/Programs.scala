@@ -123,12 +123,20 @@ object Programs extends LazyLogging {
         targetToSubedges.map {t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata)}
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
-//        val precondEdge = targetToSubedges.head._2.find(_.target == precondRoot).get
         target = targetToSubedges.last._1
         Set(
           HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
         )
-      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata)) ++ (
+        if (function.kind == "?") Set.empty
+        else {
+          val t = nodeCreator()
+          Set(
+            HyperEdge(t, identToEdge(new Identifier(function.kind)), Seq(target), EmptyMetadata),
+            HyperEdge(t, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
+          )
+        })
+
     }
 
     (target, subHyperEdges ++ newHyperEdges)
