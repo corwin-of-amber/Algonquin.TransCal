@@ -54,7 +54,7 @@ class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
       def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[Term] = {
         val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
         val edges = hyperTermToEdge.get(root)
-        edges.get.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+        edges.getOrElse(Iterator.empty).toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
           else Programs.combineSeq(edge.sources.map(recursive(edgesInGraph - edge, _))).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
         })
