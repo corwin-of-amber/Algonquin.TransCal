@@ -1,15 +1,17 @@
 package synthesis.actions.operators
 
-import java.io.PrintStream
+import java.io.{BufferedReader, PrintStream}
 
-import language.Language
+import syntax.AstSugar.{I, Term}
+import language.{Language, Parser}
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge}
-import syntax.AstSugar.Term
+import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike}
 import syntax.Tree
-import synthesis.actions.ActionSearchState
-import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.actions.ActionSearchState
+import synthesis.rewrites.RewriteRule.HyperPattern
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.{RewriteRule, Template}
 
 import scala.collection.mutable
 
@@ -72,7 +74,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             logger.info("RHS is a symbol adding it to graph")
             val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
-                ExplicitTerm(foundId.get), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
+                ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
               ): _*)).apply(tempState)
             logger.debug("Finished adding symbol.")
             res
