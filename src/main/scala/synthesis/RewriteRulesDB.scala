@@ -59,7 +59,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "?xs' ++ ⟨⟩ >> id xs'",
 
     "((?x < ?y) ||| true) >> (x ≤ y)",
-    "(?x ≤ ?y) ||> min(x, y) >> id x",
+    "(?x ≤ ?y) ||> min(x: number, y: number) >> id x",
     "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 
@@ -70,7 +70,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
 
     // merge range
-    "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
+    "(range_exclude(?x: int, ?y: int) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
     // exclude to include
     "range_exclude(?x, ?y + 1) = range_include(x, y)",
     // singleton range
