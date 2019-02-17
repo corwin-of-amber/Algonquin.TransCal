@@ -1,17 +1,15 @@
 package synthesis.actions.operators
 
-import java.io.{BufferedReader, PrintStream}
+import java.io.PrintStream
 
-import syntax.AstSugar.{I, Term}
-import language.{Language, Parser}
+import language.Language
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike}
+import structures.{EmptyMetadata, HyperEdge}
+import syntax.AstSugar.Term
 import syntax.Tree
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
-import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, Template}
+import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.collection.mutable
 
