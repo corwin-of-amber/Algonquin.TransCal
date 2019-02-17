@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
+import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
@@ -20,7 +20,7 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
 
     val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
-    val updatedGoal = goal.mergeNodes(ExplicitTerm(root), goalRoot)
+    val updatedGoal = goal.addEdge(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
     def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph(updatedGoal).nonEmpty
     // Rewrite search
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
