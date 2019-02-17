@@ -30,9 +30,11 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
 
     // Process result
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))
-    val terms = newPrograms.reconstructWithPattern(root, goal)
-    if (terms.hasNext) logger.debug(terms.next().toString())
-    else logger.debug("Found term not constructable (probably a symbol)")
+    if (rewriteResult.nonEmpty) {
+      val terms = newPrograms.reconstructWithPattern(root, goal)
+      if (terms.hasNext) logger.info(s"Elaborated term is ${terms.next().toString()}")
+      else logger.info("Found term not constructable (probably a symbol)")
+    } else logger.info("Failed to elaborate to pattern")
     ActionSearchState(newPrograms, state.rewriteRules)
   }
 }

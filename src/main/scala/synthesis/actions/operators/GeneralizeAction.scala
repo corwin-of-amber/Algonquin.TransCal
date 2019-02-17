@@ -18,12 +18,11 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
     logger.debug(s"Running generalize action on $anchor")
 
     val roots = state.programs.hyperGraph.findEdges(anchor) map (_.target)
-    val updatedGraph = new Programs(state.programs.hyperGraph.filter(e => e.sources.nonEmpty || leaves.map(_.root).contains(e.edgeType.identifier)))
 
     // Reconstruct and generalize
     val gen =
       for (root <- roots) yield {
-        (for (term <- updatedGraph.reconstruct(root)) yield {
+        (for (term <- state.programs.reconstruct(root).filter(t => leaves.diff(t.nodes).isEmpty)) yield {
           logger.debug(s"Generalizing using the term $term")
           val vars = leaves.indices map(i => TI(s"?autovar$i"))
 
@@ -32,15 +31,18 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
             new Tree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))))
           }
 
-          new LetAction(functionDef).rules
+          functionDef
         }).take(NUM_ALTS_TO_SHOW)
       }
 
     /* select just the first generalization */
     gen.flatten.headOption match {
-      case None => state
-      case Some(newRules) =>
-        state.copy(rewriteRules = state.rewriteRules ++ newRules)
+      case None =>
+        logger.info("Failed to generalize")
+        state
+      case Some(newTerm) =>
+        logger.info(s"Generalized to $newTerm")
+        state.copy(rewriteRules = state.rewriteRules ++ new LetAction(newTerm).rules)
     }
   }
 }
