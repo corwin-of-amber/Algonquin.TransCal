@@ -103,7 +103,8 @@ class TriePropSpec extends PropSpec with Checkers {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      beforeLettersSize == newTrie.letters.size + 1 && trie != newTrie
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      beforeLettersSize == newTrie.letters.size + 1 && trie != newTrie && found.isEmpty
     }
     check(forAll { trie: Trie[Int] =>
       (trie.letters.size > 1) ==> validate(trie, trie.letters.head, trie.letters.last)
@@ -115,7 +116,8 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie && found.isEmpty
     }
     check(forAll { trie: Trie[Int] =>
       trie.letters.nonEmpty ==> validate(trie, trie.letters.max + 1, trie.letters.last)
@@ -127,7 +129,8 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && trie != newTrie
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && trie != newTrie && found.isEmpty
     }
     check(forAll { (trie: Trie[Int], keepLetter: Int) =>
       validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)

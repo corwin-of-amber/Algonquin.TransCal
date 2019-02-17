@@ -85,7 +85,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val first = g.nodes.toList(Random.nextInt(g.nodes.size))
         val second = g.nodes.toList(Random.nextInt(g.nodes.size))
         val gMerged = g.mergeNodes(first, second)
-        gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second))
+        val found1 = gMerged.find(HyperEdge(Explicit(second) , Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(second), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second)) && (found1 ++ found2).isEmpty
       }
     })
   }
@@ -97,10 +99,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val toChange = es.toList(1)
         val source = es.toList(0)
         val gMerged = g.mergeNodes(source.target, toChange.target)
+        val found1 = gMerged.find(HyperEdge(Explicit(toChange.target) , Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
           if (x == toChange.target) source.target
           else x
-        }) && x.edgeType == toChange.edgeType)
+        }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
       }
     })
   }
