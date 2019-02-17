@@ -49,7 +49,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       metadatas.filter(t => t._1._1 == change || t._1._3.contains(change))
         .groupBy(t => (swap(t._1._1), t._1._2, t._1._3.map(swap)))
         .map(t => {
-          val a = t._2.values.foldLeft(metadatas.getOrElse(t._1, EmptyMetadata))((m1, m2) => m1.merge(m2))
+          val a = t._2.values.reduce(_ merge _)
           (t._1, a)
         }
         )
