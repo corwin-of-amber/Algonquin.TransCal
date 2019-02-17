@@ -60,7 +60,7 @@ package object Language {
   val builtinIFFOps: Seq[String] = Seq("<->")
   val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinCondBuilders: Seq[String] = Seq("||>")
-  val builtinHighLevel: Seq[String] = Seq(":", "/", "=>", "↦", "⇒", "|||")
+  val builtinHighLevel: Seq[String] = Seq("/", "=>", "↦", "⇒", "|||")
   val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")

@@ -44,8 +44,9 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     TREE(I(x.toInt))
   }
 
-  def identifier: Parser[Identifier] = Language.identifierRegex ^^ { x =>
-    I(x)
+  def identifier: Parser[Identifier] = Language.identifierRegex ~ (':' ~ "\\w+".r).? ^^ {
+    case x ~ None => I(x)
+    case x ~ Some(':' ~ z) => I(x, z)
   }
 
   def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ {
