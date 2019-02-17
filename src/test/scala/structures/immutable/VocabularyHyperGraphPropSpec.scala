@@ -81,13 +81,24 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("merge any different node returns graph without merged node") {
     check(forAll { g: VocabularyHyperGraph[Int, Int] =>
-      g.nodes.nonEmpty ==> {
-        val first = g.nodes.toList(Random.nextInt(g.nodes.size))
-        val second = g.nodes.toList(Random.nextInt(g.nodes.size))
+      (g.nodes.size > 1) ==> {
+        val first = g.nodes.head
+        val second = g.nodes.last
         val gMerged = g.mergeNodes(first, second)
         val found1 = gMerged.find(HyperEdge(Explicit(second), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(second), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second)) && (found1 ++ found2).isEmpty
+      }
+    })
+  }
+
+  property("merge same node returns graph without merged node") {
+    check(forAll { g: VocabularyHyperGraph[Int, Int] =>
+      g.nodes.nonEmpty ==> {
+        val first = g.nodes.head
+        val second = g.nodes.head
+        val gMerged = g.mergeNodes(first, second)
+        gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second))
       }
     })
   }
