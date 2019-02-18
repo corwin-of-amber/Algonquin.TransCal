@@ -6,6 +6,9 @@ import scala.util.matching.Regex
 
 package object Language {
   val applyLiteral: String ="@"
+  val typeLiteral: String ="type"
+  val mapTypeLiteral: String =":>"
+  val innerTypeLiteral: String ="polymorphic"
   val lambdaLiteral: String ="↦"
   val splitLiteral: String ="/"
   val idLiteral: String ="id"
@@ -29,6 +32,9 @@ package object Language {
   val setLiteral: String = "{.}"
 
   val applyId: Identifier = new Identifier(applyLiteral)
+  val typeId: Identifier = new Identifier(typeLiteral)
+  val mapTypeId: Identifier = new Identifier(mapTypeLiteral)
+  val innerTypeId: Identifier = new Identifier(innerTypeLiteral)
   val lambdaId: Identifier = new Identifier(lambdaLiteral)
   val splitId: Identifier = new Identifier(splitLiteral)
   val idId: Identifier = new Identifier(idLiteral)
@@ -52,7 +58,7 @@ package object Language {
   val setId: Identifier = new Identifier(setLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
-  val typeRegex: Regex = "\\w+".r
+  val typeRegex: Regex = "[`']?\\w+".r
 
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
   val builtinNotOps: Seq[String] = Seq("~", "¬")

@@ -44,9 +44,19 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     TREE(I(x.toInt))
   }
 
-  def identifier: Parser[Term] = Language.identifierRegex ~ (Language.typeBuilderLiteral ~ Language.typeRegex).? ^^ {
+  def polymorphicTypes: Parser[Term] = Language.typeRegex ~ ('[' ~ types ~ ']').? ^^ {
     case x ~ None => TREE(I(x))
-    case x ~ Some(Language.typeBuilderLiteral ~ z) => TREE(Language.typeBuilderId, List(TREE(I(x)), TREE(I(z))))
+    case x ~ Some('[' ~ polymorphic ~ ']') => TREE(Language.innerTypeId, List(TREE(I(x)), polymorphic))
+  }
+
+  def types: Parser[Term] = polymorphicTypes ~ (Language.mapTypeLiteral ~ types).? ^^ {
+    case x ~ None => TREE(I(x))
+    case x ~ Some(Language.mapTypeLiteral ~ recursive) => TREE(Language.mapTypeId, List(TREE(I(x)), recursive))
+  }
+
+  def identifier: Parser[Term] = Language.identifierRegex ~ (Language.typeBuilderLiteral ~ types).? ^^ {
+    case x ~ None => TREE(I(x))
+    case x ~ Some(Language.typeBuilderLiteral ~ z) => TREE(Language.typeBuilderId, List(TREE(I(x)), z))
   }
 
   def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ {
