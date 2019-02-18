@@ -83,7 +83,7 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("edges finds all that were added") {
     check(forAll { words: Set[Seq[Int]] =>
-      words.intersect(words.foldLeft(Trie.empty[Int])((trie, word) => trie + word).words).size == words.size
+      words.intersect(words.foldLeft(Trie.empty[Int])(_ + _).words).size == words.size
     })
   }
 
