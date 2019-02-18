@@ -31,4 +31,30 @@ class FunctionReturnTypeRewritePropSpec extends PropSpec with Checkers {
 
     check(actualNewEdges == expectedNewEdges)
   }
+
+  property("Finds 2 in the graph") {
+    val graph = CompactHyperGraph(
+      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
+      HyperEdge(HyperTermId(1), HyperTermIdentifier(I("f")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(2), HyperTermIdentifier(Language.mapTypeId), Seq(HyperTermId(3), HyperTermId(4)), EmptyMetadata),
+      HyperEdge(HyperTermId(4), HyperTermIdentifier(Language.mapTypeId), Seq(HyperTermId(5), HyperTermId(6)), EmptyMetadata),
+      HyperEdge(HyperTermId(7), HyperTermIdentifier(I("f")), Seq(HyperTermId(8), HyperTermId(9), HyperTermId(10)), EmptyMetadata),
+
+      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(21), HyperTermId(22)), EmptyMetadata),
+      HyperEdge(HyperTermId(21), HyperTermIdentifier(I("g")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(22), HyperTermIdentifier(Language.mapTypeId), Seq(HyperTermId(23), HyperTermId(24)), EmptyMetadata),
+      HyperEdge(HyperTermId(24), HyperTermIdentifier(Language.mapTypeId), Seq(HyperTermId(25), HyperTermId(26)), EmptyMetadata),
+      HyperEdge(HyperTermId(27), HyperTermIdentifier(I("g")), Seq(HyperTermId(8), HyperTermId(9), HyperTermId(10)), EmptyMetadata)
+    )
+    val expectedNewEdges = Set(
+      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(7), HyperTermId(6)), EmptyMetadata),
+      HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(27), HyperTermId(26)), EmptyMetadata)
+    )
+
+    val newGraph = FunctionReturnTypeRewrite(new RewriteSearchState(graph)).graph
+    val actualNewEdges = newGraph.edges -- graph.edges
+
+    check(actualNewEdges == expectedNewEdges)
+  }
 }
