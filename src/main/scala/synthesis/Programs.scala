@@ -58,9 +58,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
           else {
             val recRes = edge.sources.map(recursive(edgesInGraph - edge, _))
-            val subtreeCombs = Programs.combineSeq(recRes).toSet
-            val temp2 = subtreeCombs.map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
-            temp2.toIterator
+            Programs.combineSeq(recRes).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
           }
         })
       }

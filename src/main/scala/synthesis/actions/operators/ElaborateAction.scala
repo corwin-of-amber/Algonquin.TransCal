@@ -19,7 +19,6 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
   override def apply(state: ActionSearchState): ActionSearchState = {
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
 
-    val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
     val updatedGoal = goal.addEdge(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
     def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph(updatedGoal).nonEmpty
     // Rewrite search
@@ -31,6 +30,7 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
     // Process result
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))
     if (rewriteResult.nonEmpty) {
+      val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
       val terms = newPrograms.reconstructWithPattern(root, goal)
       if (terms.hasNext) logger.info(s"Elaborated term is ${terms.next().toString()}")
       else logger.info("Found term not constructable (probably a symbol)")
