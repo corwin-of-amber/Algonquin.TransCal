@@ -23,7 +23,6 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
   private def getGeneralizedTerms(progs: Programs): Set[Term] = {
     // TODO: Filter out expressions that use context but allow constants
     // Reconstruct and generalize
-    println(progs.hyperGraph.edgesOrdered(HyperEdgeTargetOrdering).map(_.copy(metadata = EmptyMetadata)))
     progs.hyperGraph.findEdges(anchor) map (_.target) flatMap { root =>
       (for (term <- progs.reconstruct(root).filter(t => leaves.diff(t.nodes).isEmpty)) yield {
         logger.debug(s"Generalizing using the term $term")
@@ -36,20 +35,23 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
   override def apply(state: ActionSearchState): ActionSearchState = {
     logger.debug(s"Running generalize action on $anchor")
 
-    val (gen, tempState): (Set[Term], ActionSearchState) ={
+    val (gen, tempState): (Set[Term], ActionSearchState) = {
       val temp = getGeneralizedTerms(state.programs)
-      if(temp.nonEmpty) {
+      if (temp.nonEmpty) {
         (temp, state)
       } else {
         logger.info("Generalize couldn't find term, trying to elaborate")
         val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.addEdges(g2.edges))
         val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1))(state)
         var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-        for(i <- 1 to 2; op <- temp.rewriteRules) {
-          rewriteSearchState = op(rewriteSearchState)
-        }
         val progs = new Programs(rewriteSearchState.graph)
-        (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+        val terms = getGeneralizedTerms(progs)
+        if (terms.nonEmpty)
+          (terms, ActionSearchState(progs, temp.rewriteRules))
+        else {
+          for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
+          (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+        }
       }
     }
 
