@@ -11,5 +11,5 @@ object HashMultiMap {
 
   def apply[Key, Value](k2vs: collection.Map[Key, collection.Set[Value]]): mutable.MultiMap[Key, Value] = k2vs.foldLeft(empty[Key, Value])(put)
 
-  def put[Key, Value](multimap: mutable.MultiMap[Key, Value], kvs: (Key, collection.Set[Value])): mutable.MultiMap[Key, Value] = kvs._2.foldLeft(multimap)((multimap, value) => {multimap. addBinding(kvs._1, value)})
+  def put[Key, Value](multimap: mutable.MultiMap[Key, Value], kvs: (Key, collection.Set[Value])): mutable.MultiMap[Key, Value] = kvs._2.foldLeft(multimap)(_ addBinding(kvs._1, _))
 }
