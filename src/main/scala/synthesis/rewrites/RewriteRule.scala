@@ -22,6 +22,8 @@ class RewriteRule(premise: HyperPattern,
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule($premise, $conclusion)"
 
+  override def hashCode: Int = toString.hashCode
+
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
     logger.trace(s"Running rewrite rule $this")

@@ -59,7 +59,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "?xs' ++ ⟨⟩ >> id xs'",
 
     "((?x < ?y) ||| true) >> (x ≤ y)",
-    "(?x ≤ ?y) ||> min(x: number, y: number) >> id x",
+    "(?x ≤ ?y) ||> min(x, y) >> id x",
     "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 
