@@ -52,7 +52,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         val programs = Programs(tree)
 
         val results = {
-          val mainHyperTermId = programs.hyperGraph.findEdges(HyperTermIdentifier(new Identifier("root")))
+          val mainHyperTermId = programs.hyperGraph.findEdges(HyperTermIdentifier(root))
           programs.reconstruct(mainHyperTermId.head.target).toList
         }
 
