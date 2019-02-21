@@ -15,17 +15,17 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: TemplateTerm[HyperTermId]) extends Action {
+class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: TemplateTerm[HyperTermId], maxSearchDepth: Option[Int] = None) extends Action {
   override def apply(state: ActionSearchState): ActionSearchState = {
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
 
     val updatedGoal = goal.addEdge(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
-    def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph(updatedGoal).nonEmpty
+    def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph[Int](updatedGoal).nonEmpty
     // Rewrite search
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, goalPredicate)
-    val rewriteResult = rewriteSearch.search(spaceSearch)
+    val rewriteResult = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
 
     // Process result
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))

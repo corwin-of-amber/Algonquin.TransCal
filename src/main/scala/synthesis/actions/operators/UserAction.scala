@@ -42,6 +42,8 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
           case _ => new LetAction(term).apply(state)
         }
       case Language.tacticId =>
+        val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
+
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
         val (lhs, rhs) = {
@@ -51,7 +53,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
         logger.info(s"LHS is Locate with pattern ${term.subtrees.head} and temporary anchor $anchor")
-        val tempState = new LocateAction(anchor, lhs._1).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
+        val tempState = new LocateAction(anchor, lhs._1, lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
@@ -75,17 +77,17 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
                 ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
-              ): _*)).apply(tempState)
+              ): _*), lim).apply(tempState)
             logger.debug("Finished adding symbol.")
             res
           case t: Term if t.root.literal.toString.startsWith("?") =>
             // A term to generalize - run generalize Action as is
             logger.info("RHS is a term running generalize.")
-            new GeneralizeAction(anchor, t.subtrees, new Tree(t.root)).apply(tempState)
+            new GeneralizeAction(anchor, t.subtrees, new Tree(t.root), lim).apply(tempState)
           case t: Term =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.info("RHS is a pattern running elaborate.")
-            new ElaborateAction(anchor, rhs._1, rhs._2).apply(tempState)
+            new ElaborateAction(anchor, rhs._1, rhs._2, lim).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")

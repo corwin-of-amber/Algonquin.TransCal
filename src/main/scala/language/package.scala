@@ -5,6 +5,17 @@ import syntax.Identifier
 import scala.util.matching.Regex
 
 package object Language {
+
+  // TODO: maybe use this
+  object Annotations extends Enumeration {
+    protected case class Val(anno: Regex) extends super.Val {}
+
+    implicit def valueToVal(x: Value): Val = x.asInstanceOf[Val]
+
+    val definition = Val("++".r)
+    val limitSearch   = Val("lim\\([1-9][0-9]*\\)".r)
+  }
+
   val applyLiteral: String ="@"
   val typeLiteral: String ="type"
   val mapTypeLiteral: String =":>"
