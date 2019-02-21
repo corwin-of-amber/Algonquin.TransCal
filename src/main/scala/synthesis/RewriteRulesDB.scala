@@ -46,7 +46,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "~(?x == ?y) = (x != y)",
     "~(?x ∈ ?y) = (x ∉ y)",
     "(?x ∈ ?xs) = { x } ‖ xs",
-    "?xs  { ?x } >> (x ∉ xs)",
+    "?xs ‖ { ?x } >> (x ∉ xs)",
     "~(?x \\/ ?y) = (~x /\\ ~y)",
     "~(?x /\\ ?y) = (~x \\/ ~y)",
     "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
