@@ -51,7 +51,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "~(?x /\\ ?y) = (~x \\/ ~y)",
     "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
     "((?xs ‖ ?x) /\\ (xs ‖ ?y)) = (xs ‖ (x ∪ y))",
-    "elem:`a :> set[`a] :> bool (?x, ?xs) = x ∈ elems(xs)",
+    "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
@@ -59,7 +59,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "?xs' ++ ⟨⟩ >> id xs'",
 
     "((?x < ?y) ||| true) >> (x ≤ y)",
-    "(?x ≤ ?y) ||> min(x: number, y: number) >> id x",
+    "(?x ≤ ?y) ||> min(x, y) >> id x",
     "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 

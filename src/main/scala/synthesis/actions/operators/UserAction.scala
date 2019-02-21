@@ -50,8 +50,8 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
-        val tempState = new LocateAction(anchor, lhs._1).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         logger.info(s"LHS is Locate with pattern ${term.subtrees.head} and temporary anchor $anchor")
+        val tempState = new LocateAction(anchor, lhs._1).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {

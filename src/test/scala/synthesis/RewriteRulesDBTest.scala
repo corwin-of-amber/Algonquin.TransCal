@@ -17,7 +17,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val pattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = AssociativeRewriteRulesDB.rewriteRules
-    rules.exists(_.apply(state).graph.findSubgraph(pattern).nonEmpty) shouldEqual true
+    rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).nonEmpty) shouldEqual true
   }
 
   //  property("rewriteRules manage to rewrite ?x / false >> id x") {
@@ -49,7 +49,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     )))
     val rules = new SimpleRewriteRulesDB().rewriteRules
-    rules.exists(r => r.apply(state).graph.findSubgraph(resultPattern).nonEmpty) shouldEqual true
+    rules.exists(r => r.apply(state).graph.findSubgraph[Int](resultPattern).nonEmpty) shouldEqual true
   }
 
   test("rewriteRules doesnt rewrite (?x le ?y) ||> min(x, y) >> id(x) by mistake") {
@@ -58,6 +58,6 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val pattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = new SimpleRewriteRulesDB().rewriteRules
-    rules.exists(_.apply(state).graph.findSubgraph(pattern).isEmpty) shouldEqual true
+    rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).isEmpty) shouldEqual true
   }
 }

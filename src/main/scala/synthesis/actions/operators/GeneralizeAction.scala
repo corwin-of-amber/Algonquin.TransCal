@@ -2,13 +2,14 @@ package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
 import language.Language
+import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
 import syntax.Tree
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
-import synthesis.{HyperTermIdentifier, Programs}
+import synthesis.{HyperEdgeTargetOrdering, HyperTermIdentifier, Programs}
 
 /**
   * @author tomer
@@ -34,21 +35,23 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
   override def apply(state: ActionSearchState): ActionSearchState = {
     logger.debug(s"Running generalize action on $anchor")
 
-    val (gen, tempState): (Set[Term], ActionSearchState) ={
+    val (gen, tempState): (Set[Term], ActionSearchState) = {
       val temp = getGeneralizedTerms(state.programs)
-      if(temp.nonEmpty) {
+      if (temp.nonEmpty) {
         (temp, state)
       } else {
         logger.info("Generalize couldn't find term, trying to elaborate")
-        val temp = new ElaborateAction(anchor, Programs.destructPatterns(leaves).reduce((g1, g2) => g1.addEdges(g2.edges)), ReferenceTerm(-1))(state)
-        logger.info("Finished Elaborating")
+        val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.addEdges(g2.edges))
+        val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1))(state)
         var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-        for(i <- 1 to 5; op <- temp.rewriteRules) {
-          rewriteSearchState = op(rewriteSearchState)
-        }
-        logger.info("Finished operator run")
         val progs = new Programs(rewriteSearchState.graph)
-        (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+        val terms = getGeneralizedTerms(progs)
+        if (terms.nonEmpty)
+          (terms, ActionSearchState(progs, temp.rewriteRules))
+        else {
+          for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
+          (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+        }
       }
     }
 
