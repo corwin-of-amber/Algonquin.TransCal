@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import language.Language
 import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
-import syntax.Tree
+import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
@@ -18,7 +18,7 @@ import synthesis.{HyperEdgeTargetOrdering, HyperTermIdentifier, Programs}
 class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term, maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
 
   private val vars = leaves.indices map (i => TI(s"?autovar$i"))
-  private val fun = new Tree(name.root, vars.toList)
+  private val fun = new Tree(new Identifier(name.root.literal.toString.replace("?", ""), name.root.kind, name.root.ns), vars.toList)
 
   private def getGeneralizedTerms(progs: Programs): Set[Term] = {
     // TODO: Filter out expressions that use context but allow constants
