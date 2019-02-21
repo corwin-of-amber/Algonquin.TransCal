@@ -45,8 +45,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "elem(?x, (?x' :: ?xs')) = ((x == x') \\/ elem(x, xs'))",
     "~(?x == ?y) = (x != y)",
     "~(?x ∈ ?y) = (x ∉ y)",
-    "(?x ∈ ?xs) = { x } ‖ xs",
-    "?xs ‖ { ?x } >> (x ∉ xs)",
+    "(?x ∉ ?xs) = { x } ‖ xs",
     "~(?x \\/ ?y) = (~x /\\ ~y)",
     "~(?x /\\ ?y) = (~x \\/ ~y)",
     "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
@@ -70,7 +69,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
 
     // merge range
-    "(range_exclude(?x: int, ?y: int) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
+    "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
     // exclude to include
     "range_exclude(?x, ?y + 1) = range_include(x, y)",
     // singleton range
