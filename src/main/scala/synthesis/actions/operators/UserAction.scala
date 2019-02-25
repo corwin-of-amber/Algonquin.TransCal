@@ -10,7 +10,7 @@ import syntax.Tree
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, Template}
 
 import scala.collection.mutable
@@ -22,26 +22,28 @@ import scala.collection.mutable
   */
 class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
 
-  private def isSymbol(t: Term): Boolean = t.subtrees.isEmpty && t.root.literal != "_"
+  private val seperator = "---------------------------"
 
   /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     val baseTerm = in.next()
-    logger.info("-----------------------------------------")
-    logger.info(s"Received $baseTerm from user")
+    logger.info(seperator)
+    logger.info(s"Got $baseTerm from user")
     val (term, annotation) = if (baseTerm.root == Language.annotationId) (baseTerm.subtrees(0), Some(baseTerm.subtrees(1)))
     else (baseTerm, None)
 
     val newState = term.root match {
       case Language.letId | Language.directedLetId =>
         // operator = in the main is Let (adding a new hyperterm)
-        logger.info(s"Found =, adding term $term")
+        logger.info(s"Adding term $term as rewrite")
         annotation match {
           case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term).apply(state)
           case _ => new LetAction(term).apply(state)
         }
       case Language.tacticId =>
+        val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
+
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
         val (lhs, rhs) = {
@@ -50,39 +52,42 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
-        logger.info(s"Locate Action: ${term.subtrees.head} with temporary anchor $anchor")
-        val tempState = new LocateAction(anchor, lhs._1).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
+        logger.info(s"LHS is Locate with pattern ${term.subtrees.head} and temporary anchor $anchor")
+        val tempState = new LocateAction(anchor, lhs._1, lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
             val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1)
             if (res.hasNext) res
             else tempState.programs.reconstruct(foundId.get)
-          } else Iterator(new Tree(I("Failed")))
+          }
+          else Iterator.empty
         }
-        logger.info(s"Found: ${if (terms.hasNext) terms.next() else if(isSymbol(term.subtrees.head)) "Symbol"}")
+        logger.info(s"Found: ${if (terms.hasNext) terms.next() else "failed"}")
 
         //   The right is:
         //   1) a symbol
         //   2) pattern => Locate and print reconstruct matching pattern
         //   3) a term => extract the left to to match the term (Generalize or extract methods)
         if (foundId.nonEmpty) term.subtrees(1) match {
-          case t: Term if isSymbol(t) =>
+          case t: Term if t.subtrees.isEmpty && t.root.literal != "_" =>
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
-            logger.info("Found locate to symbol. Adding symbol to graph.")
-            new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
+            logger.info("RHS is a symbol adding it to graph")
+            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
-                ExplicitTerm(foundId.get), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
-              ): _*)).apply(tempState)
+                ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
+              ): _*), lim).apply(tempState)
+            logger.debug("Finished adding symbol.")
+            res
           case t: Term if t.root.literal.toString.startsWith("?") =>
             // A term to generalize - run generalize Action as is
-            logger.info("Found locate to term. Running generalize.")
-            new GeneralizeAction(anchor, t.subtrees, new Tree(t.root)).apply(tempState)
+            logger.info("RHS is a term running generalize.")
+            new GeneralizeAction(anchor, t.subtrees, new Tree(t.root), lim).apply(tempState)
           case t: Term =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
-            logger.info("Found locate to pattern. Running Elaborate.")
-            new ElaborateAction(anchor, rhs._1, rhs._2).apply(tempState)
+            logger.info("RHS is a pattern running elaborate.")
+            new ElaborateAction(anchor, rhs._1, rhs._2, lim).apply(tempState)
         }
         else {
           logger.warn("Didn't find left hand side pattern")
@@ -99,8 +104,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
     }
 
     val output: String = newState.toString
-    logger.debug(s"finished processing term $baseTerm")
-    logger.info("-----------------------------------------")
+    logger.info(seperator)
     logger.info("")
     newState
   }

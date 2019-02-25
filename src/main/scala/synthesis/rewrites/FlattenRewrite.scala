@@ -30,7 +30,7 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
     // TODO: Don't use filter if it is O(n)
 
     // Change apply to function
-    val funcResults = state.graph.findSubgraph(applyFuncGraph)
+    val funcResults = state.graph.findSubgraph[Int](applyFuncGraph)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults;
       outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.head == idMap(1));

@@ -36,7 +36,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
 
-  override def addAll(words: Set[Word[Letter]]): Trie[Letter] = words.foldLeft(this)((vocabulary, word) => vocabulary + word)
+  override def addAll(words: Set[Word[Letter]]): Trie[Letter] = words.foldLeft(this)(_ + _)
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
@@ -101,24 +101,18 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     val newWords = words.map(word => word.map(letter => if (letter == change) keep else letter))
 
     logger.trace("Replace in subtries")
-    val newSubtries: IndexedSeq[Map[Letter, Trie[Letter]]] = for (mapSubtries <- subtries) yield {
+    val newSubtries = subtries.map(mapSubtries => {
       logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = for ((letter, subtrie) <- mapSubtries) yield {
-        (letter, subtrie.replaceWithIndex(keep, change, index + 1))
-      }
+      val mapSubtriesRemoved = mapSubtries.map(t => (t._1, t._2.replaceWithIndex(keep, change, index + 1)))
 
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
         case Some(subtrieRemoved) =>
-          val newKeep = if (mapSubtries.contains(keep)) {
-            mapSubtries(keep).addAll(subtrieRemoved, index)
-          } else {
-            subtrieRemoved
-          }
-          mapSubtriesRemoved + ((keep, newKeep))
+          val newKeep = mapSubtriesRemoved.get(keep).map(_.addAll(subtrieRemoved, index)).getOrElse(subtrieRemoved)
+          (mapSubtriesRemoved - change) + ((keep, newKeep))
         case None => mapSubtriesRemoved
       }
-    }
+    })
     new Trie(newSubtries, newWords)
   }
 

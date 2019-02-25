@@ -44,10 +44,7 @@ trait Prefixer[Return, This <: Prefixer[Return, This]] extends RegexParsers {
         }
       }
 
-      val operatorsInLevel: Parser[String] = {
-        val head::tail = prefixesOperators.toList
-        tail.foldLeft[Parser[String]](head)((paresr, operator) => paresr | operator)
-      }
+      val operatorsInLevel: Parser[String] = prefixesOperators.map(Parser[String](_)).reduce(_ | _)
 
       // Create the parser now
       val newParser = rep(operatorsInLevel) ~ lastParser ^^ { x => recursiveBuilder(x._2, x._1)}

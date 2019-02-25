@@ -48,3 +48,11 @@ little differently than how they appear:
 ### Backend graph
 
 ### Rewrite search vs Action search
+
+## Performance
+
+### Run a Profiler 
+To Run a profiler create a run configuration and add 
+`-agentlib:hprof=cpu=samples,file=<runname>.hprof.txt` 
+to the vm options.
+ 

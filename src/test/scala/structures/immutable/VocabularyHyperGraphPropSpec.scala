@@ -3,12 +3,12 @@ package structures.immutable
 import language.{Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.Checkers
+import org.scalatest.{Matchers, PropSpec}
 import structures._
 import syntax.Identifier
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.rewrites.Template.ExplicitTerm
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.util.Random
 
@@ -24,7 +24,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("all constructor") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es.toSeq:_*).edges == es
+      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es.toSeq: _*).edges == es
     })
   }
 
@@ -81,9 +81,22 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("merge any different node returns graph without merged node") {
     check(forAll { g: VocabularyHyperGraph[Int, Int] =>
+      (g.nodes.size > 1) ==> {
+        val first = g.nodes.head
+        val second = g.nodes.last
+        val gMerged = g.mergeNodes(first, second)
+        val found1 = gMerged.find(HyperEdge(Explicit(second), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(second), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second)) && (found1 ++ found2).isEmpty
+      }
+    })
+  }
+
+  property("merge same node returns graph without merged node") {
+    check(forAll { g: VocabularyHyperGraph[Int, Int] =>
       g.nodes.nonEmpty ==> {
-        val first = g.nodes.toList(Random.nextInt(g.nodes.size))
-        val second = g.nodes.toList(Random.nextInt(g.nodes.size))
+        val first = g.nodes.head
+        val second = g.nodes.head
         val gMerged = g.mergeNodes(first, second)
         gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second))
       }
@@ -97,10 +110,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val toChange = es.toList(1)
         val source = es.toList(0)
         val gMerged = g.mergeNodes(source.target, toChange.target)
+        val found1 = gMerged.find(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
           if (x == toChange.target) source.target
           else x
-        }) && x.edgeType == toChange.edgeType)
+        }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
       }
     })
   }
@@ -163,19 +178,25 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("find graph finds edges by type") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] => es.nonEmpty ==> {
-      val g = grapher(es)
-      val pattern =
-        es.head.copy(target = Explicit(es.head.target), edgeType = Hole(0), sources = es.head.sources.map(Explicit[Int, Int]))
-      g.find(pattern).contains(es.head)
-  }})}
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.nonEmpty ==> {
+        val g = grapher(es)
+        val pattern =
+          es.head.copy(target = Explicit(es.head.target), edgeType = Hole(0), sources = es.head.sources.map(Explicit[Int, Int]))
+        g.find(pattern).contains(es.head)
+      }
+    })
+  }
 
   property("find with one ignore finds something") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
-      val g = grapher(es)
-      val pattern = HyperEdge(Hole(0), Hole(1), List(Ignored()), EmptyMetadata)
-      g.find(pattern).nonEmpty
-    }})}
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.exists(_.sources.size == 1) ==> {
+        val g = grapher(es)
+        val pattern = HyperEdge(Hole(0), Hole(1), List(Ignored()), EmptyMetadata)
+        g.find(pattern).nonEmpty
+      }
+    })
+  }
 
   property("find regex rep0 with 0 sources") {
     val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
@@ -186,11 +207,14 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("find by ignore regex finds all") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] => es.exists(_.sources.size == 1) ==> {
-      val g = grapher(es)
-      val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
-      g.find(pattern) == es
-    }})}
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.exists(_.sources.size == 1) ==> {
+        val g = grapher(es)
+        val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+        g.find(pattern) == es
+      }
+    })
+  }
 
   property("find graph finds edge and replacer") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
@@ -200,9 +224,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           e.sources.indices exists { i =>
             0 until 10 exists { j =>
               val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(HyperEdge(Hole(0), Ignored(), (0 until j).map(_ => Ignored()), EmptyMetadata),
-                  HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)))
+                HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)))
               val results = g.findSubgraph[Int](pg)
-              val resultsValues = results.map(t=> (t._1.values, t._2.values))
+              val resultsValues = results.map(t => (t._1.values, t._2.values))
               val foundTarget = resultsValues.map(t => t._1 ++ t._2).forall(vals => vals.toList.contains(e.sources(i)))
               results.nonEmpty && foundTarget
             }

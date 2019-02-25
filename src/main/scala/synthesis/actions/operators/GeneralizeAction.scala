@@ -1,53 +1,72 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import language.{Language, TranscalParser}
+import language.Language
+import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
-import syntax.Tree
+import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
-import synthesis.{HyperTermIdentifier, Programs}
+import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
+import synthesis.{HyperEdgeTargetOrdering, HyperTermIdentifier, Programs}
 
 /**
   * @author tomer
   * @since 11/18/18
   */
-class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term) extends Action with LazyLogging {
+class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term, maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
+
+  private val vars = leaves.indices map (i => TI(s"?autovar$i"))
+  private val fun = new Tree(new Identifier(name.root.literal.toString.replace("?", ""), name.root.kind, name.root.ns), vars.toList)
+
+  private def getGeneralizedTerms(progs: Programs): Set[Term] = {
+    // TODO: Filter out expressions that use context but allow constants
+    // Reconstruct and generalize
+    progs.hyperGraph.findEdges(anchor) map (_.target) flatMap { root =>
+      (for (term <- progs.reconstruct(root).filter(t => leaves.diff(t.nodes).isEmpty)) yield {
+        logger.debug(s"Generalizing using the term $term")
+
+        new Tree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))))
+      }).take(NUM_ALTS_TO_SHOW)
+    }
+  }
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    logger.info(s"Running generalize action on $anchor")
+    logger.debug(s"Running generalize action on $anchor")
 
-    val roots = state.programs.hyperGraph.findEdges(anchor) map (_.target)
-    val updatedGraph = new Programs(state.programs.hyperGraph.filter(e => e.sources.nonEmpty || leaves.map(_.root).contains(e.edgeType.identifier)))
-
-    // Reconstruct and generalize
-    val gen =
-      for (root <- roots) yield {
-        (for (term <- updatedGraph.reconstruct(root)) yield {
-          logger.debug(s"Generalizing using the term $term")
-          val vars = leaves.indices map(i => TI(s"?autovar$i"))
-
-          val functionDef: Term = {
-            val fun = new Tree(name.root, vars.toList)
-            new Tree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))))
-          }
-
-          new LetAction(functionDef)
-        }).take(NUM_ALTS_TO_SHOW)
+    val (gen, tempState): (Set[Term], ActionSearchState) = {
+      val temp = getGeneralizedTerms(state.programs)
+      if (temp.nonEmpty) {
+        (temp, state)
+      } else {
+        logger.info("Generalize couldn't find term, trying to elaborate")
+        val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.addEdges(g2.edges))
+        val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1), maxSearchDepth = maxSearchDepth)(state)
+        var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
+        val progs = new Programs(rewriteSearchState.graph)
+        val terms = getGeneralizedTerms(progs)
+        if (terms.nonEmpty)
+          (terms, ActionSearchState(progs, temp.rewriteRules))
+        else {
+          for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
+          (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+        }
       }
+    }
 
     /* select just the first generalization */
-    gen.flatten.headOption match {
+    gen.headOption match {
       case None =>
-        logger.info("Failed to generalize term")
-        state
-      case Some(newRules) =>
-        logger.info(s"Generalized term is ${newRules.term}")
-        state.copy(rewriteRules = state.rewriteRules ++ newRules.rules)
+        logger.info("Failed to generalize")
+        tempState
+      case Some(newTerm) =>
+        logger.info(s"Generalized to $newTerm")
+        tempState.copy(rewriteRules = tempState.rewriteRules ++ new LetAction(newTerm).rules)
     }
   }
 }
 
 object GeneralizeAction {
-  final val NUM_ALTS_TO_SHOW = 10
+  final val NUM_ALTS_TO_SHOW = 1
 }

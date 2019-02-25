@@ -4,14 +4,10 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
 import structures.immutable.HyperGraphManyWithOrderToOne
-import syntax.AstSugar.Uid
-import syntax.Identifier
 import synthesis.rewrites.RewriteRule._
-import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.Operator
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
-import synthesis.rewrites.rewrites._
+import synthesis.{HyperTermId, HyperTermIdentifier}
 
 /** Rewrites a program to a new program.
   *
@@ -26,6 +22,8 @@ class RewriteRule(premise: HyperPattern,
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule($premise, $conclusion)"
 
+  override def hashCode: Int = toString.hashCode
+
   // Add metadata creator
   override def apply(state: RewriteSearchState): RewriteSearchState = {
     logger.trace(s"Running rewrite rule $this")
@@ -33,7 +31,7 @@ class RewriteRule(premise: HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val premiseReferencesMaps = compactGraph.findSubgraph(subGraphPremise)
+    val premiseReferencesMaps = compactGraph.findSubgraph[Int](subGraphPremise)
 
     val nextHyperId: () => HyperTermId = {
       val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
@@ -43,13 +41,13 @@ class RewriteRule(premise: HyperPattern,
     val newEdges = premiseReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
       val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion, m)
-      if (compactGraph.findSubgraph(merged).nonEmpty) Seq.empty
+      if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
       else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
         e.copy(metadata=e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ newEdges
-    if (newEdges.nonEmpty) {
+    if (graph.size > compactGraph.size) {
       logger.debug(s"Used RewriteRule $this")
     }
 

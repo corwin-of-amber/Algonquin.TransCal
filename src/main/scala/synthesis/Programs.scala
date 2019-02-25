@@ -19,7 +19,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
+class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
 
   /* --- Public --- */
   /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
@@ -53,10 +53,13 @@ class Programs (val hyperGraph: HyperGraph) extends LazyLogging {
         */
       def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[Term] = {
         val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
-        val edges = hyperTermToEdge.get(root)
-        edges.get.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+        val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
+        edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
           if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
-          else Programs.combineSeq(edge.sources.map(recursive(edgesInGraph - edge, _))).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          else {
+            val recRes = edge.sources.map(recursive(edgesInGraph - edge, _))
+            Programs.combineSeq(recRes).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          }
         })
       }
 
@@ -120,13 +123,19 @@ object Programs extends LazyLogging {
       case Language.splitId | Language.andCondBuilderId =>
         val createdTarget = target
         target = targetToSubedges.head._1
-        targetToSubedges.map {t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata)}
+        targetToSubedges.map { t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata) }
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
-//        val precondEdge = targetToSubedges.head._2.find(_.target == precondRoot).get
         target = targetToSubedges.last._1
         Set(
           HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
+        )
+      case Language.typeBuilderId =>
+        val t = nodeCreator()
+        Set(
+          HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata),
+          HyperEdge(t, identToEdge(new Identifier(function.kind)), Seq(target), EmptyMetadata),
+          HyperEdge(t, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
         )
       case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
     }
@@ -196,7 +205,9 @@ object Programs extends LazyLogging {
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
       val mainRoot = edges.head._1
       val roots = edges.map(_._1).toSet
+
       def switcher(templateTerm: TemplateTerm[HyperTermId]) = if (roots.contains(templateTerm)) mainRoot else templateTerm
+
       if (mergeRoots) edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
       else edges
     }
@@ -218,18 +229,14 @@ object Programs extends LazyLogging {
     iterators match {
       case Nil => Iterator.empty
       case head +: Nil => head.map(Seq(_))
-      case head +: tail => combineTwo(head, combineSeq(tail)).map(t => t._1 +: t._2)
+      case head +: tail =>
+        var recRes = combineSeq(tail)
+        for (t1 <- head;
+             (newRecRes, iseqt) = recRes.duplicate;
+             seqt <- iseqt) yield {
+          recRes = newRecRes
+          t1 +: seqt
+        }
     }
-  }
-
-  /** Iterator which combines two iterators (return all combinations of their results).
-    *
-    * @param iter1 First iterator.
-    * @param iter2 Second iterator.
-    * @tparam A The first type
-    * @tparam B The second type
-    */
-  private def combineTwo[A, B](iter1: Iterator[A], iter2: Iterator[B]): Iterator[(A, B)] = {
-    iter1.flatMap(elem1 => iter2.duplicate._2.map(elem2 => (elem1, elem2)))
   }
 }

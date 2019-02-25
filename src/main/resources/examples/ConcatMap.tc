@@ -1,7 +1,7 @@
-concatMap ?f ?l = concat (map f l)    [++]
+concatMap ?f ?l = concat (map  f l)    [++]
 
-concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))
-map f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
+concat = ((⟨⟩ ↦ ⟨⟩) / ((?xs :: ?xss) ↦ xs ++ concat xss))
+map f = ((⟨⟩ ↦ ⟨⟩) / ((?x :: ?xs) ↦ (f x) :: map f xs))
 
 l = ?x :: ?xs
 concat _ -> f _ ++ _

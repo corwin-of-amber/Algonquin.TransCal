@@ -42,6 +42,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
+    if (keep == change) return this
 
     def swap(n: Node) = if (n == change) keep else n
 
@@ -49,7 +50,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       metadatas.filter(t => t._1._1 == change || t._1._3.contains(change))
         .groupBy(t => (swap(t._1._1), t._1._2, t._1._3.map(swap)))
         .map(t => {
-          val a = t._2.values.foldLeft(metadatas.getOrElse(t._1, EmptyMetadata))((m1, m2) => m1.merge(m2))
+          val a = t._2.values.reduce(_ merge _)
           (t._1, a)
         }
         )
@@ -58,6 +59,8 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge edge types")
+    if (keep == change) return this
+
     val newMetadatas = metadatas.filterNot(t => t._1._2 == change) ++ metadatas.filter(t => t._1._2 == change).map(t => {
       val target = t._1._1
       val sources = t._1._3

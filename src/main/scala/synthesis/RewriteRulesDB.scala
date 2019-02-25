@@ -41,17 +41,18 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "false / ?x >> id x",
     "id (id ?x) >> id x",
 
+    "?x == ?x' = x' == x",
     "?x == ?x' = x' ∈ { x }",
-    "(?x elem (?x' :: ?xs')) = ((x == x') \\/ (x elem xs'))",
+    "elem(?x, (?x' :: ?xs')) = ((x == x') \\/ elem(x, xs'))",
     "~(?x == ?y) = (x != y)",
     "~(?x ∈ ?y) = (x ∉ y)",
-    "(?x ∈ ?xs) = { x } ‖ xs",
-    "?xs  { ?x } >> (x ∉ xs)",
+    "(?x ∉ ?xs) = { x } ‖ xs",
     "~(?x \\/ ?y) = (~x /\\ ~y)",
     "~(?x /\\ ?y) = (~x \\/ ~y)",
     "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
     "((?xs ‖ ?x) /\\ (xs ‖ ?y)) = (xs ‖ (x ∪ y))",
-    "(?x elem ?xs) = (x ∈ elems(xs))",
+    "?x ∈ (?xs ∪ ?ys) = (x ∈ xs) \\/ (x ∈ ys)",
+    "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",

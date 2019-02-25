@@ -59,10 +59,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
         }
       }
 
-      val operatorsInLevel: Parser[String] = {
-        val head::tail = (leftOperators | rightOperators).toList
-        tail.foldLeft[Parser[String]](head)((paresr, operator) => paresr | operator)
-      }
+      val operatorsInLevel: Parser[String] = (leftOperators | rightOperators).map(Parser[String](_)).reduce(_ | _)
 
       // Create the parser now
       val newParser = lastParser ~ rep(operatorsInLevel ~ lastParser) ^^ { x =>

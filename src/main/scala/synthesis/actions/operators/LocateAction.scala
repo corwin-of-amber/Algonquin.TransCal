@@ -16,7 +16,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, maxSearchDepth: Option[Int] = None) extends Action {
   /** To be used during the BFS rewrite search
     *
     * @param state the current state
@@ -47,8 +47,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     // Rewrite search
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
-    val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq :+ locateRule, initialState, goalPredicate)
-    val rewriteResult = rewriteSearch.search(spaceSearch)
+    val spaceSearch = new RewriteSearchSpace(locateRule +: state.rewriteRules.toSeq, initialState, goalPredicate)
+    val rewriteResult = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
