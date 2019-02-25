@@ -48,7 +48,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     )))
-    val rules = new SimpleRewriteRulesDB().rewriteRules
+    val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => r.apply(state).graph.findSubgraph[Int](resultPattern).nonEmpty) shouldEqual true
   }
 
@@ -57,7 +57,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
     val pattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term))
-    val rules = new SimpleRewriteRulesDB().rewriteRules
+    val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).isEmpty) shouldEqual true
   }
 }

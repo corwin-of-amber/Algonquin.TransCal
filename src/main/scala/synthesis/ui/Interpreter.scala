@@ -19,7 +19,7 @@ class Interpreter(terms: Iterator[Term], userOutput: PrintStream) {
 
   def start: Unit = {
     var oldState: ActionSearchState = null
-    var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++  SimpleRewriteRulesDB().rewriteRules)
+    var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++  SimpleRewriteRulesDB.rewriteRules)
     do {
       oldState = newState
       for(action <- actions) {

@@ -27,7 +27,7 @@ trait RewriteRulesDB extends LazyLogging {
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 }
 
-class SimpleRewriteRulesDB extends RewriteRulesDB {
+object SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
   private val parser = new TranscalParser
@@ -82,10 +82,6 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
 
   override protected def metadata: Metadata = EmptyMetadata
-}
-
-object SimpleRewriteRulesDB {
-  def apply(): SimpleRewriteRulesDB = new SimpleRewriteRulesDB()
 }
 
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
