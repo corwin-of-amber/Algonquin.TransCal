@@ -35,7 +35,7 @@ object Main extends App {
   val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
   val optionalFile: ScallopOption[Iterator[Term]] = conf.file.map(Source.fromFile).map(bs => splitByStatements(parser(bs.getLines().mkString("\n"))))
   val userInput: Iterator[Term] = optionalFile.getOrElse(consolein)
-  val userOutput: PrintStream = conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+  val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
   val interpreter = new Interpreter(userInput, userOutput)
   interpreter.start
 }
