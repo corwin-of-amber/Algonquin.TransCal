@@ -29,8 +29,12 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param root        pattern root node
     * @return all conforming terms
     */
-  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern): Iterator[Term] = {
-    reconstruct(hyperTermId).filter(t => Programs.destruct(t).findSubgraph[Int](pattern).nonEmpty)
+  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Term] = {
+    reconstruct(hyperTermId).filter(t => {
+      val destroyed = Programs.destructWithRoot(t)
+      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyed._2), _)).getOrElse(pattern)
+      destroyed._1.findSubgraph[Int](updatedPattern).nonEmpty
+    })
   }
 
   /** Builds trees from of programs where the hyper term is the base program.

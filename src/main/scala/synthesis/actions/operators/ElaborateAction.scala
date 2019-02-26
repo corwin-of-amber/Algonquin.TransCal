@@ -1,13 +1,10 @@
 package synthesis.actions.operators
 
-import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
-import synthesis.Programs.NonConstructableMetadata
+import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.LocateAction.LocateMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
+import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
+import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
@@ -31,7 +28,7 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))
     if (rewriteResult.nonEmpty) {
       val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
-      val terms = newPrograms.reconstructWithPattern(root, goal)
+      val terms = newPrograms.reconstructWithPattern(root, goal, Some(goalRoot))
       if (terms.hasNext) logger.info(s"Elaborated term is ${terms.next().toString()}")
       else logger.info("Found term not constructable (probably a symbol)")
     } else logger.info("Failed to elaborate to pattern")

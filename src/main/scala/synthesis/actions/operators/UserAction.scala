@@ -53,11 +53,11 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
         logger.info(s"LHS is Locate with pattern ${term.subtrees.head} and temporary anchor $anchor")
-        val tempState = new LocateAction(anchor, lhs._1, lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
+        val tempState = new LocateAction(anchor, lhs._1, maxSearchDepth = lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
-            val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1)
+            val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1, Some(lhs._2))
             if (res.hasNext) res
             else tempState.programs.reconstruct(foundId.get)
           }
@@ -77,7 +77,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
             val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
                 ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
-              ): _*), lim).apply(tempState)
+              ): _*), maxSearchDepth = lim).apply(tempState)
             logger.debug("Finished adding symbol.")
             res
           case t: Term if t.root.literal.toString.startsWith("?") =>
