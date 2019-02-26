@@ -2,7 +2,7 @@ package synthesis.ui
 
 import java.io.{PrintStream, File => JFile}
 
-import language.TranscalParser
+import transcallang.TranscalParser
 import org.rogach.scallop.ScallopOption
 import syntax.AstSugar.Term
 
@@ -25,7 +25,7 @@ object Main extends App {
 
   private def splitByStatements(term: Term): Iterator[Term] = {
     term.root match {
-      case language.Language.semicolonId => term.subtrees.flatMap(splitByStatements).toIterator
+      case transcallang.Language.semicolonId => term.subtrees.flatMap(splitByStatements).toIterator
       case _ => Iterator(term)
     }
   }

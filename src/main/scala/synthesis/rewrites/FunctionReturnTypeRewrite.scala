@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import language.Language
+import transcallang.Language
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}

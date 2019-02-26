@@ -1,7 +1,7 @@
 package synthesis
 
-import language.Language._
-import language.TranscalParser
+import transcallang.Language._
+import transcallang.TranscalParser
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec

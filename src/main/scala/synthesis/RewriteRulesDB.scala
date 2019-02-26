@@ -1,7 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import language.TranscalParser
+import transcallang.TranscalParser
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
 import structures.{EmptyMetadata, Metadata}

@@ -1,4 +1,4 @@
-package language
+package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar.Term

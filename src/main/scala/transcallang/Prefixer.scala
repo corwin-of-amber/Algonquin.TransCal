@@ -1,4 +1,4 @@
-package language
+package transcallang
 
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}

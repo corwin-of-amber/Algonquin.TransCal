@@ -1,7 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import language.Language
+import transcallang.Language
 import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne}
 import structures._
 import syntax.AstSugar.Term
@@ -30,7 +30,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern): Iterator[Term] = {
-    reconstruct(hyperTermId).filter(t => Programs.destruct(t).findSubgraph(pattern).nonEmpty)
+    reconstruct(hyperTermId).filter(t => Programs.destruct(t).findSubgraph[Int](pattern).nonEmpty)
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -215,9 +215,9 @@ object Programs extends LazyLogging {
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = language.Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
     val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ language.Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).

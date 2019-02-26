@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import language.Language
+import transcallang.Language
 import structures._
 import structures.immutable.VocabularyHyperGraph
 import synthesis.rewrites.rewrites._

@@ -1,10 +1,10 @@
-package language
+package transcallang
 
 import syntax.Identifier
 
 import scala.util.matching.Regex
 
-package object Language {
+object Language {
 
   // TODO: maybe use this
   object Annotations extends Enumeration {

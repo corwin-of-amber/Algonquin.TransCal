@@ -3,7 +3,7 @@ package synthesis.ui
 import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.Term
-import language.Parser
+import transcallang.Parser
 import synthesis.{AssociativeRewriteRulesDB, Programs, SimpleRewriteRulesDB}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction

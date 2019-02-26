@@ -3,7 +3,7 @@ package synthesis.actions.operators
 import java.io.{BufferedReader, PrintStream}
 
 import syntax.AstSugar.{I, Term}
-import language.{Language, Parser}
+import transcallang.{Language, Parser}
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike}
 import syntax.Tree

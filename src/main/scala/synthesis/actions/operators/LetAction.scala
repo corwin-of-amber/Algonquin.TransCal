@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import language.Language
+import transcallang.Language
 import structures._
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
@@ -84,7 +84,7 @@ class LetAction(val term: Term) extends Action {
 
 object LetAction {
   protected val functionNamer: () => Identifier = {
-    val creator = Stream.from(language.Language.arity.size).iterator
+    val creator = Stream.from(transcallang.Language.arity.size).iterator
     () => I(s"f${creator.next()}")
   }
 

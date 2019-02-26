@@ -1,8 +1,6 @@
 package synthesis
 
-import java.util.Locale.LanguageRange
-
-import language.{Language, TranscalParser}
+import transcallang.{Language, TranscalParser}
 import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
 import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}

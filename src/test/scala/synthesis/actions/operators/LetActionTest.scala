@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import language.{Language, TranscalParser}
+import transcallang.{Language, TranscalParser}
 import org.scalatest.{FunSuite, Matchers}
 import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState

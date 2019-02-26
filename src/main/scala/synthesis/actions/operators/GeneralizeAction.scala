@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import language.Language
+import transcallang.Language
 import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
 import syntax.{Identifier, Tree}
