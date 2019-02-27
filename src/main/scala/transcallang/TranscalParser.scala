@@ -75,7 +75,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     TREE(Language.tupleId, subtrees)
   }
 
-  def exprValuesAndParens: Parser[Term] = (tuple | ("(" ~ exprInfixOperator ~ ")") | ("{" ~ exprInfixOperator ~ "}") | identifier | numeral | consts) ^^ { x =>
+  def exprValuesAndParens: Parser[Term] = (tuple | ("(" ~ exprInfixOperator ~ ")") | ("{" ~ exprInfixOperator ~ "}") | numeral | consts | identifier) ^^ { x =>
     if (x.isInstanceOf[TranscalParser.this.~[Any, Any]]) logger.trace(s"value or parens - $x")
     x match {
       case m: Term => m
