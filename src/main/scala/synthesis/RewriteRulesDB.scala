@@ -33,13 +33,13 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ ?y) >> id y",
+    "(true ⇒ ?y) >> y",
     "(false ⇒ ?y) >> false",
     "~true = false",
     "~false = true",
-    "?x / false >> id x",
-    "false / ?x >> id x",
-    "id (id ?x) >> id x",
+    "?x / false >> x",
+    "false / ?x >> x",
+    "id (?x) >> x",
 
     "?x == ?x' = x' == x",
     "?x == ?x' = x' ∈ { x }",

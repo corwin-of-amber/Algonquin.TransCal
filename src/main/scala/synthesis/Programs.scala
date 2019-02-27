@@ -10,7 +10,7 @@ import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 
 import scala.collection.mutable
 
@@ -193,7 +193,17 @@ object Programs extends LazyLogging {
       t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
 
-    trees.map(tree => innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms))
+    // A specific case is where we have a pattern of type ?x -> x
+    // This special case would regularly result in an empty pattern while in destruct it would result with a single edge.
+    // To solve this we will create a special edge to match all the graph
+    trees.map(tree => {
+      if (knownTerms(tree).nonEmpty) {
+        val target = knownTerms(tree).get
+        val edgeType = holeCreator()
+        (target, Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](target, ReferenceTerm[HyperTermIdentifier](edgeType.id), Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get), EmptyMetadata)))
+      }
+      else innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)
+    })
   }
 
   def destructPattern(tree: Term): HyperPattern = {

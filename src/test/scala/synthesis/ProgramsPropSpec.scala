@@ -119,4 +119,11 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val terms = new Programs(graph).reconstruct(HyperTermId(11))
     check(terms.exists((t: Term) => t.nodes.map(_.root.literal).contains("‖")))
   }
+
+  property("when deconstructing any hole create a special edge to match all nodes") {
+    val parser = new TranscalParser
+    val term = parser("?x -> x")
+    val graphs = Programs.destructPatterns(Seq(term.subtrees(0), term.subtrees(1)))
+    check(graphs.forall(_.edgeTypes.exists(_.isInstanceOf[ReferenceTerm[HyperTermIdentifier]])))
+  }
 }
