@@ -1,6 +1,5 @@
 package structures.immutable
 
-import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
 
 import scala.annotation.tailrec
@@ -10,9 +9,8 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class CompactHyperGraph[Node, EdgeType] (wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType])
-  extends HyperGraphManyWithOrderToOne[Node, EdgeType]
-    with HyperGraphManyWithOrderToOneLike[Node, EdgeType, CompactHyperGraph[Node, EdgeType]] {
+class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType])
+  extends WrapperHyperGraph[Node, EdgeType, CompactHyperGraph[Node, EdgeType]](wrapped) {
 
   def this(edges: Set[HyperEdge[Node, EdgeType]]) =
     this(CompactHyperGraph.compact[Node, EdgeType](VocabularyHyperGraph.empty[Node, EdgeType], edges.toList))
@@ -26,28 +24,6 @@ class CompactHyperGraph[Node, EdgeType] (wrapped: HyperGraphManyWithOrderToOne[N
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
     compact(hyperEdges.toList)
   }
-
-  override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped.removeEdge(hyperEdge))
-  }
-
-  override def mergeNodes(keep: Node, change: Node): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped.mergeNodes(keep, change))
-  }
-
-  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped.mergeEdgeTypes(keep, change))
-  }
-
-  override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
-    wrapped.find(pattern)
-  }
-
-  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    wrapped.findSubgraph(hyperPattern)
-  }
-
-  override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
 
   /* --- Object Impl. --- */
 

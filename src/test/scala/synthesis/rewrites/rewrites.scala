@@ -10,7 +10,7 @@ import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 
 package object rewrites {
   def CompactHyperGraphGenFactory[Node, Edge](edgeSource: Gen[HyperEdge[Node, Edge]]): Gen[CompactHyperGraph[Node, Edge]] =
-    HyperGraphGenFactory(edgeSource).map(new CompactHyperGraph(_))
+    edgeSource.map(CompactHyperGraph(_))
 
   val hyperTermIdentifierGen: Gen[HyperTermIdentifier] = identifierGen.map(HyperTermIdentifier)
   val hyperTermIdGen: Gen[HyperTermId] = oneOf(1, 50).map(HyperTermId)
