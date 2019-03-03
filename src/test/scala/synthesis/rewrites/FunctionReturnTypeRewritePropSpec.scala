@@ -4,7 +4,7 @@ import language.Language
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import syntax.AstSugar._
-import structures.immutable.CompactHyperGraph
+import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
@@ -14,7 +14,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   */
 class FunctionReturnTypeRewritePropSpec extends PropSpec with Checkers {
   property("Finds in the graph") {
-    val graph = CompactHyperGraph(
+    val graph = VersionedHyperGraph(
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
       HyperEdge(HyperTermId(1), HyperTermIdentifier(I("f")), Seq.empty, EmptyMetadata),
@@ -33,7 +33,7 @@ class FunctionReturnTypeRewritePropSpec extends PropSpec with Checkers {
   }
 
   property("Finds 2 different usages of the same function in the graph") {
-    val graph = CompactHyperGraph(
+    val graph = VersionedHyperGraph(
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
       HyperEdge(HyperTermId(1), HyperTermIdentifier(I("f")), Seq.empty, EmptyMetadata),
@@ -55,7 +55,7 @@ class FunctionReturnTypeRewritePropSpec extends PropSpec with Checkers {
   }
 
   property("Finds 2 different functions in the graph") {
-    val graph = CompactHyperGraph(
+    val graph = VersionedHyperGraph(
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.typeId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
       HyperEdge(HyperTermId(1), HyperTermIdentifier(I("f")), Seq.empty, EmptyMetadata),
