@@ -58,4 +58,12 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).isEmpty) shouldEqual true
   }
+
+  test("rewriteRules can rewrite correct matches") {
+    val term = new TranscalParser().apply("1 -> match true (true ⇒ hello)").subtrees(1)
+    val (graph, root) = Programs.destructWithRoot(term)
+    val state = new RewriteSearchState(graph)
+    val rules = SimpleRewriteRulesDB.rewriteRules
+    rules.exists(_.apply(state).graph.exists(e => e.target == root && e.edgeType.identifier.literal.toString == "hello")) shouldEqual true
+  }
 }

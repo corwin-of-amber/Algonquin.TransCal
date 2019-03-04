@@ -33,8 +33,6 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ ?y) >> y",
-    "(false ⇒ ?y) >> false",
     "~true = false",
     "~false = true",
     "?x / false >> x",
@@ -66,9 +64,9 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
 
     "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
 
-    "(?xs take 0) >> ⟨⟩",
-    "(?xs take (len xs)) >> id xs",
-    "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
+    "(take ?xs 0) >> ⟨⟩",
+    "(take ?xs (len xs)) >> id xs",
+    "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
 
     // merge range
     "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
