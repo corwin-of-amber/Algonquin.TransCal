@@ -23,13 +23,13 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
   }
 
   test("Simple let rewrite should match and reconstruct") {
-    val letTerm = (new TranscalParser).apply("f ?x >> x + 1")
-    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(new Tree(new Identifier("f"), List(new Tree(new Identifier("3"))))), Set.empty)
+    val letTerm = (new TranscalParser).apply("f ?x >> x + y")
+    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(new Tree(new Identifier("f"), List(new Tree(new Identifier("z"))))), Set.empty)
     newState.rewriteRules.size shouldEqual 1
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val newEdges = searchState.graph.findEdges(HyperTermIdentifier(new Identifier("+")))
     newEdges.size shouldEqual 1
-    Programs(searchState.graph).reconstruct(newEdges.head.target) contains (new TranscalParser).apply("_ -> 3 + 1").subtrees(1) shouldEqual true
+    Programs(searchState.graph).reconstruct(newEdges.head.target).toSeq should contain ((new TranscalParser).apply("_ -> z + y").subtrees(1))
   }
 
   test("Handles precondition correctly") {
