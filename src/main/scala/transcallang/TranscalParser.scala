@@ -86,8 +86,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   }
 
   def types: Parser[Term] = (polymorphicTypes ~ (MAPTYPE() ~> types).?) ^^ {
-    case x ~ None => TREE(I(x))
-    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(TREE(I(x)), recursive))
+    case x ~ None => x
+    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(x, recursive))
   }
 
   def identifier: Parser[Term] = (identifierLiteral ~ (COLON() ~> types).?) ^^ { i =>
@@ -196,7 +196,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
         }
         val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o, fixedLeft))).getOrElse(fixedLeft)
         val dir = if (defdir == LET()) Language.letId else Language.directedLetId
-        val definitionTerm = TREE(I(dir), List(conditionedLeft, fixedRight))
+        val definitionTerm = TREE(dir, List(conditionedLeft, fixedRight))
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
