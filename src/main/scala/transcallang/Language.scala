@@ -41,6 +41,7 @@ object Language {
   val andCondBuilderLiteral: String = "|||"
   val consLiteral: String = "::"
   val setLiteral: String = "{.}"
+  val stringLiteralLiteral: String = "\""
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val typeId: Identifier = new Identifier(typeLiteral)
@@ -67,6 +68,7 @@ object Language {
   val andCondBuilderId: Identifier = new Identifier(andCondBuilderLiteral)
   val consId: Identifier = new Identifier(consLiteral)
   val setId: Identifier = new Identifier(setLiteral)
+  val stringLiteralId: Identifier = new Identifier(stringLiteralLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
   val typeRegex: Regex = "[`']?\\w+".r
@@ -78,7 +80,7 @@ object Language {
   val builtinAndOps: Seq[String] = Seq("/\\", "∧")
   val builtinOrOps: Seq[String] = Seq("\\/", "∨")
   val builtinIFFOps: Seq[String] = Seq("<->")
-  val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
+  val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinCondBuilders: Seq[String] = Seq("||>")
   val builtinHighLevel: Seq[String] = Seq("/", "=>", "↦", "⇒", "|||")
   val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)

@@ -3,6 +3,7 @@ package transcallang
 import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
+import transcallang.Tokens.WorkflowToken
 
 import scala.util.parsing.combinator._
 
@@ -10,15 +11,17 @@ import scala.util.parsing.combinator._
   * @author tomer
   * @since 1/10/19
   */
-trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with LazyLogging {
+trait Infixer[ElemType, Return, This <: Infixer[ElemType, Return, This]] extends Parsers with LazyLogging {
+  override type Elem = ElemType
+
   /** The known left operators at the moment */
-  def lefters: Map[Int, Set[String]]
+  def lefters: Map[Int, Set[ElemType]]
 
   /** The known right operators at the moment */
-  def righters: Map[Int, Set[String]]
+  def righters: Map[Int, Set[ElemType]]
 
   /** A way to rebuild the the class */
-  def build(lefters: Map[Int, Set[String]], righters: Map[Int, Set[String]]): This
+  def build(lefters: Map[Int, Set[ElemType]], righters: Map[Int, Set[ElemType]]): This
 
   /** Adds a new operator to known prefixes.
     *
@@ -27,7 +30,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
     * @param righter Is the operators stick to the right.
     * @return A Infixer which knows the the new operator.
     */
-  def addInfix(operator: String, level: Int, righter:Boolean): This = {
+  def addInfix(operator: ElemType, level: Int, righter:Boolean): This = {
     if (righter)
       build(lefters, righters.updated(level, righters.getOrElse(level, Set.empty) + operator))
     else
@@ -43,9 +46,9 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
     val levels = (lefters.keys ++ righters.keys).toSet.toList.sorted.reverse
     var lastParser: Parser[Return] = lowerParser
     for(level <- levels) {
-      val leftOperators: Set[String] = lefters.getOrElse(level, Set.empty)
-      val rightOperators: Set[String] = righters.getOrElse(level, Set.empty)
-      def recursiveBuilder(exprs: List[Return], operators: List[String]): Return = {
+      val leftOperators: Set[ElemType] = lefters.getOrElse(level, Set.empty)
+      val rightOperators: Set[ElemType] = righters.getOrElse(level, Set.empty)
+      def recursiveBuilder(exprs: List[Return], operators: List[ElemType]): Return = {
         operators match {
           case Nil => exprs.head
           case operator :: otherOperators =>
@@ -59,7 +62,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
         }
       }
 
-      val operatorsInLevel: Parser[String] = (leftOperators | rightOperators).map(Parser[String](_)).reduce(_ | _)
+      val operatorsInLevel: Parser[ElemType] = (leftOperators | rightOperators).map(Parser[ElemType](_)).reduce(_ | _)
 
       // Create the parser now
       val newParser = lastParser ~ rep(operatorsInLevel ~ lastParser) ^^ { x =>
@@ -71,7 +74,7 @@ trait Infixer[Return, This <: Infixer[Return, This]] extends RegexParsers with L
     lastParser
   }
 
-  def buildReturn(left: Return, operator: String, right: Return): Return
+  def buildReturn(left: Return, operator: ElemType, right: Return): Return
 }
 
 object Infixer {
@@ -79,6 +82,6 @@ object Infixer {
   val HIGH = 50
 }
 
-trait TermInfixer extends Infixer[Term, TermInfixer] {
-  override def buildReturn(left: Term, operator: String, right: Term): Term = new Tree[Identifier](new Identifier(operator), List(left, right))
+trait TermInfixer extends Infixer[WorkflowToken, Term, TermInfixer] {
+  override def buildReturn(left: Term, operator: WorkflowToken, right: Term): Term = new Tree[Identifier](operator.toIdentifier, List(left, right))
 }
