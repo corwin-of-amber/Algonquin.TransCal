@@ -28,7 +28,7 @@ object Language {
   val nilLiteral: String ="⟨⟩"
   val negLiteral: String ="¬"
   val holeLiteral: String ="_"
-  val guardedLiteral: String ="=>"
+  val guardedLiteral: String ="⇒"
   val tacticLiteral: String ="->"
   val tupleLiteral: String ="(,)"
   val annotationLiteral: String ="Annotation"
@@ -42,6 +42,7 @@ object Language {
   val consLiteral: String = "::"
   val setLiteral: String = "{.}"
   val stringLiteralLiteral: String = "\""
+  val matchLiteral: String = "match"
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val typeId: Identifier = new Identifier(typeLiteral)
@@ -69,6 +70,7 @@ object Language {
   val consId: Identifier = new Identifier(consLiteral)
   val setId: Identifier = new Identifier(setLiteral)
   val stringLiteralId: Identifier = new Identifier(stringLiteralLiteral)
+  val matchId: Identifier = new Identifier(matchLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
   val typeRegex: Regex = "[`']?\\w+".r

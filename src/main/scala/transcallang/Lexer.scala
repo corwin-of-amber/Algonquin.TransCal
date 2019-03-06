@@ -25,7 +25,7 @@ object Lexer extends RegexParsers {
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
       | backslash | lambda | let | plus | minus | union | directedlet | hole | setin | setnotin | lt | gt | annotation
       | roundbracetopen | roundbracetclose | squarebracetopen | squarebracetclose | curlybracetopen | curlybracetclose | square
-      | literal | identifier)) ^^ { rawTokens =>
+      | number | literal | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }

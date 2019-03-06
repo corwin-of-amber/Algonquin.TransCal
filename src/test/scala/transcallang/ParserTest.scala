@@ -171,6 +171,16 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     rhs.subtrees(0).root.literal shouldEqual "?x"
     rhs.subtrees(1).root shouldEqual Language.lambdaId
   }
+
+  test("Parse match statement") {
+    val parsed = (new TranscalParser).apply("?x -> x match (1 => 1) / (_ => 0)").subtrees(1)
+    parsed.root shouldEqual Language.matchId
+    parsed.subtrees(0).root.literal shouldEqual "x"
+    parsed.subtrees(1).root shouldEqual Language.guardedId
+    parsed.subtrees(2).root shouldEqual Language.guardedId
+    parsed.subtrees(2).subtrees(0).root shouldEqual Language.holeId
+    parsed.subtrees(2).subtrees(1).root.literal shouldEqual 0
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())
