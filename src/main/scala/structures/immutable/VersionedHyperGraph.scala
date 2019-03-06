@@ -1,6 +1,5 @@
 package structures.immutable
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperGraphPattern
 import structures._
 import structures.immutable.VersionedHyperGraph.VersionMetadata
 
@@ -11,7 +10,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private (wrapped: CompactHyperGraph[Node, EdgeType])
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType])
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
   /* --- Private Members --- */
@@ -22,20 +21,21 @@ class VersionedHyperGraph[Node, EdgeType] private (wrapped: CompactHyperGraph[No
 
   /* --- Public Methods --- */
 
-  def findSubgraphVersioned[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern, version: Int): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Int): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     def aaa[T](tuples: Seq[(Item[T, Id], T)]): Map[Id, T] = {
       tuples.filter(t => t._1.isInstanceOf[Hole[Node, Id]])
         .map(t => (t._1.asInstanceOf[Hole[Node, Id]].id, t._2)).toMap
     }
 
     hyperPattern.edges.flatMap(edgePattern => {
-      wrapped.find(edgePattern).filter(edge => edge.metadata.filter(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version).head > version)
+      wrapped.find(edgePattern)
+        .filter(edge => edge.metadata.filter(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version).headOption.getOrElse(0) > version)
         .map(edge => {
           val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
           val b = HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (aaa(nodes), aaa(edgeTypes)))
           b
-        }).flatMap(wrapped.findSubgraph[Id, Pattern])
+        }).flatMap(wrapped.findSubgraph[Id])
     })
   }
 
@@ -68,9 +68,9 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]]= new mutable.LazyBuilder[HyperEdge[A, B], VersionedHyperGraph[A, B]] {
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], VersionedHyperGraph[A, B]] {
     override def result(): VersionedHyperGraph[A, B] = {
-      new VersionedHyperGraph(CompactHyperGraph(parts.flatten:_*))
+      new VersionedHyperGraph(CompactHyperGraph(parts.flatten: _*))
     }
   }
 
@@ -81,4 +81,5 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
       case metadata: VersionMetadata => if (metadata.version < version) other else this
     }
   }
+
 }
