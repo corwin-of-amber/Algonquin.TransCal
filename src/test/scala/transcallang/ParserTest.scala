@@ -1,4 +1,4 @@
-package language
+package transcallang
 
 import java.io.File
 
@@ -49,14 +49,14 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Can have two statements") {
-    val parsed = p("f = _ ; g = _")
+    val parsed = p("f = _ ;g = _")
     parsed.root shouldEqual ";"
     parsed.subtrees(0).subtrees(0).root shouldEqual "f"
     parsed.subtrees(1).subtrees(0).root shouldEqual "g"
   }
 
   test("Can have two statements with newline") {
-    val parsed = p("f = _ \n g = _")
+    val parsed = p("f = _ \ng = _")
     parsed.root shouldEqual ";"
     parsed.subtrees(0).subtrees(0).root shouldEqual "f"
     parsed.subtrees(1).subtrees(0).root shouldEqual "g"

@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import language.Language
+import transcallang.Language
 import structures._
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
@@ -18,13 +18,13 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LetAction(term: Term) extends Action {
+class LetAction(val term: Term) extends Action {
   // TODO: check what skolemize was
   // TODO: Take care of splitting by adding inner lets
 
   // Beta reduction is done by adding rewrite rules and using flatten
 
-  assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral) contains term.root.literal.toString)
+  assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
@@ -84,7 +84,7 @@ class LetAction(term: Term) extends Action {
 
 object LetAction {
   protected val functionNamer: () => Identifier = {
-    val creator = Stream.from(language.Language.arity.size).iterator
+    val creator = Stream.from(transcallang.Language.arity.size).iterator
     () => I(s"f${creator.next()}")
   }
 

@@ -1,14 +1,25 @@
-package language
+package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 import Language._
+import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
-import scala.util.parsing.combinator.RegexParsers
+import scala.util.parsing.combinator.Parsers
+import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 
-class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] with TermInfixer {
+class TranscalParser extends Parsers with LazyLogging with Parser[Term] with TermInfixer {
+  override type Elem = WorkflowToken
+
+  class WorkflowTokenReader(tokens: Seq[WorkflowToken]) extends Reader[WorkflowToken] {
+    override def first: WorkflowToken = tokens.head
+    override def atEnd: Boolean = tokens.isEmpty
+    override def pos: Position = tokens.headOption.map(_.pos).getOrElse(NoPosition)
+    override def rest: Reader[WorkflowToken] = new WorkflowTokenReader(tokens.tail)
+  }
+
   def apply(programText: String): Term = {
     // Clean comments and new lines inside parenthesis
     // TODO: replace comments with whitespace for receiving errorl location correctly
@@ -17,16 +28,17 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     def cleanMultilineComments(text: String): String = "/\\*(.|\n)*?\\*/".r.replaceAllIn(text, "")
 
     val text = cleanMultilineComments(programText).split("\n").map(cleanLineComments).mkString("\n")
-    parse(program, text) match {
+    val tokens = Lexer.apply(text)
+    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERRoR: ${tokens.left.get}")
+    val reader = new WorkflowTokenReader(tokens.right.get)
+    program(reader) match {
       case Success(matched, text) => matched
       case Failure(msg, text) =>
-        throw new RuntimeException(s"FAILURE: $msg in position ${text.pos} \n ${text.source}")
+        throw new RuntimeException(s"FAILURE: $msg in ${text}")
       case Error(msg, text) =>
-        throw new RuntimeException(s"ERROR: $msg in position ${text.pos} \n ${text.source}")
+        throw new RuntimeException(s"ERROR: $msg in ${text}")
     }
   }
-
-  override val whiteSpace = """[ \t]+""".r
 
   private def TREE(x: Identifier, subtrees: List[Tree[Identifier]] = List.empty): Term = T(x, subtrees)
 
@@ -40,48 +52,63 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
   // ^^ we finished our regex/parser now what we do with it
   // You can google the rest.
 
-  def numeral: Parser[Term] = "\\d+".r ^^ { x =>
-    TREE(I(x.toInt))
-  }
+  // Bracet shortcuts:
+  private val RBO = ROUNDBRACETOPEN()
+  private val RBC = ROUNDBRACETCLOSE()
+  private val SBC = SQUAREBRACETCLOSE()
+  private val SBO = SQUAREBRACETOPEN()
+  private val CBC = CURLYBRACETCLOSE()
+  private val CBO = CURLYBRACETOPEN()
 
-  def polymorphicTypes: Parser[Term] = Language.typeRegex ~ ('[' ~ types ~ ']').? ^^ {
+  private def identifierLiteral: Parser[Term] = accept("identifier", {
+    case IDENTIFIER(name) if Language.identifierRegex.unapplySeq(name).isDefined => TREE(I(name))
+    case HOLE() => TREE(Language.holeId)
+  })
+
+  private def typeLiteral: Parser[Term] = accept("type", {
+    case IDENTIFIER(name) if Language.typeRegex.unapplySeq(name).isDefined => TREE(I(name))
+    case HOLE() => TREE(Language.holeId)
+  })
+
+  private def number: Parser[Term] = accept("number", { case NUMBER(x) => TREE(I(x)) })
+  private def literal: Parser[Term] = accept("string literal", { case LITERAL(name) => TREE(Language.stringLiteralId, List(TREE(I(name)))) })
+
+
+  def polymorphicTypes: Parser[Term] = typeLiteral ~ (SBO ~> types <~ SBC).? ^^ {
     case x ~ None => TREE(I(x))
-    case x ~ Some('[' ~ polymorphic ~ ']') => TREE(Language.innerTypeId, List(TREE(I(x)), polymorphic))
+    case x ~ Some(polymorphic) => TREE(Language.innerTypeId, List(TREE(I(x)), polymorphic))
   }
 
-  def types: Parser[Term] = polymorphicTypes ~ (Language.mapTypeLiteral ~ types).? ^^ {
+  def types: Parser[Term] = polymorphicTypes ~ (MAPTYPE() ~> types).? ^^ {
     case x ~ None => TREE(I(x))
-    case x ~ Some(Language.mapTypeLiteral ~ recursive) => TREE(Language.mapTypeId, List(TREE(I(x)), recursive))
+    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(TREE(I(x)), recursive))
   }
 
-  def identifier: Parser[Term] = Language.identifierRegex ~ (Language.typeBuilderLiteral ~ types).? ^^ {
-    case x ~ None => TREE(I(x))
-    case x ~ Some(Language.typeBuilderLiteral ~ z) => TREE(Language.typeBuilderId, List(TREE(I(x)), z))
+  def identifier: Parser[Term] = identifierLiteral ~ (COLON() ~> types).? ^^ { i =>
+    i match {
+      case (x: Term) ~ None => x
+      case (x: Term) ~ Some(z) => TREE(Language.typeBuilderId, List(x, z))
+    }
   }
 
-  def consts: Parser[Term] = seqToOrParser(builtinConsts) ^^ {
-    case "⟨⟩" => TREE(Language.nilId)
-    case "true" => TREE(Language.trueId)
-    case "⊤" => TREE(Language.trueId)
-    case "false" => TREE(Language.falseId)
-    case "⊥" => TREE(Language.falseId)
+  def consts: Parser[Term] = (NIL() | TRUE() | FALSE()) ^^ {
+    case NIL() => TREE(Language.nilId)
+    case TRUE() => TREE(Language.trueId)
+    case FALSE() => TREE(Language.falseId)
   }
 
-  def tuple: Parser[Term] = ("(,)" | ("(" ~ (exprInfixOperator ~ ",").+ ~ exprInfixOperator.? ~ ")")) ^^ { x =>
+  def tuple: Parser[Term] = (RBO ~> COMMA() <~ RBC |
+    (RBO ~> (exprInfixOperator <~ COMMA()).+ ~ exprInfixOperator.? <~ RBC)) ^^ { x =>
     val subtrees = x match {
-      case "(" ~ (others: List[TranscalParser.this.~[Term, String]]) ~ (one: Option[Term]) ~ ")" => one.map(others.map(t => t._1) :+ _) getOrElse others.map(t => t._1)
-      case "(,)" => List.empty
+      case (others: scala.List[Term]) ~ (one: Option[Term]) => one.map(others :+ _) getOrElse others
+      case COMMA() => List.empty
     }
     TREE(Language.tupleId, subtrees)
   }
 
-  def exprValuesAndParens: Parser[Term] = (tuple | ("(" ~ exprInfixOperator ~ ")") | ("{" ~ exprInfixOperator ~ "}") | identifier | numeral | consts) ^^ { x =>
-    if (x.isInstanceOf[TranscalParser.this.~[Any, Any]]) logger.trace(s"value or parens - $x")
-    x match {
+  def exprValuesAndParens: Parser[Term] = (tuple | (RBO ~> exprInfixOperator <~ RBC) | (CBO ~ exprInfixOperator ~ CBC) | number | consts | identifier) ^^ {
       case m: Term => m
-      case "{" ~ t ~ "}" => TREE(Language.setId, List(t.asInstanceOf[Term]))
-      case _ ~ t ~ _ => t.asInstanceOf[Term]
-    }
+      case CBO ~ t ~ CBC => TREE(Language.setId, List(t.asInstanceOf[Term]))
   }
 
   def exprApply: Parser[Term] = rep1(exprValuesAndParens) ^^ { applied =>
@@ -95,7 +122,7 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def exprNot: Parser[Term] = (rep(seqToOrParser(builtinNotOps)) ~ exprApply) ^^ { x =>
+  def exprNot: Parser[Term] = (rep(NOT()) ~ exprApply) ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
       case applied ~ exp => applied.foldLeft(exp)((t, _) => ~DSL(t))
@@ -117,11 +144,9 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     replaceUnicode(x)
   }
 
-  def annotation: Parser[Term] = ("[" ~ "[^\\]]+".r ~ "]") ^^ {
-    case _ ~ anno ~ _ => TREE(I(anno))
-  }
+  def annotation: Parser[Term] = accept("annotation", { case ANNOTATION(name) => TREE(I(name)) })
 
-  def statementCommand: Parser[Term] = (expression ~ Language.tacticLiteral ~ expression ~ annotation.?) ^^ { x =>
+  def statementCommand: Parser[Term] = (expression ~ RIGHTARROW() ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
@@ -130,10 +155,10 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     }
   }
 
-  def statementDefinition: Parser[Term] = ((expression ~ trueCondBuilderLiteral).? ~ expression ~ seqToOrParser(builtinDefinitions) ~ expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[Term] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ (LET() | DIRECTEDLET()) ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement let - $x")
     x match {
-      case op ~ left ~ dir ~ right ~ anno =>
+      case op ~ left ~ defdir ~ right ~ anno =>
         // This means lhs is a function
         val (fixedLeft, fixedRight) = right.root match {
           case Language.lambdaId =>
@@ -143,7 +168,8 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
             (newLeft, newRight)
           case _ => (left, right)
         }
-        val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o._1, fixedLeft))).getOrElse(fixedLeft)
+        val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o, fixedLeft))).getOrElse(fixedLeft)
+        val dir = if (defdir == LET()) Language.letId else Language.directedLetId
         val definitionTerm = TREE(I(dir), List(conditionedLeft, fixedRight))
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
@@ -205,35 +231,37 @@ class TranscalParser extends RegexParsers with LazyLogging with Parser[Term] wit
     applyClojure(Seq.empty, t)
   }
 
-  def commands: Parser[Term] = seqToOrParser(Language.builtinCommands) ^^ {
+  def commands: Parser[Term] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ {
     x =>
       logger.debug(s"command - $x")
-      new Tree(Language.commandId, List(TREE(new Identifier(x))))
+      new Tree(Language.commandId, List(TREE(new Identifier(x match {
+        case RIGHTARROW() => "<-"
+        case LEFTARROW() => "->"
+        case SBO ~ SBC | SQUARE() => "[]"
+      }))))
   }
 
-  def program: Parser[Term] = phrase((semicolonLiteral | "\n").* ~ (statement | commands) ~ rep((semicolonLiteral | "\n").+ ~ (statement | commands).?)) ^^ {
-    case empty ~ sc ~ scCommaList => scCommaList.filter(_._2.nonEmpty).map(_._2.get).foldLeft(sc)((t1, t2) => new Tree(semicolonId, List(t1, t2)))
+  def program: Parser[Term] = phrase(SEMICOLON().* ~> (statement | commands) ~ rep(SEMICOLON().+ ~> (statement | commands).?)) ^^ {
+    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => new Tree(semicolonId, List(t1, t2)))
   }
-
+  
   /** The known left operators at the moment */
-  override def lefters: Map[Int, Set[String]] = Map(
-    (Infixer.MIDDLE - 1, builtinSetArithOps.toSet),
-    (Infixer.MIDDLE, Set(":+")),
-    (Infixer.MIDDLE + 1, builtinBooleanOps.toSet),
-    (Infixer.MIDDLE + 2, builtinAndOps.toSet),
-    (Infixer.MIDDLE + 3, builtinOrOps.toSet),
-    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.MIDDLE + 5, builtinHighLevel.toSet)
+  override def lefters: Map[Int, Set[WorkflowToken]] = Map(
+    (Infixer.MIDDLE - 1, Set(PLUS(), PLUSPLUS(), MINUS(), UNION())),
+    (Infixer.MIDDLE, Set(SNOC())),
+    (Infixer.MIDDLE + 1, Set(EQUALS(), NOTEQUALS(), SETIN(), SETNOTIN(), SETDISJOINT(), LT(), LE(), GE(), GT())),
+    (Infixer.MIDDLE + 2, Set(AND())),
+    (Infixer.MIDDLE + 3, Set(OR())),
+//    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
+    (Infixer.MIDDLE + 5, Set(BACKSLASH(), ANDCONDBUILDER(), LAMBDA(), GUARDED()))
   )
 
   /** The known right operators at the moment */
-  override def righters: Map[Int, Set[String]] = Map(
-    (Infixer.MIDDLE, Set("::"))
+  override def righters: Map[Int, Set[WorkflowToken]] = Map(
+    (Infixer.MIDDLE, Set(DOUBLECOLON()))
   )
 
   /** A way to rebuild the the class */
-  override def build(lefters: Map[Int, Set[String]], righters: Map[Int, Set[String]]): TermInfixer =
+  override def build(lefters: Map[Int, Set[WorkflowToken]], righters: Map[Int, Set[WorkflowToken]]): TermInfixer =
     throw new NotImplementedError()
-
-  private def seqToOrParser(seq: Seq[String]): Parser[String] = seq.map(literal).reduce((p1, p2) => p1 | p2)
 }

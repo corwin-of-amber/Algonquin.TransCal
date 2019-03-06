@@ -1,7 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import language.Language
+import transcallang.Language
 import structures.immutable.{VersionedHyperGraph, HyperGraphManyWithOrderToOne}
 import structures._
 import syntax.AstSugar.Term
@@ -10,7 +10,7 @@ import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 
 import scala.collection.mutable
 
@@ -29,8 +29,12 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param root        pattern root node
     * @return all conforming terms
     */
-  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern): Iterator[Term] = {
-    reconstruct(hyperTermId).filter(t => Programs.destruct(t).findSubgraph(pattern).nonEmpty)
+  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Term] = {
+    reconstruct(hyperTermId).filter(t => {
+      val destroyed = Programs.destructWithRoot(t)
+      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyed._2), _)).getOrElse(pattern)
+      destroyed._1.findSubgraph[Int](updatedPattern).nonEmpty
+    })
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -189,7 +193,17 @@ object Programs extends LazyLogging {
       t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
 
-    trees.map(tree => innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms))
+    // A specific case is where we have a pattern of type ?x -> x
+    // This special case would regularly result in an empty pattern while in destruct it would result with a single edge.
+    // To solve this we will create a special edge to match all the graph
+    trees.map(tree => {
+      if (knownTerms(tree).nonEmpty) {
+        val target = knownTerms(tree).get
+        val edgeType = holeCreator()
+        (target, Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](target, ReferenceTerm[HyperTermIdentifier](edgeType.id), Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get), EmptyMetadata)))
+      }
+      else innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)
+    })
   }
 
   def destructPattern(tree: Term): HyperPattern = {
@@ -215,9 +229,9 @@ object Programs extends LazyLogging {
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = language.Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
     val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ language.Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).

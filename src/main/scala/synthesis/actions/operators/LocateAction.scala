@@ -16,7 +16,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = None) extends Action {
   /** To be used during the BFS rewrite search
     *
     * @param state the current state
@@ -26,6 +26,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // We assume only one root as it is a pattern from user.
+    logger.debug(s"Running Locate with $anchor")
     val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
     assert(roots.size == 1)
     val root = roots.head
@@ -47,14 +48,14 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern) extends Acti
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(locateRule +: state.rewriteRules.toSeq, initialState, goalPredicate)
-    val rewriteResult = rewriteSearch.search(spaceSearch)
+    val rewriteResult = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).addEdges(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else {
-      val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal)
+      val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
       if (terms.hasNext) logger.debug(terms.next().toString())
       else logger.debug("Found term not constructable (probably a symbol)")
     }

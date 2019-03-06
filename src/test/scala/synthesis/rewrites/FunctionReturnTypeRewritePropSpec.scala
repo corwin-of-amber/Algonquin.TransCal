@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import language.Language
+import transcallang.Language
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import syntax.AstSugar._

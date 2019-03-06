@@ -1,10 +1,10 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import language.Language
+import transcallang.Language
 import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
-import syntax.Tree
+import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
@@ -15,10 +15,10 @@ import synthesis.{HyperEdgeTargetOrdering, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term) extends Action with LazyLogging {
+class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term, maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
 
   private val vars = leaves.indices map (i => TI(s"?autovar$i"))
-  private val fun = new Tree(name.root, vars.toList)
+  private val fun = new Tree(new Identifier(name.root.literal.toString.replace("?", ""), name.root.kind, name.root.ns), vars.toList)
 
   private def getGeneralizedTerms(progs: Programs): Set[Term] = {
     // TODO: Filter out expressions that use context but allow constants
@@ -42,7 +42,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
       } else {
         logger.info("Generalize couldn't find term, trying to elaborate")
         val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.addEdges(g2.edges))
-        val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1))(state)
+        val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1), maxSearchDepth = maxSearchDepth)(state)
         var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
         val progs = new Programs(rewriteSearchState.graph)
         val terms = getGeneralizedTerms(progs)

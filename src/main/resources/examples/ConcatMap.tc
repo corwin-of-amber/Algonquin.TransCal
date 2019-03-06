@@ -1,14 +1,18 @@
-concatMap ?f ?l = concat (map f l)    [++]
+concatMap ?f ?l = concat (map  f l)    [++]
 
-concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss ↦ xs ++ concat xss))
-map f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
+concat = (⟨⟩ ↦ ⟨⟩)
+concat = (?xs :: ?xss) ↦ xs ++ concat xss
+map f = (⟨⟩ ↦ ⟨⟩)
+map f = (?x :: ?xs) ↦ (f x) :: map f xs
 
-l = ?x :: ?xs
-concat _ -> f _ ++ _
+l = x :: xs
+concat _ -> (1)
+
+(1) -> f _ ++ _
 f x = l'
-l' = ?x' :: ?xs'
+l' = x' :: xs'
 f _ ++ _ -> 1
 1 -> ?concatMap' f l' xs
 
 1 -> _ :: _
-/*_ ++ _ -> concatMap' _ _ _*/
+_ ++ _ -> concatMap' _ _ _

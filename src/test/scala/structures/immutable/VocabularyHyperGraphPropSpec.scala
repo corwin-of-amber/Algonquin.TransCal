@@ -1,6 +1,6 @@
 package structures.immutable
 
-import language.{Language, TranscalParser}
+import transcallang.{Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.prop.Checkers

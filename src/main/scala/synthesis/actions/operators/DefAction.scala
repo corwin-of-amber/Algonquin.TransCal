@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import language.Language
+import transcallang.Language
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState

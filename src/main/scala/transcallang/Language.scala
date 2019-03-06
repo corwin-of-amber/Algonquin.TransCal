@@ -1,10 +1,21 @@
-package language
+package transcallang
 
 import syntax.Identifier
 
 import scala.util.matching.Regex
 
-package object Language {
+object Language {
+
+  // TODO: maybe use this
+  object Annotations extends Enumeration {
+    protected case class Val(anno: Regex) extends super.Val {}
+
+    implicit def valueToVal(x: Value): Val = x.asInstanceOf[Val]
+
+    val definition = Val("++".r)
+    val limitSearch   = Val("lim\\([1-9][0-9]*\\)".r)
+  }
+
   val applyLiteral: String ="@"
   val typeLiteral: String ="type"
   val mapTypeLiteral: String =":>"
@@ -30,6 +41,7 @@ package object Language {
   val andCondBuilderLiteral: String = "|||"
   val consLiteral: String = "::"
   val setLiteral: String = "{.}"
+  val stringLiteralLiteral: String = "\""
 
   val applyId: Identifier = new Identifier(applyLiteral)
   val typeId: Identifier = new Identifier(typeLiteral)
@@ -56,6 +68,7 @@ package object Language {
   val andCondBuilderId: Identifier = new Identifier(andCondBuilderLiteral)
   val consId: Identifier = new Identifier(consLiteral)
   val setId: Identifier = new Identifier(setLiteral)
+  val stringLiteralId: Identifier = new Identifier(stringLiteralLiteral)
 
   val identifierRegex: Regex = "[?]?[\\w'_]+".r
   val typeRegex: Regex = "[`']?\\w+".r
@@ -67,7 +80,7 @@ package object Language {
   val builtinAndOps: Seq[String] = Seq("/\\", "∧")
   val builtinOrOps: Seq[String] = Seq("\\/", "∨")
   val builtinIFFOps: Seq[String] = Seq("<->")
-  val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", ", , ", "‖", "<", ">", "<=", ">=", "≤", "≥")
+  val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", "‖", "<", ">", "<=", ">=", "≤", "≥")
   val builtinCondBuilders: Seq[String] = Seq("||>")
   val builtinHighLevel: Seq[String] = Seq("/", "=>", "↦", "⇒", "|||")
   val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)

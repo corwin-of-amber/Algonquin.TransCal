@@ -1,5 +1,7 @@
 f = len ( ?xs )   [++]
 
+len ?ys = len (take ys ?i ++ drop ys i)
+
 f -> 1
-1 -> len ( _ ++ _ )   [allow existentials]
-1 -> len ( _ ++ drop ( _ ++ _ ) _ )   [allow existentials]
+1 -> len ( _ ++ _ )
+1 -> len ( _ ++ drop ( _ ++ _ ) _ )

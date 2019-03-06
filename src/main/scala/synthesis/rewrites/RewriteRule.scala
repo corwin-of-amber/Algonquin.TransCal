@@ -4,6 +4,8 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
 import structures.immutable.HyperGraphManyWithOrderToOne
+import syntax.AstSugar.Uid
+import syntax.Identifier
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.Operator
@@ -38,12 +40,17 @@ class RewriteRule(premise: HyperPattern,
       () => creator.next
     }
 
+    val existentialsMax = {
+      val temp = state.graph.edgeTypes.filter(_.identifier.literal.toString.startsWith("existential")).map(_.identifier.literal.toString.drop("existential".length).toInt)
+      if (temp.isEmpty) -1 else temp.max
+    }
+
     val newEdges = premiseReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadata)
-      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion, m)
+      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion(existentialsMax), m)
       if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
       else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
-        e.copy(metadata=e.metadata.merge(meta)))
+        e.copy(metadata = e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
     val graph = compactGraph :+ newEdges
@@ -61,18 +68,17 @@ class RewriteRule(premise: HyperPattern,
   private val subGraphPremise: SubHyperGraphPattern = premise
 
   // Existential cannot be a function
-  private val destHoles = conclusion.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
+  private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.edges.map(_.target))
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
-  private def subGraphConclusion: SubHyperGraphPattern = {
+  private def subGraphConclusion(maxExist: Int): SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
-    // TODO: prevent existentials from being recreated.
-//    val existentialEdges = existentialHoles.map(HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](
-//      _, Explicit(HyperTermIdentifier(new Identifier("ex?", "variable", new Uid))), Seq.empty, metadata))
-//    val existentialEdges = existentialHoles.map(patternEdgeCreator(_, new Identifier("ex?", "variable", new Uid), Seq.empty))
-//    destination.addEdges(existentialEdges)
-    conclusion
+    val existentialEdges = existentialHoles.zipWithIndex.map(t =>
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](t._1,
+        Explicit(HyperTermIdentifier(new Identifier(s"existential${maxExist + t._2 + 1}", "variable", new Uid))), Seq.empty, metadata)
+    )
+    conclusion.addEdges(existentialEdges)
   }
 }
 
@@ -94,7 +100,7 @@ object RewriteRule {
   }
 
   def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = HyperGraphManyWithOrderToOne(
-    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq:_*
+    templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq: _*
   )
 
   /* --- Privates --- */

@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import language.TranscalParser
+import transcallang.TranscalParser
 import org.scalatest.{FunSuite, Matchers}
 import structures.immutable.VocabularyHyperGraph
 import structures.{EmptyMetadata, HyperEdge}

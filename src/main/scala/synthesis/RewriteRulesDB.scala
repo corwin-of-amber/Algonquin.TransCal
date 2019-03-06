@@ -1,7 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import language.TranscalParser
+import transcallang.TranscalParser
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
 import structures.{EmptyMetadata, Metadata}
@@ -27,20 +27,19 @@ trait RewriteRulesDB extends LazyLogging {
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 }
 
-class SimpleRewriteRulesDB extends RewriteRulesDB {
+object SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
 
   private val parser = new TranscalParser
 
   private val templates: Set[String] = Set(
-    "(true ⇒ ?y) >> id y",
-    "(false ⇒ ?y) >> false",
     "~true = false",
     "~false = true",
-    "?x / false >> id x",
-    "false / ?x >> id x",
-    "id (id ?x) >> id x",
+    "?x / false >> x",
+    "false / ?x >> x",
+    "id (?x) >> x",
 
+    "?x == ?x' = x' == x",
     "?x == ?x' = x' ∈ { x }",
     "elem(?x, (?x' :: ?xs')) = ((x == x') \\/ elem(x, xs'))",
     "~(?x == ?y) = (x != y)",
@@ -50,6 +49,7 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
     "~(?x /\\ ?y) = (~x \\/ ~y)",
     "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
     "((?xs ‖ ?x) /\\ (xs ‖ ?y)) = (xs ‖ (x ∪ y))",
+    "?x ∈ (?xs ∪ ?ys) = (x ∈ xs) \\/ (x ∈ ys)",
     "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
 
@@ -64,9 +64,9 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
 
     "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
 
-    "(?xs take 0) >> ⟨⟩",
-    "(?xs take (len xs)) >> id xs",
-    "((?xs ++ ?xs') take ?x) >> ((xs take (min len(xs) x)) ++ (xs' take (bounded_minus x len xs)))",
+    "(take ?xs 0) >> ⟨⟩",
+    "(take ?xs (len xs)) >> id xs",
+    "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
 
     // merge range
     "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
@@ -80,10 +80,6 @@ class SimpleRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
 
   override protected def metadata: Metadata = EmptyMetadata
-}
-
-object SimpleRewriteRulesDB {
-  def apply(): SimpleRewriteRulesDB = new SimpleRewriteRulesDB()
 }
 
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
