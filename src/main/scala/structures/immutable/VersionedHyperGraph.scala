@@ -10,43 +10,49 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType])
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType], version: Long)
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
-  /* --- Private Members --- */
+  /* --- Constructors --- */
 
-  private lazy val latestVersion = (wrapped.edges
-    .flatMap(_.metadata.find(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version)) + 0)
-    .max + 1
+  def this(wrapped: CompactHyperGraph[Node, EdgeType]) = {
+    this(wrapped, VersionMetadata.latestVersion(wrapped.edges))
+  }
 
   /* --- Public Methods --- */
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Int): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    def aaa[T](tuples: Seq[(Item[T, Id], T)]): Map[Id, T] = {
-      tuples.filter(t => t._1.isInstanceOf[Hole[Node, Id]])
-        .map(t => (t._1.asInstanceOf[Hole[Node, Id]].id, t._2)).toMap
-    }
-
     hyperPattern.edges.flatMap(edgePattern => {
       wrapped.find(edgePattern)
-        .filter(edge => edge.metadata.filter(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version).headOption.getOrElse(0) > version)
+        .filter(edge => VersionMetadata.getEdgeVersion(edge) > version)
         .map(edge => {
           val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-          val b = HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (aaa(nodes), aaa(edgeTypes)))
-          b
+          HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (Item.itemsValueToMap(nodes), Item.itemsValueToMap(edgeTypes)))
         }).flatMap(wrapped.findSubgraph[Id])
     })
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
+  /**
+    * Adding version to edge.
+    *
+    * @param hyperEdge The edge to add.
+    * @return The new hyper graph with the edge.
+    */
   override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] = {
-    super.addEdge(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(latestVersion))))
+    new VersionedHyperGraph(wrapped.addEdge(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))), version + 1)
   }
 
+  /**
+    * Adding version to edges.
+    *
+    * @param hyperEdges The edges to add.
+    * @return The new hyper graph with the edge.
+    */
   override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
-    super.addEdges(hyperEdges.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(latestVersion)))))
+    new VersionedHyperGraph(wrapped.addEdges(hyperEdges.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))), version + 1)
   }
 
   /* --- Object Impl. --- */
@@ -58,7 +64,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
     new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] {
       override def result(): VersionedHyperGraph[Node, EdgeType] = {
-        new VersionedHyperGraph(new CompactHyperGraph(parts.flatten.toSet))
+        new VersionedHyperGraph(new CompactHyperGraph(parts.flatten.toSet), version + 1)
       }
     }
 }
@@ -74,11 +80,34 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
     }
   }
 
-  case class VersionMetadata(version: Int) extends SpecificMergeMetadata {
+  case class VersionMetadata(version: Long) extends SpecificMergeMetadata {
     override protected def toStr: String = "VersionMetadata"
 
     override def mergeSpecific(other: SpecificMergeMetadata): SpecificMergeMetadata = other match {
       case metadata: VersionMetadata => if (metadata.version < version) other else this
+    }
+  }
+
+  object VersionMetadata {
+    /**
+      *
+      * @param edges To check with
+      * @tparam Node     node type
+      * @tparam EdgeType edge type
+      * @return
+      */
+    def latestVersion[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): Long = (edges.map(getEdgeVersion) + 0L).min
+
+    /**
+      * Getting the edge version
+      *
+      * @param edge Edge to check with
+      * @tparam Node     node type
+      * @tparam EdgeType edge type
+      * @return
+      */
+    def getEdgeVersion[Node, EdgeType](edge: HyperEdge[Node, EdgeType]): Long = {
+      edge.metadata.filter(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version).headOption.getOrElse(0L)
     }
   }
 
