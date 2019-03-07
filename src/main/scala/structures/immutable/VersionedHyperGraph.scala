@@ -23,13 +23,16 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     hyperPattern.edges.flatMap(edgePattern => {
-      wrapped.find(edgePattern)
-        .filter(edge => VersionMetadata.getEdgeVersion(edge) > version)
-        .map(edge => {
+      find(edgePattern)
+        .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
+        .flatMap(edge => {
           val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-          HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (Item.itemsValueToMap(nodes), Item.itemsValueToMap(edgeTypes)))
-        }).flatMap(wrapped.findSubgraph[Id])
+          val nodesMap = Item.itemsValueToMap(nodes)
+          val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
+          val g = HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+          wrapped.findSubgraph[Id](g).map(t => (t._1 ++ nodesMap, t._2 ++ edgeTypeMap))
+        })
     })
   }
 
