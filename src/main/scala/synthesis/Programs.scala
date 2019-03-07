@@ -253,4 +253,15 @@ object Programs extends LazyLogging {
         }
     }
   }
+
+  def termToString(term: Term): String = {
+    term.subtrees match {
+      case Nil => term.root.toString()
+      case x :: y :: Nil => term.root.toString() match {
+        case "match" => termToString(x) + " match " + termToString(y)
+        case _ => Seq(termToString(x), term.root.toString(), termToString(y)).mkString(" ")
+      }
+      case list => "(" + (term.root.toString() :: list.map(termToString)).mkString(" ") + ")"
+    }
+  }
 }
