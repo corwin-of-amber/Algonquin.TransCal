@@ -60,7 +60,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   }
 
   test("rewriteRules can rewrite correct matches") {
-    val term = new TranscalParser().apply("1 -> match true (true ⇒ hello)").subtrees(1)
+    val term = new TranscalParser().apply("1 -> true match (true ⇒ hello / false => world)").subtrees(1)
     val (graph, root) = Programs.destructWithRoot(term)
     val state = new RewriteSearchState(graph)
     val rules = SimpleRewriteRulesDB.rewriteRules
