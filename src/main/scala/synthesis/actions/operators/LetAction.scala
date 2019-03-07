@@ -26,28 +26,32 @@ class LetAction(val term: Term) extends Action {
 
   assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
 
+  private def createRuleWithName(args: Term, body: Term, funcName: Identifier): (Set[RewriteRule], Term) = {
+    val (innerRewrites, newTerm) = createRewrites(body)
+
+    val params = if (args.root == Language.tupleId) args.subtrees else List(args)
+    val condTerm = new Tree(funcName, params)
+    val (pattern, conclusion) = {
+      val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
+      (patterns(0), patterns(1))
+    }
+
+    val premise: HyperPattern = {
+      val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
+      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
+      pattern.addEdge(newRootEdge).removeEdge(rootEdge)
+    }
+
+    (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), new Tree(funcName))
+  }
+
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
   private def createRewrites(t: Term): (Set[RewriteRule], Term) = {
     t.root match {
       case Language.lambdaId =>
         val newFunc = LetAction.functionNamer()
-        val (innerRewrites, newTerm) = createRewrites(t.subtrees(1))
-
-        val params = if (t.subtrees(0).root == Language.tupleId) t.subtrees(0).subtrees else List(t.subtrees(0))
-        val condTerm = new Tree(newFunc, params)
-        val (pattern, conclusion) = {
-          val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
-          (patterns(0), patterns(1))
-        }
-
-        val premise: HyperPattern = {
-          val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(newFunc))).head
-          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-          pattern.addEdge(newRootEdge).removeEdge(rootEdge)
-        }
-
-        (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(newFunc)), new Tree(newFunc))
+        createRuleWithName(t.subtrees(0), t.subtrees(1), newFunc)
       case Language.letId | Language.directedLetId =>
         val results = t.subtrees map (s => createRewrites(s))
         val (premise, conclusion) = {
@@ -61,6 +65,12 @@ class LetAction(val term: Term) extends Action {
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }
         (newRules ++ results.flatMap(_._1), t)
+      case Language.matchId =>
+        val param = t.subtrees.head
+        val newFunc = LetAction.functionNamer()
+        val guarded = t.subtrees.tail
+        val innerRules = guarded.flatMap(g => createRuleWithName(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
+        (innerRules, new Tree(newFunc, List(param)))
       case _ =>
         val results = t.subtrees map (s => createRewrites(s))
         val subtrees = results.map(_._2)
