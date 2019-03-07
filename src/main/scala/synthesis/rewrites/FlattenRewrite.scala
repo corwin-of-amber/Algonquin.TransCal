@@ -2,7 +2,7 @@ package synthesis.rewrites
 
 import transcallang.Language
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import synthesis.rewrites.rewrites._
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -30,7 +30,7 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
     // TODO: Don't use filter if it is O(n)
 
     // Change apply to function
-    val funcResults = state.graph.findSubgraph[Int](applyFuncGraph)
+    val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, VersionedHyperGraph.STATIC_VERSION)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults;
       outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.head == idMap(1));
