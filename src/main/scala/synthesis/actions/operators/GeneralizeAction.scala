@@ -1,15 +1,14 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.Language
-import structures.EmptyMetadata
 import syntax.AstSugar.{Term, _}
 import syntax.{Identifier, Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
-import synthesis.{HyperEdgeTargetOrdering, HyperTermIdentifier, Programs}
+import synthesis.{HyperTermIdentifier, Programs}
+import transcallang.Language
 
 /**
   * @author tomer
@@ -61,7 +60,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
         logger.info("Failed to generalize")
         tempState
       case Some(newTerm) =>
-        logger.info(s"Generalized to $newTerm")
+        logger.info(s"Generalized to ${Programs.termToString(newTerm)}")
         tempState.copy(rewriteRules = tempState.rewriteRules ++ new LetAction(newTerm).rules)
     }
   }
