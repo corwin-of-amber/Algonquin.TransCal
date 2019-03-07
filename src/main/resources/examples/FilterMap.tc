@@ -5,11 +5,12 @@ filterMap ?p ?f ?l = filter p (map f l)    [++]
 map ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => f x :: map f xs))
 filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => x :: (filter p xs)) / false => filter p xs) ))
 
-l = ?x :: ?xs
+l = x :: xs
 ->
 p (f x) = ⊤
 
 filter _ _  -> (1)    [only assoc]
+(1) -> filter _ (_ :: _)
 (1) -> _ :: _
 
 []
