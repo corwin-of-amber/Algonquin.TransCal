@@ -121,24 +121,26 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("split lambdas with params works correctly") {
-    val anno = (new TranscalParser).apply("concat = ((⟨⟩ ↦ ⟨⟩) / (?xs :: ?xss) ↦ xs ++ concat xss)   [++]")
+    val anno = (new TranscalParser).apply("concat ?l = l match ((⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss)   [++]")
     anno.root shouldEqual Language.annotationId
     anno.subtrees(1).root.literal shouldEqual "++"
     val parsed = anno.subtrees(0)
     parsed.root shouldEqual Language.letId
     parsed.subtrees(0).root.literal shouldEqual "concat"
-    parsed.subtrees(1).root shouldEqual Language.splitId
+    parsed.subtrees(1).root shouldEqual Language.matchId
     val lhs = parsed.subtrees(1).subtrees(0)
-    val rhs = parsed.subtrees(1).subtrees(1)
-    lhs.root shouldEqual Language.lambdaId
-    lhs.subtrees(0).root shouldEqual Language.nilId
-    lhs.subtrees(1).root shouldEqual Language.nilId
+    val rhs1 = parsed.subtrees(1).subtrees(1)
+    val rhs2 = parsed.subtrees(1).subtrees(2)
+    lhs.root.literal shouldEqual "l"
+    rhs1.root shouldEqual Language.guardedId
+    rhs1.subtrees(0).root shouldEqual Language.nilId
+    rhs1.subtrees(1).root shouldEqual Language.nilId
 
-    rhs.root shouldEqual Language.lambdaId
-    rhs.subtrees(0).root shouldEqual Language.consId
-    rhs.subtrees(0).subtrees(0).root.literal shouldEqual "?xs"
-    rhs.subtrees(0).subtrees(1).root.literal shouldEqual "?xss"
-    rhs.subtrees(1).root.literal shouldEqual "++"
+    rhs2.root shouldEqual Language.guardedId
+    rhs2.subtrees(0).root shouldEqual Language.consId
+    rhs2.subtrees(0).subtrees(0).root.literal shouldEqual "?xs"
+    rhs2.subtrees(0).subtrees(1).root.literal shouldEqual "?xss"
+    rhs2.subtrees(1).root.literal shouldEqual "++"
   }
 
   test("Parser adds clojure when needed") {
@@ -170,6 +172,16 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     rhs.root shouldEqual Language.lambdaId
     rhs.subtrees(0).root.literal shouldEqual "?x"
     rhs.subtrees(1).root shouldEqual Language.lambdaId
+  }
+
+  test("Parse match statement") {
+    val parsed = (new TranscalParser).apply("?x -> x match (1 => 1) / (_ => 0)").subtrees(1)
+    parsed.root shouldEqual Language.matchId
+    parsed.subtrees(0).root.literal shouldEqual "x"
+    parsed.subtrees(1).root shouldEqual Language.guardedId
+    parsed.subtrees(2).root shouldEqual Language.guardedId
+    parsed.subtrees(2).subtrees(0).root shouldEqual Language.holeId
+    parsed.subtrees(2).subtrees(1).root.literal shouldEqual 0
   }
 }
 

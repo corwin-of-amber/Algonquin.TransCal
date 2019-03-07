@@ -15,10 +15,15 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
 
   class WorkflowTokenReader(tokens: Seq[WorkflowToken]) extends Reader[WorkflowToken] {
     override def first: WorkflowToken = tokens.head
+
     override def atEnd: Boolean = tokens.isEmpty
+
     override def pos: Position = tokens.headOption.map(_.pos).getOrElse(NoPosition)
+
     override def rest: Reader[WorkflowToken] = new WorkflowTokenReader(tokens.tail)
   }
+
+  override def log[T](p: => Parser[T])(name: String): Parser[T] = p
 
   def apply(programText: String): Term = {
     // Clean comments and new lines inside parenthesis
@@ -32,11 +37,11 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
     if (tokens.isLeft) throw new RuntimeException(s"LEXER ERRoR: ${tokens.left.get}")
     val reader = new WorkflowTokenReader(tokens.right.get)
     program(reader) match {
-      case Success(matched, text) => matched
-      case Failure(msg, text) =>
-        throw new RuntimeException(s"FAILURE: $msg in ${text}")
-      case Error(msg, text) =>
-        throw new RuntimeException(s"ERROR: $msg in ${text}")
+      case Success(matched, rt) => matched
+      case Failure(msg, rt) =>
+        throw new RuntimeException(s"FAILURE: $msg in ${rt}")
+      case Error(msg, rt) =>
+        throw new RuntimeException(s"ERROR: $msg in ${rt}")
     }
   }
 
@@ -71,20 +76,21 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   })
 
   private def number: Parser[Term] = accept("number", { case NUMBER(x) => TREE(I(x)) })
+
   private def literal: Parser[Term] = accept("string literal", { case LITERAL(name) => TREE(Language.stringLiteralId, List(TREE(I(name)))) })
 
 
-  def polymorphicTypes: Parser[Term] = typeLiteral ~ (SBO ~> types <~ SBC).? ^^ {
+  def polymorphicTypes: Parser[Term] = (typeLiteral ~ (SBO ~> types <~ SBC).?) ^^ {
     case x ~ None => TREE(I(x))
     case x ~ Some(polymorphic) => TREE(Language.innerTypeId, List(TREE(I(x)), polymorphic))
   }
 
-  def types: Parser[Term] = polymorphicTypes ~ (MAPTYPE() ~> types).? ^^ {
-    case x ~ None => TREE(I(x))
-    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(TREE(I(x)), recursive))
+  def types: Parser[Term] = (polymorphicTypes ~ (MAPTYPE() ~> types).?) ^^ {
+    case x ~ None => x
+    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(x, recursive))
   }
 
-  def identifier: Parser[Term] = identifierLiteral ~ (COLON() ~> types).? ^^ { i =>
+  def identifier: Parser[Term] = (identifierLiteral ~ (COLON() ~> types).?) ^^ { i =>
     i match {
       case (x: Term) ~ None => x
       case (x: Term) ~ Some(z) => TREE(Language.typeBuilderId, List(x, z))
@@ -97,18 +103,20 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
     case FALSE() => TREE(Language.falseId)
   }
 
-  def tuple: Parser[Term] = (RBO ~> COMMA() <~ RBC |
-    (RBO ~> (exprInfixOperator <~ COMMA()).+ ~ exprInfixOperator.? <~ RBC)) ^^ { x =>
+  def tuple: Parser[Term] = ((RBO ~> COMMA() <~ RBC) |
+    (RBO ~> (expression <~ COMMA()).+ ~ expression.? <~ RBC)) ^^ { x =>
     val subtrees = x match {
-      case (others: scala.List[Term]) ~ (one: Option[Term]) => one.map(others :+ _) getOrElse others
+      case (others: scala.List[Term]) ~ (one: Option[Term]) =>
+        logger.trace(s"found tuple - $others, $one")
+        one.map(others :+ _) getOrElse others
       case COMMA() => List.empty
     }
     TREE(Language.tupleId, subtrees)
   }
 
-  def exprValuesAndParens: Parser[Term] = (tuple | (RBO ~> exprInfixOperator <~ RBC) | (CBO ~ exprInfixOperator ~ CBC) | number | consts | identifier) ^^ {
-      case m: Term => m
-      case CBO ~ t ~ CBC => TREE(Language.setId, List(t.asInstanceOf[Term]))
+  def exprValuesAndParens: Parser[Term] = (tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC) | number | consts | identifier) ^^ {
+    case m: Term => m
+    case CBO ~ t ~ CBC => TREE(Language.setId, List(t.asInstanceOf[Term]))
   }
 
   def exprApply: Parser[Term] = rep1(exprValuesAndParens) ^^ { applied =>
@@ -140,13 +148,31 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
     case t: Term => new Tree[Identifier](new Identifier(translateUnicode(t.root.literal.toString), t.root.kind, t.root.ns), t.subtrees.map(replaceUnicode))
   }
 
-  def expression: Parser[Term] = exprInfixOperator ^^ { x: Term =>
-    replaceUnicode(x)
+  def guarded: Parser[Term] = ((RBO ~> guarded <~ RBC) | ((exprInfixOperator <~ log(GUARDED())("guarded")) ~ expression)) ^^ (x => {
+    logger.trace(s"found guarded - $x")
+    x match {
+      case (x1: Term) ~ (x2: Term) => TREE(Language.guardedId, List(x1, x2))
+      case x: Term => x
+    }
+  })
+
+  def splitted: Parser[List[Term]] = ((RBO ~> splitted <~ RBC)| (guarded ~ (BACKSLASH() ~> guarded).+)) ^^ {
+    case x: List[Term] => x
+    case x: (Term ~ List[Term]) => x._1 +: x._2
+  }
+
+  def expression: Parser[Term] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {
+    case (matched: Term) ~ (terms: List[Term]) =>
+      logger.trace(s"found match expression $matched ~ $terms")
+      replaceUnicode(TREE(Language.matchId, List(matched) ++ terms))
+    case x: Term =>
+      logger.trace(s"found expression $x")
+      replaceUnicode(x)
   }
 
   def annotation: Parser[Term] = accept("annotation", { case ANNOTATION(name) => TREE(I(name)) })
 
-  def statementCommand: Parser[Term] = (expression ~ RIGHTARROW() ~! expression ~ annotation.?) ^^ { x =>
+  def statementCommand: Parser[Term] = (expression ~ log(RIGHTARROW())("tactic statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
@@ -155,7 +181,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
     }
   }
 
-  def statementDefinition: Parser[Term] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ (LET() | DIRECTEDLET()) ~! expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[Term] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ log(LET() | DIRECTEDLET())("let statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement let - $x")
     x match {
       case op ~ left ~ defdir ~ right ~ anno =>
@@ -170,7 +196,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
         }
         val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o, fixedLeft))).getOrElse(fixedLeft)
         val dir = if (defdir == LET()) Language.letId else Language.directedLetId
-        val definitionTerm = TREE(I(dir), List(conditionedLeft, fixedRight))
+        val definitionTerm = TREE(dir, List(conditionedLeft, fixedRight))
         anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
@@ -244,7 +270,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   def program: Parser[Term] = phrase(SEMICOLON().* ~> (statement | commands) ~ rep(SEMICOLON().+ ~> (statement | commands).?)) ^^ {
     case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => new Tree(semicolonId, List(t1, t2)))
   }
-  
+
   /** The known left operators at the moment */
   override def lefters: Map[Int, Set[WorkflowToken]] = Map(
     (Infixer.MIDDLE - 1, Set(PLUS(), PLUSPLUS(), MINUS(), UNION())),
@@ -252,8 +278,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
     (Infixer.MIDDLE + 1, Set(EQUALS(), NOTEQUALS(), SETIN(), SETNOTIN(), SETDISJOINT(), LT(), LE(), GE(), GT())),
     (Infixer.MIDDLE + 2, Set(AND())),
     (Infixer.MIDDLE + 3, Set(OR())),
-//    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.MIDDLE + 5, Set(BACKSLASH(), ANDCONDBUILDER(), LAMBDA(), GUARDED()))
+    //    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
+    (Infixer.MIDDLE + 5, Set(ANDCONDBUILDER(), LAMBDA()))
   )
 
   /** The known right operators at the moment */

@@ -2,8 +2,8 @@
 
 filterMap ?p ?f ?l = filter p (map f l)    [++]
 
-map ?f = ((⟨⟩ ↦ ⟨⟩) / (?x :: ?xs ↦ f x :: map f xs))
-filter ?p = ((⟨⟩ ↦ ⟨⟩) / ((?x :: ?xs) ↦ ( ((p x) => x :: (filter p xs)) / ~(p x) => filter p xs) ))
+map ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => f x :: map f xs))
+filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => x :: (filter p xs)) / false => filter p xs) ))
 
 l = ?x :: ?xs
 ->
