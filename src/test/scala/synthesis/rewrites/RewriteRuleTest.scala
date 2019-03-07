@@ -1,7 +1,7 @@
 package synthesis.rewrites
 
 import org.scalatest.{FunSuite, Matchers}
-import structures.immutable.{CompactHyperGraph, VocabularyHyperGraph}
+import structures.immutable.{VersionedHyperGraph, VocabularyHyperGraph}
 import structures.{EmptyMetadata, HyperEdge}
 import syntax.Identifier
 import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
@@ -15,7 +15,7 @@ class RewriteRuleTest extends FunSuite with Matchers {
     val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
     val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
     val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
-    val state = new RewriteSearchState(CompactHyperGraph[HyperTermId, HyperTermIdentifier](conditions.map(edge => {
+    val state = new RewriteSearchState(VersionedHyperGraph[HyperTermId, HyperTermIdentifier](conditions.map(edge => {
       HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
     }).toSeq:_*))
     val newState = rewriteRule.apply(state)

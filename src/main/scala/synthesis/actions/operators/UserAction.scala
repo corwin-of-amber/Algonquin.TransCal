@@ -1,17 +1,15 @@
 package synthesis.actions.operators
 
-import java.io.{BufferedReader, PrintStream}
+import java.io.PrintStream
 
-import syntax.AstSugar.{I, Term}
-import transcallang.{Language, Parser}
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{EmptyMetadata, HyperEdge, HyperGraphManyWithOrderToOneLike}
+import structures.{EmptyMetadata, HyperEdge}
+import syntax.AstSugar.Term
 import syntax.Tree
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
-import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, Template}
+import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.Language
 
 import scala.collection.mutable
 
@@ -29,14 +27,14 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
   override def apply(state: ActionSearchState): ActionSearchState = {
     val baseTerm = in.next()
     logger.info(seperator)
-    logger.info(s"Got $baseTerm from user")
+    logger.info(s"Got ${Programs.termToString(baseTerm)} from user")
     val (term, annotation) = if (baseTerm.root == Language.annotationId) (baseTerm.subtrees(0), Some(baseTerm.subtrees(1)))
     else (baseTerm, None)
 
     val newState = term.root match {
       case Language.letId | Language.directedLetId =>
         // operator = in the main is Let (adding a new hyperterm)
-        logger.info(s"Adding term $term as rewrite")
+        logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
         annotation match {
           case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term).apply(state)
           case _ => new LetAction(term).apply(state)
@@ -52,7 +50,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
-        logger.info(s"LHS is Locate with pattern ${term.subtrees.head} and temporary anchor $anchor")
+        logger.info(s"LHS is Locate with pattern ${Programs.termToString(term.subtrees.head)} and temporary anchor $anchor")
         val tempState = new LocateAction(anchor, lhs._1, maxSearchDepth = lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
         val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
@@ -63,7 +61,7 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
           }
           else Iterator.empty
         }
-        logger.info(s"Found: ${if (terms.hasNext) terms.next() else "failed"}")
+        logger.info(s"Found: ${if (terms.hasNext) Programs.termToString(terms.next()) else "failed"}")
 
         //   The right is:
         //   1) a symbol

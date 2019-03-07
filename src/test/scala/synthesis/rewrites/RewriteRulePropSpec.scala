@@ -5,7 +5,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures._
-import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import syntax.Identifier
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
@@ -79,7 +79,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
           val rewriteRule = new RewriteRule(conditions, HyperGraphManyWithOrderToOne(destination), (a, b) => EmptyMetadata)
           val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
           val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
-          val state = new RewriteSearchState(CompactHyperGraph(filledConditions.toSeq: _*))
+          val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
           val newState = rewriteRule.apply(state)
 
           if (willMerge.isEmpty) (newState.graph.edges -- state.graph.edges).size == 1

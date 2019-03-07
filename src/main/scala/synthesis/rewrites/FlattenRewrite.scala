@@ -2,7 +2,7 @@ package synthesis.rewrites
 
 import transcallang.Language
 import structures._
-import structures.immutable.VocabularyHyperGraph
+import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
 import synthesis.rewrites.rewrites._
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -22,7 +22,7 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
   private val innerFunc: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
     patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
 
-  private val applyFuncGraph: HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
+  private val applyFuncGraph: HyperGraphManyWithOrderToOne.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     VocabularyHyperGraph(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState): RewriteSearchState = {

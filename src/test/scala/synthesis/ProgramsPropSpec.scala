@@ -7,7 +7,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
-import structures.immutable.CompactHyperGraph
+import structures.immutable.VersionedHyperGraph
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.rewrites.Template.ReferenceTerm
@@ -103,7 +103,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("Reconstructs more then one possibility") {
-    val graph = CompactHyperGraph(
+    val graph = VersionedHyperGraph(
       Seq(
         HyperEdge(HyperTermId(1), HyperTermIdentifier(new Identifier("x")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(2), HyperTermIdentifier(new Identifier("xs")), List(), EmptyMetadata),

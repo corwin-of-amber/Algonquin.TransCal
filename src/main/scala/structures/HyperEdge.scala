@@ -1,5 +1,7 @@
 package structures
 
+import scala.collection.mutable
+
 /**
   * @author tomer
   * @since 12/25/18
@@ -25,11 +27,25 @@ trait Metadata extends collection.immutable.Iterable[Metadata] {
   override def toString(): String = toStr
 }
 
+trait SpecificMergeMetadata extends Metadata {
+  def mergeSpecific(other: SpecificMergeMetadata): SpecificMergeMetadata
+}
+
 case object EmptyMetadata extends Metadata {
   override def toStr: String = "EmptyMetadata"
 }
 
-final case class UnionMetadata(datas: Set[Metadata]) extends Metadata {
+final class UnionMetadata private (datas: Set[Metadata]) extends Metadata {
   override def iterator: Iterator[Metadata] = datas.toIterator.flatMap(_.iterator)
   override def toStr: String = iterator mkString ", "
+}
+object UnionMetadata {
+  def apply(datas: Set[Metadata]): UnionMetadata = {
+    val noSpecific = datas.filterNot(_.isInstanceOf[SpecificMergeMetadata])
+    val specific = datas.filter(_.isInstanceOf[SpecificMergeMetadata]).map(_.asInstanceOf[SpecificMergeMetadata])
+    val specificMerged = specific.foldLeft(mutable.HashMultiMap.empty[Class[_], SpecificMergeMetadata])((m, data)=>m.addBinding(data.getClass, data))
+      .values.map(_ reduce (_ mergeSpecific _))
+    new UnionMetadata(noSpecific ++ specificMerged)
+  }
+
 }
