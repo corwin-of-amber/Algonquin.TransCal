@@ -183,6 +183,52 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     parsed.subtrees(2).subtrees(0).root shouldEqual Language.holeId
     parsed.subtrees(2).subtrees(1).root.literal shouldEqual 0
   }
+
+  test("Parse simple rewrite rules") {
+    val rules = Seq("~true = false",
+    "~false = true",
+    "id (?x) >> x",
+
+    "?x == ?x' = x' == x",
+    "?x == ?x' = x' ∈ { x }",
+    "elem(?x, (?x' :: ?xs')) = ((x == x') \\/ elem(x, xs'))",
+    "~(?x == ?y) = (x != y)",
+    "~(?x ∈ ?y) = (x ∉ y)",
+    "(?x ∉ ?xs) = { x } ‖ xs",
+    "~(?x \\/ ?y) = (~x /\\ ~y)",
+    "~(?x /\\ ?y) = (~x \\/ ~y)",
+    "((?x ‖ ?xs) /\\ (?y ‖ xs)) = ((x ∪ y) ‖ xs)",
+    "((?xs ‖ ?x) /\\ (xs ‖ ?y)) = (xs ‖ (x ∪ y))",
+    "?x ∈ (?xs ∪ ?ys) = (x ∈ xs) \\/ (x ∈ ys)",
+    "elem(?x, ?xs) = x ∈ elems(xs)",
+    "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
+
+    "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
+    "⟨⟩ ++ ?xs' >> id xs'",
+    "?xs' ++ ⟨⟩ >> id xs'",
+
+    "((?x < ?y) ||| true) >> (x ≤ y)",
+    "(?x ≤ ?y) ||> min(x, y) >> id x",
+    "(?x ≤ ?y) ||> min(y, x) >> id x",
+    //    min(x, y) =:> min(y,x),
+
+    "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
+
+    "(take ?xs 0) >> ⟨⟩",
+    "(take ?xs (len xs)) >> id xs",
+    "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
+
+    // merge range
+    "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
+    // exclude to include
+    "range_exclude(?x, ?y + 1) = range_include(x, y)",
+    // singleton range
+    "range_include(?x, x) = (x :: ⟨⟩)",
+    "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))")
+
+    val parser = new TranscalParser
+    rules.map(parser(_))
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())

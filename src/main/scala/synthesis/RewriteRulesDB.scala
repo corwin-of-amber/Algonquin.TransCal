@@ -22,9 +22,9 @@ trait RewriteRulesDB extends LazyLogging {
 
   protected def metadata: Metadata
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
-
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
+
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {
@@ -32,11 +32,11 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
 
   private val parser = new TranscalParser
 
+  override protected def metadata: Metadata = EmptyMetadata
+
   private val templates: Set[String] = Set(
     "~true = false",
     "~false = true",
-    "?x / false >> x",
-    "false / ?x >> x",
     "id (?x) >> x",
 
     "?x == ?x' = x' == x",
@@ -78,14 +78,18 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
   )
 
   override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
-
-  override protected def metadata: Metadata = EmptyMetadata
 }
 
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
 
   private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = AssociativeMetadata
+
+  case object AssociativeMetadata extends Metadata {
+    override def toStr: String = "AssociativeMetadata"
+  }
 
   override protected val ruleTemplates: Set[Term] = Set(
     "(?x ∧ (?y ∧ ?z)) = ((x ∧ y) ∧ z)",
@@ -94,20 +98,10 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
     "(?x + (?y + ?z)) = ((x + y) + z)"
   ).map(t => parser.apply(t))
 
-  override protected def metadata: Metadata = AssociativeMetadata
-
-  case object AssociativeMetadata extends Metadata {
-    override def toStr: String = "AssociativeMetadata"
-  }
-
 }
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
   override protected val vars: Set[Identifier] = Set(xs, exist).map(_.root)
-
-  override protected val ruleTemplates: Set[Term] = Set(
-    xs =:> ((xs take exist) ++ (xs drop exist))
-  )
 
   override protected def metadata: Metadata = ExistentialMetadata
 
@@ -115,4 +109,7 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "ExistentialMetadata"
   }
 
+  override protected val ruleTemplates: Set[Term] = Set(
+    xs =:> ((xs take exist) ++ (xs drop exist))
+  )
 }
