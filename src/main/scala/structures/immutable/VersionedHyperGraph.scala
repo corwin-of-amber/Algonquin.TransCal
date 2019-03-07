@@ -21,7 +21,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
 
   /* --- Public Methods --- */
 
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Int): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     hyperPattern.edges.flatMap(edgePattern => {
       wrapped.find(edgePattern)
         .filter(edge => VersionMetadata.getEdgeVersion(edge) > version)
@@ -70,6 +70,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
 }
 
 object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanion[VersionedHyperGraph] {
+  val STATIC_VERSION = 0L
+
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements
