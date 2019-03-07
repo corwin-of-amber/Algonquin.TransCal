@@ -86,7 +86,7 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
   }
 
   case class VersionMetadata(version: Long) extends SpecificMergeMetadata {
-    override protected def toStr: String = "VersionMetadata"
+    override protected def toStr: String = s"VersionMetadata($version)"
 
     override def mergeSpecific(other: SpecificMergeMetadata): SpecificMergeMetadata = other match {
       case metadata: VersionMetadata => if (metadata.version < version) other else this
