@@ -229,6 +229,30 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     val parser = new TranscalParser
     rules.map(parser(_))
   }
+
+  test("Parse identifier type") {
+    val parsed = (new TranscalParser).apply("_: int -> 1: int")
+    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+  }
+
+  test("Parse identifier polymorphic type") {
+    val parsed = (new TranscalParser).apply("_: list[int] -> 1: list[int]")
+    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+  }
+
+  test("Parse identifier map type") {
+    val parsed = (new TranscalParser).apply("_: int :> int -> 1: int")
+    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+  }
+
+  test("Parse identifier polymorphic map type") {
+    val parsed = (new TranscalParser).apply("_: list[int] :> list[int] -> 1: int")
+    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())
