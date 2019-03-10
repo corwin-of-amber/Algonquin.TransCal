@@ -231,27 +231,50 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse identifier type") {
-    val parsed = (new TranscalParser).apply("_: int -> 1: int")
+    val parsed = (new TranscalParser).apply("_: int -> x: int")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
+    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "int"
     parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
+    parsed.subtrees(1).subtrees(1).root.literal shouldEqual "int"
   }
 
   test("Parse identifier polymorphic type") {
-    val parsed = (new TranscalParser).apply("_: list[int] -> 1: list[int]")
+    val parsed = (new TranscalParser).apply("_: list<int> -> x: list<int>")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
+    parsed.subtrees(0).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "int"
     parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
+    parsed.subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
   }
 
   test("Parse identifier map type") {
-    val parsed = (new TranscalParser).apply("_: int :> int -> 1: int")
+    val parsed = (new TranscalParser).apply("_: int :> int -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
+    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "int"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "int"
+    parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
   test("Parse identifier polymorphic map type") {
-    val parsed = (new TranscalParser).apply("_: list[int] :> list[int] -> 1: int")
+    val parsed = (new TranscalParser).apply("_: list<int> :> list<int> -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root.literal shouldEqual "int"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
+    parsed.subtrees(1).root.literal shouldEqual "x"
   }
 }
 

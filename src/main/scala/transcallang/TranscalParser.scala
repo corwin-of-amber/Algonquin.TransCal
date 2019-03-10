@@ -80,17 +80,17 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   private def literal: Parser[Term] = accept("string literal", { case LITERAL(name) => TREE(Language.stringLiteralId, List(TREE(I(name)))) })
 
 
-  def polymorphicTypes: Parser[Term] = (typeLiteral ~ (SBO ~> types <~ SBC).?) ^^ {
-    case x ~ None => TREE(I(x))
-    case x ~ Some(polymorphic) => TREE(Language.innerTypeId, List(TREE(I(x)), polymorphic))
+  def polymorphicTypes: Parser[Term] = (typeLiteral ~ log((LT() ~> types <~ GT()).?)("polymorphic type")) ^^ {
+    case x ~ None => x
+    case x ~ Some(polymorphic) => TREE(Language.innerTypeId, List(x, polymorphic))
   }
 
-  def types: Parser[Term] = (polymorphicTypes ~ (MAPTYPE() ~> types).?) ^^ {
+  def types: Parser[Term] = (polymorphicTypes ~ log((MAPTYPE() ~> types).?)("getting map type def")) ^^ {
     case x ~ None => x
     case x ~ Some(recursive) => TREE(Language.mapTypeId, List(x, recursive))
   }
 
-  def identifier: Parser[Term] = (identifierLiteral ~ (COLON() ~> types).?) ^^ { i =>
+  def identifier: Parser[Term] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
     i match {
       case (x: Term) ~ None => x
       case (x: Term) ~ Some(z) => TREE(Language.typeBuilderId, List(x, z))
