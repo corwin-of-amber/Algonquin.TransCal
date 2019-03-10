@@ -255,12 +255,12 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse identifier polymorphic type of polymorphic") {
-    val parsed = (new TranscalParser).apply("_: list<list<int>> -> x")
+    val parsed = (new TranscalParser).apply("_: list<list<int> > -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
     parsed.subtrees(0).subtrees(1).root shouldEqual Language.innerTypeId
     parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
     parsed.subtrees(1).root.literal shouldEqual "x"
