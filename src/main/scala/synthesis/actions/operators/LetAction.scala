@@ -20,8 +20,6 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   */
 class LetAction(val term: Term) extends Action {
   // TODO: check what skolemize was
-  // TODO: Take care of splitting by adding inner lets
-
   // Beta reduction is done by adding rewrite rules and using flatten
 
   assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
@@ -70,7 +68,7 @@ class LetAction(val term: Term) extends Action {
         val newFunc = LetAction.functionNamer()
         val guarded = t.subtrees.tail
         val innerRules = guarded.flatMap(g => createRuleWithName(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
-        (innerRules, new Tree(newFunc, List(param)))
+        (innerRules, new Tree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param)))
       case _ =>
         val results = t.subtrees map (s => createRewrites(s))
         val subtrees = results.map(_._2)
