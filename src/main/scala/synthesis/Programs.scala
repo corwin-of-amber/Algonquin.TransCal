@@ -138,7 +138,7 @@ object Programs extends LazyLogging {
         val t = nodeCreator()
         Set(
           HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata),
-          HyperEdge(t, identToEdge(new Identifier(function.kind)), Seq(target), EmptyMetadata),
+          HyperEdge(t, identToEdge(Language.typeId), Seq(target), EmptyMetadata),
           HyperEdge(t, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
         )
       case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
