@@ -2,13 +2,13 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import transcallang.Language
-import structures.immutable.{VersionedHyperGraph, HyperGraphManyWithOrderToOne}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.{RewriteSearchState, Template}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 
@@ -124,10 +124,10 @@ object Programs extends LazyLogging {
     var target = nodeCreator()
 
     val newHyperEdges = function match {
-      case Language.splitId | Language.andCondBuilderId =>
-        val createdTarget = target
-        target = targetToSubedges.head._1
-        targetToSubedges.map { t => HyperEdge(t._1, identToEdge(Language.idId), List(createdTarget), NonConstructableMetadata) }
+      case Language.andCondBuilderId =>
+        val res = mergeEdgesRoots(targetToSubedges)
+        target = res.head._1
+        res.flatMap(_._2)
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
         target = targetToSubedges.last._1
@@ -214,15 +214,17 @@ object Programs extends LazyLogging {
     destructPatternsWithRoots(trees, mergeRoots).map(_._1)
   }
 
+  private def mergeEdgesRoots[Node, EdgeType](edges: Seq[(Node, Set[HyperEdge[Node, EdgeType]])]): Seq[(Node, Set[HyperEdge[Node, EdgeType]])] = {
+    val mainRoot = edges.head._1
+    val roots = edges.map(_._1).toSet
+    def switcher(templateTerm: Node) = if (roots.contains(templateTerm)) mainRoot else templateTerm
+    edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
+  }
+
   def destructPatternsWithRoots(trees: Seq[Term], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
     val edges = innerDestructPattern(trees)
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
-      val mainRoot = edges.head._1
-      val roots = edges.map(_._1).toSet
-
-      def switcher(templateTerm: TemplateTerm[HyperTermId]) = if (roots.contains(templateTerm)) mainRoot else templateTerm
-
-      if (mergeRoots) edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
+      if (mergeRoots) mergeEdgesRoots(edges)
       else edges
     }
     modifiedEdges.map(es => (HyperGraphManyWithOrderToOne(es._2.toSeq: _*), es._1))
@@ -261,7 +263,6 @@ object Programs extends LazyLogging {
         case "match" => termToString(x) + " match " + termToString(y)
         case _ => Seq(termToString(x), term.root.toString(), termToString(y)).mkString(" ")
       }
-      case list => "(" + (term.root.toString() :: list.map(termToString)).mkString(" ") + ")"
     }
   }
 }
