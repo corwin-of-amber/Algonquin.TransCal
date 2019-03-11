@@ -3,7 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import syntax.AstSugar.Uid
 import syntax.Identifier
 import synthesis.rewrites.RewriteRule._
@@ -33,7 +33,7 @@ class RewriteRule(premise: HyperPattern,
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val premiseReferencesMaps = compactGraph.findSubgraph[Int](subGraphPremise)
+    val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, VersionedHyperGraph.STATIC_VERSION)
 
     val nextHyperId: () => HyperTermId = {
       val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator

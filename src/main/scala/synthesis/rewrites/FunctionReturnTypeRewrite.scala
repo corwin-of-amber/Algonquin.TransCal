@@ -1,12 +1,12 @@
 package synthesis.rewrites
 
-import transcallang.Language
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VocabularyHyperGraph}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import synthesis.rewrites.rewrites._
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier}
+import transcallang.Language
 
 import scala.annotation.tailrec
 
@@ -46,12 +46,12 @@ object FunctionReturnTypeRewrite extends Operator[RewriteSearchState] {
 
   override def apply(state: RewriteSearchState): RewriteSearchState = {
     val newFuncEdges = for (
-      (idMap, identMap) <- state.graph.findSubgraph[Int](funcTypeGraph);
+      (idMap, identMap) <- state.graph.findSubgraphVersioned[Int](funcTypeGraph, VersionedHyperGraph.STATIC_VERSION);
       functionEdges = state.graph.findEdges(identMap(functionIdentifierHole.id)).filter(_.sources.nonEmpty);
       numberOfArguments = functionEdges.map(_.sources.size).max;
       functionEdge <- functionEdges;
       (edges, last) = createMapTypeEdge(Explicit(idMap(functionTypeIdHole.id)), Stream.from(1 + functionTypeIdHole.id).toIterator.next, numberOfArguments - 2, Set.empty);
-      (typeIdMap, _) <- state.graph.findSubgraph[Int](VocabularyHyperGraph(edges.toSeq:_ *))
+      (typeIdMap, _) <- state.graph.findSubgraphVersioned[Int](VocabularyHyperGraph(edges.toSeq:_ *), VersionedHyperGraph.STATIC_VERSION)
     ) yield {
       HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(functionEdge.target, typeIdMap(last.id)), ApplyTypeMetadata)
     }
