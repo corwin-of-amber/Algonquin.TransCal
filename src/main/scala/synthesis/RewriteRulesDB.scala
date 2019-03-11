@@ -8,7 +8,7 @@ import structures.{EmptyMetadata, Metadata}
 import syntax.AstSugar._
 import syntax.Identifier
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FlattenRewrite, FunctionReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 
 /**
@@ -24,7 +24,7 @@ trait RewriteRulesDB extends LazyLogging {
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite, FunctionReturnTypeRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {
@@ -94,7 +94,8 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[Term] = Set(
     "(?x ∧ (?y ∧ ?z)) = ((x ∧ y) ∧ z)",
     "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
-    "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
+    "(?x: 'a :: ?xs: list<'a>) ++ ?xs' = (x:'a :: (xs: list<'a> ++ xs': list<'a>))",
+//    "(?x: 'a :: ?xs: list<'a>) ++ ?xs': list<'a> = (x:'a :: (xs: list<'a> ++ xs': list<'a>))",
     "(?x + (?y + ?z)) = ((x + y) + z)"
   ).map(t => parser.apply(t))
 

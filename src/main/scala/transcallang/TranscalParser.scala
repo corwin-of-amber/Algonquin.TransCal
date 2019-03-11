@@ -93,7 +93,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   def identifier: Parser[Term] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
     i match {
       case (x: Term) ~ None => x
-      case (x: Term) ~ Some(z) => TREE(Language.typeId, List(x, z))
+      case (x: Term) ~ Some(z) => TREE(Language.typeBuilderId, List(x, z))
     }
   }
 
