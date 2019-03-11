@@ -33,7 +33,7 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
     val funcResults = state.graph.findSubgraph[Int](applyFuncGraph)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults;
-      outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.head == idMap(1));
+      outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.nonEmpty && e.sources.head == idMap(1));
       inner <- state.graph.filter(e => e.target == idMap(1) && e.edgeType == identMap(2))) yield {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0), identMap(2), inner.sources ++ outer.sources.drop(1), outer.metadata.merge(inner.metadata).merge(FlattenMetadata))
     }
