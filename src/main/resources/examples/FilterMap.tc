@@ -10,12 +10,12 @@ l = x :: xs
 p (f x) = ⊤
 
 filter _ _  -> (1)    [only assoc]
-(1) -> filter _ (_ :: _)
 (1) -> _ :: _
 
 []
 <-
 p (f x) = ⊥
-
 filter _ _ -> (1)
+(1) -> filter _ (map _ xs)
+
 (1) -> ?f2 p f xs
