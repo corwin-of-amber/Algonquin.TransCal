@@ -205,52 +205,96 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   def statement: Parser[Term] = (statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - ${Programs.termToString(t)} $t")
 
-    def applyClojure(env: Seq[Term], t: Term): Term = {
-      assert(env.forall(_.subtrees.isEmpty))
+    def applyClojure(env: Seq[Identifier], t: Term): Term = {
       val replacemnetVarPrefix = "?autovar"
+      def getReplacmentParams(newAutovars: List[Identifier]): (List[(Identifier, Identifier)], List[(Identifier, Identifier)]) = {
+        val nextVar =
+          if ((env ++ newAutovars).isEmpty) 0
+          else (env ++ newAutovars).map(_.literal.toString match {
+            case a: String if a.startsWith(replacemnetVarPrefix) => a.drop(replacemnetVarPrefix.length).toInt
+            case _ => -1
+          }).max + 1
+
+        val toAddParamsDefinitions: List[(Identifier, Identifier)] = t.subtrees.tail.flatMap(_.subtrees(1).terminals).zip(Stream.from(nextVar)).map(i =>
+          (new Identifier("?" + i._1.literal.toString, i._1.kind, i._1.ns),
+            new Identifier(replacemnetVarPrefix + i._2, i._1.kind, i._1.ns))
+        ).filter(env contains _._1)
+
+        val toAddParamsUses: List[(Identifier, Identifier)] = toAddParamsDefinitions.map(i =>
+          (new Identifier(i._1.literal.toString.drop(1), i._1.kind, i._1.ns),
+            new Identifier(i._2.literal.toString.drop(1), i._2.kind, i._2.ns)))
+
+        (toAddParamsDefinitions, toAddParamsUses)
+      }
+
+      def replaceIdentifiers(term: Term, paramsUses: Map[Identifier, Identifier]): Term = {
+        if (paramsUses.contains(term.root))
+          if (term.isLeaf) TREE(paramsUses(term.root))
+          else TREE(Language.applyId, TREE(paramsUses(term.root)) +: term.subtrees.map(replaceIdentifiers(_, paramsUses)))
+        else TREE(term.root, term.subtrees.map(replaceIdentifiers(_, paramsUses)))
+      }
+
       t.root match {
         case Language.letId | Language.directedLetId =>
-          val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?"))
+          val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?"))
           assert(env.intersect(newParams).isEmpty)
           TREE(t.root, List(t.subtrees(0), applyClojure(newParams ++ env, t.subtrees(1))))
+        case Language.matchId =>
+          // Renaming params to add to clojure
+          val newAutovars = t.subtrees.tail.flatMap(_.subtrees.head.terminals).filter(_.literal.toString.startsWith("?"))
+
+          val (toAddParamsDefinitions, toAddParamsUses) = getReplacmentParams(newAutovars)
+
+          // Updating AST to include clojure
+          val matchCallParams = {
+            if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
+            else t.subtrees(0).root match {
+              case Language.tupleId => TREE(Language.tupleId, toAddParamsUses.map(i => TREE(i._1)) ++ t.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, toAddParamsUses.map(i => TREE(i._1)) :+ t.subtrees(0))
+            }
+          }
+
+          val newGuarded = t.subtrees.tail.map(st => {
+            // root should always be guarded
+            val newMatchedTree = st.subtrees(0).root match {
+              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) ++ st.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ st.subtrees(0))
+            }
+
+            val newParams = st.subtrees(0).terminals.filter(_.literal.toString.startsWith("?"))
+            assert(env.intersect(newParams).isEmpty)
+
+            val useMap = toAddParamsUses.toMap
+            TREE(st.root, List(newMatchedTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(st.subtrees(1), useMap))))
+          })
+
+          TREE(
+            Language.matchId,
+            matchCallParams +: newGuarded
+          )
         case Language.lambdaId =>
-          val newParams = t.subtrees(0).leaves.filter(_.root.literal.toString.startsWith("?")).toList
+          val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?")).toList
           assert(env.intersect(newParams).isEmpty)
 
-          // Renaming params to add to clojure
-          val nextVar =
-            if ((env ++ newParams).isEmpty) 0
-            else (env ++ newParams).map(_.root.literal.toString match {
-              case a: String if a.startsWith(replacemnetVarPrefix) => a.drop(replacemnetVarPrefix.length).toInt
-              case _ => -1
-            }).max + 1
-
-          val toAddParamsDefinitions: List[(Term, Term)] = t.subtrees(1).leaves.zip(Stream.from(nextVar)).map(i =>
-            (new Identifier("?" + i._1.root.literal.toString, i._1.root.kind, i._1.root.ns),
-              new Identifier(replacemnetVarPrefix + i._2, i._1.root.kind, i._1.root.ns))
-          ).map(i => (TREE(i._1), TREE(i._2))).filter(env contains _._1).toList
-
-          val toAddParamsUses: List[(Term, Term)] = toAddParamsDefinitions.map(i =>
-            (new Identifier(i._1.root.literal.toString.drop(1), i._1.root.kind, i._1.root.ns),
-              new Identifier(i._2.root.literal.toString.drop(1), i._2.root.kind, i._2.root.ns))
-          ).map(i => (TREE(i._1), TREE(i._2)))
+          val (toAddParamsDefinitions, toAddParamsUses) = getReplacmentParams(newParams)
 
           // Updating AST to include clojure
           val paramsTree = {
             if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(_._2) ++ t.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(_._2) :+ t.subtrees(0))
+              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) ++ t.subtrees(0).subtrees)
+              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ t.subtrees(0))
             }
           }
 
+          val useMap = toAddParamsUses.toMap
           val updatedLambda = TREE(
             Language.lambdaId,
-            List(paramsTree, applyClojure(newParams ++ env, t.subtrees(1).replaceDescendants(toAddParamsUses)))
+            List(paramsTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(t.subtrees(1), useMap)))
           )
 
           if (toAddParamsDefinitions.isEmpty) updatedLambda
-          else TREE(Language.applyId, updatedLambda +: toAddParamsUses.map(i => i._1))
+          else TREE(Language.applyId, updatedLambda +: toAddParamsUses.map(i => TREE(i._1)))
         case i: Identifier => TREE(i, t.subtrees map (s => applyClojure(env, s)))
       }
     }

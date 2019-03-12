@@ -22,6 +22,8 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
 
   private val seperator = "---------------------------"
 
+  private val stateStack = new mutable.Stack[ActionSearchState]
+  private val savedStates = new mutable.MutableList[ActionSearchState]
   /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
@@ -92,13 +94,20 @@ class UserAction(in: Iterator[Term], out: PrintStream) extends Action {
           state
         }
       case Language.commandId =>
-        // TODO: implement operators
-        // term.subtrees(0) match {
-        // operator →: push stack
-        // operator ←: pop stack
-        // operator □: save state ?!
-        // }
-        state
+        logger.info(s"Received command $term")
+         term.subtrees(0).root.literal match {
+           case "[]" =>
+             logger.info("Saving state")
+             savedStates += state
+             state
+           case "<-" =>
+             logger.info("Adding state to stack")
+             stateStack.push(state)
+             state
+           case "->" =>
+             logger.info("Popping state from stack")
+             stateStack.pop()
+         }
     }
 
     val output: String = newState.toString

@@ -30,7 +30,7 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
     // Process result
     val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph))
     if (rewriteResult.nonEmpty) {
-      val root = state.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
+      val root = newPrograms.hyperGraph.edges.find(_.edgeType == anchor).get.target
       val terms = newPrograms.reconstructWithPattern(root, goal, Some(goalRoot))
       if (terms.hasNext) logger.info(s"Elaborated term is '${Programs.termToString(terms.next())}'")
       else logger.info("Found term not constructable (probably a symbol)")

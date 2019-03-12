@@ -1,7 +1,7 @@
-f = len ( ?xs )   [++]
+f ?l = len ( l )   [++]
 
 len ?ys = len (take ys ?i ++ drop ys i)
 
-f -> 1
+f l -> 1
 1 -> len ( _ ++ _ )
 1 -> len ( _ ++ drop ( _ ++ _ ) _ )
