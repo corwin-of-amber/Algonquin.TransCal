@@ -1,5 +1,5 @@
-concat: list<list<'a> > :> list<'a> ?l: list<list<'a> > = ⟨⟩ ↦ ⟨⟩
-concat: list<list<'a> > :> list<'a> ?l: list<list<'a> > = (?xs: list<'a> :: ?xss: list<list<'a> >) ↦ xs ++ concat xss   [++]
+concat ?l = ⟨⟩ ↦ ⟨⟩
+concat ?l = (?xs :: ?xss) ↦ xs ++ concat xss   [++]
 
 _ ++ _ ->  1
 1 -> ?concat' xs xss

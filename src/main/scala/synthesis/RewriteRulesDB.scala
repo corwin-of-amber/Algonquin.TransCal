@@ -94,8 +94,7 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[Term] = Set(
     "(?x ∧ (?y ∧ ?z)) = ((x ∧ y) ∧ z)",
     "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
-    "(?x: 'a :: ?xs: list<'a>) ++ ?xs' = (x:'a :: (xs: list<'a> ++ xs': list<'a>))",
-//    "(?x: 'a :: ?xs: list<'a>) ++ ?xs': list<'a> = (x:'a :: (xs: list<'a> ++ xs': list<'a>))",
+    "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
     "(?x + (?y + ?z)) = ((x + y) + z)"
   ).map(t => parser.apply(t))
 
