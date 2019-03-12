@@ -214,7 +214,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
             case _ => -1
           }).max + 1
 
-        val toAddParamsDefinitions: List[(Identifier, Identifier)] = t.subtrees.tail.flatMap(_.subtrees(1).terminals).zip(Stream.from(nextVar)).map(i =>
+        val toAddParamsDefinitions: List[(Identifier, Identifier)] = t.subtrees.tail.flatMap(_.terminals).zip(Stream.from(nextVar)).map(i =>
           (new Identifier("?" + i._1.literal.toString, i._1.kind, i._1.ns),
             new Identifier(replacemnetVarPrefix + i._2, i._1.kind, i._1.ns))
         ).filter(env contains _._1)
@@ -257,7 +257,9 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
             // root should always be guarded
             val newMatchedTree = st.subtrees(0).root match {
               case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) ++ st.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ st.subtrees(0))
+              case i: Identifier =>
+                if (toAddParamsDefinitions.nonEmpty) TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ st.subtrees(0))
+                else st.subtrees(0)
             }
 
             val newParams = st.subtrees(0).terminals.filter(_.literal.toString.startsWith("?"))
