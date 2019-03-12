@@ -257,15 +257,21 @@ object Programs extends LazyLogging {
   }
 
   def termToString(term: Term): String = {
-    val allBuiltinBool = Language.builtinAndOps ++ Language.builtinOrOps ++ Language.builtinBooleanOps ++ Language.builtinCondBuilders ++ Language.builtinDefinitions ++ Language.builtinHighLevel ++ Language.builtinSetArithOps ++ Language.builtinSetBuildingOps ++ Language.builtinIFFOps :+ Language.tacticId
-    term.root match {
-      case Language.annotationId => termToString(term.subtrees.head)
-      case Language.matchId => termToString(term.subtrees(0)) + " match " + term.subtrees.tail.map(termToString).mkString(" / ")
-      case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(termToString(term.subtrees(0)), term.root.toString(), termToString(term.subtrees(1))).mkString(" ")
-      case _ => term.subtrees match {
-        case Nil => term.root.toString()
-        case list => term.root.toString() + "(" + list.map(termToString).mkString(", ") + ")"
+    val lambdaDefinitions = term.nodes.map(n => n.root.kind + " name:" + n.root.literal.toString).filter(_.startsWith("Lambda Definition")).toSet
+
+    def helper(term: Term): String = {
+      val allBuiltinBool = Language.builtinAndOps ++ Language.builtinOrOps ++ Language.builtinBooleanOps ++ Language.builtinCondBuilders ++ Language.builtinDefinitions ++ Language.builtinHighLevel ++ Language.builtinSetArithOps ++ Language.builtinSetBuildingOps ++ Language.builtinIFFOps :+ Language.tacticId
+      term.root match {
+        case Language.annotationId => helper(term.subtrees.head)
+        case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")
+        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString(), helper(term.subtrees(1))).mkString(" ")
+        case _ => term.subtrees match {
+          case Nil => term.root.toString()
+          case list => term.root.toString() + "(" + list.map(helper).mkString(", ") + ")"
+        }
       }
     }
+
+    (lambdaDefinitions + helper(term)).mkString("\n")
   }
 }

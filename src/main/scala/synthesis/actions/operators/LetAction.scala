@@ -45,13 +45,10 @@ class LetAction(val term: Term) extends Action {
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
-  private def createRewrites(t: Term): (Set[RewriteRule], Term) = {
+  private def createRewrites(t: Term, optName: Option[Identifier] = None): (Set[RewriteRule], Term) = {
     t.root match {
-      case Language.lambdaId =>
-        val newFunc = LetAction.functionNamer()
-        createRuleWithName(t.subtrees(0), t.subtrees(1), newFunc)
       case Language.letId | Language.directedLetId =>
-        val results = t.subtrees map (s => createRewrites(s))
+        val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
           val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2))
           (temp(0), temp(1))
@@ -63,9 +60,12 @@ class LetAction(val term: Term) extends Action {
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }
         (newRules ++ results.flatMap(_._1), t)
+      case Language.lambdaId =>
+        val newFunc = optName.getOrElse(LetAction.functionNamer(t))
+        createRuleWithName(t.subtrees(0), t.subtrees(1), newFunc)
       case Language.matchId =>
         val param = t.subtrees.head
-        val newFunc = LetAction.functionNamer()
+        val newFunc = optName.getOrElse(LetAction.functionNamer(t))
         val guarded = t.subtrees.tail
         val innerRules = guarded.flatMap(g => createRuleWithName(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
         (innerRules, new Tree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param)))
@@ -91,9 +91,9 @@ class LetAction(val term: Term) extends Action {
 }
 
 object LetAction {
-  protected val functionNamer: () => Identifier = {
-    val creator = Stream.from(transcallang.Language.arity.size).iterator
-    () => I(s"f${creator.next()}")
+  private val creator = Stream.from(transcallang.Language.arity.size).iterator
+  protected def functionNamer(term: Term): Identifier = {
+    I(s"f${creator.next()}", k="Lambda Definition: " + Programs.termToString(term))
   }
 
   case class LetMetadata(funcName: Identifier) extends Metadata {
