@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import syntax.AstSugar._
 import syntax.{Identifier, Tree}
 import Language._
+import synthesis.Programs
 import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
 import scala.util.parsing.combinator.Parsers
@@ -202,7 +203,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Term] with Ter
   }
 
   def statement: Parser[Term] = (statementDefinition | statementCommand) ^^ { t =>
-    logger.debug(s"statement - ${t}")
+    logger.debug(s"statement - ${Programs.termToString(t)} $t")
 
     def applyClojure(env: Seq[Identifier], t: Term): Term = {
       val replacemnetVarPrefix = "?autovar"

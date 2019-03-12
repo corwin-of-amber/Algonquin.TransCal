@@ -1,6 +1,7 @@
-concat ?l = l match ((⟨⟩ => ⟨⟩) / ((?xs :: ?xss) => xs ++ concat xss))   [++]
+concat ?l = ⟨⟩ ↦ ⟨⟩
+concat ?l = (?xs :: ?xss) ↦ xs ++ concat xss   [++]
 
 _ ++ _ ->  1
 1 -> ?concat' xs xss
-xs = x' :: xs'
+xs = x': 'a :: xs': list<'a>
 1 -> _ :: _
