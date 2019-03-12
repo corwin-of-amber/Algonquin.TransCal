@@ -4,7 +4,7 @@ import structures.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import synthesis.rewrites.rewrites._
-import synthesis.search.Operator
+import synthesis.search.{Operator, VersionedOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Language
 
@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 
 /** This rewrite rule finds functions return types by looking on their types.
   */
-object FunctionReturnTypeRewrite extends Operator[RewriteSearchState] {
+object FunctionReturnTypeRewrite extends VersionedOperator[RewriteSearchState] {
 
   object ApplyTypeMetadata extends Metadata {
     override protected def toStr: String = "ApplyTypeMetadata"
@@ -44,18 +44,19 @@ object FunctionReturnTypeRewrite extends Operator[RewriteSearchState] {
 
   private val funcTypeGraph = HyperGraphManyWithOrderToOne(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge)
 
-  override def apply(state: RewriteSearchState): RewriteSearchState = {
+  override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     val newFuncEdges = for (
-      (idMap, identMap) <- state.graph.findSubgraphVersioned[Int](funcTypeGraph, VersionedHyperGraph.STATIC_VERSION);
+      (idMap, identMap) <- state.graph.findSubgraphVersioned[Int](funcTypeGraph, version);
       functionEdges = state.graph.findEdges(identMap(functionIdentifierHole.id)).filter(_.sources.nonEmpty);
       numberOfArguments = functionEdges.map(_.sources.size).max;
       functionEdge <- functionEdges;
       (edges, last) = createMapTypeEdge(Explicit(idMap(functionTypeIdHole.id)), Stream.from(1 + functionTypeIdHole.id).toIterator.next, numberOfArguments - 2, Set.empty);
-      (typeIdMap, _) <- state.graph.findSubgraphVersioned[Int](VocabularyHyperGraph(edges.toSeq:_ *), VersionedHyperGraph.STATIC_VERSION)
+      (typeIdMap, _) <- state.graph.findSubgraphVersioned[Int](VocabularyHyperGraph(edges.toSeq:_ *), version)
     ) yield {
       HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(functionEdge.target, typeIdMap(last.id)), ApplyTypeMetadata)
     }
 
-    new RewriteSearchState(state.graph.addEdges(newFuncEdges))
+    val newGraph = state.graph.addEdges(newFuncEdges)
+    (new RewriteSearchState(newGraph), newGraph.version)
   }
 }

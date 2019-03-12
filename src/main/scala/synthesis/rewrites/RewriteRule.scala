@@ -8,7 +8,7 @@ import syntax.AstSugar.Uid
 import syntax.Identifier
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
-import synthesis.search.Operator
+import synthesis.search.{Operator, VersionedOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
 /** Rewrites a program to a new program.
@@ -19,7 +19,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
 class RewriteRule(premise: HyperPattern,
                   conclusion: HyperPattern,
                   metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata)
-  extends Operator[RewriteSearchState] with LazyLogging {
+  extends VersionedOperator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule($premise, $conclusion)"
@@ -27,13 +27,13 @@ class RewriteRule(premise: HyperPattern,
   override def hashCode: Int = toString.hashCode
 
   // Add metadata creator
-  override def apply(state: RewriteSearchState): RewriteSearchState = {
+  override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
     logger.trace(s"Running rewrite rule $this")
     val compactGraph = state.graph
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
-    val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, VersionedHyperGraph.STATIC_VERSION)
+    val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
     val nextHyperId: () => HyperTermId = {
       val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
@@ -58,7 +58,7 @@ class RewriteRule(premise: HyperPattern,
       logger.debug(s"Used RewriteRule $this")
     }
 
-    new RewriteSearchState(graph)
+    (new RewriteSearchState(graph), graph.version)
   }
 
   /* --- Privates --- */

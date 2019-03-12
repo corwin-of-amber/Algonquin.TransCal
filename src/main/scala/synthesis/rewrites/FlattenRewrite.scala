@@ -4,7 +4,7 @@ import transcallang.Language
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import synthesis.rewrites.rewrites._
-import synthesis.search.Operator
+import synthesis.search.{Operator, VersionedOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
 
@@ -12,7 +12,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * under the lower apply. We should flatten the applies to a single one. Secondly, if we have an apply which has a
   * first parameter that isn't an apply, the function that will be used, so we should flatten it into a single function.
   */
-object FlattenRewrite extends Operator[RewriteSearchState] {
+object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
   object FlattenMetadata extends Metadata {
     override protected def toStr: String = "FlattenMetadata"
   }
@@ -25,12 +25,12 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
   private val applyFuncGraph: HyperGraphManyWithOrderToOne.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     VocabularyHyperGraph(Seq(outerApply, innerFunc): _*)
 
-  override def apply(state: RewriteSearchState): RewriteSearchState = {
+  override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     // TODO: may need to do this for a few times so should find an efficient way
     // TODO: Don't use filter if it is O(n)
 
     // Change apply to function
-    val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, VersionedHyperGraph.STATIC_VERSION)
+    val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults;
       outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.nonEmpty && e.sources.head == idMap(1));
@@ -38,6 +38,7 @@ object FlattenRewrite extends Operator[RewriteSearchState] {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0), identMap(2), inner.sources ++ outer.sources.drop(1), outer.metadata.merge(inner.metadata).merge(FlattenMetadata))
     }
 
-    new RewriteSearchState(state.graph.addEdges(newFuncEdges))
+    val newGraph = state.graph.addEdges(newFuncEdges)
+    (new RewriteSearchState(newGraph), newGraph.version)
   }
 }
