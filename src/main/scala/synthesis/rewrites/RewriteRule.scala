@@ -16,15 +16,13 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(premise: HyperPattern,
+case class RewriteRule(premise: HyperPattern,
                   conclusion: HyperPattern,
                   metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata)
   extends VersionedOperator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule($premise, $conclusion)"
-
-  override def hashCode: Int = toString.hashCode
 
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {

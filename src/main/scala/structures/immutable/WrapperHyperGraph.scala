@@ -28,6 +28,8 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
+
+  override def hashCode(): Int = toString.hashCode()
 }
 
 
