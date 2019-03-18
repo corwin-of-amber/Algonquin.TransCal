@@ -254,4 +254,106 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     graph.nodes should not contain HyperTermId(100)
     graph.nodes should not contain HyperTermId(101)
   }
+
+  property("If graphs are equal then hash is equal") {
+    // Not necessarily true because of compaction
+    check(forAll { es: Set[HyperEdge[Int, Int]] => HyperGraphManyWithOrderToOne(es.toSeq: _*).hashCode == HyperGraphManyWithOrderToOne(es.toSeq: _*).hashCode() })
+  }
+
+  property("Find subgraph with and without merge returns same maps") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.nonEmpty ==> {
+        val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+        val asHoles: Map[Int, Int] = {
+          val creator = Stream.from(0).toIterator
+          subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
+        }
+        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+          val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
+          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+        }
+        val graph = HyperGraphManyWithOrderToOne(es.toSeq: _*)
+        val maps = graph.findSubgraph[Int](pattern)
+        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        holes.forall(h => {
+          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
+            val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+            updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
+          })
+        })
+      }
+    })
+  }
+
+  property("Find Compact subgraph with and without merge returns same maps") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.nonEmpty ==> {
+        val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+        val asHoles: Map[Int, Int] = {
+          val creator = Stream.from(0).toIterator
+          subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
+        }
+        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+          val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
+          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+        }
+        val graph = CompactHyperGraph(es.toSeq: _*)
+        val maps = graph.findSubgraph[Int](pattern)
+        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        holes.forall(h => {
+          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
+            val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+            updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
+          })
+        })
+      }
+    })
+  }
+
+  property("Find Versioned subgraph with and without merge returns same maps") {
+    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+      es.nonEmpty ==> {
+        val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+        val asHoles: Map[Int, Int] = {
+          val creator = Stream.from(0).toIterator
+          subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
+        }
+        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+          val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
+          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+        }
+        val graph = VersionedHyperGraph(es.toSeq: _*)
+        val maps = graph.findSubgraph[Int](pattern)
+        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        holes.forall(h => {
+          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
+            val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+            updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
+          })
+        })
+      }
+    })
+  }
+
+  property("Specific - Find Versioned subgraph with and without merge returns same maps") {
+    val es = Set(HyperEdge(40,1,Vector(),EmptyMetadata), HyperEdge(14,1,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(4,12,Vector(17, 11, 29, 10, 33),EmptyMetadata), HyperEdge(14,1,Vector(),EmptyMetadata))
+    val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+    val asHoles: Map[Int, Int] = {
+      val creator = Stream.from(0).toIterator
+      subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
+    }
+    val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+      val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
+      HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+    }
+    val graph = VersionedHyperGraph(es.toSeq: _*)
+    val maps = graph.findSubgraph[Int](pattern)
+
+    check(asHoles.forall(vh => {
+      maps.groupBy(_._1(vh._2)).forall(vAndMaps => {
+        val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
+        updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
+      })
+    }))
+  }
 }

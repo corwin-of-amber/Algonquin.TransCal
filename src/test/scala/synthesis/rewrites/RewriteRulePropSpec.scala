@@ -30,6 +30,11 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("If rewrites are equal then hash is equal") {
+    // Not necessarily true because of compaction
+    check(forAll { rewriteRule: RewriteRule => rewriteRule.hashCode == rewriteRule.copy().hashCode() })
+  }
+
   // TODO: We need to predict merges for this to work
   //  property("Every state adds edges") {
   //    check(forAll { (conditions: HyperPattern, destinations: HyperPattern) =>
@@ -70,21 +75,21 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
       // Cant have illegal conditions or conditions containing destination
       (conditions.edges.forall(e1 => (conditions.edges.toSeq :+ destinationEdge).forall(e2 => e1 == e2 || (e1.edgeType != e2.edgeType || e1.sources != e2.sources))) &&
         !HyperGraphManyWithOrderToOneLike.fillPattern[HyperTermId, HyperTermIdentifier, Int, HyperPattern](conditions, (Map.empty, Map.empty), () => HyperTermId(-1)).contains(destinationEdge)) ==> {
-          val destination = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(destinationEdge.target), ExplicitTerm(destinationEdge.edgeType), destinationEdge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)
-          // At most one
-          val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
-          val filledConditions = HyperGraphManyWithOrderToOneLike.fillPattern[HyperTermId, HyperTermIdentifier, Int, HyperPattern](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
-          val filledDestination = HyperGraphManyWithOrderToOne(destinationEdge)
+        val destination = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(destinationEdge.target), ExplicitTerm(destinationEdge.edgeType), destinationEdge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)
+        // At most one
+        val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
+        val filledConditions = HyperGraphManyWithOrderToOneLike.fillPattern[HyperTermId, HyperTermIdentifier, Int, HyperPattern](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
+        val filledDestination = HyperGraphManyWithOrderToOne(destinationEdge)
 
-          val rewriteRule = new RewriteRule(conditions, HyperGraphManyWithOrderToOne(destination), (a, b) => EmptyMetadata)
-          val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
-          val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
-          val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
-          val newState = rewriteRule.apply(state)
+        val rewriteRule = new RewriteRule(conditions, HyperGraphManyWithOrderToOne(destination), (a, b) => EmptyMetadata)
+        val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
+        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
+        val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
+        val newState = rewriteRule.apply(state)
 
-          if (willMerge.isEmpty) (newState.graph.edges -- state.graph.edges).size == 1
-          else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
-        }
+        if (willMerge.isEmpty) (newState.graph.edges -- state.graph.edges).size == 1
+        else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
+      }
     })
   }
 }
