@@ -1,0 +1,5 @@
+map' f acc (?x :: ?xs) = map' f (acc ++ (f(x) :: nil)) xs
+own acc = T
+own (f(x) :: nil) = T
+
+timecomplexity map' -> (1)

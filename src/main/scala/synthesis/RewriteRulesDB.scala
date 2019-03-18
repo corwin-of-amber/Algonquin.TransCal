@@ -1,7 +1,6 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.TranscalParser
 import relentless.BasicSignature._
 import relentless.rewriting.RewriteRule._
 import structures.{EmptyMetadata, Metadata}
@@ -10,6 +9,7 @@ import syntax.Identifier
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, FunctionReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
+import transcallang.TranscalParser
 
 /**
   * @author tomer
@@ -96,6 +96,23 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
     "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
     "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
     "(?x + (?y + ?z)) = ((x + y) + z)"
+  ).map(t => parser.apply(t))
+
+}
+
+object OwnershipRewriteRulesDB extends RewriteRulesDB {
+  override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
+
+  private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = OwnershipMetadata
+
+  case object OwnershipMetadata extends Metadata {
+    override def toStr: String = "OwnershipMetadata"
+  }
+
+  override protected val ruleTemplates: Set[Term] = Set(
+    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z"
   ).map(t => parser.apply(t))
 
 }
