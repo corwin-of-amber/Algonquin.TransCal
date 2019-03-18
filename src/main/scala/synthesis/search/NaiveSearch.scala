@@ -22,7 +22,7 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
       state = op match {
         case versionedOp: VersionedOperator[S] =>
           val version = operatorVer.getOrElse(versionedOp, 0l)
-          val (s, newVer) = versionedOp.apply(state, version)
+          val (s, newVer) = versionedOp.apply(state, 0)
           operatorVer.put(versionedOp, newVer)
           s
         case _ =>

@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.{Explicit, Ignored, Repetition}
+import structures.{Explicit, Hole, Ignored, Repetition}
 
 import scala.util.Random
 
@@ -85,6 +85,14 @@ class TriePropSpec extends PropSpec with Checkers {
     check(forAll { words: Set[Seq[Int]] =>
       words.intersect(words.foldLeft(Trie.empty[Int])(_ + _).words).size == words.size
     })
+  }
+
+  property("Should find correct explicit in big graph") {
+    check(forAll { trie: Trie[Int] => (trie.size > 200 && trie.words.exists(_.length > 3)) ==> {
+      trie.words.filter(_.length > 3).forall(w =>
+        trie.findRegex(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
+          .forall(_(3) == w(3)))
+    }})
   }
 
   property("add than remove than add") {
