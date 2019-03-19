@@ -30,10 +30,10 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("If rewrites are equal then hash is equal") {
-    // Not necessarily true because of compaction
-    check(forAll { rewriteRule: RewriteRule => rewriteRule.hashCode == rewriteRule.copy().hashCode() })
-  }
+//  property("If rewrites are equal then hash is equal") {
+//    // Not necessarily true because of compaction
+//    check(forAll { rewriteRule: RewriteRule => rewriteRule.hashCode == rewriteRule.copy().hashCode() })
+//  }
 
   // TODO: We need to predict merges for this to work
   //  property("Every state adds edges") {
