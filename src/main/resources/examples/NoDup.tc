@@ -1,5 +1,4 @@
-nodup ⟨⟩ = true
-nodup (?x :: ?xs) = (~(elem x xs) /\ nodup xs)    [++]
+nodup ?l = l match ((⟨⟩ => true) / ((?x :: ?xs) => ~(elem ?x ?xs) /\ nodup ?xs))   [++]
 
 /*
 nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
@@ -14,8 +13,18 @@ _ /\ _ -> (1)                              [only assoc]
   GeneralizeAction - Generalized to ={nodup'{?autovar0, ?autovar1}, ∧{¬{‖{?autovar0, elems{?autovar1}}}, nodup{?autovar1}}}*/
 
 xs = x' :: xs'
+
 (1) -> _ /\ _ /\ _ /\ _
-(1) -> (_ ∉ {x'}) /\ nodup' _ xs'    [lim(5)]
+
+// (1) -> (_ ∉ {x'}) /\ (_ ‖ _) /\ nodup xs' [lim(2)]
+
+// (1) -> (_ ∉ {x}) /\ (_ ∉ _) /\ (_ ∉ _) /\ _
+
+// (1) -> (_ ∉ {x}) /\ (_ ‖ _) /\ (_ ‖ _) /\ _
+
+(1) -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
+
+(1) -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
 
 /*
 x ∉ _ /\ x' ∉ _ -> 2
