@@ -26,10 +26,6 @@ class RewriteRule(val premise: HyperPattern,
 
   override def hashCode(): Int = toString.hashCode
 
-//  override def clone(): AnyRef = super.clone()
-
-  val vg = "Hello" + " Dear "*9999 + "World"
-
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
     logger.trace(s"Running rewrite rule $this")

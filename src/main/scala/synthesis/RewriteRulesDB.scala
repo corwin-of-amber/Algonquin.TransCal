@@ -1,8 +1,6 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.BasicSignature._
-import relentless.rewriting.RewriteRule._
 import structures.{EmptyMetadata, Metadata}
 import syntax.AstSugar._
 import syntax.Identifier
@@ -16,8 +14,6 @@ import transcallang.TranscalParser
   * @since 12/27/18
   */
 trait RewriteRulesDB extends LazyLogging {
-  protected def vars: Set[Identifier]
-
   protected def ruleTemplates: Set[Term]
 
   protected def metadata: Metadata
@@ -28,8 +24,6 @@ trait RewriteRulesDB extends LazyLogging {
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {
-  override protected val vars: Set[Identifier] = Set(x, y, z, `x'`, xs).map(_.root)
-
   private val parser = new TranscalParser
 
   override protected def metadata: Metadata = EmptyMetadata
@@ -81,8 +75,6 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
 }
 
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
-  override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
-
   private val parser = new TranscalParser
 
   override protected def metadata: Metadata = AssociativeMetadata
@@ -101,8 +93,6 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 }
 
 object OwnershipRewriteRulesDB extends RewriteRulesDB {
-  override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
-
   private val parser = new TranscalParser
 
   override protected def metadata: Metadata = OwnershipMetadata
@@ -118,7 +108,7 @@ object OwnershipRewriteRulesDB extends RewriteRulesDB {
 }
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
-  override protected val vars: Set[Identifier] = Set(xs, exist).map(_.root)
+  private val parser = new TranscalParser
 
   override protected def metadata: Metadata = ExistentialMetadata
 
@@ -127,6 +117,6 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
   }
 
   override protected val ruleTemplates: Set[Term] = Set(
-    xs =:> ((xs take exist) ++ (xs drop exist))
-  )
+    "?xs = ((xs take ?exist) ++ (xs drop exist))"
+  ).map(t => parser.apply(t))
 }
