@@ -144,4 +144,24 @@ class TriePropSpec extends PropSpec with Checkers {
       validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)
     })
   }
+
+  property("Should find same explicit words in all graphs") {
+    check(forAll { trie: Trie[Int] => trie.nonEmpty ==> {
+      val byLength = trie.words.groupBy(_.length)
+      byLength.forall(kv => {
+        val key = kv._1
+        val words = kv._2
+        val regex = 0 until key map Hole[Int, Int]
+        val canFindAll = trie.findRegex(regex) == words
+        val allValsFound = for (i <- 0 until key) yield {
+          val byValue = words.groupBy(_(i))
+          val canFindAllWithExplicit = for((v, vWords) <- byValue) yield {
+            trie.findRegex(regex.updated(i, Explicit(v))) == vWords
+          }
+          canFindAllWithExplicit.forall(_ == true)
+        }
+        canFindAll && allValsFound.forall(_ == true)
+      })
+    }})
+  }
 }
