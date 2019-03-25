@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import transcallang.Language
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import structures._
 import syntax.AstSugar.Term
 import syntax.{Identifier, Tree}
@@ -30,10 +30,31 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Term] = {
-    reconstruct(hyperTermId).filter(t => {
-      val destroyed = Programs.destructWithRoot(t)
-      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyed._2), _)).getOrElse(pattern)
-      destroyed._1.findSubgraph[Int](updatedPattern).nonEmpty
+//    reconstruct(hyperTermId).filter(t => {
+//      val (destroyedGraph, destroyedRoot) = Programs.destructWithRoot(t)
+//      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyedRoot), _)).getOrElse(pattern)
+//      destroyedGraph.findSubgraph[Int](updatedPattern).nonEmpty
+//    })
+
+    val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
+    val maps = hyperGraph.findSubgraph[Int](newPattern)
+    maps.toIterator.flatMap(m => {
+      val fullPattern = HyperGraphManyWithOrderToOneLike.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
+
+      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Programs): Iterator[Term] = {
+        val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
+        val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
+        if (edges.isEmpty) fallTo.reconstruct(root)
+        else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+          if (edge.sources.isEmpty) Iterator(new Tree[Identifier](edge.edgeType.identifier))
+          else {
+            val recRes = edge.sources.map(recursive(edgesInGraph - edge, _, fallTo))
+            Programs.combineSeq(recRes).map(subtrees => new Tree[Identifier](edge.edgeType.identifier, subtrees.toList))
+          }
+        })
+      }
+
+      recursive(fullPattern, hyperTermId, this)
     })
   }
 

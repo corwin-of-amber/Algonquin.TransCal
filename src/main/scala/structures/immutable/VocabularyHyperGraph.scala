@@ -5,6 +5,7 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -167,6 +168,8 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   /* --- Object Impl. --- */
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
+
+  override def hashCode(): Int = toString.hashCode
 
   /* --- IterableLike Impl. --- */
 

@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
-import structures.{Explicit, Ignored, Repetition}
+import structures.{Explicit, Hole, Ignored, Repetition}
 
 import scala.util.Random
 
@@ -87,6 +87,14 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("Should find correct explicit in big graph") {
+    check(forAll { trie: Trie[Int] => (trie.size > 200 && trie.words.exists(_.length > 3)) ==> {
+      trie.words.filter(_.length > 3).forall(w =>
+        trie.findRegex(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
+          .forall(_(3) == w(3)))
+    }})
+  }
+
   property("add than remove than add") {
     check(forAll { (trie: Trie[Int], word: Seq[Int]) =>
       !trie.words.contains(word) ==> {
@@ -135,5 +143,25 @@ class TriePropSpec extends PropSpec with Checkers {
     check(forAll { (trie: Trie[Int], keepLetter: Int) =>
       validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)
     })
+  }
+
+  property("Should find same explicit words in all graphs") {
+    check(forAll { trie: Trie[Int] => trie.nonEmpty ==> {
+      val byLength = trie.words.groupBy(_.length)
+      byLength.forall(kv => {
+        val key = kv._1
+        val words = kv._2
+        val regex = 0 until key map Hole[Int, Int]
+        val canFindAll = trie.findRegex(regex) == words
+        val allValsFound = for (i <- 0 until key) yield {
+          val byValue = words.groupBy(_(i))
+          val canFindAllWithExplicit = for((v, vWords) <- byValue) yield {
+            trie.findRegex(regex.updated(i, Explicit(v))) == vWords
+          }
+          canFindAllWithExplicit.forall(_ == true)
+        }
+        canFindAll && allValsFound.forall(_ == true)
+      })
+    }})
   }
 }

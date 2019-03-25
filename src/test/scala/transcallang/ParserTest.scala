@@ -279,7 +279,8 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse concat type") {
-    val parsed = (new TranscalParser).apply("concat: list<list<'a> > :> list<'a> ?l: list<list<'a> > = ⟨⟩ ↦ ⟨⟩")
+    val parsed = (new TranscalParser).apply("(concat: list<list<'a> > :> list<'a>) (?l: list<list<'a> >) = ⟨⟩ ↦ ⟨⟩")
+    // TODO: fix type definitions. Doesn't work because of function flattening and types shouldn't be treated as functions
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "concat"
     parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
