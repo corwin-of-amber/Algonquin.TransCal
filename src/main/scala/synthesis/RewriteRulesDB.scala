@@ -2,12 +2,11 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import relentless.BasicSignature._
-import relentless.rewriting.RewriteRule._
 import structures.{EmptyMetadata, Metadata}
 import syntax.AstSugar._
 import syntax.Identifier
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, FunctionReturnTypeRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import transcallang.TranscalParser
 
@@ -24,7 +23,7 @@ trait RewriteRulesDB extends LazyLogging {
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite, FunctionReturnTypeRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {
@@ -87,7 +86,7 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 
   override protected def metadata: Metadata = AssociativeMetadata
 
-  case object AssociativeMetadata extends Metadata {
+  private case object AssociativeMetadata extends Metadata {
     override def toStr: String = "AssociativeMetadata"
   }
 
@@ -107,12 +106,50 @@ object OwnershipRewriteRulesDB extends RewriteRulesDB {
 
   override protected def metadata: Metadata = OwnershipMetadata
 
-  case object OwnershipMetadata extends Metadata {
+  private case object OwnershipMetadata extends Metadata {
     override def toStr: String = "OwnershipMetadata"
   }
 
   override protected val ruleTemplates: Set[Term] = Set(
-    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z"
+    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z",
+    "(?x +: nil ||| ?z) & (own x ||| true) ||> true = own z"
+  ).map(t => parser.apply(t))
+
+}
+
+object TypeRewriteRulesDB extends RewriteRulesDB {
+  override protected val vars: Set[Identifier] = Set(x, y, z, w, v).map(_.root)
+
+  private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = TypeMetadata
+
+  private case object TypeMetadata extends Metadata {
+    override def toStr: String = "TypeMetadata"
+  }
+
+  override protected val ruleTemplates: Set[Term] = Set(
+    "(type ?x (?y :> ?z) ||| true) ||> type (x ?w) z = true",
+    "(type ?x (?y :> ?z) ||| true) & (type (x ?w) ?v ||| true) ||> type w y = true"
+  ).map(t => parser.apply(t))
+
+}
+
+
+object TimeComplexRewriteRulesDB extends RewriteRulesDB {
+  override protected val vars: Set[Identifier] = Set(x, y, z).map(_.root)
+
+  private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = TimeComplexMetadata
+
+  private case object TimeComplexMetadata extends Metadata {
+    override def toStr: String = "TimeComplexMetadata"
+  }
+
+  override protected val ruleTemplates: Set[Term] = Set(
+    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
+    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
   ).map(t => parser.apply(t))
 
 }
@@ -122,10 +159,11 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
 
   override protected def metadata: Metadata = ExistentialMetadata
 
-  case object ExistentialMetadata extends Metadata {
+  private case object ExistentialMetadata extends Metadata {
     override def toStr: String = "ExistentialMetadata"
   }
 
+  import relentless.rewriting.RewriteRule._
   override protected val ruleTemplates: Set[Term] = Set(
     xs =:> ((xs take exist) ++ (xs drop exist))
   )
