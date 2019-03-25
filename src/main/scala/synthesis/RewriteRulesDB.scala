@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import syntax.AstSugar._
+import syntax.AstSugar.Term
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
