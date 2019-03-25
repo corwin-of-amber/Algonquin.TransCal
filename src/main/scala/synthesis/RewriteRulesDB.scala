@@ -1,10 +1,8 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import relentless.BasicSignature._
 import structures.{EmptyMetadata, Metadata}
 import syntax.AstSugar._
-import syntax.Identifier
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
