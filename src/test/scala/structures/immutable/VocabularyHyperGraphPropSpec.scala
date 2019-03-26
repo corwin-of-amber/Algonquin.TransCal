@@ -245,14 +245,29 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("Compation works correctly when adding precondition after creation") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
-    val graph = Programs.destruct(term).addEdges(Set(
+    val tempGraph = Programs.destruct(term)
+    val graph = tempGraph.addEdges(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     ))
-    graph.nodes should not contain HyperTermId(100)
-    graph.nodes should not contain HyperTermId(101)
+    val aTerm = graph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
+    val originalATerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
+    val newATerm = HyperTermId(100)
+    val bTerm = graph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
+    val originalBTerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
+    val newBTerm = HyperTermId(101)
+    if (aTerm == originalATerm)
+      graph.nodes should not contain newATerm
+    else if(aTerm == newATerm)
+      graph.nodes should not contain originalATerm
+    else fail()
+    if (bTerm == originalBTerm)
+      graph.nodes should not contain newBTerm
+    else if(bTerm == newBTerm)
+      graph.nodes should not contain originalBTerm
+    else fail()
   }
 
   property("If graphs are equal then hash is equal") {
@@ -365,5 +380,10 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
       })
     }))
+  }
+
+  property("Compaction works for edges with changed sources") {
+    val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
+    check(graph.addEdge(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 }
