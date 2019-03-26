@@ -336,8 +336,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
-    val es = Set(HyperEdge(40,1,Vector(),EmptyMetadata), HyperEdge(14,1,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(4,12,Vector(17, 11, 29, 10, 33),EmptyMetadata), HyperEdge(14,1,Vector(),EmptyMetadata))
-    val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+    val es = Set(HyperEdge(40,88,Vector(),EmptyMetadata), HyperEdge(14,88,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(4,12,Vector(17, 11, 29, 10, 33),EmptyMetadata), HyperEdge(14,88,Vector(),EmptyMetadata))
+    val subgraph = Set(HyperEdge(14,88,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(40,88,Vector(),EmptyMetadata))
     val asHoles: Map[Int, Int] = {
       val creator = Stream.from(0).toIterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
@@ -348,10 +348,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     }
     val graph = VersionedHyperGraph(es.toSeq: _*)
     val maps = graph.findSubgraph[Int](pattern)
-
     check(asHoles.forall(vh => {
       maps.groupBy(_._1(vh._2)).forall(vAndMaps => {
         val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
+        if (!updatedMaps.subsetOf(graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))))) {
+          println(s"working on $vh with $vAndMaps")
+          println(s"pattern is $pattern")
+          println(s"merged is ${pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))}")
+          println(s"new maps: $updatedMaps")
+          println(s"subgraph results ${graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))}")
+        }
         updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
       })
     }))
