@@ -58,18 +58,22 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
 
   /* --- Private Methods --- */
 
-  @tailrec
   private def compact[Node, EdgeType](wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): HyperGraphManyWithOrderToOne[Node, EdgeType] = {
     hyperEdges match {
       case Nil => wrapped
       case beforeChangeHyperEdge +: otherHyperEdges =>
-        val hyperEdge = beforeChangeHyperEdge.copy(target = changedToKept.getOrElse(beforeChangeHyperEdge.target, beforeChangeHyperEdge.target), sources = beforeChangeHyperEdge.sources.map(x => changedToKept.getOrElse(x, x)))
+        def translateEdge(e: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
+          e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
+        val hyperEdge = translateEdge(beforeChangeHyperEdge)
         val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
         val g = wrapped.addEdge(hyperEdge)
-        wrapped.find(regex).headOption match {
-          case Some(existsHyperEdge) if existsHyperEdge != hyperEdge =>
-            val merged = g.mergeNodes(existsHyperEdge.target, hyperEdge.target)
-            compact(merged, otherHyperEdges, changedToKept.updated(hyperEdge.target, existsHyperEdge.target))
+        val foundTarget = wrapped.find(regex).filter(_.target != hyperEdge.target).map(_.target)
+        assert(foundTarget.size <= 1)
+        foundTarget.headOption match {
+          case Some(existsTarget) =>
+            val willChange = g.edges.filter(_.sources.contains(hyperEdge.target)).map(translateEdge)
+            val merged = g.mergeNodes(existsTarget, hyperEdge.target)
+            compact(merged, otherHyperEdges ++ willChange, changedToKept.updated(hyperEdge.target, existsTarget))
           case _ => compact(g, otherHyperEdges, changedToKept)
         }
     }
