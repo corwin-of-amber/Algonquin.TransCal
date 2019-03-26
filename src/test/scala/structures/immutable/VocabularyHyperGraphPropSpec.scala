@@ -336,8 +336,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
-    val es = Set(HyperEdge(40,88,Vector(),EmptyMetadata), HyperEdge(14,88,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(4,12,Vector(17, 11, 29, 10, 33),EmptyMetadata), HyperEdge(14,88,Vector(),EmptyMetadata))
-    val subgraph = Set(HyperEdge(14,88,Vector(39, 48, 13, 46, 7),EmptyMetadata), HyperEdge(40,88,Vector(),EmptyMetadata))
+    val es = Set(HyperEdge(40, 88, Vector(), EmptyMetadata), HyperEdge(14, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(4, 12, Vector(17, 11, 29, 10, 33), EmptyMetadata), HyperEdge(14, 88, Vector(), EmptyMetadata))
+    val graph = VersionedHyperGraph(es.toSeq: _*)
+    val temp = VocabularyHyperGraph(es.toSeq: _*)
+    val temp1 = CompactHyperGraph(es.toSeq: _*)
+
+    val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
       val creator = Stream.from(0).toIterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
@@ -346,7 +350,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
       HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
     }
-    val graph = VersionedHyperGraph(es.toSeq: _*)
+
     val maps = graph.findSubgraph[Int](pattern)
     check(asHoles.forall(vh => {
       maps.groupBy(_._1(vh._2)).forall(vAndMaps => {

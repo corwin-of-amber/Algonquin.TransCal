@@ -101,14 +101,22 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     val newWords = words.map(word => word.map(letter => if (letter == change) keep else letter))
 
     logger.trace("Replace in subtries")
-    val newSubtries = subtries.map(mapSubtries => {
+    val newSubtries = subtries.zipWithIndex.map(mapSubtriesWithIndex => {
+      val (mapSubtries, localIndex) = mapSubtriesWithIndex
+      val mapSubtriesIndex = index + localIndex + 1
       logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = mapSubtries.map(t => (t._1, t._2.replaceWithIndex(keep, change, index + 1)))
+      val mapSubtriesRemoved = mapSubtries.map(t => {
+        val (letter, trie) = t
+        (letter, trie.replaceWithIndex(keep, change, mapSubtriesIndex))
+      })
 
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
         case Some(subtrieRemoved) =>
-          val newKeep = mapSubtriesRemoved.get(keep).map(_.addAll(subtrieRemoved, index)).getOrElse(subtrieRemoved)
+          val newKeep = mapSubtriesRemoved.get(keep) match {
+              case Some(x) => x.addAll(subtrieRemoved, mapSubtriesIndex)
+              case None => subtrieRemoved
+            }
           (mapSubtriesRemoved - change) + ((keep, newKeep))
         case None => mapSubtriesRemoved
       }
