@@ -1,14 +1,11 @@
 package synthesis.ui
 
-import java.io.{BufferedReader, PrintStream}
+import java.io.PrintStream
 
 import syntax.AstSugar.Term
-import transcallang.Parser
-import synthesis.{AssociativeRewriteRulesDB, Programs, SimpleRewriteRulesDB}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-
-import scala.io.BufferedSource
+import synthesis._
 
 /**
   * @author tomer
@@ -19,7 +16,7 @@ class Interpreter(terms: Iterator[Term], userOutput: PrintStream) {
 
   def start: Unit = {
     var oldState: ActionSearchState = null
-    var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++  SimpleRewriteRulesDB.rewriteRules)
+    var newState = ActionSearchState(ProgramsDB.programs, AssociativeRewriteRulesDB.rewriteRules ++ TypeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     do {
       oldState = newState
       for(action <- actions) {
