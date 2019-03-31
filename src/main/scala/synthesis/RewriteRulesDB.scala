@@ -45,6 +45,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "?x ∈ (?xs ∪ ?ys) = (x ∈ xs) \\/ (x ∈ ys)",
     "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
+    "?x + ?y = y + x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
     "⟨⟩ ++ ?xs' >> id xs'",
