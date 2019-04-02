@@ -26,7 +26,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     *
     * @param hyperTermId The hyper term to build.
     * @param pattern     graph pattern to limit output terms
-    * @param root        pattern root node
+    * @param patternRoot pattern root node
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Term] = {
@@ -285,6 +285,7 @@ object Programs extends LazyLogging {
       term.root match {
         case Language.annotationId => helper(term.subtrees.head)
         case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")
+        case Language.setId => "{" + term.subtrees.map(helper).mkString(", ") + "}"
         case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString(), helper(term.subtrees(1))).mkString(" ")
         case _ => term.subtrees match {
           case Nil => term.root.toString()
