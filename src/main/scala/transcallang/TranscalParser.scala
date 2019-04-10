@@ -46,6 +46,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
+  def parseExpression(programText: String): AnnotatedTree = {
+    def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
+    val text = cleanLineComments(programText)
+    val tokens = Lexer.apply(text)
+    val reader = new WorkflowTokenReader(tokens.right.get)
+    expression(reader).get
+  }
+
   // Example of defining a parser for a word
   // def word: Parser[String]    = """[a-z]+""".r ^^ { _.toString }
 
