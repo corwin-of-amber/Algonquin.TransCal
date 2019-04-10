@@ -19,7 +19,15 @@ trait RewriteRulesDB extends LazyLogging {
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+}
+
+object SystemRewriteRulesDB extends RewriteRulesDB {
+  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
+
+  override protected def ruleTemplates: Set[Term] = throw new NotImplementedError()
+
+  override protected def metadata: Metadata = throw new NotImplementedError()
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {

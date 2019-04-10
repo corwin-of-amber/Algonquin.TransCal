@@ -1,7 +1,8 @@
-package synthesis.actions.operators
+package synthesis.actions.operators.SPBE
 
 import org.scalatest.{FunSuite, Matchers}
-import synthesis.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB}
+import synthesis.actions.operators.LetAction
+import synthesis.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.TranscalParser
 
 class ObservationalEquivalenceTest extends FunSuite with Matchers {
@@ -9,7 +10,7 @@ class ObservationalEquivalenceTest extends FunSuite with Matchers {
 
   test("testGetEquives on add commutative") {
     val tempTerm = parser("1 + x = x + 1")
-    val equivs = ObservationalEquivalence.getEquives(SimpleRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules, Seq(tempTerm.subtrees(0), tempTerm.subtrees(1)))
+    val equivs = ObservationalEquivalence.getEquives(SystemRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules, Seq(tempTerm.subtrees(0), tempTerm.subtrees(1)))
     equivs.size shouldEqual (1)
     equivs.head.size shouldEqual (2)
   }
@@ -21,7 +22,7 @@ class ObservationalEquivalenceTest extends FunSuite with Matchers {
     val pred2Rules = new LetAction(parser("pred2 ?t = t match ((id x => true) / (id y => false))")).rules
     val mapperRules = new LetAction(parser("mapper ?t = id t")).rules
     val tempTerm = parser("filter(pred2, map(mapper, x :: y :: nil)) = map(mapper, filter(pred, x :: y :: nil))")
-    val equivs = ObservationalEquivalence.getEquives(predRules ++ pred2Rules ++ mapperRules ++ mapRules ++ filterRules ++ SimpleRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules, Seq(tempTerm.subtrees(0), tempTerm.subtrees(1)))
+    val equivs = ObservationalEquivalence.getEquives(predRules ++ pred2Rules ++ mapperRules ++ mapRules ++ filterRules ++ SystemRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules, Seq(tempTerm.subtrees(0), tempTerm.subtrees(1)))
     equivs.size shouldEqual (1)
     equivs.head.size shouldEqual (2)
   }
