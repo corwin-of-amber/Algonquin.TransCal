@@ -29,6 +29,7 @@ class LetAction(val term: Term) extends Action {
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
     val condTerm = new Tree(funcName, params)
+    // TODO: Add suffix to conclusion (currently it is lost because of ignore)
     val (pattern, conclusion) = {
       val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
       (patterns(0), patterns(1))
