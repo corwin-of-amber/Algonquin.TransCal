@@ -1,7 +1,7 @@
 package synthesis
 
 import structures.{Explicit, Hole, HyperEdge, Item}
-import syntax.Identifier
+import transcallang.Identifier
 
 /**
   * @author tomer

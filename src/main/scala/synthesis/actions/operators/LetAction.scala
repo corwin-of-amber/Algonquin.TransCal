@@ -1,9 +1,8 @@
 package synthesis.actions.operators
 
-import transcallang.Language
+import transcallang.{Identifier, Language}
 import structures._
-import syntax.AstSugar._
-import syntax.{Identifier, Tree}
+import syntax.{Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LetAction.LetMetadata
 import synthesis.rewrites.RewriteRule
@@ -18,13 +17,13 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LetAction(val term: Term) extends Action {
+class LetAction(val term: Tree[Identifier]) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
 
   assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
 
-  private def createRuleWithName(args: Term, body: Term, funcName: Identifier): (Set[RewriteRule], Term) = {
+  private def createRuleWithName(args: Tree[Identifier], body: Tree[Identifier], funcName: Identifier): (Set[RewriteRule], Tree[Identifier]) = {
     val (innerRewrites, newTerm) = createRewrites(body)
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
@@ -45,7 +44,7 @@ class LetAction(val term: Term) extends Action {
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
-  private def createRewrites(t: Term, optName: Option[Identifier] = None): (Set[RewriteRule], Term) = {
+  private def createRewrites(t: Tree[Identifier], optName: Option[Identifier] = None): (Set[RewriteRule], Tree[Identifier]) = {
     t.root match {
       case Language.letId | Language.directedLetId =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
@@ -92,8 +91,8 @@ class LetAction(val term: Term) extends Action {
 
 object LetAction {
   private val creator = Stream.from(transcallang.Language.arity.size).iterator
-  protected def functionNamer(term: Term): Identifier = {
-    I(s"f${creator.next()}", k="Lambda Definition: " + Programs.termToString(term))
+  protected def functionNamer(term: Tree[Identifier]): Identifier = {
+    Identifier(s"f${creator.next()}")
   }
 
   case class LetMetadata(funcName: Identifier) extends Metadata {

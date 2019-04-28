@@ -1,7 +1,6 @@
 package transcallang
 
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
+import syntax.Tree
 
 import scala.util.parsing.combinator._
 
@@ -58,6 +57,6 @@ trait Prefixer[Return, This <: Prefixer[Return, This]] extends RegexParsers {
 object Prefixer {
   val MIDDLE = 5
 }
-trait TermPrefixer extends Prefixer[Term, TermPrefixer] {
-  override def buildReturn(operator: String, after: Term): Term = new Tree[Identifier](new Identifier(operator), List(after))
+trait TermPrefixer extends Prefixer[Tree[Identifier], TermPrefixer] {
+  override def buildReturn(operator: String, after: Tree[Identifier]): Tree[Identifier] = new Tree[Identifier](Identifier(operator), List(after))
 }

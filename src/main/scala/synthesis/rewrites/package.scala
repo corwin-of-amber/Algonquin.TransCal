@@ -1,8 +1,8 @@
 package synthesis.rewrites
 
 import structures._
-import syntax.Identifier
 import synthesis.{HyperTermId, HyperTermIdentifier}
+import transcallang.Identifier
 
 package object rewrites {
   private[synthesis] type HyperPrefix = HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)]

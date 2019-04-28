@@ -1,11 +1,10 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.Language
+import transcallang.{Identifier, Language}
 import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
 import structures._
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
+import syntax.Tree
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.{RewriteSearchState, Template}
@@ -29,7 +28,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param patternRoot pattern root node
     * @return all conforming terms
     */
-  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Term] = {
+  def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[Tree[Identifier]] = {
 //    reconstruct(hyperTermId).filter(t => {
 //      val (destroyedGraph, destroyedRoot) = Programs.destructWithRoot(t)
 //      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyedRoot), _)).getOrElse(pattern)
@@ -41,7 +40,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     maps.toIterator.flatMap(m => {
       val fullPattern = HyperGraphManyWithOrderToOneLike.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
 
-      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Programs): Iterator[Term] = {
+      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Programs): Iterator[Tree[Identifier]] = {
         val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
         val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
         if (edges.isEmpty) fallTo.reconstruct(root)
@@ -64,7 +63,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param hyperTermId The hyper term to build.
     * @return All the trees.
     */
-  def reconstruct(hyperTermId: HyperTermId): Iterator[Term] = {
+  def reconstruct(hyperTermId: HyperTermId): Iterator[Tree[Identifier]] = {
     logger.trace("Reconstruct programs")
 
     if (!hyperGraph.nodes.contains(hyperTermId)) {
@@ -76,7 +75,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
         * @param root The root of the programs we find
         * @return Iterator with all the programs of root.
         */
-      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[Term] = {
+      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[Tree[Identifier]] = {
         val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
         val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
         edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
@@ -97,11 +96,11 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param term The new term to add.
     * @return New programs with the term in it.
     */
-  def addTerm(term: Term): Programs = {
+  def addTerm(term: Tree[Identifier]): Programs = {
     Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.nodes.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
   }
 
-  def +(term: Term): Programs = addTerm(term)
+  def +(term: Tree[Identifier]): Programs = addTerm(term)
 
 
   /* --- Object Impl. --- */
@@ -120,9 +119,9 @@ object Programs extends LazyLogging {
 
   def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(hyperGraph)
 
-  def apply(tree: Term): Programs = Programs(Programs.destruct(tree))
+  def apply(tree: Tree[Identifier]): Programs = Programs(Programs.destruct(tree))
 
-  private def flattenApply(term: Term): (Identifier, List[Term]) = {
+  private def flattenApply(term: Tree[Identifier]): (Identifier, List[Tree[Identifier]]) = {
     if (term.root == Language.applyId && term.subtrees.head.root == Language.applyId) {
       val (fun, args) = flattenApply(term.subtrees.head)
       (fun, args ++ term.subtrees.tail)
@@ -130,10 +129,10 @@ object Programs extends LazyLogging {
     else (term.root, term.subtrees)
   }
 
-  private def innerDestruct[Node, EdgeType](tree: Term,
+  private def innerDestruct[Node, EdgeType](tree: Tree[Identifier],
                                             nodeCreator: () => Node,
                                             identToEdge: Identifier => EdgeType,
-                                            knownTerms: Term => Option[Node]): (Node, Set[HyperEdge[Node, EdgeType]]) = {
+                                            knownTerms: Tree[Identifier] => Option[Node]): (Node, Set[HyperEdge[Node, EdgeType]]) = {
     if (knownTerms(tree).nonEmpty) return (knownTerms(tree).get, Set.empty)
     val (function, args) = flattenApply(tree)
 
@@ -174,14 +173,14 @@ object Programs extends LazyLogging {
     * @param maxId - Max id so no ids will cross
     * @return
     */
-  def destruct(tree: Term, maxId: HyperTermId = HyperTermId(0)): RewriteSearchState.HyperGraph = {
+  def destruct(tree: Tree[Identifier], maxId: HyperTermId = HyperTermId(0)): RewriteSearchState.HyperGraph = {
     destructWithRoot(tree, maxId)._1
   }
 
-  def destructWithRoot(tree: Term, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  def destructWithRoot(tree: Tree[Identifier], maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
-    def knownTerms(t: Term): Option[HyperTermId] = None
+    def knownTerms(t: Tree[Identifier]): Option[HyperTermId] = None
 
     val hyperTermIdCreator = {
       val creator = Stream.from(maxId.id + 1).toIterator.map(HyperTermId)
@@ -192,7 +191,7 @@ object Programs extends LazyLogging {
     (VersionedHyperGraph(hyperEdges._2.toSeq:_*), hyperEdges._1)
   }
 
-  private def innerDestructPattern(trees: Seq[Term]):
+  private def innerDestructPattern(trees: Seq[Tree[Identifier]]):
   Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
@@ -201,17 +200,17 @@ object Programs extends LazyLogging {
       () => ReferenceTerm[HyperTermId](creator.next())
     }
 
-    val knownTerms: Term => Option[ReferenceTerm[HyperTermId]] = {
-      val knownHoles: Map[Term, ReferenceTerm[HyperTermId]] = {
+    val knownTerms: Tree[Identifier] => Option[ReferenceTerm[HyperTermId]] = {
+      val knownHoles: Map[Tree[Identifier], ReferenceTerm[HyperTermId]] = {
         val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.toString.startsWith("?"))).map(t =>
-          Set(t, new Tree(new Identifier(t.root.literal.toString.drop(1), t.root.kind, t.root.ns)))
+          Set(t, new Tree(t.root.copy(literal=t.root.literal.drop(1))))
         )
         vars.flatMap(s => {
           val newHole: ReferenceTerm[HyperTermId] = holeCreator()
           Set((s.head, newHole), (s.last, newHole))
         })
       }.toMap
-      t: Term => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
+      t: Tree[Identifier] => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
     }
 
     // A specific case is where we have a pattern of type ?x -> x
@@ -227,11 +226,11 @@ object Programs extends LazyLogging {
     })
   }
 
-  def destructPattern(tree: Term): HyperPattern = {
+  def destructPattern(tree: Tree[Identifier]): HyperPattern = {
     destructPatternsWithRoots(Seq(tree)).head._1
   }
 
-  def destructPatterns(trees: Seq[Term], mergeRoots: Boolean = true): Seq[HyperPattern] = {
+  def destructPatterns(trees: Seq[Tree[Identifier]], mergeRoots: Boolean = true): Seq[HyperPattern] = {
     destructPatternsWithRoots(trees, mergeRoots).map(_._1)
   }
 
@@ -242,7 +241,7 @@ object Programs extends LazyLogging {
     edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
   }
 
-  def destructPatternsWithRoots(trees: Seq[Term], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
+  def destructPatternsWithRoots(trees: Seq[Tree[Identifier]], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
     val edges = innerDestructPattern(trees)
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
       if (mergeRoots) mergeEdgesRoots(edges)
@@ -253,8 +252,8 @@ object Programs extends LazyLogging {
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
     val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
-    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(new Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(new Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(Identifier(kv._1)), Seq.empty, EmptyMetadata))
+    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).
@@ -277,10 +276,10 @@ object Programs extends LazyLogging {
     }
   }
 
-  def termToString(term: Term): String = {
-    val lambdaDefinitions = term.nodes.map(n => n.root.kind + " name:" + n.root.literal.toString).filter(_.startsWith("Lambda Definition")).toSet
+  def termToString(term: Tree[Identifier]): String = {
+    val lambdaDefinitions = term.nodes.map(n => " name:" + n.root.literal).filter(_.startsWith("Lambda Definition")).toSet
 
-    def helper(term: Term): String = {
+    def helper(term: Tree[Identifier]): String = {
       val allBuiltinBool = Language.builtinAndOps ++ Language.builtinOrOps ++ Language.builtinBooleanOps ++ Language.builtinCondBuilders ++ Language.builtinDefinitions ++ Language.builtinHighLevel ++ Language.builtinSetArithOps ++ Language.builtinSetBuildingOps ++ Language.builtinIFFOps :+ Language.tacticId
       term.root match {
         case Language.annotationId => helper(term.subtrees.head)

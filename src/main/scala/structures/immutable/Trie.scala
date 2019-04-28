@@ -146,7 +146,8 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
           case Ignored() =>
             (for ((_, subtrie) <- subtries.headOption.getOrElse(Map.empty)) yield subtrie.recursiveFindRegex(more, placeholdersMap, length + 1)).flatten.toSet
           case Repetition(minR, maxR, repeated) =>
-            val results = (for (newPattern <- (minR to math.min(maxR, subtries.length)).map(i => (0 until i).map(_ => repeated) ++ more)) yield {
+            assert(repeated.take(math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
+            val results = (for (newPattern <- (minR to math.min(maxR, subtries.length - more.length)).map(i => repeated.take(i) ++ more)) yield {
               recursiveFindRegex(newPattern, placeholdersMap, length)
             }).flatten.toSet
             results

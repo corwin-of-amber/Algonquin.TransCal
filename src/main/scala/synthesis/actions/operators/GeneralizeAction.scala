@@ -1,25 +1,24 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import syntax.AstSugar.{Term, _}
-import syntax.{Identifier, Tree}
+import syntax.Tree
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermIdentifier, Programs}
-import transcallang.Language
+import transcallang.{Identifier, Language}
 
 /**
   * @author tomer
   * @since 11/18/18
   */
-class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Term, maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
+class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Tree[Identifier]], name: Tree[Identifier], maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
 
-  private val vars = leaves.indices map (i => TI(s"?autovar$i"))
-  private val fun = new Tree(new Identifier(name.root.literal.toString.replace("?", ""), name.root.kind, name.root.ns), vars.toList)
+  private val vars = leaves.indices map (i => new Tree(Identifier(s"?autovar$i")))
+  private val fun = new Tree(name.root.copy(literal=name.root.literal.replace("?", "")), vars.toList)
 
-  private def getGeneralizedTerms(progs: Programs): Set[Term] = {
+  private def getGeneralizedTerms(progs: Programs): Set[Tree[Identifier]] = {
     // TODO: Filter out expressions that use context but allow constants
     // Reconstruct and generalize
     progs.hyperGraph.findEdges(anchor) map (_.target) flatMap { root =>
@@ -34,7 +33,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Term], name: Te
   override def apply(state: ActionSearchState): ActionSearchState = {
     logger.debug(s"Running generalize action on $anchor")
 
-    val (gen, tempState): (Set[Term], ActionSearchState) = {
+    val (gen, tempState): (Set[Tree[Identifier]], ActionSearchState) = {
       val temp = getGeneralizedTerms(state.programs)
       if (temp.nonEmpty) {
         (temp, state)

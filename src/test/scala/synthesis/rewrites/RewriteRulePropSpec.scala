@@ -6,10 +6,10 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
-import syntax.Identifier
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
+import transcallang.Identifier
 
 /**
   * @author tomer
@@ -56,7 +56,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
   //        }
   //        val rewriteRule = new RewriteRule(conditions, destinations, (a, b) => EmptyMetadata)
   //        val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
-  //        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
+  //        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(Identifier(_)).map(HyperTermIdentifier).iterator)
   //        val state = new RewriteSearchState(HyperGraphManyWithOrderToOne(filledConditions.toSeq: _*))
   //        val newState = rewriteRule.apply(state)
   //        val stateRemovingToMerge: RewriteSearchState.HyperGraph =
@@ -83,7 +83,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
 
         val rewriteRule = new RewriteRule(conditions, HyperGraphManyWithOrderToOne(destination), (a, b) => EmptyMetadata)
         val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
-        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(new Identifier(_)).map(HyperTermIdentifier).iterator)
+        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(x => Identifier(x.toString)).map(HyperTermIdentifier).iterator)
         val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
         val newState = rewriteRule.apply(state)
 

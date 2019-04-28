@@ -5,11 +5,11 @@ import java.io.File
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.prop.Checkers
 import org.scalatest.{FunSuite, Inspectors, Matchers}
-import syntax.AstSugar.Term
+import syntax.Tree
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
+abstract class ParserTest(protected val p: Parser[Tree[Identifier]]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
   test("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
@@ -25,20 +25,22 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
 
   test("Apply alot of abcd") {
     val parsed = p("_ -> c a b d").subtrees(1)
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
-    parsed.root shouldEqual "c"
-    parsed.subtrees(0).root shouldEqual "a"
-    parsed.subtrees(1).root shouldEqual "b"
-    parsed.subtrees(2).root shouldEqual "d"
+    parsed.nodes.count(_.root == Language.applyId) shouldEqual 1
+    parsed.root shouldEqual Language.applyId
+    parsed.subtrees(0).root.literal shouldEqual "c"
+    parsed.subtrees(1).root.literal shouldEqual "a"
+    parsed.subtrees(2).root.literal shouldEqual "b"
+    parsed.subtrees(3).root.literal shouldEqual "d"
   }
 
   test("Able to catch parentheses") {
     val parsed = p("f = c (a b) d").subtrees(1)
-    parsed.nodes.map(_.root.literal).count(_ == "@") shouldEqual 0
-    parsed.root shouldEqual "c"
-    parsed.subtrees(0).root shouldEqual "a"
-    parsed.subtrees(1).root shouldEqual "d"
-    parsed.subtrees(0).subtrees(0).root shouldEqual "b"
+    parsed.nodes.count(_.root == Language.applyId) shouldEqual 2
+    parsed.root shouldEqual Language.applyId
+    parsed.subtrees(0).root.literal shouldEqual "c"
+    parsed.subtrees(1).root shouldEqual Language.applyId
+    parsed.subtrees(1).subtrees.length shouldEqual 2
+    parsed.subtrees(2).root.literal shouldEqual "d"
   }
 
   test("Can have annotations") {
@@ -83,10 +85,11 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse tuples and parenthesised expressions") {
-    val parsed = p("(a,) 0 -> (a)")
+    val parsed = p("(a,) 0 -> (0)")
     parsed.root shouldEqual "->"
-    parsed.subtrees(0).root shouldEqual Language.tupleId
-    parsed.subtrees(0).subtrees(0) shouldEqual parsed.subtrees(1)
+    parsed.subtrees(0).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).root shouldEqual Language.tupleId
+    parsed.subtrees(0).subtrees(1) shouldEqual parsed.subtrees(1)
   }
 
   test("Syntax sugar for function definition should create lhs apply") {
@@ -99,15 +102,16 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   test("apply of f translated correctly") {
     val parsed = p("f ?x = x + 1")
     parsed.root shouldEqual "="
-    parsed.subtrees(0).root.literal shouldEqual "f"
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "f"
   }
 
   test("apply on tuple becomes flattened apply") {
     val parsed = p("f(?x, ?y) = f x y")
     parsed.root shouldEqual "="
-    parsed.subtrees(0).root.literal shouldEqual "f"
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
-    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
+    parsed.subtrees(0).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "f"
+    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "?x"
+    parsed.subtrees(1).subtrees(1).root.literal shouldEqual "x"
   }
 
   test("use the condition builders") {
@@ -126,7 +130,9 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
     anno.subtrees(1).root.literal shouldEqual "++"
     val parsed = anno.subtrees(0)
     parsed.root shouldEqual Language.letId
-    parsed.subtrees(0).root.literal shouldEqual "concat"
+    parsed.subtrees(0).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "concat"
+    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "?l"
     parsed.subtrees(1).root shouldEqual Language.matchId
     val lhs = parsed.subtrees(1).subtrees(0)
     val rhs1 = parsed.subtrees(1).subtrees(1)
@@ -243,33 +249,34 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse identifier polymorphic type") {
-    val parsed = (new TranscalParser).apply("_: list<int> -> x: list<int>")
+    val parsed = (new TranscalParser).apply("_: (list int) -> x: (list int)")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "int"
+
     parsed.subtrees(1).root shouldEqual Language.typeBuilderId
     parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
-    parsed.subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(1).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
   }
 
   test("Parse identifier polymorphic type of polymorphic") {
-    val parsed = (new TranscalParser).apply("_: list<list<int> > -> x")
+    val parsed = (new TranscalParser).apply("_: (list(list int)) -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
   test("Parse identifier map type") {
-    val parsed = (new TranscalParser).apply("_: int :> int -> x")
+    val parsed = (new TranscalParser).apply("(_: int :> int) -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
     parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
@@ -279,31 +286,33 @@ abstract class ParserTest(protected val p: Parser[Term]) extends FunSuite with M
   }
 
   test("Parse concat type") {
-    val parsed = (new TranscalParser).apply("(concat: list<list<'a> > :> list<'a>) (?l: list<list<'a> >) = ⟨⟩ ↦ ⟨⟩")
+    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) ?l: (list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
     // TODO: fix type definitions. Doesn't work because of function flattening and types shouldn't be treated as functions
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "concat"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual Language.innerTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual Language.innerTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "'a"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).root shouldEqual Language.typeBuilderId
+    parsed.subtrees(0).subtrees(0).subtrees(0).root.literal shouldEqual "concat"
+    parsed.subtrees(0).subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(1).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
+    parsed.subtrees(0).subtrees(0).subtrees(1).subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "'a"
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "'a"
+    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root shouldEqual Language.applyId
+    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).subtrees(0).root shouldEqual "list"
+    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).subtrees(1).root shouldEqual "'a"
     parsed.subtrees(0).subtrees.size shouldEqual 2
-    parsed.subtrees(1).root.literal shouldEqual "⟨⟩"
   }
   test("Parse identifier polymorphic map type") {
-    val parsed = (new TranscalParser).apply("_: list<int> :> list<int> -> x")
+    val parsed = (new TranscalParser).apply("(_: (list int) :> (list int)) -> x")
     parsed.subtrees(0).root shouldEqual Language.typeBuilderId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
     parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(0).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(1).root.literal shouldEqual "int"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.innerTypeId
+    parsed.subtrees(0).subtrees(1).subtrees(1).root shouldEqual Language.applyId
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "list"
     parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(1).root.literal shouldEqual "int"
     parsed.subtrees(1).root.literal shouldEqual "x"

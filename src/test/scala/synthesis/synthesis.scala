@@ -1,7 +1,7 @@
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
+import syntax.Tree
+import transcallang.Identifier
 
 import scala.util.Random
 
@@ -22,9 +22,9 @@ package object synthesis {
   }
 
 
-  val identifierGen: Gen[Identifier] = oneOf((0 to 50).map(new Identifier(_)))
+  val identifierGen: Gen[Identifier] = oneOf((0 to 50).map(x => Identifier(x.toString)))
 
-  val identifierTreesGen: Gen[Term] = TreeGenFactory(identifierGen)
+  val identifierTreesGen: Gen[Tree[Identifier]] = TreeGenFactory(identifierGen)
 
   val programsGen: Gen[Programs] = identifierTreesGen.map(Programs(_))
 }

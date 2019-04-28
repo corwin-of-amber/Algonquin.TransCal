@@ -1,7 +1,5 @@
 package transcallang
 
-import syntax.Identifier
-
 import scala.util.parsing.input.Positional
 
 object Tokens {
@@ -10,11 +8,11 @@ object Tokens {
     def toIdentifier: Identifier
   }
 
-  private def I(value: String) = new Identifier(value)
-  private def I(value: Int) = new Identifier(value)
+  private def I(value: String) = Identifier(value)
+  private def I(value: Int) = Identifier(value.toString)
 
   case class IDENTIFIER(str: String) extends WorkflowToken {
-    override val toIdentifier: Identifier = new Identifier(str)
+    override val toIdentifier: Identifier = Identifier(str)
   }
 
   case class LITERAL(str: String) extends WorkflowToken {

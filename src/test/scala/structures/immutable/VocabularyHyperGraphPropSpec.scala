@@ -1,12 +1,11 @@
 package structures.immutable
 
-import transcallang.{Language, TranscalParser}
+import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.prop.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
-import syntax.Identifier
 import synthesis.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
@@ -247,16 +246,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val tempGraph = Programs.destruct(term)
     val graph = tempGraph.addEdges(Set(
-      HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     ))
-    val aTerm = graph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
-    val originalATerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
+    val aTerm = graph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
+    val originalATerm = tempGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
     val newATerm = HyperTermId(100)
-    val bTerm = graph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
-    val originalBTerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
+    val bTerm = graph.findEdges(HyperTermIdentifier(Identifier("b"))).head.target
+    val originalBTerm = tempGraph.findEdges(HyperTermIdentifier(Identifier("b"))).head.target
     val newBTerm = HyperTermId(101)
     if (aTerm == originalATerm)
       graph.nodes should not contain newATerm

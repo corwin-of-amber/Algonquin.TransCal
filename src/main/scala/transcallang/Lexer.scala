@@ -36,7 +36,7 @@ object Lexer extends RegexParsers {
   }
 
   def identifier: Parser[IDENTIFIER] = positioned {
-    (Language.identifierRegex | Language.typeRegex) ^^ { str => IDENTIFIER(str) }
+    Language.identifierRegex ^^ { str => IDENTIFIER(str) }
   }
 
   def literal: Parser[LITERAL] = positioned {
