@@ -1,9 +1,8 @@
 package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
-import Language._
-import transcallang.AnnotatedTree
 import synthesis.Programs
+import transcallang.Language._
 import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
 import scala.util.parsing.combinator.Parsers
