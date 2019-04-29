@@ -1,8 +1,7 @@
 package synthesis.actions.operators
 
-import transcallang.{Identifier, Language}
+import transcallang.{AnnotatedTree, Identifier, Language}
 import structures._
-import syntax.{Tree}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LetAction.LetMetadata
 import synthesis.rewrites.RewriteRule
@@ -17,17 +16,17 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LetAction(val term: Tree[Identifier]) extends Action {
+class LetAction(val term: AnnotatedTree) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
 
   assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
 
-  private def createRuleWithName(args: Tree[Identifier], body: Tree[Identifier], funcName: Identifier): (Set[RewriteRule], Tree[Identifier]) = {
+  private def createRuleWithName(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
     val (innerRewrites, newTerm) = createRewrites(body)
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
-    val condTerm = new Tree(funcName, params)
+    val condTerm = AnnotatedTree(funcName, params, Seq.empty)
     val (pattern, conclusion) = {
       val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
       (patterns(0), patterns(1))
@@ -39,12 +38,12 @@ class LetAction(val term: Tree[Identifier]) extends Action {
       pattern.addEdge(newRootEdge).removeEdge(rootEdge)
     }
 
-    (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), new Tree(funcName))
+    (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))
   }
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
-  private def createRewrites(t: Tree[Identifier], optName: Option[Identifier] = None): (Set[RewriteRule], Tree[Identifier]) = {
+  private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
       case Language.letId | Language.directedLetId =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
@@ -67,12 +66,12 @@ class LetAction(val term: Tree[Identifier]) extends Action {
         val newFunc = optName.getOrElse(LetAction.functionNamer(t))
         val guarded = t.subtrees.tail
         val innerRules = guarded.flatMap(g => createRuleWithName(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
-        (innerRules, new Tree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param)))
+        (innerRules, AnnotatedTree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param), Seq.empty))
       case _ =>
         val results = t.subtrees map (s => createRewrites(s))
         val subtrees = results.map(_._2)
         val innerRewrites = results.flatMap(_._1)
-        (innerRewrites.toSet, new Tree(t.root, subtrees))
+        (innerRewrites.toSet, AnnotatedTree(t.root, subtrees, Seq.empty))
     }
   }
 
@@ -91,7 +90,7 @@ class LetAction(val term: Tree[Identifier]) extends Action {
 
 object LetAction {
   private val creator = Stream.from(transcallang.Language.arity.size).iterator
-  protected def functionNamer(term: Tree[Identifier]): Identifier = {
+  protected def functionNamer(term: AnnotatedTree): Identifier = {
     Identifier(s"f${creator.next()}")
   }
 

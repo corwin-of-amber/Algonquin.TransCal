@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import transcallang.{Identifier, Language, TranscalParser}
 import org.scalatest.{FunSuite, Matchers}
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge}
-import syntax.Tree
+import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
@@ -14,19 +14,19 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
 
   test("Bidirectional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat = ?xs :: ?xss ↦ xs ++ concat xss")
-    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(new Tree(Identifier("concat"))), Set.empty)
+    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty)
     newState.rewriteRules.size shouldEqual 3
   }
 
   test("Directional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat >> ?xs :: ?xss ↦ xs ++ concat xss")
-    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(new Tree(Identifier("concat"))), Set.empty)
+    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty)
     newState.rewriteRules.size shouldEqual 2
   }
 
   test("Simple let rewrite should match and reconstruct") {
     val letTerm = (new TranscalParser).apply("f ?x >> x + y")
-    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(new Tree(Identifier("f"), List(new Tree(Identifier("z"))))), Set.empty)
+    val newState = new LetAction(letTerm) apply ActionSearchState(Programs(AnnotatedTree(Identifier("f"), List(AnnotatedTree.identifierOnly(Identifier("z"))), Seq.empty)), Set.empty)
     newState.rewriteRules.size shouldEqual 1
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val newEdges = searchState.graph.findEdges(HyperTermIdentifier(Identifier("+")))
@@ -37,10 +37,14 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
   test("Handles precondition correctly") {
     val letTerm = (new TranscalParser).apply("(?x ≤ ?y) ||> min(x, y) >> id x")
     val letAction = new LetAction(letTerm)
-    val newState = letAction apply ActionSearchState(Programs(new Tree(Language.trueCondBuilderId, List(
-      new Tree(Identifier("≤"), List(new Tree(Identifier("a")), new Tree(Identifier("b")))),
-      new Tree(Identifier("min"), List(new Tree(Identifier("a")), new Tree(Identifier("b")))))
-    )), Set.empty)
+    val newState = letAction apply ActionSearchState(Programs(AnnotatedTree(
+      Language.trueCondBuilderId,
+      List(
+        AnnotatedTree(Identifier("≤"), List(AnnotatedTree.identifierOnly(Identifier("a")), AnnotatedTree.identifierOnly(Identifier("b"))), Seq.empty),
+        AnnotatedTree(Identifier("min"), List(AnnotatedTree.identifierOnly(Identifier("a")), AnnotatedTree.identifierOnly(Identifier("b"))), Seq.empty)
+      ),
+      Seq.empty)
+    ), Set.empty)
     newState.rewriteRules.size shouldEqual 1
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val newEdges = searchState.graph.findEdges(HyperTermIdentifier(Language.idId))

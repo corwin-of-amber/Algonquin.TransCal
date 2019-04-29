@@ -1,15 +1,14 @@
 package synthesis.actions.operators
 
-import transcallang.{Identifier, Language}
-import syntax.{Tree}
+import transcallang.{AnnotatedTree, Language}
 import synthesis.actions.ActionSearchState
 
-class DefAction(term: Tree[Identifier]) extends Action {
+class DefAction(term: AnnotatedTree) extends Action {
   private val letAction: LetAction = new LetAction(term)
   private val updatedTerm = {
     val toSwitch = term.leaves.filter(_.root.literal.toString.startsWith("?"))
-    val switchTo = toSwitch.map(t => new Tree(t.root.copy(literal=t.root.literal.drop(1))))
-    term.replaceDescendants(toSwitch zip switchTo toList)
+    val switchTo = toSwitch.map(t => AnnotatedTree.identifierOnly(t.root.copy(literal=t.root.literal.drop(1))))
+    term.replaceDescendants(toSwitch zip switchTo)
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {

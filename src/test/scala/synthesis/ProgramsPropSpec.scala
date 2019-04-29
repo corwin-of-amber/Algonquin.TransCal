@@ -8,7 +8,7 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import structures.immutable.VersionedHyperGraph
-import syntax.Tree
+import transcallang.AnnotatedTree
 import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
@@ -18,7 +18,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   implicit val programsCreator = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    check(forAll { term: Tree[Identifier] => {
+    check(forAll { term: AnnotatedTree => {
       val (graph, root) = Programs.destructWithRoot(term)
       val programs = Programs(graph)
       programs.reconstruct(root).contains(term) :| programs.toString
@@ -34,7 +34,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("be able to handle a tree of one and return it") {
     check(forAll { (root: Identifier, son: Identifier) => {
-      val tree = new Tree[Identifier](root, List(new Tree[Identifier](son)))
+      val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son)), Seq.empty)
       val programs = Programs(tree)
 
       val results = programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
@@ -47,7 +47,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("be able to handle a tree with 1 depth and return it") {
     check(forAll { (root: Identifier, son1: Identifier, son2: Identifier) =>
       (root != son1 && root != son2) ==> {
-        val tree = new Tree[Identifier](root, List(new Tree[Identifier](son1), new Tree[Identifier](son2)))
+        val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son1), AnnotatedTree.identifierOnly(son2)), Seq.empty)
         val programs = Programs(tree)
 
         val results = {
@@ -73,9 +73,9 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("destruct splitted term and find using pattern") {
-    check(forAll { (term1: Tree[Identifier], term2: Tree[Identifier]) =>
+    check(forAll { (term1: AnnotatedTree, term2: AnnotatedTree) =>
       (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
-        val progs = Programs(new Tree[Identifier](splitId, List(term1, term2)))
+        val progs = Programs(new AnnotatedTree(splitId, List(term1, term2), Seq.empty))
         val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("id")))
         edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
@@ -116,7 +116,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         HyperEdge(HyperTermId(15), HyperTermIdentifier(Identifier("{.}")), List(HyperTermId(1)), EmptyMetadata)
       ): _*)
     val terms = new Programs(graph).reconstruct(HyperTermId(11))
-    check(terms.exists((t: Tree[Identifier]) => t.nodes.map(_.root.literal).contains("‖")))
+    check(terms.exists((t: AnnotatedTree) => t.nodes.map(_.root.literal).contains("‖")))
   }
 
   property("when deconstructing any hole create a special edge to match all nodes") {

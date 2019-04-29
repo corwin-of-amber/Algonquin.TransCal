@@ -4,7 +4,7 @@ import java.io.PrintStream
 
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge}
-import syntax.Tree
+import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
@@ -17,7 +17,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/18/18
   */
-class UserAction(in: Iterator[Tree[Identifier]], out: PrintStream) extends Action {
+class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   private val seperator = "---------------------------"
 
@@ -69,7 +69,7 @@ class UserAction(in: Iterator[Tree[Identifier]], out: PrintStream) extends Actio
         //   2) pattern => Locate and print reconstruct matching pattern
         //   3) a term => extract the left to to match the term (Generalize or extract methods)
         if (foundId.nonEmpty) term.subtrees(1) match {
-          case t: Tree[Identifier] if t.subtrees.isEmpty && t.root.literal != "_" =>
+          case t: AnnotatedTree if t.subtrees.isEmpty && t.root.literal != "_" =>
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
             logger.info("RHS is a symbol adding it to graph")
@@ -79,11 +79,11 @@ class UserAction(in: Iterator[Tree[Identifier]], out: PrintStream) extends Actio
               ): _*), maxSearchDepth = lim).apply(tempState)
             logger.debug("Finished adding symbol.")
             res
-          case t: Tree[Identifier] if t.root.literal.toString.startsWith("?") =>
+          case t: AnnotatedTree if t.root.literal.toString.startsWith("?") =>
             // A term to generalize - run generalize Action as is
             logger.info("RHS is a term running generalize.")
-            new GeneralizeAction(anchor, t.subtrees, new Tree(t.root), lim).apply(tempState)
-          case t: Tree[Identifier] =>
+            new GeneralizeAction(anchor, t.subtrees, AnnotatedTree.identifierOnly(t.root), lim).apply(tempState)
+          case t: AnnotatedTree =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.info("RHS is a pattern running elaborate.")
             new ElaborateAction(anchor, rhs._1, rhs._2, lim).apply(tempState)

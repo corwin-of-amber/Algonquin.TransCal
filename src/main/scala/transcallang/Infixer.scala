@@ -82,6 +82,6 @@ object Infixer {
   val HIGH = 50
 }
 
-trait TermInfixer extends Infixer[WorkflowToken, Tree[Identifier], TermInfixer] {
-  override def buildReturn(left: Tree[Identifier], operator: WorkflowToken, right: Tree[Identifier]): Tree[Identifier] = new Tree[Identifier](operator.toIdentifier, List(left, right))
+trait TermInfixer extends Infixer[WorkflowToken, AnnotatedTree, TermInfixer] {
+  override def buildReturn(left: AnnotatedTree, operator: WorkflowToken, right: AnnotatedTree): AnnotatedTree = new AnnotatedTree(operator.toIdentifier, List(left, right), Seq.empty)
 }

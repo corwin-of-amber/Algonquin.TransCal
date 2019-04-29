@@ -2,7 +2,7 @@ package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
 import Language._
-import syntax.Tree
+import transcallang.AnnotatedTree
 import synthesis.Programs
 import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
@@ -10,7 +10,7 @@ import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 
-class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifier]] with TermInfixer {
+class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree] with TermInfixer {
   override type Elem = WorkflowToken
 
   class WorkflowTokenReader(tokens: Seq[WorkflowToken]) extends Reader[WorkflowToken] {
@@ -27,7 +27,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
 
   override def log[T](p: => Parser[T])(name: String): Parser[T] = p
 
-  def apply(programText: String): Tree[Identifier] = {
+  def apply(programText: String): AnnotatedTree = {
     // Clean comments and new lines inside parenthesis
     // TODO: replace comments with whitespace for receiving errorl location correctly
     def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
@@ -47,8 +47,6 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
     }
   }
 
-  private def TREE(x: Identifier, subtrees: List[Tree[Identifier]] = List.empty): Tree[Identifier] = new Tree(x, subtrees)
-
   // Example of defining a parser for a word
   // def word: Parser[String]    = """[a-z]+""".r ^^ { _.toString }
 
@@ -67,168 +65,182 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
   private val CBC = CURLYBRACETCLOSE()
   private val CBO = CURLYBRACETOPEN()
 
-  private def identifierLiteral: Parser[Tree[Identifier]] = accept("identifier", {
-    case IDENTIFIER(name) if Language.identifierRegex.unapplySeq(name).isDefined => TREE(Identifier(name))
-    case HOLE() => TREE(Language.holeId)
+  private def identifierLiteral: Parser[AnnotatedTree] = accept("identifier", {
+    case IDENTIFIER(name) if Language.identifierRegex.unapplySeq(name).isDefined => AnnotatedTree.identifierOnly(Identifier(name))
+    case HOLE() => AnnotatedTree.identifierOnly(Language.holeId)
   })
 
-  private def number: Parser[Tree[Identifier]] = accept("number", { case NUMBER(x) => TREE(Identifier(x.toString)) })
+  // TODO: add type annotation
+  private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree(Identifier(x.toString), Seq.empty, Seq.empty) })
 
-  private def literal: Parser[Tree[Identifier]] = accept("string literal", { case LITERAL(name) => TREE(Language.stringLiteralId, List(TREE(Identifier(name)))) })
+  private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name))), Seq.empty) })
 
-  def types: Parser[Tree[Identifier]] = (exprValuesAndParens ~ log((MAPTYPE() ~> types).?)("getting map type def")) ^^ {
+  def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> types).?)("getting map type def")) ^^ {
     case x ~ None => x
-    case x ~ Some(recursive) => TREE(Language.mapTypeId, List(x, recursive))
+    // TODO: do we need type annotations?
+    case x ~ Some(recursive) => AnnotatedTree(Language.mapTypeId, List(x, recursive), Seq.empty)
   }
 
-  def identifier: Parser[Tree[Identifier]] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
+  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
     i match {
-      case (x: Tree[Identifier]) ~ None => x
-      case (x: Tree[Identifier]) ~ Some(z) => TREE(Language.typeBuilderId, List(x, z))
+      case (x: AnnotatedTree) ~ None => x
+      // TODO: Add type annotation
+      case (x: AnnotatedTree) ~ Some(z) => x
     }
   }
 
-  def consts: Parser[Tree[Identifier]] = (NIL() | TRUE() | FALSE()) ^^ {
-    case NIL() => TREE(Language.nilId)
-    case TRUE() => TREE(Language.trueId)
-    case FALSE() => TREE(Language.falseId)
+  def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
+    // TODO: Add type annotation
+    case NIL() => AnnotatedTree(Language.nilId, Seq.empty, Seq.empty)
+    // TODO: Add type annotation
+    case TRUE() => AnnotatedTree(Language.trueId, Seq.empty, Seq.empty)
+    // TODO: Add type annotation
+    case FALSE() => AnnotatedTree(Language.falseId, Seq.empty, Seq.empty)
   }
 
-  def tuple: Parser[Tree[Identifier]] = ((RBO ~> COMMA() <~ RBC) |
+  def tuple: Parser[AnnotatedTree] = ((RBO ~> COMMA() <~ RBC) |
     (RBO ~> (expression <~ COMMA()).+ ~ expression.? <~ RBC)) ^^ { x =>
     val subtrees = x match {
-      case (others: scala.List[Tree[Identifier]]) ~ (one: Option[Tree[Identifier]]) =>
+      case (others: scala.List[AnnotatedTree]) ~ (one: Option[AnnotatedTree]) =>
         logger.trace(s"found tuple - $others, $one")
         one.map(others :+ _) getOrElse others
       case COMMA() => List.empty
     }
-    TREE(Language.tupleId, subtrees)
+    AnnotatedTree(Language.tupleId, subtrees, Seq.empty)
   }
 
-  def exprValuesAndParens: Parser[Tree[Identifier]] = (tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC) | number | consts | identifier) ^^ {
-    case m: Tree[Identifier] => m
-    case CBO ~ t ~ CBC => TREE(Language.setId, List(t.asInstanceOf[Tree[Identifier]]))
+  def exprValuesAndParens: Parser[AnnotatedTree] = (tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC) | number | consts | identifier) ^^ {
+    // TODO: pass annotations upwards?
+    case m: AnnotatedTree => m
+    // TODO: Add type annotation
+    case CBO ~ t ~ CBC => AnnotatedTree(Language.setId, List(t.asInstanceOf[AnnotatedTree]), Seq.empty)
   }
 
-  def exprApply: Parser[Tree[Identifier]] = rep1(exprValuesAndParens) ^^ { applied =>
+  def exprApply: Parser[AnnotatedTree] = rep1(exprValuesAndParens) ^^ { applied =>
     if (applied.tail.isEmpty) applied.head
     else {
       logger.trace(s"apply - $applied")
       applied.tail match {
-        case t: List[Tree[Identifier]] if t.head.root == Language.tupleId && t.size == 1 => TREE(applyId, applied.head :: applied.last.subtrees)
-        case _ => TREE(applyId, applied)
+        case t: Seq[AnnotatedTree] if t.head.root == Language.tupleId && t.size == 1 => applied.head.copy(subtrees=applied.head.subtrees ++ applied.last.subtrees)
+        case _ => applied.head.copy(subtrees=applied.head.subtrees ++ applied.drop(1))
       }
     }
   }
 
-  def exprNot: Parser[Tree[Identifier]] = (rep(NOT()) ~ exprApply) ^^ { x =>
+  def exprNot: Parser[AnnotatedTree] = (rep(NOT()) ~ exprApply) ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
-      case applied ~ exp => applied.foldLeft(exp)((t, _) => new Tree(Language.negId, List(t)))
+      // TODO maybe add type annotation as it must be bool?
+      case applied ~ exp => applied.foldLeft(exp)((t, _) => AnnotatedTree(Language.negId, List(t), Seq.empty))
     }
   }
 
-  def exprInfixOperator: Parser[Tree[Identifier]] = operatorsParser(exprNot)
+  def exprInfixOperator: Parser[AnnotatedTree] = operatorsParser(exprNot)
 
   private val normalToUnicode: Map[String, String] = Map("\\/" -> "∨", "/\\" -> "∧", "!=" -> "≠", "||" -> "‖", "<=" -> "≤", ">=" -> "≥", "=>" -> "⇒")
 
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
 
-  private def replaceUnicode(t: Tree[Identifier]): Tree[Identifier] = t match {
-    case t: Tree[Identifier] if t.isLeaf => t
-    case t: Tree[Identifier] => new Tree[Identifier](t.root.copy(translateUnicode(t.root.literal)), t.subtrees.map(replaceUnicode))
+  // TODO: do we want different case for leaves?
+  private def replaceUnicode(t: AnnotatedTree): AnnotatedTree = t match {
+    case t: AnnotatedTree if t.isLeaf => t
+    case t: AnnotatedTree => t.copy(root=t.root.copy(translateUnicode(t.root.literal)), subtrees=t.subtrees.map(replaceUnicode))
   }
 
-  def guarded: Parser[Tree[Identifier]] = ((RBO ~> guarded <~ RBC) | ((exprInfixOperator <~ log(GUARDED())("guarded")) ~ expression)) ^^ (x => {
+  def guarded: Parser[AnnotatedTree] = ((RBO ~> guarded <~ RBC) | ((exprInfixOperator <~ log(GUARDED())("guarded")) ~ expression)) ^^ (x => {
     logger.trace(s"found guarded - $x")
     x match {
-      case (x1: Tree[Identifier]) ~ (x2: Tree[Identifier]) => TREE(Language.guardedId, List(x1, x2))
-      case x: Tree[Identifier] => x
+      case (x1: AnnotatedTree) ~ (x2: AnnotatedTree) => AnnotatedTree(Language.guardedId, List(x1, x2), Seq.empty)
+      case x: AnnotatedTree => x
     }
   })
 
-  def splitted: Parser[List[Tree[Identifier]]] = ((RBO ~> splitted <~ RBC)| (guarded ~ (BACKSLASH() ~> guarded).+)) ^^ {
-    case x: List[Tree[Identifier]] => x
-    case x: (Tree[Identifier] ~ List[Tree[Identifier]]) => x._1 +: x._2
+  def splitted: Parser[List[AnnotatedTree]] = ((RBO ~> splitted <~ RBC)| (guarded ~ (BACKSLASH() ~> guarded).+)) ^^ {
+    case x: List[AnnotatedTree] => x
+    case x: (AnnotatedTree ~ List[AnnotatedTree]) => x._1 +: x._2
   }
 
-  def expression: Parser[Tree[Identifier]] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {
-    case (matched: Tree[Identifier]) ~ (terms: List[Tree[Identifier]]) =>
+  def expression: Parser[AnnotatedTree] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {
+    case (matched: AnnotatedTree) ~ (terms: List[AnnotatedTree]) =>
       logger.trace(s"found match expression $matched ~ $terms")
-      replaceUnicode(TREE(Language.matchId, List(matched) ++ terms))
-    case x: Tree[Identifier] =>
+      replaceUnicode(AnnotatedTree(Language.matchId, List(matched) ++ terms, Seq.empty))
+    case x: AnnotatedTree =>
       logger.trace(s"found expression $x")
       replaceUnicode(x)
   }
 
-  def annotation: Parser[Tree[Identifier]] = accept("annotation", { case ANNOTATION(name) => TREE(Identifier(name)) })
+  // TODO: we should insert annotation into tree node.
+  def annotation: Parser[AnnotatedTree] = accept("annotation", { case ANNOTATION(name) => AnnotatedTree.identifierOnly(Identifier(name)) })
 
-  def statementCommand: Parser[Tree[Identifier]] = (expression ~ log(RIGHTARROW())("tactic statement") ~! expression ~ annotation.?) ^^ { x =>
+  // TODO: we should insert annotation into tree node.
+  def statementCommand: Parser[AnnotatedTree] = (expression ~ log(RIGHTARROW())("tactic statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
-        val definitionTerm = new Tree(Language.tacticId, List(left, right))
-        anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
+        val definitionTerm = AnnotatedTree(Language.tacticId, List(left, right), Seq.empty)
+        anno.map(a => AnnotatedTree(Language.annotationId, List(definitionTerm, a), Seq.empty)) getOrElse definitionTerm
     }
   }
 
-  def statementDefinition: Parser[Tree[Identifier]] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ log(LET() | DIRECTEDLET())("let statement") ~! expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[AnnotatedTree] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ log(LET() | DIRECTEDLET())("let statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement let - $x")
     x match {
       case op ~ left ~ defdir ~ right ~ anno =>
         // This means lhs is a function
         val (fixedLeft, fixedRight) = right.root match {
           case Language.lambdaId =>
+            // Doing some lambda param fixing
             val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
             val newRight = right.subtrees(1)
-            val newLeft = TREE(left.root, left.subtrees ++ rightParams)
+            val newLeft = AnnotatedTree(left.root, left.subtrees ++ rightParams, Seq.empty)
             (newLeft, newRight)
           case _ => (left, right)
         }
-        val conditionedLeft = op.map(o => TREE(trueCondBuilderId, List(o, fixedLeft))).getOrElse(fixedLeft)
+        val conditionedLeft = op.map(o => AnnotatedTree(trueCondBuilderId, List(o, fixedLeft), Seq.empty)).getOrElse(fixedLeft)
         val dir = if (defdir == LET()) Language.letId else Language.directedLetId
-        val definitionTerm = TREE(dir, List(conditionedLeft, fixedRight))
-        anno.map(a => new Tree(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
+        // TODO: we should insert annotation into tree node.
+        val definitionTerm = AnnotatedTree(dir, List(conditionedLeft, fixedRight), Seq.empty)
+        anno.map(a => AnnotatedTree(Language.annotationId, List(definitionTerm, a), Seq.empty)) getOrElse definitionTerm
     }
   }
 
-  def statement: Parser[Tree[Identifier]] = (statementDefinition | statementCommand) ^^ { t =>
+  def statement: Parser[AnnotatedTree] = (statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - ${Programs.termToString(t)} $t")
 
-    def applyClojure(env: Seq[Identifier], t: Tree[Identifier]): Tree[Identifier] = {
+    def applyClojure(env: Seq[Identifier], t: AnnotatedTree): AnnotatedTree = {
       val replacemnetVarPrefix = "?autovar"
-      def getReplacmentParams(newAutovars: List[Identifier]): (List[(Identifier, Identifier)], List[(Identifier, Identifier)]) = {
-        val nextVar =
-          if ((env ++ newAutovars).isEmpty) 0
-          else (env ++ newAutovars).map(_.literal.toString match {
-            case a: String if a.startsWith(replacemnetVarPrefix) => a.drop(replacemnetVarPrefix.length).toInt
-            case _ => -1
-          }).max + 1
 
-        val toAddParamsDefinitions: List[(Identifier, Identifier)] = t.subtrees.tail.flatMap(_.terminals).zip(Stream.from(nextVar)).map(i =>
+      def getReplacmentParams(newAutovars: Seq[Identifier]): (Seq[(Identifier, Identifier)], Seq[(Identifier, Identifier)]) = {
+        val nextVar = (env ++ newAutovars)
+          .map(_.literal)
+          .filter(_.startsWith(replacemnetVarPrefix)).map(_.drop(replacemnetVarPrefix.length).toInt)
+          .sorted.lastOption.getOrElse(-1) + 1
+
+        val toAddParamsDefinitions: Seq[(Identifier, Identifier)] = t.subtrees.tail.flatMap(_.terminals).zip(Stream.from(nextVar)).map(i =>
           (i._1.copy(literal="?" + i._1.literal),
             i._1.copy(literal=replacemnetVarPrefix + i._2))
         ).filter(env contains _._1)
 
-        val toAddParamsUses: List[(Identifier, Identifier)] = toAddParamsDefinitions.map(i =>
+        val toAddParamsUses: Seq[(Identifier, Identifier)] = toAddParamsDefinitions.map(i =>
           (i._1.copy(i._1.literal.drop(1)),
             i._2.copy(i._2.literal.drop(1))))
 
         (toAddParamsDefinitions, toAddParamsUses)
       }
 
-      def replaceIdentifiers(term: Tree[Identifier], paramsUses: Map[Identifier, Identifier]): Tree[Identifier] = {
+      def replaceIdentifiers(term: AnnotatedTree, paramsUses: Map[Identifier, Identifier]): AnnotatedTree = {
         if (paramsUses.contains(term.root))
-          if (term.isLeaf) TREE(paramsUses(term.root))
-          else TREE(Language.applyId, TREE(paramsUses(term.root)) +: term.subtrees.map(replaceIdentifiers(_, paramsUses)))
-        else TREE(term.root, term.subtrees.map(replaceIdentifiers(_, paramsUses)))
+          if (term.isLeaf) term.map(i => paramsUses.getOrElse(i, i))
+          // TODO: Why are we inserting apply?
+          else AnnotatedTree(Language.applyId, AnnotatedTree.identifierOnly(paramsUses(term.root)) +: term.subtrees.map(replaceIdentifiers(_, paramsUses)), Seq.empty)
+        else term.copy(subtrees=term.subtrees.map(replaceIdentifiers(_, paramsUses)))
       }
 
       t.root match {
         case Language.letId | Language.directedLetId =>
           val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?"))
           assert(env.intersect(newParams).isEmpty)
-          TREE(t.root, List(t.subtrees(0), applyClojure(newParams ++ env, t.subtrees(1))))
+          t.copy(subtrees=List(t.subtrees(0), applyClojure(newParams ++ env, t.subtrees(1))))
         case Language.matchId =>
           // Renaming params to add to clojure
           val newAutovars = t.subtrees.tail.flatMap(_.subtrees.head.terminals).filter(_.literal.toString.startsWith("?"))
@@ -239,17 +251,19 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
           val matchCallParams = {
             if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, toAddParamsUses.map(i => TREE(i._1)) ++ t.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, toAddParamsUses.map(i => TREE(i._1)) :+ t.subtrees(0))
+              // TODO: if we have annotation changing values might change annotation?
+              case Language.tupleId => t.copy(subtrees=toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) ++ t.subtrees(0).subtrees)
+              case i: Identifier => AnnotatedTree(Language.tupleId, toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) :+ t.subtrees(0), Seq.empty)
             }
           }
 
           val newGuarded = t.subtrees.tail.map(st => {
             // root should always be guarded
             val newMatchedTree = st.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) ++ st.subtrees(0).subtrees)
+              // TODO: if we have annotation changing values might change annotation?
+              case Language.tupleId => st.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ st.subtrees(0).subtrees)
               case i: Identifier =>
-                if (toAddParamsDefinitions.nonEmpty) TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ st.subtrees(0))
+                if (toAddParamsDefinitions.nonEmpty) AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ st.subtrees(0), Seq.empty)
                 else st.subtrees(0)
             }
 
@@ -257,12 +271,13 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
             assert(env.intersect(newParams).isEmpty)
 
             val useMap = toAddParamsUses.toMap
-            TREE(st.root, List(newMatchedTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(st.subtrees(1), useMap))))
+            st.copy(subtrees=List(newMatchedTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(st.subtrees(1), useMap))))
           })
 
-          TREE(
+          AnnotatedTree(
             Language.matchId,
-            matchCallParams +: newGuarded
+            matchCallParams +: newGuarded,
+            t.annotations
           )
         case Language.lambdaId =>
           val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?")).toList
@@ -274,38 +289,39 @@ class TranscalParser extends Parsers with LazyLogging with Parser[Tree[Identifie
           val paramsTree = {
             if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
-              case Language.tupleId => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) ++ t.subtrees(0).subtrees)
-              case i: Identifier => TREE(Language.tupleId, toAddParamsDefinitions.map(i => TREE(i._2)) :+ t.subtrees(0))
+              case Language.tupleId => t.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ t.subtrees(0).subtrees)
+              case i: Identifier => AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ t.subtrees(0), Seq.empty)
             }
           }
 
           val useMap = toAddParamsUses.toMap
-          val updatedLambda = TREE(
+          val updatedLambda = AnnotatedTree(
             Language.lambdaId,
-            List(paramsTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(t.subtrees(1), useMap)))
+            List(paramsTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(t.subtrees(1), useMap))),
+            Seq.empty
           )
 
           if (toAddParamsDefinitions.isEmpty) updatedLambda
-          else TREE(Language.applyId, updatedLambda +: toAddParamsUses.map(i => TREE(i._1)))
-        case i: Identifier => TREE(i, t.subtrees map (s => applyClojure(env, s)))
+          else AnnotatedTree(Language.applyId, updatedLambda +: toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)), Seq.empty)
+        case i: Identifier => AnnotatedTree(i, t.subtrees map (s => applyClojure(env, s)), Seq.empty)
       }
     }
 
     applyClojure(Seq.empty, t)
   }
 
-  def commands: Parser[Tree[Identifier]] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ {
+  def commands: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ {
     x =>
       logger.debug(s"command - $x")
-      new Tree(Language.commandId, List(TREE(Identifier(x match {
+      AnnotatedTree(Language.commandId, List(AnnotatedTree.identifierOnly(Identifier(x match {
         case RIGHTARROW() => "<-"
         case LEFTARROW() => "->"
         case SBO ~ SBC | SQUARE() => "[]"
-      }))))
+      }))), Seq.empty)
   }
 
-  def program: Parser[Tree[Identifier]] = phrase(SEMICOLON().* ~> (statement | commands) ~ rep(SEMICOLON().+ ~> (statement | commands).?)) ^^ {
-    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => new Tree(semicolonId, List(t1, t2)))
+  def program: Parser[AnnotatedTree] = phrase(SEMICOLON().* ~> (statement | commands) ~ rep(SEMICOLON().+ ~> (statement | commands).?)) ^^ {
+    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => AnnotatedTree(semicolonId, List(t1, t2), Seq.empty))
   }
 
   /** The known left operators at the moment */

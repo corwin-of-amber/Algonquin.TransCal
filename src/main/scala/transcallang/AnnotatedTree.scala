@@ -16,19 +16,19 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
 
   def size: Int = 1 + (0 /: (subtrees map (_.size)))(_ + _)
 
-  def map[S](rootOp: Identifier => Identifier, annotationsOp: String => String) : AnnotatedTree =
-    AnnotatedTree(rootOp(root), subtrees.map (_.map(rootOp, annotationsOp)), annotations.map(annotationsOp))
+  def map[S](rootOp: Identifier => Identifier) : AnnotatedTree =
+    copy(root=rootOp(root), subtrees=subtrees.map (_.map(rootOp)))
 
   def hasDescendant(descendant: AnnotatedTree): Boolean = nodes contains descendant
 
   def replaceDescendant(switch: (AnnotatedTree, AnnotatedTree)): AnnotatedTree =
     if (switch._1 == this) switch._2
-    else AnnotatedTree(root, subtrees map (_.replaceDescendant(switch)), annotations)
+    else copy(subtrees=subtrees map (_.replaceDescendant(switch)))
 
-  def replaceDescendants(switch: List[(AnnotatedTree, AnnotatedTree)]): AnnotatedTree =
+  def replaceDescendants(switch: Seq[(AnnotatedTree, AnnotatedTree)]): AnnotatedTree =
     switch find (_._1 == this) match {
       case Some(sw) => sw._2
-      case _ => AnnotatedTree(root, subtrees map (_.replaceDescendants(switch)), annotations)
+      case _ => copy(subtrees=subtrees map (_.replaceDescendants(switch)))
     }
 
   override def toString(): String = {
@@ -38,4 +38,8 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
       s"$root{$children}"
     }
   }
+}
+
+object AnnotatedTree {
+  def identifierOnly(root: Identifier): AnnotatedTree = new AnnotatedTree(root, Seq.empty, Seq.empty)
 }

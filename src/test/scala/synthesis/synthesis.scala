@@ -1,21 +1,21 @@
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import syntax.Tree
+import transcallang.AnnotatedTree
 import transcallang.Identifier
 
 import scala.util.Random
 
 package object synthesis {
-  def TreeGenFactory[Node](valuesSource: Gen[Node]): Gen[Tree[Node]] = {
-    val leafGen: Gen[Tree[Node]] = valuesSource.map(new Tree(_))
+  def TreeGenFactory(valuesSource: Gen[Identifier]): Gen[AnnotatedTree] = {
+    val leafGen: Gen[AnnotatedTree] = valuesSource.map(AnnotatedTree.identifierOnly)
 
-    def nodeGen(depth: Int): Gen[Tree[Node]] = {
+    def nodeGen(depth: Int): Gen[AnnotatedTree] = {
       val treeGen = if (depth == 0) leafGen else oneOf(leafGen, nodeGen(depth - 1))
       for {
         root <- valuesSource
         childrenSize = Random.nextInt(6) + 1
         children <- listOfN(childrenSize, treeGen)
-      } yield new Tree[Node](root, children)
+      } yield AnnotatedTree(root, children, Seq.empty)
     }
 
     oneOf(leafGen, nodeGen(5))
@@ -24,7 +24,7 @@ package object synthesis {
 
   val identifierGen: Gen[Identifier] = oneOf((0 to 50).map(x => Identifier(x.toString)))
 
-  val identifierTreesGen: Gen[Tree[Identifier]] = TreeGenFactory(identifierGen)
+  val identifierTreesGen: Gen[AnnotatedTree] = TreeGenFactory(identifierGen)
 
   val programsGen: Gen[Programs] = identifierTreesGen.map(Programs(_))
 }

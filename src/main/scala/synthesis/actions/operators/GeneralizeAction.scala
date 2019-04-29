@@ -1,31 +1,31 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import syntax.Tree
+import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermIdentifier, Programs}
-import transcallang.{Identifier, Language}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 /**
   * @author tomer
   * @since 11/18/18
   */
-class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Tree[Identifier]], name: Tree[Identifier], maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
+class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], name: AnnotatedTree, maxSearchDepth: Option[Int] = None) extends Action with LazyLogging {
 
-  private val vars = leaves.indices map (i => new Tree(Identifier(s"?autovar$i")))
-  private val fun = new Tree(name.root.copy(literal=name.root.literal.replace("?", "")), vars.toList)
+  private val vars = leaves.indices map (i => AnnotatedTree.identifierOnly(Identifier(s"?autovar$i")))
+  private val fun = AnnotatedTree(name.root.copy(literal=name.root.literal.replace("?", "")), vars.toList, Seq.empty)
 
-  private def getGeneralizedTerms(progs: Programs): Set[Tree[Identifier]] = {
+  private def getGeneralizedTerms(progs: Programs): Set[AnnotatedTree] = {
     // TODO: Filter out expressions that use context but allow constants
     // Reconstruct and generalize
     progs.hyperGraph.findEdges(anchor) map (_.target) flatMap { root =>
       (for (term <- progs.reconstruct(root).filter(t => leaves.diff(t.nodes).isEmpty)) yield {
         logger.debug(s"Generalizing using the term $term")
 
-        new Tree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))))
+        AnnotatedTree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))), Seq.empty)
       }).take(NUM_ALTS_TO_SHOW)
     }
   }
@@ -33,7 +33,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: List[Tree[Identifier
   override def apply(state: ActionSearchState): ActionSearchState = {
     logger.debug(s"Running generalize action on $anchor")
 
-    val (gen, tempState): (Set[Tree[Identifier]], ActionSearchState) = {
+    val (gen, tempState): (Set[AnnotatedTree], ActionSearchState) = {
       val temp = getGeneralizedTerms(state.programs)
       if (temp.nonEmpty) {
         (temp, state)
