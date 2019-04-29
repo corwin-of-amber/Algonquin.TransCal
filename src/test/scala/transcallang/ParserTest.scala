@@ -13,7 +13,9 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
       logger.info(s"Working on $f")
-      val text = Source.fromFile(f).getLines().mkString("\n")
+      val source = Source.fromFile(f)
+      val text = source.getLines().mkString("\n")
+      source.close()
       logger.info(text)
       logger.info("")
       val term = p.apply(text)
