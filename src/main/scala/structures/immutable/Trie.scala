@@ -17,15 +17,12 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
     this({
       val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map(t => (t._2 + trieIndex, t._1, word)))
-      val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map(t => {
-        val (index, wordsToIndexes) = t
-        val entry = wordsToIndexes.groupBy(_._2).map(tt => {
-          val (letter, wordsToLetters) = tt
+      val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map(((index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) => {
+        wordsToIndexes.groupBy(_._2).map(((letter: Letter, wordsToLetters: Set[(Int, Letter, VocabularyLike.Word[Letter])]) => {
           val words = wordsToLetters.map(_._3)
           (letter, new Trie(words, index + 1))
-        })
-        entry
-      })
+        }).tupled)
+      }).tupled)
       subtries
     }, wordsFull)
 
@@ -105,10 +102,9 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
       val (mapSubtries, localIndex) = mapSubtriesWithIndex
       val mapSubtriesIndex = index + localIndex + 1
       logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = mapSubtries.map(t => {
-        val (letter, trie) = t
+      val mapSubtriesRemoved = mapSubtries.map(((letter: Letter, trie: Trie[Letter]) => {
         (letter, trie.replaceWithIndex(keep, change, mapSubtriesIndex))
-      })
+      }).tupled)
 
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
