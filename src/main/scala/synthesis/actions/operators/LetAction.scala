@@ -27,6 +27,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
     val condTerm = AnnotatedTree(funcName, params, Seq.empty)
+    // TODO: Add suffix to conclusion (currently it is lost because of ignore)
     val (pattern, conclusion) = {
       val patterns = Programs.destructPatterns(Seq(condTerm, newTerm))
       (patterns(0), patterns(1))
