@@ -29,12 +29,6 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[AnnotatedTree] = {
-//    reconstruct(hyperTermId).filter(t => {
-//      val (destroyedGraph, destroyedRoot) = Programs.destructWithRoot(t)
-//      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyedRoot), _)).getOrElse(pattern)
-//      destroyedGraph.findSubgraph[Int](updatedPattern).nonEmpty
-//    })
-
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.toIterator.flatMap(m => {
