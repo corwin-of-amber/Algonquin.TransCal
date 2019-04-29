@@ -22,7 +22,6 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   /* --- Public Methods --- */
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-//    return findSubgraph[Id](hyperPattern)
     hyperPattern.edges.flatMap(edgePattern => {
       find(edgePattern)
         .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
