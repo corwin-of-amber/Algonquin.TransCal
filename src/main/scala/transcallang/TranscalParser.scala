@@ -78,11 +78,9 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     case x ~ Some(recursive) => AnnotatedTree.withoutAnnotations(Language.mapTypeId, List(x, recursive))
   }
 
-  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
-    i match {
-      case (x: AnnotatedTree) ~ None => x
-      case (x: AnnotatedTree) ~ Some(z) => x.copy(root=x.root.copy(annotation=Some(z)))
-    }
+  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ {
+    case (x: AnnotatedTree) ~ None => x
+    case (x: AnnotatedTree) ~ Some(z) => x.copy(root = x.root.copy(annotation = Some(z)))
   }
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
