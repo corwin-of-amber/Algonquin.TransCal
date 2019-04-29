@@ -231,72 +231,57 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rules.map(parser(_))
   }
 
+  val genericTree = AnnotatedTree.identifierOnly(Identifier("'a"))
+  val listgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(genericTree))
+  val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listgenericTree))
+  val listlistgenericTolistgenericTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listlistgenericTree, listgenericTree))
+
+  val intTree = AnnotatedTree.identifierOnly(Language.intId)
+  val listintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(intTree))
+  val listlistintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listintTree))
+  val intToIntTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(intTree, intTree))
+  val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
+
+
   test("Parse identifier type") {
     val parsed = (new TranscalParser).apply("_: int -> x: int")
-    parsed.subtrees(0).root shouldEqual Language.holeId
-    parsed.subtrees(0).annotations should contain
-    parsed.subtrees(0).subtrees(0).root shouldEqual Language.holeId
-    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "int"
-    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
-    parsed.subtrees(1).subtrees(1).root.literal shouldEqual "int"
+    parsed.subtrees(0).root.literal shouldEqual Language.holeId.literal
+    parsed.subtrees(0).root.annotation.get shouldEqual intTree
+    parsed.subtrees(1).root.literal shouldEqual "x"
+    parsed.subtrees(1).root.annotation.get shouldEqual intTree
   }
 
   test("Parse identifier polymorphic type") {
     val parsed = (new TranscalParser).apply("_: (list int) -> x: (list int)")
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "int"
-
-    parsed.subtrees(1).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
-    parsed.subtrees(1).subtrees(1).root.literal shouldEqual "list"
-    parsed.subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "int"
+    parsed.subtrees(0).root.literal shouldEqual "_"
+    parsed.subtrees(0).root.annotation.get shouldEqual listintTree
+    parsed.subtrees(1).root.literal shouldEqual "x"
+    parsed.subtrees(1).root.annotation.get shouldEqual listintTree
   }
 
   test("Parse identifier polymorphic type of polymorphic") {
     val parsed = (new TranscalParser).apply("_: (list(list int)) -> x")
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "int"
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(listlistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
   test("Parse identifier map type") {
     val parsed = (new TranscalParser).apply("(_: int :> int) -> x")
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "int"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "int"
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(intToIntTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
   test("Parse concat type") {
-    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) (?l: list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
-    // TODO: fix type definitions. Doesn't work because of function flattening and types shouldn't be treated as functions
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "concat"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).subtrees(0).root.literal shouldEqual "'a"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "'a"
-    parsed.subtrees(0).subtrees.size shouldEqual 2
+    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) ?l: (list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
+    parsed.subtrees(0).root.literal shouldEqual "concat"
+    parsed.subtrees(0).root.annotation shouldEqual Some(listlistgenericTolistgenericTree)
+    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?l"
+    parsed.subtrees(0).subtrees(0).root.annotation shouldEqual Some(listlistgenericTree)
+    parsed.subtrees(0).subtrees.size shouldEqual 1
   }
   test("Parse identifier polymorphic map type") {
     val parsed = (new TranscalParser).apply("(_: (list int) :> (list int)) -> x")
-    parsed.subtrees(0).root shouldEqual Language.typeBuilderId
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "_"
-    parsed.subtrees(0).subtrees(1).root shouldEqual Language.mapTypeId
-    parsed.subtrees(0).subtrees(1).subtrees(0).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(0).subtrees(0).root.literal shouldEqual "int"
-    parsed.subtrees(0).subtrees(1).subtrees(1).root.literal shouldEqual "list"
-    parsed.subtrees(0).subtrees(1).subtrees(1).subtrees(0).root.literal shouldEqual "int"
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(listintTolistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 }

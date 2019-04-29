@@ -76,7 +76,7 @@ class RewriteRule(val premise: HyperPattern,
     // TODO: change to Uid from Programs instead of global
     val existentialEdges = existentialHoles.zipWithIndex.map(t =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](t._1,
-        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + t._2 + 1}", Some(new Namespace {})))), Seq.empty, metadata)
+        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + t._2 + 1}", namespace=Some(new Namespace {})))), Seq.empty, metadata)
     )
     conclusion.addEdges(existentialEdges)
   }

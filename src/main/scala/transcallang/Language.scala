@@ -91,6 +91,9 @@ object Language {
       builtinNotOps.zip(Stream continually 1).toMap ++
       builtinConsts.zip(Stream continually 0).toMap
 
+
+  val listId = Identifier("list")
+  val intId = Identifier("int")
 //  def getIdentfier(text: String): Identifier = textToIdentifier.getOrElse(text, Identifier(text))
 //  private val textToIdentifier = Map(
 //    "@" -> applyId,

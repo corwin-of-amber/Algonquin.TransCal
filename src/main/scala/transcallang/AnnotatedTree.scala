@@ -4,9 +4,12 @@ trait Namespace {
 
 }
 
-case class Identifier(literal: String, namespace: Option[Namespace]=None)
+case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None)
+object Identifier {
+  def apply(literal: String): Identifier = new Identifier(literal, None, None)
+}
 
-case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[String]) {
+case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]) {
   def isLeaf: Boolean = subtrees.isEmpty
 
   def nodes: Stream[AnnotatedTree] = this #:: {subtrees.toStream flatMap (x => x.nodes)}
@@ -42,4 +45,5 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
 
 object AnnotatedTree {
   def identifierOnly(root: Identifier): AnnotatedTree = new AnnotatedTree(root, Seq.empty, Seq.empty)
+  def withoutAnnotations(root: Identifier, subtrees: Seq[AnnotatedTree]): AnnotatedTree = new AnnotatedTree(root, subtrees, Seq.empty)
 }

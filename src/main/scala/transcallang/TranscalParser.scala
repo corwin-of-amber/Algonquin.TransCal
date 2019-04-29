@@ -70,32 +70,26 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     case HOLE() => AnnotatedTree.identifierOnly(Language.holeId)
   })
 
-  // TODO: add type annotation
-  private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree(Identifier(x.toString), Seq.empty, Seq.empty) })
+  private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree.identifierOnly(Identifier(x.toString, annotation = Some(AnnotatedTree.identifierOnly(Identifier("int"))))) })
 
-  private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name))), Seq.empty) })
+  private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name)))) })
 
   def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> types).?)("getting map type def")) ^^ {
     case x ~ None => x
-    // TODO: do we need type annotations?
-    case x ~ Some(recursive) => AnnotatedTree(Language.mapTypeId, List(x, recursive), Seq.empty)
+    case x ~ Some(recursive) => AnnotatedTree.withoutAnnotations(Language.mapTypeId, List(x, recursive))
   }
 
   def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
     i match {
       case (x: AnnotatedTree) ~ None => x
-      // TODO: Add type annotation
-      case (x: AnnotatedTree) ~ Some(z) => x
+      case (x: AnnotatedTree) ~ Some(z) => x.copy(root=x.root.copy(annotation=Some(z)))
     }
   }
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
-    // TODO: Add type annotation
-    case NIL() => AnnotatedTree(Language.nilId, Seq.empty, Seq.empty)
-    // TODO: Add type annotation
-    case TRUE() => AnnotatedTree(Language.trueId, Seq.empty, Seq.empty)
-    // TODO: Add type annotation
-    case FALSE() => AnnotatedTree(Language.falseId, Seq.empty, Seq.empty)
+    case NIL() => AnnotatedTree.identifierOnly(Language.nilId)
+    case TRUE() => AnnotatedTree.identifierOnly(Language.trueId)
+    case FALSE() => AnnotatedTree.identifierOnly(Language.falseId)
   }
 
   def tuple: Parser[AnnotatedTree] = ((RBO ~> COMMA() <~ RBC) |
@@ -104,16 +98,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
       case (others: scala.List[AnnotatedTree]) ~ (one: Option[AnnotatedTree]) =>
         logger.trace(s"found tuple - $others, $one")
         one.map(others :+ _) getOrElse others
-      case COMMA() => List.empty
+      case COMMA() => Seq.empty
     }
-    AnnotatedTree(Language.tupleId, subtrees, Seq.empty)
+    AnnotatedTree.withoutAnnotations(Language.tupleId, subtrees)
   }
 
   def exprValuesAndParens: Parser[AnnotatedTree] = (tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC) | number | consts | identifier) ^^ {
-    // TODO: pass annotations upwards?
     case m: AnnotatedTree => m
-    // TODO: Add type annotation
-    case CBO ~ t ~ CBC => AnnotatedTree(Language.setId, List(t.asInstanceOf[AnnotatedTree]), Seq.empty)
+    case CBO ~ t ~ CBC => AnnotatedTree.withoutAnnotations(Language.setId, Seq(t.asInstanceOf[AnnotatedTree]))
   }
 
   def exprApply: Parser[AnnotatedTree] = rep1(exprValuesAndParens) ^^ { applied =>
@@ -130,8 +122,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   def exprNot: Parser[AnnotatedTree] = (rep(NOT()) ~ exprApply) ^^ { x =>
     if (x._1.nonEmpty) logger.trace(s"not - $x")
     x match {
-      // TODO maybe add type annotation as it must be bool?
-      case applied ~ exp => applied.foldLeft(exp)((t, _) => AnnotatedTree(Language.negId, List(t), Seq.empty))
+      case applied ~ exp => applied.foldLeft(exp)((t, _) => AnnotatedTree.withoutAnnotations(Language.negId, List(t)))
     }
   }
 
@@ -141,16 +132,15 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   private def translateUnicode(t: String): String = normalToUnicode.getOrElse(t, t)
 
-  // TODO: do we want different case for leaves?
   private def replaceUnicode(t: AnnotatedTree): AnnotatedTree = t match {
-    case t: AnnotatedTree if t.isLeaf => t
+    case t: AnnotatedTree if t.root == Language.stringLiteralId => t
     case t: AnnotatedTree => t.copy(root=t.root.copy(translateUnicode(t.root.literal)), subtrees=t.subtrees.map(replaceUnicode))
   }
 
   def guarded: Parser[AnnotatedTree] = ((RBO ~> guarded <~ RBC) | ((exprInfixOperator <~ log(GUARDED())("guarded")) ~ expression)) ^^ (x => {
     logger.trace(s"found guarded - $x")
     x match {
-      case (x1: AnnotatedTree) ~ (x2: AnnotatedTree) => AnnotatedTree(Language.guardedId, List(x1, x2), Seq.empty)
+      case (x1: AnnotatedTree) ~ (x2: AnnotatedTree) => AnnotatedTree.withoutAnnotations(Language.guardedId, List(x1, x2))
       case x: AnnotatedTree => x
     }
   })
@@ -163,7 +153,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   def expression: Parser[AnnotatedTree] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {
     case (matched: AnnotatedTree) ~ (terms: List[AnnotatedTree]) =>
       logger.trace(s"found match expression $matched ~ $terms")
-      replaceUnicode(AnnotatedTree(Language.matchId, List(matched) ++ terms, Seq.empty))
+      replaceUnicode(AnnotatedTree.withoutAnnotations(Language.matchId, List(matched) ++ terms))
     case x: AnnotatedTree =>
       logger.trace(s"found expression $x")
       replaceUnicode(x)
@@ -177,8 +167,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     logger.trace(s"statement expr - $x")
     x match {
       case left ~ dir ~ right ~ anno =>
-        val definitionTerm = AnnotatedTree(Language.tacticId, List(left, right), Seq.empty)
-        anno.map(a => AnnotatedTree(Language.annotationId, List(definitionTerm, a), Seq.empty)) getOrElse definitionTerm
+        val definitionTerm = AnnotatedTree.withoutAnnotations(Language.tacticId, List(left, right))
+        anno.map(a => AnnotatedTree.withoutAnnotations(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
