@@ -1,13 +1,13 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.{AnnotatedTree, Identifier, Language}
-import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
+import transcallang.{Identifier, Language}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import structures._
 import transcallang.AnnotatedTree
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.{RewriteSearchState, Template}
+import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 

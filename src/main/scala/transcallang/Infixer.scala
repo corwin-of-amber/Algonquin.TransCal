@@ -1,8 +1,6 @@
 package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
 import transcallang.Tokens.WorkflowToken
 
 import scala.util.parsing.combinator._
