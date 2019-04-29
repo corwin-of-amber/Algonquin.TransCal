@@ -2,9 +2,8 @@ package synthesis.ui
 
 import java.io.{PrintStream, File => JFile}
 
-import transcallang.{Identifier, TranscalParser}
 import org.rogach.scallop.ScallopOption
-import transcallang.AnnotatedTree
+import transcallang.{AnnotatedTree, TranscalParser}
 
 import scala.io.Source
 
@@ -37,5 +36,5 @@ object Main extends App {
   val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
   val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
   val interpreter = new Interpreter(userInput, userOutput)
-  interpreter.start
+  interpreter.start()
 }
