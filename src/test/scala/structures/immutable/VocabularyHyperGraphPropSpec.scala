@@ -106,8 +106,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       ((es.size > 1) && (es.head.target != es.tail.head.target)) ==> {
         val g = grapher(es)
-        val toChange = es.toList(1)
-        val source = es.toList(0)
+        es.toList match {
+          case source :: toChange :: _ =>
         val gMerged = g.mergeNodes(source.target, toChange.target)
         val found1 = gMerged.find(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
@@ -115,6 +115,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           if (x == toChange.target) source.target
           else x
         }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
+        }
       }
     })
   }
