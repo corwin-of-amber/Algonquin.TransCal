@@ -41,9 +41,9 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     program(reader) match {
       case Success(matched, rt) => matched
       case Failure(msg, rt) =>
-        throw new RuntimeException(s"FAILURE: $msg in ${rt}")
+        throw new RuntimeException(s"FAILURE: $msg in $rt")
       case Error(msg, rt) =>
-        throw new RuntimeException(s"ERROR: $msg in ${rt}")
+        throw new RuntimeException(s"ERROR: $msg in $rt")
     }
   }
 
