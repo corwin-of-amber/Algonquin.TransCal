@@ -1,5 +1,6 @@
 package transcallang
 
+import scala.language.implicitConversions
 import scala.util.matching.Regex
 
 object Language {
