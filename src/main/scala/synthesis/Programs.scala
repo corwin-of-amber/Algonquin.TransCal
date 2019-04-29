@@ -280,10 +280,10 @@ object Programs extends LazyLogging {
         case Language.annotationId => helper(term.subtrees.head)
         case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")
         case Language.setId => "{" + term.subtrees.map(helper).mkString(", ") + "}"
-        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString(), helper(term.subtrees(1))).mkString(" ")
+        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString, helper(term.subtrees(1))).mkString(" ")
         case _ => term.subtrees match {
-          case Nil => term.root.toString()
-          case list => term.root.toString() + "(" + list.map(helper).mkString(", ") + ")"
+          case Nil => term.root.toString
+          case list => term.root.toString + "(" + list.map(helper).mkString(", ") + ")"
         }
       }
     }

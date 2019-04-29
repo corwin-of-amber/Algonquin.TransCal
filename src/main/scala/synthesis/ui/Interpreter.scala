@@ -15,7 +15,7 @@ import transcallang.Identifier
 class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   private val actions = Seq(new UserAction(terms, userOutput))
 
-  def start: Unit = {
+  def start(): Unit = {
     var oldState: ActionSearchState = null
     var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     do {

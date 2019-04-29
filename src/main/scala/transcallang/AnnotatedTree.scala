@@ -34,7 +34,7 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
       case _ => copy(subtrees=subtrees map (_.replaceDescendants(switch)))
     }
 
-  override def toString(): String = {
+  override def toString: String = {
     if (subtrees.isEmpty) root.toString
     else {
       val children = subtrees mkString ", "
