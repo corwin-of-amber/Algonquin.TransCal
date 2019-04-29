@@ -3,14 +3,15 @@ package transcallang
 
 import transcallang.Tokens._
 
+import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.input.Position
 
 object Lexer extends RegexParsers {
   case class WorkflowLexerError(location: Position, msg: String)
 
-  override def skipWhitespace = true
-  override val whiteSpace = "[ \t]+".r
+//  override def skipWhitespace: Boolean = true
+  protected override val whiteSpace: Regex = "[ \t]+".r
 
   def apply(code: String): Either[WorkflowLexerError, List[WorkflowToken]] = {
     parse(tokens, code) match {

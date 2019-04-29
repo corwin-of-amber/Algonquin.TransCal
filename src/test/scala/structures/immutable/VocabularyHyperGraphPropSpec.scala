@@ -13,8 +13,8 @@ import scala.util.Random
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers {
-  implicit val edgeCreator = Arbitrary(integerEdgesGen)
-  implicit val graphCreator = Arbitrary(integerGraphGen)
+  private implicit val edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
+  private implicit val graphCreator: Arbitrary[VocabularyHyperGraph[Int, Int]] = Arbitrary(integerGraphGen)
 
   def checkRemoved(g: VocabularyHyperGraph[Int, Int], i: Int): Boolean = {
     val e = g.edges.toList(i)

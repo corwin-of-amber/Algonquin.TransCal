@@ -17,7 +17,7 @@ object Main extends App {
   import org.rogach.scallop.ScallopConf
 
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
-    val file = opt[JFile]()
+    val file: ScallopOption[JFile] = opt[JFile]()
     validateFileIsFile(file)
     validateFileExists(file)
     verify()

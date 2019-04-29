@@ -233,16 +233,16 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rules.map(parser(_))
   }
 
-  val genericTree = AnnotatedTree.identifierOnly(Identifier("'a"))
-  val listgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(genericTree))
-  val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listgenericTree))
-  val listlistgenericTolistgenericTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listlistgenericTree, listgenericTree))
+  private val genericTree = AnnotatedTree.identifierOnly(Identifier("'a"))
+  private val listgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(genericTree))
+  private val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listgenericTree))
+  private val listlistgenericTolistgenericTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listlistgenericTree, listgenericTree))
 
-  val intTree = AnnotatedTree.identifierOnly(Language.intId)
-  val listintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(intTree))
-  val listlistintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listintTree))
-  val intToIntTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(intTree, intTree))
-  val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
+  private val intTree = AnnotatedTree.identifierOnly(Language.intId)
+  private val listintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(intTree))
+  private val listlistintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listintTree))
+  private val intToIntTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(intTree, intTree))
+  private val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
 
 
   test("Parse identifier type") {
@@ -291,5 +291,5 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 //class OldParserTest extends ParserTest(new OldParser())
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
-  protected val parser = p.asInstanceOf[TranscalParser]
+  protected val parser: TranscalParser = p.asInstanceOf[TranscalParser]
 }

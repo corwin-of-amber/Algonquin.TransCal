@@ -10,9 +10,9 @@ import scala.util.Random
 
 
 class TriePropSpec extends PropSpec with Checkers {
-  implicit val letterCreator = Arbitrary(integerLetterGen)
-  implicit val wordCreator = Arbitrary(integerWordGen)
-  implicit val trieCreator = Arbitrary(integerTrieGen)
+  private implicit val letterCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
+  private implicit val wordCreator: Arbitrary[Seq[Int]] = Arbitrary(integerWordGen)
+  private implicit val trieCreator: Arbitrary[Trie[Int]] = Arbitrary(integerTrieGen)
 
   def checkRemoved(trie: Trie[Int], i: Int): Boolean = {
     val word = trie.words.toList(i)
