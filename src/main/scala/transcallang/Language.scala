@@ -14,103 +14,74 @@ object Language {
     val limitSearch   = Val("lim\\([1-9][0-9]*\\)".r)
   }
 
-  val applyLiteral: String ="@"
-  val typeLiteral: String ="type"
-  val mapTypeLiteral: String =":>"
-  val innerTypeLiteral: String ="polymorphic"
-  val lambdaLiteral: String ="↦"
-  val splitLiteral: String ="/"
-  val idLiteral: String ="id"
-  val trueLiteral: String ="⊤"
-  val falseLiteral: String ="⊥"
-  val nilLiteral: String ="⟨⟩"
-  val negLiteral: String ="¬"
-  val holeLiteral: String ="_"
-  val guardedLiteral: String ="⇒"
-  val tacticLiteral: String ="->"
-  val tupleLiteral: String ="(,)"
-  val annotationLiteral: String ="Annotation"
-  val letLiteral: String = "="
-  val directedLetLiteral: String = ">>"
-  val commandLiteral: String = "Command"
-  val semicolonLiteral: String = ";"
-  val typeBuilderLiteral: String = ":"
-  val trueCondBuilderLiteral: String = "||>"
-  val andCondBuilderLiteral: String = "|||"
-  val consLiteral: String = "::"
-  val setLiteral: String = "{.}"
-  val stringLiteralLiteral: String = "\""
-  val matchLiteral: String = "match"
+  val applyId: Identifier = Identifier("@")
+  val typeId: Identifier = Identifier("type")
+  val mapTypeId: Identifier = Identifier(":>")
+  val innerTypeId: Identifier = Identifier("polymorphic")
+  val lambdaId: Identifier = Identifier("↦")
+  val splitId: Identifier = Identifier("/")
+  val idId: Identifier = Identifier("id")
+  val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))
+  val falseId: Identifier = Identifier("⊥", annotation=Some(typeBoolean))
+  val nilId: Identifier = Identifier("⟨⟩")
+  val negId: Identifier = Identifier("¬", annotation=Some(typeBooleanToBoolean))
+  val holeId: Identifier = Identifier("_")
+  val guardedId: Identifier = Identifier("⇒")
+  val tacticId: Identifier = Identifier("->")
+  val tupleId: Identifier = Identifier("(,)")
+  val annotationId: Identifier = Identifier("Annotation")
+  val letId: Identifier = Identifier("=")
+  val directedLetId: Identifier = Identifier(">>")
+  val commandId: Identifier = Identifier("Command")
+  val semicolonId: Identifier = Identifier(";")
+  val typeBuilderId: Identifier = Identifier(":")
+  val trueCondBuilderId: Identifier = Identifier("||>")
+  val andCondBuilderId: Identifier = Identifier("|||")
+  val consId: Identifier = Identifier("::")
+  val snocId: Identifier = Identifier(":+")
+  val setId: Identifier = Identifier("{.}")
+  val stringLiteralId: Identifier = Identifier("\"")
+  val matchId: Identifier = Identifier("match")
+  val equalityId: Identifier = Identifier("==")
+  val unequalityId : Identifier = Identifier("≠")
+  val setContainsId: Identifier = Identifier("∈")
+  val setNotContainsId: Identifier = Identifier("∉")
+  val setDisjointId: Identifier = Identifier("‖")
+  val ltId: Identifier = Identifier("<")
+  val gtId: Identifier = Identifier(">")
+  val leId: Identifier = Identifier("≤")
+  val geId: Identifier = Identifier("≥")
+  val concatId: Identifier = Identifier("++")
+  val plusId: Identifier = Identifier("+")
+  val minusId: Identifier = Identifier("-")
+  val unionId: Identifier = Identifier("∪")
+  val andId: Identifier = Identifier("∧")
+  val orId: Identifier = Identifier("∨")
 
-  val applyId: Identifier = Identifier(applyLiteral)
-  val typeId: Identifier = Identifier(typeLiteral)
-  val mapTypeId: Identifier = Identifier(mapTypeLiteral)
-  val innerTypeId: Identifier = Identifier(innerTypeLiteral)
-  val lambdaId: Identifier = Identifier(lambdaLiteral)
-  val splitId: Identifier = Identifier(splitLiteral)
-  val idId: Identifier = Identifier(idLiteral)
-  val trueId: Identifier = Identifier(trueLiteral)
-  val falseId: Identifier = Identifier(falseLiteral)
-  val nilId: Identifier = Identifier(nilLiteral)
-  val negId: Identifier = Identifier(negLiteral)
-  val holeId: Identifier = Identifier(holeLiteral)
-  val guardedId: Identifier = Identifier(guardedLiteral)
-  val tacticId: Identifier = Identifier(tacticLiteral)
-  val tupleId: Identifier = Identifier(tupleLiteral)
-  val annotationId: Identifier = Identifier(annotationLiteral)
-  val letId: Identifier = Identifier(letLiteral)
-  val directedLetId: Identifier = Identifier(directedLetLiteral)
-  val commandId: Identifier = Identifier(commandLiteral)
-  val semicolonId: Identifier = Identifier(semicolonLiteral)
-  val typeBuilderId: Identifier = Identifier(typeBuilderLiteral)
-  val trueCondBuilderId: Identifier = Identifier(trueCondBuilderLiteral)
-  val andCondBuilderId: Identifier = Identifier(andCondBuilderLiteral)
-  val consId: Identifier = Identifier(consLiteral)
-  val setId: Identifier = Identifier(setLiteral)
-  val stringLiteralId: Identifier = Identifier(stringLiteralLiteral)
-  val matchId: Identifier = Identifier(matchLiteral)
+  val typeIntId = Identifier("int")
+  val typeBooleanId = Identifier("boolean")
+  val typeListId = Identifier("list")
+  val typeSetId = Identifier("set")
+  val typeBoolean = AnnotatedTree.identifierOnly(typeBooleanId)
+  val typeInt = AnnotatedTree.identifierOnly(typeIntId)
+  val typeBooleanToBoolean = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 
-  val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
-  val builtinNotOps: Seq[String] = Seq("~", "¬")
-  val builtinSetArithOps: Seq[String] = Seq("++", "+", "-", "∪")
-  val builtinSetBuildingOps: Seq[String] = Seq(":+", "::")
-  val builtinAndOps: Seq[String] = Seq("/\\", "∧")
-  val builtinOrOps: Seq[String] = Seq("\\/", "∨")
-  val builtinIFFOps: Seq[String] = Seq("<->")
-  val builtinBooleanOps: Seq[String] = Seq("==", "≠", "!=", "∈", "∉", "‖", "<", ">", "<=", ">=", "≤", "≥")
-  val builtinCondBuilders: Seq[String] = Seq("||>")
-  val builtinHighLevel: Seq[String] = Seq("/", "=>", "↦", "⇒", "|||")
-  val builtinDefinitions: Seq[String] = Seq(letLiteral, directedLetLiteral)
+  val builtinConsts: Seq[Identifier] = Seq(nilId, trueId, falseId)
+  val builtinNotOps: Seq[Identifier] = Seq(negId)
+  val builtinSetArithOps: Seq[Identifier] = Seq(concatId, plusId, minusId, unionId)
+  val builtinSetBuildingOps: Seq[Identifier] = Seq(snocId, consId)
+  val builtinBooleanOps: Seq[Identifier] = Seq(equalityId, unequalityId, setContainsId, setNotContainsId, setDisjointId, ltId, gtId, leId, geId)
+  val builtinCondBuilders: Seq[Identifier] = Seq(trueCondBuilderId)
+  val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId)
+  val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 
   val arity: Map[String, Int] =
-    (builtinBooleanOps ++ builtinSetArithOps ++ builtinSetArithOps).zip(Stream continually 2).toMap ++
-      builtinNotOps.zip(Stream continually 1).toMap ++
-      builtinConsts.zip(Stream continually 0).toMap
+    (builtinBooleanOps ++ builtinSetArithOps ++ builtinSetArithOps).map(_.literal).zip(Stream continually 2).toMap ++
+      builtinNotOps.map(_.literal).zip(Stream continually 1).toMap ++
+      builtinConsts.map(_.literal).zip(Stream continually 0).toMap
 
-
-  val listId = Identifier("list")
-  val intId = Identifier("int")
-//  def getIdentfier(text: String): Identifier = textToIdentifier.getOrElse(text, Identifier(text))
-//  private val textToIdentifier = Map(
-//    "@" -> applyId,
-//    "apply" -> applyId,
-//    "↦" -> lambdaId,
-//    "lambda" -> lambdaId,
-//    "/" -> splitId,
-//    "split" -> splitId,
-//    "id" -> idId,
-//    "true" -> trueId,
-//    "⊤" -> trueId,
-//    "false" -> falseId,
-//    "⊥" -> falseId,
-//    "Nil" -> nilId,
-//    "⟨⟩" -> nilId,
-//    "neg" -> negId,
-//    "¬" -> negId,
-//    "~" -> negId
-//  )
 }

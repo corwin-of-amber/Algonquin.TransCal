@@ -9,6 +9,26 @@ import org.scalatest.{FunSuite, Inspectors, Matchers}
 import scala.io.Source
 
 abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
+//  def depthPathComparison(tree: AnnotatedTree, subtreePath: Seq[Int], toCompare: Seq[Option[Identifier]]): Boolean = {
+//    var t: AnnotatedTree = tree
+//    if (toCompare.head.exists(_ != t.root)) return false
+//    for(i <- subtreePath.zip(toCompare.tail); t: AnnotatedTree = t.subtrees(i._1)) {
+//      if (toCompare.head.exists(_ != t.root)) return false
+//    }
+//    true
+//  }
+//
+//  def breadthPathComparison(tree: AnnotatedTree, subtreePath: Seq[Int], toCompare: Seq[Option[Identifier]]): Boolean = {
+//    val subs: Seq[AnnotatedTree] = subtreePath.foldLeft(tree.subtrees)((a: Seq[AnnotatedTree], b: Int) => a(b).subtrees)
+//    assert(toCompare.length == subs.length)
+//    toCompare.zip(subs).forall(t => t._1.forall(i => i == t._2.root))
+//  }
+
+  val aId = Identifier("a")
+  val bId = Identifier("b")
+  val cId = Identifier("c")
+  val dId = Identifier("d")
+
   test("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
@@ -132,15 +152,9 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     val rhs2 = parsed.subtrees(1).subtrees(2)
     lhs.root.literal shouldEqual "l"
     rhs1.root shouldEqual Language.guardedId
-    // might have extra params
-    //    rhs1.subtrees(0).root shouldEqual Language.nilId
     rhs1.subtrees(1).root shouldEqual Language.nilId
 
     rhs2.root shouldEqual Language.guardedId
-    // might have extra params
-    //    rhs2.subtrees(0).root shouldEqual Language.consId
-    //    rhs2.subtrees(0).subtrees(0).root.literal shouldEqual "?xs"
-    //    rhs2.subtrees(0).subtrees(1).root.literal shouldEqual "?xss"
     rhs2.subtrees(1).root.literal shouldEqual "++"
   }
 
@@ -232,13 +246,13 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   val genericTree = AnnotatedTree.identifierOnly(Identifier("'a"))
-  val listgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(genericTree))
-  val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listgenericTree))
+  val listgenericTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(genericTree))
+  val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(listgenericTree))
   val listlistgenericTolistgenericTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listlistgenericTree, listgenericTree))
 
-  val intTree = AnnotatedTree.identifierOnly(Language.intId)
-  val listintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(intTree))
-  val listlistintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listintTree))
+  val intTree = AnnotatedTree.identifierOnly(Language.typeIntId)
+  val listintTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(intTree))
+  val listlistintTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(listintTree))
   val intToIntTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(intTree, intTree))
   val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
 
@@ -272,12 +286,12 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("Parse concat type") {
-    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) ?l: (list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
-    parsed.subtrees(0).root.literal shouldEqual "concat"
-    parsed.subtrees(0).root.annotation shouldEqual Some(listlistgenericTolistgenericTree)
-    parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?l"
-    parsed.subtrees(0).subtrees(0).root.annotation shouldEqual Some(listlistgenericTree)
-    parsed.subtrees(0).subtrees.size shouldEqual 1
+    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) ?l: (list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss").subtrees(0)
+    parsed.root.literal shouldEqual "concat"
+    parsed.root.annotation shouldEqual Some(listlistgenericTolistgenericTree)
+    parsed.subtrees(0).root.literal shouldEqual "?l"
+    parsed.subtrees(0).root.annotation shouldEqual Some(listlistgenericTree)
+    parsed.subtrees.size shouldEqual 1
   }
   test("Parse identifier polymorphic map type") {
     val parsed = (new TranscalParser).apply("(_: (list int) :> (list int)) -> x")

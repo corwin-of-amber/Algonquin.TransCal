@@ -281,7 +281,7 @@ object Programs extends LazyLogging {
     val lambdaDefinitions = term.nodes.map(n => " name:" + n.root.literal).filter(_.startsWith("Lambda Definition")).toSet
 
     def helper(term: AnnotatedTree): String = {
-      val allBuiltinBool = Language.builtinAndOps ++ Language.builtinOrOps ++ Language.builtinBooleanOps ++ Language.builtinCondBuilders ++ Language.builtinDefinitions ++ Language.builtinHighLevel ++ Language.builtinSetArithOps ++ Language.builtinSetBuildingOps ++ Language.builtinIFFOps :+ Language.tacticId
+      val allBuiltinBool = Language.builtinBooleanOps ++ Language.builtinCondBuilders ++ Language.builtinDefinitions ++ Language.builtinHighLevel ++ Language.builtinSetArithOps ++ Language.builtinSetBuildingOps :+ Language.tacticId :+ Language.andId :+ Language.orId
       term.root match {
         case Language.annotationId => helper(term.subtrees.head)
         case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")

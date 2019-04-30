@@ -20,7 +20,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
 
-  assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
+  assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId) contains term.root)
 
   private def createRuleWithName(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
     val (innerRewrites, newTerm) = createRewrites(body)

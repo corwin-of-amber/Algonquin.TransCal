@@ -19,6 +19,7 @@ object Lexer extends RegexParsers {
     }
   }
 
+  // Tokens is the main part of the lexer. Add your new token here!!!
   def tokens: Parser[List[WorkflowToken]] = {
     phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
       truecondbuilder | andcondbuilder | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
@@ -53,6 +54,7 @@ object Lexer extends RegexParsers {
 //    }
 //  }
 
+  // TODO: merge these with the token themselves
   def number: Parser[NUMBER] = positioned { "\\d+".r ^^ {x => NUMBER(x.toInt)}}
 
   def annotation: Parser[ANNOTATION] = positioned { "\\[.+?\\]".r ^^ ( x => ANNOTATION(x.substring(1, x.length - 1)) ) }
