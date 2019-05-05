@@ -18,8 +18,8 @@ class FunctionReturnTypeRewritePropSpec extends FunSuite with Checkers {
     val newGraph = FunctionReturnTypeRewrite(new RewriteSearchState(graph)).graph
     val actualNewEdges = newGraph.edges -- graph.edges
 
-    actualNewEdges.size == 1 & actualNewEdges.head.edgeType.identifier == Language.typeId &
-      actualNewEdges.head.metadata.iterator.contains(FunctionReturnTypeRewrite.ApplyTypeMetadata)
+    actualNewEdges.size == 1 & actualNewEdges.
+      forall(hyperEdge => hyperEdge.edgeType.identifier == Language.typeId & hyperEdge.metadata.iterator.contains(FunctionReturnTypeRewrite.ApplyTypeMetadata))
   }
 
   test("Finds in the graph number 2") {
@@ -30,7 +30,7 @@ class FunctionReturnTypeRewritePropSpec extends FunSuite with Checkers {
     val newGraph = FunctionReturnTypeRewrite(new RewriteSearchState(graph)).graph
     val actualNewEdges = newGraph.edges -- graph.edges
 
-    actualNewEdges.size == 1 & actualNewEdges.head.edgeType.identifier == Language.typeId &
-      actualNewEdges.head.metadata.iterator.contains(FunctionReturnTypeRewrite.ApplyTypeMetadata)
+    actualNewEdges.size == 1 & actualNewEdges.
+      forall(hyperEdge => hyperEdge.edgeType.identifier == Language.typeId & hyperEdge.metadata.iterator.contains(FunctionReturnTypeRewrite.ApplyTypeMetadata))
   }
 }
