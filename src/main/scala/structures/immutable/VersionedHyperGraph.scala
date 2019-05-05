@@ -1,6 +1,7 @@
 package structures.immutable
 
 import structures._
+import structures.immutable.HyperGraphManyWithOrderToOne.HyperGraphPattern
 import structures.immutable.VersionedHyperGraph.VersionMetadata
 
 import scala.collection.mutable
@@ -21,7 +22,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
 
   /* --- Public Methods --- */
 
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphManyWithOrderToOne.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     hyperPattern.edges.flatMap(edgePattern => {
       find(edgePattern)
         .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
