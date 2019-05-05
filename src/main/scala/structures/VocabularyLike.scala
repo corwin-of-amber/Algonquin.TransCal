@@ -20,7 +20,8 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     * @tparam Id A reference type to show repetition connection in the pattern.
     * @return The matching words.
     */
-  def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]]
+  def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])]
+  def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_._1)
 
   /**
     * @return The words in the vocabulary

@@ -94,7 +94,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     }
 
     val regexAsWord = convertEdgeType(pattern.edgeType) +: (pattern.target +: pattern.sources).map(convertNode)
-    vocabulary.findRegex(regexAsWord).map(wordToHyperEdge)
+    vocabulary.findRegexWords(regexAsWord).map(wordToHyperEdge)
   }
 
   def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = {

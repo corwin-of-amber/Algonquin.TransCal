@@ -39,7 +39,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
 
-  override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = {
+  override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])] = {
     logger.trace("find pattern prefix")
     if (isEmpty) {
       Set.empty
@@ -125,13 +125,13 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     otherTrie.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
   }
 
-  private def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter], length: Int, skip: Int): Set[Word[Letter]] = {
-    def specificValue(value: Letter, more: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[Word[Letter]] =
+  private def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter], length: Int, skip: Int): Set[(Word[Letter], Map[Id, Letter])] = {
+    def specificValue(value: Letter, more: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[(Word[Letter], Map[Id, Letter])] =
       if (subtries.length > skip)
         subtries(skip).get(value).map(_.recursiveFindRegex(more, placeholdersMap, length + 1, 0)).getOrElse(Set.empty)
       else Set.empty
     pattern match {
-      case Nil => words.filter(_.length == length)
+      case Nil => words.filter(_.length == length).zip(Stream.continually(placeholdersMap))
       case item +: more =>
         item match {
           case Explicit(value: Letter) =>
