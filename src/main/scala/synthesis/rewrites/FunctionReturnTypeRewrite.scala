@@ -29,8 +29,8 @@ object FunctionReturnTypeRewrite extends VersionedOperator[RewriteSearchState] {
   private val functionTypeEdge = patternEdgeCreator(trueIdHole, Language.typeId, Seq(functionIdHole, functionTypeIdHole))
   private val functionIdEdge = patternEdgeCreator(functionIdHole, functionIdentifierHole, Seq())
 
-  private val functionReturnTypeEdge = patternEdgeCreator(functionTypeIdHole, Language.mapTypeId, Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, functionReturnTypeHole))
-  private val functionApplicationEdge = patternEdgeCreator(functionApplicationHole, functionIdentifierHole, Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
+  private val functionReturnTypeEdge = patternEdgeCreator(functionTypeIdHole, Language.mapTypeId, Seq(Repetition.rep1(Int.MaxValue, Ignored()).get, functionReturnTypeHole))
+  private val functionApplicationEdge = patternEdgeCreator(functionApplicationHole, functionIdentifierHole, Seq(Repetition.rep1(Int.MaxValue, Ignored()).get))
 
   private val funcTypeGraph = HyperGraphManyWithOrderToOne(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
