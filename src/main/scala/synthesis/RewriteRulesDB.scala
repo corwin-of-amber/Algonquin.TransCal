@@ -2,11 +2,10 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import transcallang.AnnotatedTree
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
-import transcallang.{Identifier, TranscalParser}
+import transcallang.{AnnotatedTree, TranscalParser}
 
 /**
   * @author tomer
@@ -106,23 +105,6 @@ object OwnershipRewriteRulesDB extends RewriteRulesDB {
   ).map(t => parser.apply(t))
 
 }
-
-object TypeRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
-
-  override protected def metadata: Metadata = TypeMetadata
-
-  private case object TypeMetadata extends Metadata {
-    override def toStr: String = "TypeMetadata"
-  }
-
-  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(type ?x (?y :> ?z) ||| true) ||> type (x ?w) z = true",
-    "(type ?x (?y :> ?z) ||| true) & (type (x ?w) ?v ||| true) ||> type w y = true"
-  ).map(t => parser.apply(t))
-
-}
-
 
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
