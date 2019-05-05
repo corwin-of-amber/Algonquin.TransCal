@@ -68,7 +68,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
         val hyperEdge = translateEdge(beforeChangeHyperEdge)
         val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
         val g = wrapped.addEdge(hyperEdge)
-        val foundTarget = wrapped.findRegex(regex).filter(_.target != hyperEdge.target).map(_.target)
+        val foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>

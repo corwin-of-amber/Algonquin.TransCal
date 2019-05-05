@@ -56,7 +56,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     var state = new RewriteSearchState(graph)
     val letAction = new LetAction(term)
     for(i <- 0 to 4; r <- letAction.rules) state = r(state)
-    val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head.target
+    val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
     state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
   }
 }
