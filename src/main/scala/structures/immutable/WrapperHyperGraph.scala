@@ -23,7 +23,7 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This = newBuilder.++=(wrapped.mergeEdgeTypes(keep, change)).result()
 
-  override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = wrapped.find(pattern)
+  override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = wrapped.findRegex(pattern)
 
   override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
 

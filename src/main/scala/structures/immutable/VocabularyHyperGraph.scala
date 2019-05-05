@@ -5,7 +5,6 @@ import structures.HyperGraphManyWithOrderToOneLike._
 import structures.VocabularyLike.Word
 import structures._
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -73,7 +72,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     new VocabularyHyperGraph(vocabulary replace(Right(keep), Right(change)), newMetadatas)
   }
 
-  override def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
+  override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = {
     logger.trace("Find prefix")
 
     def convertNode(item: Item[Node, Id]): Item[Either[Node, EdgeType], Id] = {
@@ -152,7 +151,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
         case Nil => Set(referencesMap)
         case itemEdge +: left =>
           val filledEdge = fillReferences(itemEdge, referencesMap)
-          (for (hyperEdge <- find(filledEdge)) yield {
+          (for (hyperEdge <- findRegex(filledEdge)) yield {
             val temp = hyperEdgeAndTemplateToReferencesMap(hyperEdge, filledEdge)
             val newReferences = (temp._1 ++ referencesMap._1, temp._2 ++ referencesMap._2)
             getReferencesMap(left, newReferences)

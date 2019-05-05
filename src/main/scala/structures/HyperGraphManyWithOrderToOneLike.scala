@@ -26,7 +26,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched edges
     */
-  def find[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]]
+  def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]]
 
   /** Finds subgraphs by a pattern graph.
     *

@@ -1,14 +1,13 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.{Identifier, Language, TranscalParser}
 import org.scalatest.{FunSuite, Matchers}
-import structures.{EmptyMetadata, Explicit, Hole, HyperEdge}
-import transcallang.AnnotatedTree
+import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.{HyperTermIdentifier, Programs}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class LetActionTest extends FunSuite with Matchers with LazyLogging {
 
@@ -57,7 +56,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     var state = new RewriteSearchState(graph)
     val letAction = new LetAction(term)
     for(i <- 0 to 4; r <- letAction.rules) state = r(state)
-    val fRoot = state.graph.find(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head.target
+    val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head.target
     state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
   }
 }
