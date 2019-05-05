@@ -2,11 +2,10 @@ package synthesis.ui
 
 import java.io.PrintStream
 
-import transcallang.AnnotatedTree
+import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-import synthesis._
-import transcallang.Identifier
+import transcallang.AnnotatedTree
 
 /**
   * @author tomer
