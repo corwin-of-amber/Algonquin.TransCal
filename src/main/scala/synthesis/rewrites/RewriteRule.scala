@@ -3,11 +3,10 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
-import syntax.AstSugar.Uid
+import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
-import synthesis.search.{Operator, VersionedOperator}
+import synthesis.search.VersionedOperator
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
 

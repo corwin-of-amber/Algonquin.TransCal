@@ -2,11 +2,10 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import transcallang.AnnotatedTree
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
-import transcallang.{Identifier, TranscalParser}
+import transcallang.{AnnotatedTree, TranscalParser}
 
 /**
   * @author tomer
@@ -60,12 +59,12 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "(take ?xs 0) >> ⟨⟩",
     "(take ?xs (len xs)) >> id xs",
     "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
-
-    // merge range
+//
+//    // merge range
     "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
     // exclude to include
     "range_exclude(?x, ?y + 1) = range_include(x, y)",
-    // singleton range
+//    // singleton range
     "range_include(?x, x) = (x :: ⟨⟩)",
     "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))"
   )
@@ -106,23 +105,6 @@ object OwnershipRewriteRulesDB extends RewriteRulesDB {
   ).map(t => parser.apply(t))
 
 }
-
-object TypeRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
-
-  override protected def metadata: Metadata = TypeMetadata
-
-  private case object TypeMetadata extends Metadata {
-    override def toStr: String = "TypeMetadata"
-  }
-
-  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(type ?x (?y :> ?z) ||| true) ||> type (x ?w) z = true",
-    "(type ?x (?y :> ?z) ||| true) & (type (x ?w) ?v ||| true) ||> type w y = true"
-  ).map(t => parser.apply(t))
-
-}
-
 
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser

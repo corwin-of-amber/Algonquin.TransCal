@@ -2,11 +2,10 @@ package synthesis.ui
 
 import java.io.PrintStream
 
-import transcallang.AnnotatedTree
+import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-import synthesis._
-import transcallang.Identifier
+import transcallang.AnnotatedTree
 
 /**
   * @author tomer
@@ -15,7 +14,7 @@ import transcallang.Identifier
 class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   private val actions = Seq(new UserAction(terms, userOutput))
 
-  def start: Unit = {
+  def start(): Unit = {
     var oldState: ActionSearchState = null
     var newState = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     do {

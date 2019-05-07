@@ -14,8 +14,10 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
 
   def search(searchSpace: SS, maxDepth: Double): Option[S] = {
     var state = searchSpace.initialStates.head
-    if (state.isInstanceOf[RewriteSearchState])
-      logger.debug(s"Starting Naive Search. Graph size: ${state.asInstanceOf[RewriteSearchState].graph.size}")
+    state match {
+      case state1: RewriteSearchState => logger.debug(s"Starting Naive Search. Graph size: ${state1.graph.size}")
+      case _ =>
+    }
     val operatorVer: mutable.Map[Operator[S], Long] = mutable.Map.empty
     var i = 0
 

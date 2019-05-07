@@ -13,9 +13,9 @@ import synthesis.rewrites.Template.ReferenceTerm
 
 class ProgramsPropSpec extends PropSpec with Checkers {
 
-  implicit val identifierCreator = Arbitrary(identifierGen)
-  implicit val termsCreator = Arbitrary(identifierTreesGen)
-  implicit val programsCreator = Arbitrary(programsGen)
+  private implicit val identifierCreator: Arbitrary[Identifier] = Arbitrary(identifierGen)
+  private implicit val termsCreator: Arbitrary[AnnotatedTree] = Arbitrary(identifierTreesGen)
+  private implicit val programsCreator: Arbitrary[Programs] = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
     check(forAll { term: AnnotatedTree => {

@@ -1,5 +1,6 @@
 package transcallang
 
+import scala.language.implicitConversions
 import scala.util.matching.Regex
 
 object Language {
@@ -14,9 +15,18 @@ object Language {
     val limitSearch   = Val("lim\\([1-9][0-9]*\\)".r)
   }
 
-  val applyId: Identifier = Identifier("@")
+  val typeIntId = Identifier("int")
+  val typeBooleanId = Identifier("boolean")
+  val typeListId = Identifier("list")
+  val typeSetId = Identifier("set")
   val typeId: Identifier = Identifier("type")
   val mapTypeId: Identifier = Identifier(":>")
+
+  val typeBoolean = AnnotatedTree.identifierOnly(typeBooleanId)
+  val typeInt = AnnotatedTree.identifierOnly(typeIntId)
+  val typeBooleanToBoolean = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
+
+  val applyId: Identifier = Identifier("@")
   val innerTypeId: Identifier = Identifier("polymorphic")
   val lambdaId: Identifier = Identifier("↦")
   val splitId: Identifier = Identifier("/")
@@ -57,14 +67,6 @@ object Language {
   val unionId: Identifier = Identifier("∪")
   val andId: Identifier = Identifier("∧")
   val orId: Identifier = Identifier("∨")
-
-  val typeIntId = Identifier("int")
-  val typeBooleanId = Identifier("boolean")
-  val typeListId = Identifier("list")
-  val typeSetId = Identifier("set")
-  val typeBoolean = AnnotatedTree.identifierOnly(typeBooleanId)
-  val typeInt = AnnotatedTree.identifierOnly(typeIntId)
-  val typeBooleanToBoolean = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 

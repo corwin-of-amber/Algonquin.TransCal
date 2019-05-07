@@ -1,7 +1,5 @@
 package synthesis.complexity
 
-import syntax.AstSugar.Term
-
 /**
   * @author tomer
   * @since 2/11/19
@@ -18,7 +16,7 @@ sealed trait Complexity {
   }
 }
 object ConstantComplexity extends Complexity
-case class ContainerComplexity(contained: Term) extends Complexity
+case class ContainerComplexity(contained: Any) extends Complexity
 class LogComplexity(val inner: Complexity) extends Complexity
 object LogComplexity {
   def apply(inner: Complexity): Complexity = inner match {

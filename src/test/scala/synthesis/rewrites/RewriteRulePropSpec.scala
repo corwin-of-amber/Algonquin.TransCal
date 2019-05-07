@@ -16,10 +16,10 @@ import transcallang.Identifier
   * @since 12/18/18
   */
 class RewriteRulePropSpec extends PropSpec with Checkers {
-  private implicit val hyperEdgeCreator = Arbitrary(hyperGraphEdgeGen)
-  private implicit val hyperPatternCreator = Arbitrary(hyperPatternGen)
-  private implicit val rewriteRuleCreator = Arbitrary(rewriteRuleGen)
-  private implicit val rewriteSearchStateCreator = Arbitrary(rewriteSearchStateGen)
+  private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
+  private implicit val hyperPatternCreator: Arbitrary[RewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
+  private implicit val rewriteRuleCreator: Arbitrary[RewriteRule] = Arbitrary(rewriteRuleGen)
+  private implicit val rewriteSearchStateCreator: Arbitrary[RewriteSearchState] = Arbitrary(rewriteSearchStateGen)
 
   property("Every state keep old edges") {
     // Not necessarily true because of compaction

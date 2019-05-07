@@ -1,13 +1,13 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.{AnnotatedTree, Identifier, Language}
-import structures.immutable.{CompactHyperGraph, HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
+import transcallang.{Identifier, Language}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import structures._
 import transcallang.AnnotatedTree
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.{RewriteSearchState, Template}
+import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 
@@ -29,12 +29,6 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @return all conforming terms
     */
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[AnnotatedTree] = {
-//    reconstruct(hyperTermId).filter(t => {
-//      val (destroyedGraph, destroyedRoot) = Programs.destructWithRoot(t)
-//      val updatedPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(destroyedRoot), _)).getOrElse(pattern)
-//      destroyedGraph.findSubgraph[Int](updatedPattern).nonEmpty
-//    })
-
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.toIterator.flatMap(m => {
@@ -155,17 +149,22 @@ object Programs extends LazyLogging {
         Set(
           HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
         )
-      case Language.typeBuilderId =>
-        val t = nodeCreator()
-        Set(
-          HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata),
-          HyperEdge(t, identToEdge(Language.typeId), Seq(target), EmptyMetadata),
-          HyperEdge(t, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
-        )
       case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
     }
+    val annotationEdges = function.annotation match {
+      case Some(annotatedTree) =>
+        val (targetType, hyperEdgesType) = innerDestruct(annotatedTree, nodeCreator, identToEdge, knownTerms)
+        val trueNode = nodeCreator()
+        val functionNode = nodeCreator()
+        hyperEdgesType ++ Set(
+          HyperEdge(functionNode, identToEdge(function), Seq.empty, EmptyMetadata),
+          HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
+          HyperEdge(trueNode, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
+        )
+      case None => Set.empty
+    }
 
-    (target, subHyperEdges ++ newHyperEdges)
+    (target, subHyperEdges ++ newHyperEdges ++ annotationEdges)
   }
 
   /** Create hyper graph from ast. Removes annotations. Root is always max HyperTermId.
@@ -211,7 +210,10 @@ object Programs extends LazyLogging {
           Set((s.head, newHole), (s.last, newHole))
         })
       }.toMap
-      t: AnnotatedTree => if (t.root.literal == "_") Some(holeCreator()) else knownHoles.get(t)
+      t: AnnotatedTree =>
+        print(t)
+        if (t.root.literal == "_") Some(holeCreator())
+        else knownHoles.get(t)
     }
 
     // A specific case is where we have a pattern of type ?x -> x
@@ -286,10 +288,10 @@ object Programs extends LazyLogging {
         case Language.annotationId => helper(term.subtrees.head)
         case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")
         case Language.setId => "{" + term.subtrees.map(helper).mkString(", ") + "}"
-        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString(), helper(term.subtrees(1))).mkString(" ")
+        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString, helper(term.subtrees(1))).mkString(" ")
         case _ => term.subtrees match {
-          case Nil => term.root.toString()
-          case list => term.root.toString() + "(" + list.map(helper).mkString(", ") + ")"
+          case Nil => term.root.toString
+          case list => term.root.toString + "(" + list.map(helper).mkString(", ") + ")"
         }
       }
     }

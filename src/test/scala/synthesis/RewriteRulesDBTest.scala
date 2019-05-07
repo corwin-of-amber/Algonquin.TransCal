@@ -43,7 +43,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.leId), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     )))
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => r.apply(state).graph.findSubgraph[Int](resultPattern).nonEmpty) shouldEqual true

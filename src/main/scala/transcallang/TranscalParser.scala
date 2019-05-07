@@ -1,9 +1,8 @@
 package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
-import Language._
-import transcallang.AnnotatedTree
 import synthesis.Programs
+import transcallang.Language._
 import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
 import scala.util.parsing.combinator.Parsers
@@ -41,9 +40,9 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     program(reader) match {
       case Success(matched, rt) => matched
       case Failure(msg, rt) =>
-        throw new RuntimeException(s"FAILURE: $msg in ${rt}")
+        throw new RuntimeException(s"FAILURE: $msg in $rt")
       case Error(msg, rt) =>
-        throw new RuntimeException(s"ERROR: $msg in ${rt}")
+        throw new RuntimeException(s"ERROR: $msg in $rt")
     }
   }
 
@@ -74,16 +73,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name)))) })
 
-  def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> types).?)("getting map type def")) ^^ {
-    case x ~ None => x
-    case x ~ Some(recursive) => AnnotatedTree.withoutAnnotations(Language.mapTypeId, List(x, recursive))
+  def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> exprValuesAndParens).*)("getting map type def")) ^^ {
+    case x ~ list if list.isEmpty => x
+    case x ~ list if list.nonEmpty => AnnotatedTree.withoutAnnotations(Language.mapTypeId, x +: list)
   }
 
-  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ { i =>
-    i match {
-      case (x: AnnotatedTree) ~ None => x
-      case (x: AnnotatedTree) ~ Some(z) => x.copy(root=x.root.copy(annotation=Some(z)))
-    }
+  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ {
+    case (x: AnnotatedTree) ~ None => x
+    case (x: AnnotatedTree) ~ Some(z) => x.copy(root = x.root.copy(annotation = Some(z)))
   }
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
