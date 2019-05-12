@@ -1,8 +1,6 @@
 package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
-import syntax.AstSugar.Term
-import syntax.{Identifier, Tree}
 import transcallang.Tokens.WorkflowToken
 
 import scala.util.parsing.combinator._
@@ -82,6 +80,6 @@ object Infixer {
   val HIGH = 50
 }
 
-trait TermInfixer extends Infixer[WorkflowToken, Term, TermInfixer] {
-  override def buildReturn(left: Term, operator: WorkflowToken, right: Term): Term = new Tree[Identifier](operator.toIdentifier, List(left, right))
+trait TermInfixer extends Infixer[WorkflowToken, AnnotatedTree, TermInfixer] {
+  override def buildReturn(left: AnnotatedTree, operator: WorkflowToken, right: AnnotatedTree): AnnotatedTree = new AnnotatedTree(operator.toIdentifier, List(left, right), Seq.empty)
 }

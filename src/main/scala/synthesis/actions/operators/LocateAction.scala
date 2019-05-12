@@ -2,7 +2,6 @@ package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
-import syntax.Identifier
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
@@ -11,6 +10,7 @@ import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.Identifier
 
 /** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
   * @author tomer
@@ -66,7 +66,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map( i =>
-      HyperTermIdentifier(new Identifier(s"temp anchor $i"))
+      HyperTermIdentifier(Identifier(s"temp anchor $i"))
     ).toIterator
     anchors.next
   }

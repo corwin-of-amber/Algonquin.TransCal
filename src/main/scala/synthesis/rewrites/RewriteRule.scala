@@ -3,13 +3,12 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
-import syntax.AstSugar.Uid
-import syntax.Identifier
+import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
-import synthesis.search.{Operator, VersionedOperator}
+import synthesis.search.VersionedOperator
 import synthesis.{HyperTermId, HyperTermIdentifier}
+import transcallang.{Identifier, Namespace}
 
 /** Rewrites a program to a new program.
   *
@@ -76,7 +75,7 @@ class RewriteRule(val premise: HyperPattern,
     // TODO: change to Uid from Programs instead of global
     val existentialEdges = existentialHoles.zipWithIndex.map(t =>
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](t._1,
-        Explicit(HyperTermIdentifier(new Identifier(s"existential${maxExist + t._2 + 1}", "variable", new Uid))), Seq.empty, metadata)
+        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + t._2 + 1}", namespace=Some(new Namespace {})))), Seq.empty, metadata)
     )
     conclusion.addEdges(existentialEdges)
   }

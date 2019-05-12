@@ -2,22 +2,21 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import syntax.AstSugar.Term
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
-import transcallang.TranscalParser
+import transcallang.{AnnotatedTree, TranscalParser}
 
 /**
   * @author tomer
   * @since 12/27/18
   */
 trait RewriteRulesDB extends LazyLogging {
-  protected def ruleTemplates: Set[Term]
+  protected def ruleTemplates: Set[AnnotatedTree]
 
   protected def metadata: Metadata
 
-  private def ruleTemplatesToRewriteRules(ruleTemplate: Term): Set[RewriteRule] = new LetAction(ruleTemplate).rules
+  private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
   lazy val rewriteRules: Set[Operator[RewriteSearchState]] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
@@ -25,7 +24,7 @@ trait RewriteRulesDB extends LazyLogging {
 object SystemRewriteRulesDB extends RewriteRulesDB {
   override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
 
-  override protected def ruleTemplates: Set[Term] = throw new NotImplementedError()
+  override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
 
   override protected def metadata: Metadata = throw new NotImplementedError()
 }
@@ -79,7 +78,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))"
   )
 
-  override protected val ruleTemplates: Set[Term] = templates.map(parser.apply)
+  override protected val ruleTemplates: Set[AnnotatedTree] = templates.map(parser.apply)
 }
 
 object AssociativeRewriteRulesDB extends RewriteRulesDB {
@@ -91,7 +90,7 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "AssociativeMetadata"
   }
 
-  override protected val ruleTemplates: Set[Term] = Set(
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "(?x ∧ (?y ∧ ?z)) = ((x ∧ y) ∧ z)",
     "?x ++ (?y ++ ?z) = (x ++ y) ++ z",
     "(?x :: ?xs) ++ ?xs' = (x :: (xs ++ xs'))",
@@ -109,29 +108,12 @@ object OwnershipRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "OwnershipMetadata"
   }
 
-  override protected val ruleTemplates: Set[Term] = Set(
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z",
     "(?x +: nil ||| ?z) & (own x ||| true) ||> true = own z"
   ).map(t => parser.apply(t))
 
 }
-
-object TypeRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
-
-  override protected def metadata: Metadata = TypeMetadata
-
-  private case object TypeMetadata extends Metadata {
-    override def toStr: String = "TypeMetadata"
-  }
-
-  override protected val ruleTemplates: Set[Term] = Set(
-    "(type ?x (?y :> ?z) ||| true) ||> type (x ?w) z = true",
-    "(type ?x (?y :> ?z) ||| true) & (type (x ?w) ?v ||| true) ||> type w y = true"
-  ).map(t => parser.apply(t))
-
-}
-
 
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
@@ -142,7 +124,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "TimeComplexMetadata"
   }
 
-  override protected val ruleTemplates: Set[Term] = Set(
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
     "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
   ).map(t => parser.apply(t))
@@ -158,7 +140,7 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "ExistentialMetadata"
   }
 
-  override protected val ruleTemplates: Set[Term] = Set(
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "?xs = ((xs take ?exist) ++ (xs drop exist))"
   ).map(t => parser.apply(t))
 }

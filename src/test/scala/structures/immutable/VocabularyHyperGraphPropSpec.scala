@@ -1,12 +1,11 @@
 package structures.immutable
 
-import transcallang.{Language, TranscalParser}
+import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.prop.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
-import syntax.Identifier
 import synthesis.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
@@ -14,8 +13,8 @@ import scala.util.Random
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers {
-  implicit val edgeCreator = Arbitrary(integerEdgesGen)
-  implicit val graphCreator = Arbitrary(integerGraphGen)
+  private implicit val edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
+  private implicit val graphCreator: Arbitrary[VocabularyHyperGraph[Int, Int]] = Arbitrary(integerGraphGen)
 
   def checkRemoved(g: VocabularyHyperGraph[Int, Int], i: Int): Boolean = {
     val e = g.edges.toList(i)
@@ -85,8 +84,8 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val first = g.nodes.head
         val second = g.nodes.last
         val gMerged = g.mergeNodes(first, second)
-        val found1 = gMerged.find(HyperEdge(Explicit(second), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(second), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found1 = gMerged.findRegex(HyperEdge(Explicit(second), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(second), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         gMerged.nodes.contains(first) && (first == second || !gMerged.nodes.contains(second)) && (found1 ++ found2).isEmpty
       }
     })
@@ -107,15 +106,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       ((es.size > 1) && (es.head.target != es.tail.head.target)) ==> {
         val g = grapher(es)
-        val toChange = es.toList(1)
-        val source = es.toList(0)
+        es.toList match {
+          case source :: toChange :: _ =>
         val gMerged = g.mergeNodes(source.target, toChange.target)
-        val found1 = gMerged.find(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        val found2 = gMerged.find(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
         !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
           if (x == toChange.target) source.target
           else x
         }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
+        }
       }
     })
   }
@@ -124,7 +124,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       (es.size > 1) ==> {
         val g = grapher(es)
-        es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.find(HyperEdge(Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored()), EmptyMetadata)))
+        es.forall(e => g.findEdges(e.edgeType).filter(_.sources.size == e.sources.size) == g.findRegexHyperEdges(HyperEdge(Ignored(), Explicit(e.edgeType), e.sources.map(_ => Ignored()), EmptyMetadata)))
       }
     })
   }
@@ -135,7 +135,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val g = grapher(es)
         0 to 8 forall { i =>
           val pat = HyperEdge(Ignored(), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
-          g.find(pat).size == es.count(_.sources.length == i)
+          g.findRegex(pat).size == es.count(_.sources.length == i)
         }
       }
     })
@@ -148,7 +148,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         es.map(_.target) forall { t =>
           0 to 8 forall { i =>
             val pat = HyperEdge(Explicit(t), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
-            g.find(pat).size == es.count(e => e.sources.length == i && e.target == t)
+            g.findRegex(pat).size == es.count(e => e.sources.length == i && e.target == t)
           }
         }
       }
@@ -183,7 +183,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val g = grapher(es)
         val pattern =
           es.head.copy(target = Explicit(es.head.target), edgeType = Hole(0), sources = es.head.sources.map(Explicit[Int, Int]))
-        g.find(pattern).contains(es.head)
+        g.findRegexHyperEdges(pattern).contains(es.head)
       }
     })
   }
@@ -193,7 +193,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.exists(_.sources.size == 1) ==> {
         val g = grapher(es)
         val pattern = HyperEdge(Hole(0), Hole(1), List(Ignored()), EmptyMetadata)
-        g.find(pattern).nonEmpty
+        g.findRegex(pattern).nonEmpty
       }
     })
   }
@@ -201,7 +201,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("find regex rep0 with 0 sources") {
     val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
     val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
-    val found = graph.find(pattern)
+    val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
     check(found == edges)
   }
@@ -211,7 +211,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.exists(_.sources.size == 1) ==> {
         val g = grapher(es)
         val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
-        g.find(pattern) == es
+        g.findRegexHyperEdges(pattern) == es
       }
     })
   }
@@ -247,16 +247,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val tempGraph = Programs.destruct(term)
     val graph = tempGraph.addEdges(Set(
-      HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     ))
-    val aTerm = graph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
-    val originalATerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("a"))).head.target
+    val aTerm = graph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
+    val originalATerm = tempGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
     val newATerm = HyperTermId(100)
-    val bTerm = graph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
-    val originalBTerm = tempGraph.findEdges(HyperTermIdentifier(new Identifier("b"))).head.target
+    val bTerm = graph.findEdges(HyperTermIdentifier(Identifier("b"))).head.target
+    val originalBTerm = tempGraph.findEdges(HyperTermIdentifier(Identifier("b"))).head.target
     val newBTerm = HyperTermId(101)
     if (aTerm == originalATerm)
       graph.nodes should not contain newATerm

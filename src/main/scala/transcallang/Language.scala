@@ -1,7 +1,6 @@
 package transcallang
 
-import syntax.Identifier
-
+import scala.language.implicitConversions
 import scala.util.matching.Regex
 
 object Language {
@@ -44,36 +43,35 @@ object Language {
   val stringLiteralLiteral: String = "\""
   val matchLiteral: String = "match"
 
-  val applyId: Identifier = new Identifier(applyLiteral)
-  val typeId: Identifier = new Identifier(typeLiteral)
-  val mapTypeId: Identifier = new Identifier(mapTypeLiteral)
-  val innerTypeId: Identifier = new Identifier(innerTypeLiteral)
-  val lambdaId: Identifier = new Identifier(lambdaLiteral)
-  val splitId: Identifier = new Identifier(splitLiteral)
-  val idId: Identifier = new Identifier(idLiteral)
-  val trueId: Identifier = new Identifier(trueLiteral)
-  val falseId: Identifier = new Identifier(falseLiteral)
-  val nilId: Identifier = new Identifier(nilLiteral)
-  val negId: Identifier = new Identifier(negLiteral)
-  val holeId: Identifier = new Identifier(holeLiteral)
-  val guardedId: Identifier = new Identifier(guardedLiteral)
-  val tacticId: Identifier = new Identifier(tacticLiteral)
-  val tupleId: Identifier = new Identifier(tupleLiteral)
-  val annotationId: Identifier = new Identifier(annotationLiteral)
-  val letId: Identifier = new Identifier(letLiteral)
-  val directedLetId: Identifier = new Identifier(directedLetLiteral)
-  val commandId: Identifier = new Identifier(commandLiteral)
-  val semicolonId: Identifier = new Identifier(semicolonLiteral)
-  val typeBuilderId: Identifier = new Identifier(typeBuilderLiteral)
-  val trueCondBuilderId: Identifier = new Identifier(trueCondBuilderLiteral)
-  val andCondBuilderId: Identifier = new Identifier(andCondBuilderLiteral)
-  val consId: Identifier = new Identifier(consLiteral)
-  val setId: Identifier = new Identifier(setLiteral)
-  val stringLiteralId: Identifier = new Identifier(stringLiteralLiteral)
-  val matchId: Identifier = new Identifier(matchLiteral)
+  val applyId: Identifier = Identifier(applyLiteral)
+  val typeId: Identifier = Identifier(typeLiteral)
+  val mapTypeId: Identifier = Identifier(mapTypeLiteral)
+  val innerTypeId: Identifier = Identifier(innerTypeLiteral)
+  val lambdaId: Identifier = Identifier(lambdaLiteral)
+  val splitId: Identifier = Identifier(splitLiteral)
+  val idId: Identifier = Identifier(idLiteral)
+  val trueId: Identifier = Identifier(trueLiteral)
+  val falseId: Identifier = Identifier(falseLiteral)
+  val nilId: Identifier = Identifier(nilLiteral)
+  val negId: Identifier = Identifier(negLiteral)
+  val holeId: Identifier = Identifier(holeLiteral)
+  val guardedId: Identifier = Identifier(guardedLiteral)
+  val tacticId: Identifier = Identifier(tacticLiteral)
+  val tupleId: Identifier = Identifier(tupleLiteral)
+  val annotationId: Identifier = Identifier(annotationLiteral)
+  val letId: Identifier = Identifier(letLiteral)
+  val directedLetId: Identifier = Identifier(directedLetLiteral)
+  val commandId: Identifier = Identifier(commandLiteral)
+  val semicolonId: Identifier = Identifier(semicolonLiteral)
+  val typeBuilderId: Identifier = Identifier(typeBuilderLiteral)
+  val trueCondBuilderId: Identifier = Identifier(trueCondBuilderLiteral)
+  val andCondBuilderId: Identifier = Identifier(andCondBuilderLiteral)
+  val consId: Identifier = Identifier(consLiteral)
+  val setId: Identifier = Identifier(setLiteral)
+  val stringLiteralId: Identifier = Identifier(stringLiteralLiteral)
+  val matchId: Identifier = Identifier(matchLiteral)
 
-  val identifierRegex: Regex = "[?]?[\\w'_]+".r
-  val typeRegex: Regex = "[`']?\\w+".r
+  val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 
   val builtinConsts: Seq[String] = Seq("⟨⟩", "true", "false", "⊤", "⊥")
   val builtinNotOps: Seq[String] = Seq("~", "¬")
@@ -94,7 +92,10 @@ object Language {
       builtinNotOps.zip(Stream continually 1).toMap ++
       builtinConsts.zip(Stream continually 0).toMap
 
-//  def getIdentfier(text: String): Identifier = textToIdentifier.getOrElse(text, new Identifier(text))
+
+  val listId = Identifier("list")
+  val intId = Identifier("int")
+//  def getIdentfier(text: String): Identifier = textToIdentifier.getOrElse(text, Identifier(text))
 //  private val textToIdentifier = Map(
 //    "@" -> applyId,
 //    "apply" -> applyId,

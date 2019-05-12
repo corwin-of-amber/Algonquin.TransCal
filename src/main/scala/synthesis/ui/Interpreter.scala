@@ -2,19 +2,19 @@ package synthesis.ui
 
 import java.io.PrintStream
 
-import syntax.AstSugar.Term
+import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.UserAction
-import synthesis._
+import transcallang.AnnotatedTree
 
 /**
   * @author tomer
   * @since 11/24/18
   */
-class Interpreter(terms: Iterator[Term], userOutput: PrintStream) {
+class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   private val actions = Seq(new UserAction(terms, userOutput))
 
-  def start: Unit = {
+  def start(): Unit = {
     var oldState: ActionSearchState = null
     var newState = ActionSearchState(Programs.empty, SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     do {

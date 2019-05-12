@@ -10,9 +10,9 @@ import scala.util.Random
 
 
 class TriePropSpec extends PropSpec with Checkers {
-  implicit val letterCreator = Arbitrary(integerLetterGen)
-  implicit val wordCreator = Arbitrary(integerWordGen)
-  implicit val trieCreator = Arbitrary(integerTrieGen)
+  private implicit val letterCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
+  private implicit val wordCreator: Arbitrary[Seq[Int]] = Arbitrary(integerWordGen)
+  private implicit val trieCreator: Arbitrary[Trie[Int]] = Arbitrary(integerTrieGen)
 
   def checkRemoved(trie: Trie[Int], i: Int): Boolean = {
     val word = trie.words.toList(i)
@@ -55,7 +55,7 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("empty find prefix returns all") {
     check(forAll { trie: Trie[Int] =>
-      trie.words == trie.findRegex(Seq(Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get))
+      trie.words == trie.findRegexWords(Seq(Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get))
     })
   }
 
@@ -64,14 +64,14 @@ class TriePropSpec extends PropSpec with Checkers {
       trie.words.forall(word => {
         val repetitionInf = Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get
         val regex = word.flatMap(i => Seq(repetitionInf, Explicit(i))) :+ repetitionInf
-        trie.findRegex(regex).contains(word)
+        trie.findRegexWords(regex).contains(word)
       })
     })
   }
 
   property("added should be findable") {
     check(forAll { trie: Trie[Int] =>
-      trie.words.forall(word => trie.findRegex(word.map(Explicit(_))).contains(word))
+      trie.words.forall(word => trie.findRegexWords(word.map(Explicit(_))).contains(word))
     })
   }
 
@@ -90,7 +90,7 @@ class TriePropSpec extends PropSpec with Checkers {
   property("Should find correct explicit in big graph") {
     check(forAll { trie: Trie[Int] => (trie.size > 200 && trie.words.exists(_.length > 3)) ==> {
       trie.words.filter(_.length > 3).forall(w =>
-        trie.findRegex(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
+        trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
           .forall(_(3) == w(3)))
     }})
   }
@@ -152,11 +152,11 @@ class TriePropSpec extends PropSpec with Checkers {
         val key = kv._1
         val words = kv._2
         val regex = 0 until key map Hole[Int, Int]
-        val canFindAll = trie.findRegex(regex) == words
+        val canFindAll = trie.findRegexWords(regex) == words
         val allValsFound = for (i <- 0 until key) yield {
           val byValue = words.groupBy(_(i))
           val canFindAllWithExplicit = for((v, vWords) <- byValue) yield {
-            trie.findRegex(regex.updated(i, Explicit(v))) == vWords
+            trie.findRegexWords(regex.updated(i, Explicit(v))) == vWords
           }
           canFindAllWithExplicit.forall(_ == true)
         }

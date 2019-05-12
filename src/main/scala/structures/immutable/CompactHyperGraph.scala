@@ -58,6 +58,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
 
   /* --- Private Methods --- */
 
+  @tailrec
   private def compact[Node, EdgeType](wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): HyperGraphManyWithOrderToOne[Node, EdgeType] = {
     hyperEdges match {
       case Nil => wrapped
@@ -67,7 +68,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
         val hyperEdge = translateEdge(beforeChangeHyperEdge)
         val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
         val g = wrapped.addEdge(hyperEdge)
-        val foundTarget = wrapped.find(regex).filter(_.target != hyperEdge.target).map(_.target)
+        val foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>

@@ -17,13 +17,14 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
     override protected def toStr: String = "FlattenMetadata"
   }
 
-  private val outerApply = patternEdgeCreator(Hole(0), Language.applyId, Seq(Hole(1), Repetition.rep0(Int.MaxValue, Ignored()).get))
+  private val outerApply =
+    patternEdgeCreator(Hole(0), Language.applyId, Seq(Hole(1), Repetition.rep0(Int.MaxValue, Ignored()).get))
 
   private val innerFunc: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
     patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
 
   private val applyFuncGraph: HyperGraphManyWithOrderToOne.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
-    VocabularyHyperGraph(Seq(outerApply, innerFunc): _*)
+    HyperGraphManyWithOrderToOne(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     // TODO: may need to do this for a few times so should find an efficient way

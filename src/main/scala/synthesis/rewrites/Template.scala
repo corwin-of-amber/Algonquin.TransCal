@@ -36,6 +36,12 @@ object Template {
     def option[T <: HyperTerm](repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.option(repeated)
 
     def rep[T <: HyperTerm](minRepetition: Int, maxRepetition: Int, repeated: TemplateTerm[T]): Option[RepetitionTerm[T]] = Repetition.rep(minRepetition, maxRepetition, repeated)
+
+    def rep0[T <: HyperTerm](maxRepetition: Int, repeated: Stream[TemplateTerm[T]]): Option[RepetitionTerm[T]] = Repetition.rep0(maxRepetition, repeated)
+
+    def rep1[T <: HyperTerm](maxRepetition: Int, repeated: Stream[TemplateTerm[T]]): Option[RepetitionTerm[T]] = Repetition.rep1(maxRepetition, repeated)
+
+    def rep[T <: HyperTerm](minRepetition: Int, maxRepetition: Int, repeated: Stream[TemplateTerm[T]]): Option[RepetitionTerm[T]] = Repetition.rep(minRepetition, maxRepetition, repeated)
   }
 
 }

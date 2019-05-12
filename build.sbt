@@ -15,6 +15,3 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 libraryDependencies += "org.scalatest" %% "scalatest" %  "3.0.5" % Test
 libraryDependencies += "com.typesafe.play" %% "play-json" %  "2.6.10" % Test
 libraryDependencies += "org.scalacheck" %% "scalacheck" %  "1.14.0" % Test
-
-lazy val core = RootProject(file("../bellmaniac"))
-val main = Project(id = "transcal", base = file(".")).dependsOn(core)

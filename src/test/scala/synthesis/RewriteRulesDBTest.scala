@@ -1,10 +1,9 @@
 package synthesis
 
-import transcallang.{Language, TranscalParser}
+import transcallang.{Identifier, Language, TranscalParser}
 import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
 import org.scalatest.prop.Checkers
 import structures.{EmptyMetadata, HyperEdge}
-import syntax.Identifier
 import synthesis.rewrites.RewriteSearchState
 
 class RewriteRulesDBTest extends FunSuite with Matchers {
@@ -41,10 +40,10 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
     val resultPattern = Programs.destructPattern(patternTerm)
     val state = new RewriteSearchState(Programs.destruct(term).addEdges(Set(
-      HyperEdge(HyperTermId(100), HyperTermIdentifier(new Identifier("a")), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(101), HyperTermIdentifier(new Identifier("b")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
+      HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(new Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
+      HyperEdge(HyperTermId(103), HyperTermIdentifier(Identifier("≤")), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
     )))
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => r.apply(state).graph.findSubgraph[Int](resultPattern).nonEmpty) shouldEqual true
