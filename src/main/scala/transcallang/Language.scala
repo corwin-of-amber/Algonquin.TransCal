@@ -42,6 +42,8 @@ object Language {
   val annotationId: Identifier = Identifier("Annotation")
   val letId: Identifier = Identifier("=")
   val directedLetId: Identifier = Identifier(">>")
+  val limitedLetId: Identifier = Identifier("|=")
+  val limitedDirectedLetId: Identifier = Identifier("|>>")
   val commandId: Identifier = Identifier("Command")
   val semicolonId: Identifier = Identifier(";")
   val typeBuilderId: Identifier = Identifier(":")
@@ -77,7 +79,7 @@ object Language {
   val builtinBooleanOps: Seq[Identifier] = Seq(equalityId, unequalityId, setContainsId, setNotContainsId, setDisjointId, ltId, gtId, leId, geId)
   val builtinCondBuilders: Seq[Identifier] = Seq(trueCondBuilderId)
   val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId)
-  val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId)
+  val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId, limitedLetId, limitedDirectedLetId)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 

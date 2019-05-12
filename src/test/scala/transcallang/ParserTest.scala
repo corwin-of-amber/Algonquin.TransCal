@@ -97,6 +97,12 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
   }
 
+  test("can parse different types of let") {
+    val parsed = Seq("f ?x = x + 1","f ?x >> x + 1","f ?x |>> x + 1","f ?x |= x + 1").map(p(_))
+    val allLets = parsed.map(_.root)
+    allLets.toSet shouldEqual Set(Language.letId, Language.directedLetId, Language.limitedLetId, Language.limitedDirectedLetId)
+  }
+
   test("apply of f translated correctly") {
     val parsed = p("f ?x = x + 1")
     parsed.root.literal shouldEqual "="

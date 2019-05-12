@@ -37,6 +37,8 @@ object Tokens {
   case class LAMBDA() extends WorkflowToken {override val toIdentifier: Identifier = Language.lambdaId } // ↦
   case class LET() extends WorkflowToken {override val toIdentifier: Identifier = Language.letId } // =
   case class DIRECTEDLET() extends WorkflowToken {override val toIdentifier: Identifier = Language.directedLetId} // >>
+  case class LIMITEDLET() extends WorkflowToken {override val toIdentifier: Identifier = Language.limitedLetId} // |=
+  case class LIMITEDDIRECTEDLET() extends WorkflowToken {override val toIdentifier: Identifier = Language.limitedDirectedLetId} // |>>
   case class EQUALS() extends WorkflowToken {override val toIdentifier: Identifier = Language.equalityId} // ==
   case class COMMA() extends WorkflowToken {override val toIdentifier: Identifier = I(",")} // ,
   case class TYPE() extends WorkflowToken{override val toIdentifier: Identifier = I("type")}
