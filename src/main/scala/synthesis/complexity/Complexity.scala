@@ -4,15 +4,12 @@ package synthesis.complexity
   * @author tomer
   * @since 2/11/19
   */
-sealed trait Complexity {
-  def log: Complexity = LogComplexity(this)
-  def +(that: Complexity): AddComplexity = that match {
-    case AddComplexity(those) => AddComplexity(this +: those)
-    case _ => AddComplexity(Seq(this, that))
-  }
-  def *(that: Complexity): MultipleComplexity = that match {
-    case MultipleComplexity(those) => MultipleComplexity(this +: those)
-    case _ => MultipleComplexity(Seq(this, that))
+sealed trait Complexity
+object Complexity {
+  implicit class ComplexityOp(complexity: Complexity) {
+    def log: Complexity = LogComplexity(complexity)
+    def +(that: Complexity): AddComplexity = AddComplexity(Seq(complexity, that))
+    def *(that: Complexity): MultipleComplexity = MultipleComplexity(Seq(complexity, that))
   }
 }
 object ConstantComplexity extends Complexity
@@ -25,19 +22,16 @@ object LogComplexity {
   }
   def unapply(arg: LogComplexity): Option[Complexity] = Some(arg.inner)
 }
-case class PolynomialComplexity(base: Complexity, exponent: Complexity) extends Complexity {
-  override def log: Complexity = exponent
+case class PolynomialComplexity(base: Complexity, exponent: Complexity) extends Complexity
+case class AddComplexity(complexities: Seq[Complexity]) extends Complexity
+object AddComplexity {
+  def apply(complexities: Seq[Complexity]): AddComplexity = new AddComplexity(complexities.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)}))
+
+  def unapply(arg: AddComplexity): Option[Seq[Complexity]] = Some(arg.complexities)
 }
-case class AddComplexity(complexities: Seq[Complexity]) extends Complexity {
-  override def +(that: Complexity): AddComplexity = that match {
-    case AddComplexity(those) => AddComplexity(complexities ++ those)
-    case _ => AddComplexity(complexities :+ that)
-  }
-}
-case class MultipleComplexity(complexities: Seq[Complexity]) extends Complexity {
-  override def log: Complexity = AddComplexity(complexities.map(_.log))
-  override def *(that: Complexity): MultipleComplexity = that match {
-    case MultipleComplexity(those) => MultipleComplexity(complexities ++ those)
-    case _ => MultipleComplexity(complexities :+ that)
-  }
+case class MultipleComplexity(complexities: Seq[Complexity]) extends Complexity
+object MultipleComplexity {
+  def apply(complexities: Seq[Complexity]): MultipleComplexity = new MultipleComplexity(complexities.flatMap({ case MultipleComplexity(inner) => inner ; case x => Some(x)}))
+
+  def unapply(arg: MultipleComplexity): Option[Seq[Complexity]] = Some(arg.complexities)
 }
