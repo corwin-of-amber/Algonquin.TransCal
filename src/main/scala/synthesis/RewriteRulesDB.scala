@@ -106,21 +106,21 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 //
 //}
 
-object TimeComplexRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
-
-  override protected def metadata: Metadata = TimeComplexMetadata
-
-  private case object TimeComplexMetadata extends Metadata {
-    override def toStr: String = "TimeComplexMetadata"
-  }
-
-  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
-    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
-  ).map(t => parser.apply(t))
-
-}
+//object TimeComplexRewriteRulesDB extends RewriteRulesDB {
+//  private val parser = new TranscalParser
+//
+//  override protected def metadata: Metadata = TimeComplexMetadata
+//
+//  private case object TimeComplexMetadata extends Metadata {
+//    override def toStr: String = "TimeComplexMetadata"
+//  }
+//
+//  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+//    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
+//    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
+//  ).map(t => parser.apply(t))
+//
+//}
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
