@@ -74,7 +74,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
           case Some(existsTarget) =>
             val willChange = g.edges.filter(_.sources.contains(hyperEdge.target)).map(translateEdge)
             val merged = g.mergeNodes(existsTarget, hyperEdge.target)
-            compact(merged, otherHyperEdges ++ willChange, changedToKept.updated(hyperEdge.target, existsTarget))
+            compact(merged, willChange.toList ++ otherHyperEdges, changedToKept.updated(hyperEdge.target, existsTarget))
           case _ => compact(g, otherHyperEdges, changedToKept)
         }
     }
