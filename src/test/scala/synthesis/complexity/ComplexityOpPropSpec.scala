@@ -32,11 +32,13 @@ class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
       (addComplexity + addComplexity).complexities.forall(!_.isInstanceOf[AddComplexity])
     })
   }
+
   property("mul of mul is flatten") {
     check(forAll { multipleComplexity: MultipleComplexity =>
       (multipleComplexity * multipleComplexity).complexities.forall(!_.isInstanceOf[MultipleComplexity])
     })
   }
+
   property("log of poly is flatten") {
     check(forAll { polynomialComplexity: PolynomialComplexity =>
       polynomialComplexity.log == polynomialComplexity.exponent
