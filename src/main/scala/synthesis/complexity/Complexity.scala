@@ -8,6 +8,7 @@ sealed trait Complexity
 object Complexity {
   implicit class ComplexityOp(complexity: Complexity) {
     def log: Complexity = LogComplexity(complexity)
+    def ^(that: Complexity): PolynomialComplexity = PolynomialComplexity(complexity, that)
     def +(that: Complexity): AddComplexity = AddComplexity(Seq(complexity, that))
     def *(that: Complexity): MultipleComplexity = MultipleComplexity(Seq(complexity, that))
   }
