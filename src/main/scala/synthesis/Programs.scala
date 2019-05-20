@@ -107,7 +107,7 @@ object Programs extends LazyLogging {
 
   /* --- Public --- */
   object NonConstructableMetadata extends Metadata {
-    override protected def toStr: String = "Non Constructable"
+    override protected def toStr: String = "NonConstructable"
   }
 
   def empty: Programs = Programs(VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier])
@@ -202,7 +202,7 @@ object Programs extends LazyLogging {
 
     val knownTerms: AnnotatedTree => Option[ReferenceTerm[HyperTermId]] = {
       val knownHoles: Map[AnnotatedTree, ReferenceTerm[HyperTermId]] = {
-        val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.toString.startsWith("?"))).map(t =>
+        val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
           Set(t, AnnotatedTree(t.root.copy(literal=t.root.literal.drop(1)), Seq.empty, Seq.empty))
         )
         vars.flatMap(s => {
@@ -211,7 +211,6 @@ object Programs extends LazyLogging {
         })
       }.toMap
       t: AnnotatedTree =>
-        print(t)
         if (t.root.literal == "_") Some(holeCreator())
         else knownHoles.get(t)
     }
@@ -288,10 +287,10 @@ object Programs extends LazyLogging {
         case Language.annotationId => helper(term.subtrees.head)
         case Language.matchId => helper(term.subtrees(0)) + " match " + term.subtrees.tail.map(helper).mkString(" / ")
         case Language.setId => "{" + term.subtrees.map(helper).mkString(", ") + "}"
-        case r if allBuiltinBool.contains(r.literal) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.toString, helper(term.subtrees(1))).mkString(" ")
+        case r if allBuiltinBool.contains(r) && term.subtrees.length == 2 => Seq(helper(term.subtrees(0)), term.root.literal, helper(term.subtrees(1))).mkString(" ")
         case _ => term.subtrees match {
-          case Nil => term.root.toString
-          case list => term.root.toString + "(" + list.map(helper).mkString(", ") + ")"
+          case Nil => term.root.literal
+          case list => term.root.literal + "(" + list.map(helper).mkString(", ") + ")"
         }
       }
     }
