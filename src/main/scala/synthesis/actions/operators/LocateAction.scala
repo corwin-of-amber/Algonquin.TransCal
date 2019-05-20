@@ -10,7 +10,7 @@ import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.Identifier
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
   * @author tomer
@@ -27,10 +27,18 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
   override def apply(state: ActionSearchState): ActionSearchState = {
     // We assume only one root as it is a pattern from user.
     logger.debug(s"Running Locate with $anchor")
-    val roots = goal.edges.map(_.target) diff goal.edges.flatMap(_.sources)
+    val roots = {
+      val tempRoots = goal.edges.map(_.target).diff(goal.edges.flatMap(_.sources))
+      val typeRoots = goal.edges.filter(_.edgeType == ExplicitTerm(HyperTermIdentifier(Language.typeId))).map(_.target)
+      tempRoots.diff(typeRoots)
+    }
     assert(roots.size == 1)
     val root = roots.head
-    val destPattern = HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, NonConstructableMetadata))
+    //HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, NonConstructableMetadata))
+    val destPattern = {
+      val anchorPattern = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
+      HyperGraphManyWithOrderToOne(anchorPattern._1.mergeNodes(root, anchorPattern._2).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
+    }
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule

@@ -68,12 +68,12 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "(take ?xs 0) >> ⟨⟩",
     "(take ?xs (len xs)) >> id xs",
     "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
-
-    // merge range
+//
+//    // merge range
     "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
     // exclude to include
     "range_exclude(?x, ?y + 1) = range_include(x, y)",
-    // singleton range
+//    // singleton range
     "range_include(?x, x) = (x :: ⟨⟩)",
     "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))"
   )
@@ -99,37 +99,37 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 
 }
 
-object OwnershipRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
+//object OwnershipRewriteRulesDB extends RewriteRulesDB {
+//  private val parser = new TranscalParser
+//
+//  override protected def metadata: Metadata = OwnershipMetadata
+//
+//  private case object OwnershipMetadata extends Metadata {
+//    override def toStr: String = "OwnershipMetadata"
+//  }
+//
+//  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+//    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z",
+//    "(?x +: nil ||| ?z) & (own x ||| true) ||> true = own z"
+//  ).map(t => parser.apply(t))
+//
+//}
 
-  override protected def metadata: Metadata = OwnershipMetadata
-
-  private case object OwnershipMetadata extends Metadata {
-    override def toStr: String = "OwnershipMetadata"
-  }
-
-  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z",
-    "(?x +: nil ||| ?z) & (own x ||| true) ||> true = own z"
-  ).map(t => parser.apply(t))
-
-}
-
-object TimeComplexRewriteRulesDB extends RewriteRulesDB {
-  private val parser = new TranscalParser
-
-  override protected def metadata: Metadata = TimeComplexMetadata
-
-  private case object TimeComplexMetadata extends Metadata {
-    override def toStr: String = "TimeComplexMetadata"
-  }
-
-  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
-    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
-  ).map(t => parser.apply(t))
-
-}
+//object TimeComplexRewriteRulesDB extends RewriteRulesDB {
+//  private val parser = new TranscalParser
+//
+//  override protected def metadata: Metadata = TimeComplexMetadata
+//
+//  private case object TimeComplexMetadata extends Metadata {
+//    override def toStr: String = "TimeComplexMetadata"
+//  }
+//
+//  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+//    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
+//    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
+//  ).map(t => parser.apply(t))
+//
+//}
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser

@@ -1,7 +1,0 @@
-{
-  "name": "transcal",
-  "main": "index.html",
-  "dependencies": {
-    "jquery-contextmenu": "^2.1.1"
-  }
-}

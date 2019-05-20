@@ -20,7 +20,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
 
-  assert((Language.builtinDefinitions + Language.trueCondBuilderLiteral + Language.andCondBuilderId) contains term.root.literal.toString)
+  assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId) contains term.root)
 
   private def createRuleWithName(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
     val (innerRewrites, newTerm) = createRewrites(body)
@@ -46,7 +46,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   // I can give temporary name and later override them by using merge nodes
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
-      case Language.letId | Language.directedLetId =>
+      case Language.letId | Language.directedLetId | Language.limitedLetId | Language.limitedDirectedLetId =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
           val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2))

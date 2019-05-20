@@ -177,7 +177,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
-  def statementDefinition: Parser[AnnotatedTree] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ log(LET() | DIRECTEDLET())("let statement") ~! expression ~ annotation.?) ^^ { x =>
+  def statementDefinition: Parser[AnnotatedTree] = ((expression <~ TRUECONDBUILDER()).? ~ expression ~ log(LET() | DIRECTEDLET() | LIMITEDLET() | LIMITEDDIRECTEDLET())("let statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement let - $x")
     x match {
       case op ~ left ~ defdir ~ right ~ anno =>
@@ -192,7 +192,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
           case _ => (left, right)
         }
         val conditionedLeft = op.map(o => AnnotatedTree(trueCondBuilderId, List(o, fixedLeft), Seq.empty)).getOrElse(fixedLeft)
-        val dir = if (defdir == LET()) Language.letId else Language.directedLetId
+        val dir = defdir.toIdentifier
         // TODO: we should insert annotation into tree node.
         val definitionTerm = AnnotatedTree(dir, List(conditionedLeft, fixedRight), Seq.empty)
         anno.map(a => AnnotatedTree(Language.annotationId, List(definitionTerm, a), Seq.empty)) getOrElse definitionTerm

@@ -97,6 +97,12 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
   }
 
+  test("can parse different types of let") {
+    val parsed = Seq("f ?x = x + 1","f ?x >> x + 1","f ?x |>> x + 1","f ?x |= x + 1").map(p(_))
+    val allLets = parsed.map(_.root)
+    allLets.toSet shouldEqual Set(Language.letId, Language.directedLetId, Language.limitedLetId, Language.limitedDirectedLetId)
+  }
+
   test("apply of f translated correctly") {
     val parsed = p("f ?x = x + 1")
     parsed.root.literal shouldEqual "="
@@ -234,13 +240,13 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   private val genericTree = AnnotatedTree.identifierOnly(Identifier("'a"))
-  private val listgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(genericTree))
-  private val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listgenericTree))
+  private val listgenericTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(genericTree))
+  private val listlistgenericTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(listgenericTree))
   private val listlistgenericTolistgenericTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listlistgenericTree, listgenericTree))
 
-  private val intTree = AnnotatedTree.identifierOnly(Language.intId)
-  private val listintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(intTree))
-  private val listlistintTree = AnnotatedTree.withoutAnnotations(Language.listId, Seq(listintTree))
+  private val intTree = AnnotatedTree.identifierOnly(Language.typeIntId)
+  private val listintTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(intTree))
+  private val listlistintTree = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(listintTree))
   private val intToIntTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(intTree, intTree))
   private val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
 

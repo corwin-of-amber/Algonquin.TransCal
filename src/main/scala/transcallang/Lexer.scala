@@ -20,9 +20,10 @@ object Lexer extends RegexParsers {
     }
   }
 
+  // Tokens is the main part of the lexer. Add your new token here!!!
   def tokens: Parser[List[WorkflowToken]] = {
     phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
-      truecondbuilder | andcondbuilder | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
+      truecondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
       | backslash | lambda | let | plus | minus | union | directedlet | hole | setin | setnotin | lt | gt | annotation
       | roundbracetopen | roundbracetclose | squarebracetopen | squarebracetclose | curlybracetopen | curlybracetclose | square
@@ -54,6 +55,7 @@ object Lexer extends RegexParsers {
 //    }
 //  }
 
+  // TODO: merge these with the token themselves
   def number: Parser[NUMBER] = positioned { "\\d+".r ^^ {x => NUMBER(x.toInt)}}
 
   def annotation: Parser[ANNOTATION] = positioned { "\\[.+?\\]".r ^^ ( x => ANNOTATION(x.substring(1, x.length - 1)) ) }
@@ -64,6 +66,8 @@ object Lexer extends RegexParsers {
   def lambda: Lexer.Parser[LAMBDA] = positioned { "↦" ^^ (_ => LAMBDA() ) }
   def let: Lexer.Parser[LET] = positioned { "=" ^^ (_ => LET() ) }
   def directedlet: Lexer.Parser[DIRECTEDLET] = positioned { ">>" ^^ (_ => DIRECTEDLET() ) }
+  def limitedlet: Lexer.Parser[LIMITEDLET] = positioned { "|=" ^^ (_ => LIMITEDLET() ) }
+  def limiteddirectedlet: Lexer.Parser[LIMITEDDIRECTEDLET] = positioned { "|>>" ^^ (_ => LIMITEDDIRECTEDLET() ) }
   def equals: Lexer.Parser[EQUALS] = positioned { "==" ^^ (_ => EQUALS() ) }
   def comma: Lexer.Parser[COMMA] = positioned { "," ^^ (_ => COMMA() ) }
   def typekeyword: Lexer.Parser[TYPE] = positioned { "type" ^^ (_ => TYPE() ) }
