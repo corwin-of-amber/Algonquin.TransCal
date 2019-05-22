@@ -2,5 +2,5 @@ myfunc ?xs ?ys = len (take (xs ++ ys) i)  [++]
 
 i ∈ (range_exclude 1 (len xs)) = ⊤ [++]
 
-len _ -> (1)  [only assoc]
-(1) ->  len _
+len _ -> a1  [only assoc]
+a1 ->  len _

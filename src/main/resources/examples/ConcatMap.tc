@@ -6,11 +6,11 @@ map ?f ?l = l match (⟨⟩ => ⟨⟩) / (?x :: ?xs) => (f x) :: map f xs
 l = x :: xs
 concat _ -> (1)
 
-(1) -> f _ ++ _
+a1 -> f _ ++ _
 f x = l'
 l' = x' :: xs'
-f _ ++ _ -> 1
-1 -> ?concatMap' f l' xs
+f _ ++ _ -> a1
+a1 -> ?concatMap' f l' xs
 
-1 -> _ :: _
+a1 -> _ :: _
 _ ++ _ -> concatMap' _ _ _
