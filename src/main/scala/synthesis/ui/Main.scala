@@ -22,7 +22,7 @@ object Main extends App {
     verify()
   }
 
-  def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] = {
+  private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] = {
     term.root match {
       case transcallang.Language.semicolonId => term.subtrees.flatMap(splitByStatements).toIterator
       case _ => Iterator(term)
