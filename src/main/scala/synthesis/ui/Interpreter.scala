@@ -14,7 +14,7 @@ import transcallang.AnnotatedTree
 class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   private val actions = Seq(new UserAction(terms, userOutput))
 
-  def start(): Unit = {
+  def start(): ActionSearchState = {
     var oldState: ActionSearchState = null
     var newState = ActionSearchState(Programs.empty, SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     do {
@@ -23,5 +23,6 @@ class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
         newState = action.apply(newState)
       }
     } while(terms.hasNext)
+    newState
   }
 }

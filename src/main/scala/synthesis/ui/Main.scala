@@ -29,10 +29,19 @@ object Main extends App {
     }
   }
 
+  def readJFile(jFile: JFile): Iterator[AnnotatedTree] = {
+    val file = Source.fromFile(jFile)
+    try {
+        splitByStatements(parser(file.getLines().mkString("\n")))
+    } finally {
+      file.close()
+    }
+  }
+
   val parser = new TranscalParser()
   val conf = new CommandLineConfiguration(args)
   val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
-  val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(Source.fromFile).map(bs => splitByStatements(parser(bs.getLines().mkString("\n"))))
+  val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readJFile)
   val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
   val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
   val interpreter = new Interpreter(userInput, userOutput)
