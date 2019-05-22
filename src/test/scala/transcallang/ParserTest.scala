@@ -298,4 +298,50 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser: TranscalParser = p.asInstanceOf[TranscalParser]
+  protected val symbols = Seq("var1 : int",
+    "var2 : string",
+    "var3 : (list int)",
+    "f1 : (string :> (list real))",
+    "f2 : ((list int) :> int)")
+
+
+  test("Parse statement types and map types correctly") {
+    for (s <- symbols.map(parser.apply)) {
+      s.root match {
+        case Identifier("var1", Some(ann), ns) => ann shouldEqual Language.typeInt
+        case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+        case Identifier("var3", Some(ann), ns) =>
+          ann.root should be(Language.typeListId)
+          ann.subtrees.head should be(Language.typeInt)
+        case Identifier("f1", Some(ann), ns) =>
+          ann.root should be(Language.mapTypeId)
+          ann.subtrees.head.root.literal should be("string")
+          ann.subtrees(1).root.literal should be("list")
+        case Identifier("f2", Some(ann), ns) =>
+          ann.root should be(Language.mapTypeId)
+          ann.subtrees.head.root.literal should be("list")
+          ann.subtrees(1) should be(Language.typeInt)
+      }
+    }
+  }
+
+  test("Parse expression parses types and map types correctly") {
+    for (s <- symbols.map(parser.parseExpression)) {
+      s.root match {
+        case Identifier("var1", Some(ann), ns) => ann shouldEqual Language.typeInt
+        case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+        case Identifier("var3", Some(ann), ns) =>
+          ann.root should be (Language.typeListId)
+          ann.subtrees.head should be (Language.typeInt)
+        case Identifier("f1", Some(ann), ns) =>
+          ann.root should be (Language.mapTypeId)
+          ann.subtrees.head.root.literal should be ("string")
+          ann.subtrees(1).root.literal should be ("list")
+        case Identifier("f2", Some(ann), ns) =>
+          ann.root should be (Language.mapTypeId)
+          ann.subtrees.head.root.literal should be ("list")
+          ann.subtrees(1) should be (Language.typeInt)
+      }
+    }
+  }
 }
