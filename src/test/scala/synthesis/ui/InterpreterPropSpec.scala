@@ -8,11 +8,10 @@ import org.scalatest.{FunSuite, Matchers}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.Template.ExplicitTerm
-import synthesis.ui.Main.splitByStatements
+import synthesis.ui.Main.readJFile
 import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, TranscalParser}
 
-import scala.io.Source
 import scala.language.higherKinds
 
 class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
@@ -20,19 +19,10 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
   private val parser = new TranscalParser()
 
   private def abstractTest(fileName: String): ActionSearchState = {
-    val file = Source.fromFile(new JFile(fileName))
-    try {
-      val userInput: Iterator[AnnotatedTree] =
-        splitByStatements(parser(file.getLines().mkString("\n")))
-
-      val userOutput: ByteArrayOutputStream = new ByteArrayOutputStream()
-      val interpreter = new Interpreter(userInput, new PrintStream(userOutput))
-      val lastState = interpreter.start()
-
-      lastState
-    } finally {
-      file.close()
-    }
+    val userInput: Iterator[AnnotatedTree] = readJFile(new JFile(fileName))
+    val userOutput: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val interpreter = new Interpreter(userInput, new PrintStream(userOutput))
+    interpreter.start()
   }
 
   test("NoDup") {
