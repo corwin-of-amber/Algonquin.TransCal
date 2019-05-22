@@ -9,13 +9,13 @@ l = x :: xs
 ->
 p (f x) = ⊤
 
-filter _ _  -> (1)    [only assoc]
-(1) -> _ :: _
+filter _ _  -> a1    [only assoc]
+a1 -> _ :: _
 
 []
 <-
 p (f x) = ⊥
-filter _ _ -> (1)
-(1) -> filter _ (map _ xs)
+filter _ _ -> a1
+a1 -> filter _ (map _ xs)
 
-(1) -> ?f2 p f xs
+a1 -> ?f2 p f xs

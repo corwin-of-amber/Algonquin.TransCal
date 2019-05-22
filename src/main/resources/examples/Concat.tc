@@ -1,7 +1,7 @@
 concat ⟨⟩ = ⟨⟩
 concat (?xs :: ?xss) = xs ++ concat xss   [++]
 
-_ ++ _ ->  1
-1 -> ?concat' xs xss
+_ ++ _ ->  a1
+a1 -> ?concat' xs xss
 xs = x': 'a :: xs': list 'a
-1 -> _ :: _
+a1 -> _ :: _
