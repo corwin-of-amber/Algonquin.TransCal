@@ -4,7 +4,7 @@ concat ?l = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss
 map ?f ?l = l match (⟨⟩ => ⟨⟩) / (?x :: ?xs) => (f x) :: map f xs
 
 l = x :: xs
-concat _ -> (1)
+concat _ -> a1
 
 a1 -> f _ ++ _
 f x = l'
