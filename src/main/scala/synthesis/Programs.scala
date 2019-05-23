@@ -136,20 +136,26 @@ object Programs extends LazyLogging {
 
     val targetToSubedges = args.map(subtree => innerDestruct(subtree, nodeCreator, identToEdge, knownTerms))
     val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
-    var target = nodeCreator()
 
-    val newHyperEdges = function match {
+    val (target, newHyperEdges) = function match {
       case Language.andCondBuilderId =>
         val res = mergeEdgesRoots(targetToSubedges)
-        target = res.head._1
+        (res.head._1,
         res.flatMap(_._2)
+        )
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
-        target = targetToSubedges.last._1
+        (targetToSubedges.last._1,
         Set(
           HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
         )
-      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+        )
+      case _ =>
+        val target = nodeCreator()
+        (
+          target,
+          Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+        )
     }
     val annotationEdges = function.annotation match {
       case Some(annotatedTree) =>
