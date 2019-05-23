@@ -16,7 +16,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   /** Inner constructor that adds words where this Trie is for specific place */
   private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
     this({
-      val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map(t => (t._2 + trieIndex, t._1, word)))
+      val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map(((letter: Letter, index: Int) => (index + trieIndex, letter, word)).tupled))
       val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map(((index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) => {
         wordsToIndexes.groupBy(_._2).map(((letter: Letter, wordsToLetters: Set[(Int, Letter, VocabularyLike.Word[Letter])]) => {
           val words = wordsToLetters.map(_._3)

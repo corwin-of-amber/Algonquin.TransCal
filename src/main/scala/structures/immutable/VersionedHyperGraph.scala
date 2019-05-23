@@ -32,7 +32,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
           val nodesMap = Item.itemsValueToMap(nodes)
           val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
           val g = HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-          wrapped.findSubgraph[Id](g).map(t => (t._1 ++ nodesMap, t._2 ++ edgeTypeMap))
+          wrapped.findSubgraph[Id](g).map(((foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap)).tupled)
         })
     })
   }

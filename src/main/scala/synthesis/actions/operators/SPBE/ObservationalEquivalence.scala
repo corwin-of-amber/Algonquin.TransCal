@@ -17,7 +17,7 @@ object ObservationalEquivalence {
     val searchGraph = allInOne.addEdges(anchors)
     var rewriteState = new RewriteSearchState(searchGraph)
     for (i <- 1 to 10; op <- rewriteRules) rewriteState = op(rewriteState)
-    val termToTarget: Map[AnnotatedTree, HyperTermId] = anchorToTerm.map(t => (t._2, rewriteState.graph.findEdges(t._1.edgeType).head.target))
+    val termToTarget: Map[AnnotatedTree, HyperTermId] = anchorToTerm.map(((hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier], annotatedTree: AnnotatedTree) => (annotatedTree, rewriteState.graph.findEdges(hyperEdge.edgeType).head.target)).tupled)
     termToTarget.groupBy(t => t._2).map(_._2.keys.toSet).toSet
   }
 }

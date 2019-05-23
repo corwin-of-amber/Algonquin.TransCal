@@ -73,10 +73,10 @@ class RewriteRule(val premise: HyperPattern,
 
   private def subGraphConclusion(maxExist: Int): SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
-    val existentialEdges = existentialHoles.zipWithIndex.map(t =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](t._1,
-        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + t._2 + 1}", namespace=Some(new Namespace {})))), Seq.empty, metadata)
-    )
+    val existentialEdges = existentialHoles.zipWithIndex.map(((existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
+        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
+    }).tupled)
     conclusion.addEdges(existentialEdges)
   }
 }

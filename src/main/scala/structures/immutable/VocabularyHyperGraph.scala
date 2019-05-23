@@ -46,29 +46,24 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
     def swap(n: Node) = if (n == change) keep else n
 
-    val newMetadatas = metadatas.filterNot(t => t._1._1 == change || t._1._3.contains(change)) ++
-      metadatas.filter(t => t._1._1 == change || t._1._3.contains(change))
-        .groupBy(t => (swap(t._1._1), t._1._2, t._1._3.map(swap)))
-        .map(t => {
-          val a = t._2.values.reduce(_ merge _)
-          (t._1, a)
-        }
-        )
+    val newMetadatas = metadatas.groupBy({
+      case (edge: (Node, EdgeType, Seq[Node]), metadata: Metadata) if edge._1 == change || edge._3.contains(change) => (swap(edge._1), edge._2, edge._3.map(swap))
+      case t => t._1
+    }).map(((key: (Node, EdgeType, Seq[Node]), maps: Map[(Node, EdgeType, Seq[Node]), Metadata]) => {
+      val a = maps.values.reduce(_ merge _)
+      (key, a)
+    }).tupled)
     new VocabularyHyperGraph(vocabulary replace(Left(keep), Left(change)), newMetadatas)
   }
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge edge types")
     if (keep == change) return this
-
-    val newMetadatas = metadatas.filterNot(t => t._1._2 == change) ++ metadatas.filter(t => t._1._2 == change).map(t => {
-      val target = t._1._1
-      val sources = t._1._3
-      val toChangeMetadata = t._2
-      val newKey = (target, keep, sources)
+    val newMetadatas = metadatas.filterNot(t => t._1._2 == change) ++ metadatas.filter(t => t._1._2 == change).map(((edge: (Node, EdgeType, Seq[Node]), toChangeMetadata: Metadata) => {
+      val newKey = edge.copy(_2 = keep)
       val newMetadata = metadatas.get(newKey).map(toChangeMetadata.merge).getOrElse(toChangeMetadata)
       (newKey, newMetadata)
-    })
+    }).tupled)
     new VocabularyHyperGraph(vocabulary replace(Right(keep), Right(change)), newMetadatas)
   }
 
@@ -111,10 +106,11 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     /** Fills the pattern with known references.
       *
       * @param pattern       The pattern to fill
-      * @param referencesMap The known map
+      * @param referencesNodeMap The known nodes map
+      * @param referencesEdgeTypeMap The known edgeTypes map
       * @return A filled pattern
       */
-    def fillReferences(pattern: SubRegex, referencesMap: ReferencesMap): SubRegex = {
+    def fillReferences(pattern: SubRegex, referencesNodeMap: Map[Id, Node], referencesEdgeTypeMap: Map[Id, EdgeType]): SubRegex = {
       def convert[A](b: Map[Id, A], item: Item[A, Id]): Item[A, Id] = {
         item match {
           case Hole(id) => b.get(id).map(Explicit[A, Id]).getOrElse(item)
@@ -122,9 +118,9 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
         }
       }
 
-      val newTarget = convert(referencesMap._1, pattern.target)
-      val newEdgeType = convert(referencesMap._2, pattern.edgeType)
-      val newSources = pattern.sources.map(convert(referencesMap._1, _))
+      val newTarget = convert(referencesNodeMap, pattern.target)
+      val newEdgeType = convert(referencesEdgeTypeMap, pattern.edgeType)
+      val newSources = pattern.sources.map(convert(referencesNodeMap, _))
       val metadata = EmptyMetadata
       HyperEdge(newTarget, newEdgeType, newSources, metadata)
     }
@@ -132,22 +128,22 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     /** Creating reference map for a lot of matches.
       *
       * @param itemEdges     pattern edges.
-      * @param referencesMap current reference map
+      * @param referencesNodeMap current reference map of nodes
+      * @param referencesEdgeTypeMap current reference map of edge types
       * @return a nee reference map
       */
-    def getReferencesMap(itemEdges: Seq[SubRegex], referencesMap: ReferencesMap): Set[ReferencesMap] = {
+    def getReferencesMap(itemEdges: Seq[SubRegex], referencesNodeMap: Map[Id, Node], referencesEdgeTypeMap: Map[Id, EdgeType]): Set[ReferencesMap] = {
       itemEdges match {
-        case Nil => Set(referencesMap)
+        case Nil => Set((referencesNodeMap, referencesEdgeTypeMap))
         case itemEdge +: left =>
-          val filledEdge = fillReferences(itemEdge, referencesMap)
+          val filledEdge = fillReferences(itemEdge, referencesNodeMap, referencesEdgeTypeMap)
           (for ((nodeMap, edgeTypeMap) <- findRegexMaps(filledEdge)) yield {
-            val newReferences = (nodeMap ++ referencesMap._1, edgeTypeMap ++ referencesMap._2)
-            getReferencesMap(left, newReferences)
+            getReferencesMap(left, nodeMap ++ referencesNodeMap, edgeTypeMap ++ referencesEdgeTypeMap)
           }).flatten
       }
     }
 
-    getReferencesMap(hyperPattern.toSeq, (Map.empty, Map.empty))
+    getReferencesMap(hyperPattern.toSeq, Map.empty, Map.empty)
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)
