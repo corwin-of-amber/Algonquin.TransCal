@@ -241,7 +241,7 @@ object Programs extends LazyLogging {
   }
 
   private def mergeEdgesRoots[Node, EdgeType](edges: Seq[(Node, Set[HyperEdge[Node, EdgeType]])]): Seq[(Node, Set[HyperEdge[Node, EdgeType]])] = {
-    val mainRoot = edges.head._1
+    val mainRoot = edges.minBy(_._2.size)._1
     val roots = edges.map(_._1).toSet
     def switcher(templateTerm: Node) = if (roots.contains(templateTerm)) mainRoot else templateTerm
     edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
