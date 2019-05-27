@@ -146,15 +146,13 @@ object Programs extends LazyLogging {
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
         (targetToSubedges.last._1,
-        Set(
-          HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
-        )
+          subHyperEdges + HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
         )
       case _ =>
         val target = nodeCreator()
         (
           target,
-          Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+          subHyperEdges + HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata)
         )
     }
     val annotationEdges = function.annotation match {
@@ -170,7 +168,7 @@ object Programs extends LazyLogging {
       case None => Set.empty
     }
 
-    (target, subHyperEdges ++ newHyperEdges ++ annotationEdges)
+    (target, annotationEdges ++ newHyperEdges)
   }
 
   /** Create hyper graph from ast. Removes annotations. Root is always max HyperTermId.
