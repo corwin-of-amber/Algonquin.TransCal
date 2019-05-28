@@ -12,7 +12,7 @@ object ObservationalEquivalence {
   def getEquives(rewriteRules: Set[Operator[RewriteSearchState]], terms: Seq[AnnotatedTree]): Set[Set[AnnotatedTree]] = {
     val (allInOne, root) = Programs.destructWithRoot(new AnnotatedTree(Language.semicolonId, terms.toList, Seq.empty))
     val top = allInOne.edges.find(e => e.target == root && e.edgeType == HyperTermIdentifier(Language.semicolonId)).head
-    val anchorToTerm = top.sources.zipWithIndex.map(tAndI => (HyperEdge(tAndI._1, HyperTermIdentifier(Identifier(s"${terms(tAndI._2)}")), List.empty, NonConstructableMetadata), terms(tAndI._2))).toMap
+    val anchorToTerm = top.sources.zipWithIndex.map(tAndI => (HyperEdge(tAndI._1, HyperTermIdentifier(Identifier(s"${Programs.termToString(terms(tAndI._2))}")), List.empty, NonConstructableMetadata), terms(tAndI._2))).toMap
     val anchors = anchorToTerm.keys.toSet
     val searchGraph = allInOne.addEdges(anchors)
     var rewriteState = new RewriteSearchState(searchGraph)

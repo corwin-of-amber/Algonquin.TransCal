@@ -1,10 +1,14 @@
 package transcallang
 
+import synthesis.Programs
+
 trait Namespace {
 
 }
 
-case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None)
+case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None) {
+  override def toString: String = s"Identifier(${'"'}${literal.replace("\"", "'")}${'"'}, ${annotation.map(Programs.termToString).getOrElse("None")}, $namespace)"
+}
 object Identifier {
   def apply(literal: String): Identifier = new Identifier(literal, None, None)
 }

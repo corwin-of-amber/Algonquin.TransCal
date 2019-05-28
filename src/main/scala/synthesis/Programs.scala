@@ -245,11 +245,20 @@ object Programs extends LazyLogging {
 
   def destructPatternsWithRoots(trees: Seq[AnnotatedTree], mergeRoots: Boolean = true): Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
     val edges = innerDestructPattern(trees)
+    // Add anchors on roots to return the right root later
+    val rootAnchors = edges.zipWithIndex.map(t => ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for ${t._2}"))))
+    val anchoredGraphs = edges.zip(rootAnchors).map(t => (t._1._1, t._1._2 + HyperEdge(t._1._1, t._2, Seq.empty, NonConstructableMetadata))).map(es => VersionedHyperGraph(es._2.toSeq: _*))
+    val afterCompaction = anchoredGraphs.zip(rootAnchors).map(g => (g._1.findEdges(g._2).head.target, g._1.edges.filter(e => e.edgeType != g._2)))
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
-      if (mergeRoots) mergeEdgesRoots(edges)
-      else edges
+      if (mergeRoots) mergeEdgesRoots(afterCompaction)
+      else afterCompaction
     }
-    modifiedEdges.map(es => (HyperGraphManyWithOrderToOne(es._2.toSeq: _*), es._1))
+    val results = modifiedEdges.map(es => (VersionedHyperGraph(es._2.toSeq: _*), es._1))
+    for (t <- results) {
+      val targets = t._1.map(_.target)
+      assert(targets.toSet.contains(t._2))
+    }
+    results
   }
 
   private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
