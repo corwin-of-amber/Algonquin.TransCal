@@ -59,6 +59,7 @@ object Tokens {
   case class SEMICOLON() extends WorkflowToken {override val toIdentifier: Identifier = Language.semicolonId} // ;
   case class TRUECONDBUILDER() extends WorkflowToken {override val toIdentifier: Identifier = Language.trueCondBuilderId} // ||>
   case class ANDCONDBUILDER() extends WorkflowToken {override val toIdentifier: Identifier = Language.andCondBuilderId} // |||
+  case class LIMITEDANDCONDBUILDER() extends WorkflowToken {override val toIdentifier: Identifier = Language.limitedAndCondBuilderId} // ||||
   case class ROUNDBRACETOPEN() extends WorkflowToken {override val toIdentifier: Identifier = I("(")} // (
   case class ROUNDBRACETCLOSE() extends WorkflowToken {override val toIdentifier: Identifier = I(")")} // )
   case class CURLYBRACETOPEN() extends WorkflowToken {override val toIdentifier: Identifier = I("{")} // {

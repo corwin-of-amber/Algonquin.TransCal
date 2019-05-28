@@ -49,6 +49,7 @@ object Language {
   val typeBuilderId: Identifier = Identifier(":")
   val trueCondBuilderId: Identifier = Identifier("||>")
   val andCondBuilderId: Identifier = Identifier("|||")
+  val limitedAndCondBuilderId: Identifier = Identifier("||||")
   val consId: Identifier = Identifier("::")
   val snocId: Identifier = Identifier(":+")
   val setId: Identifier = Identifier("{.}")
@@ -78,7 +79,7 @@ object Language {
   val builtinSetBuildingOps: Seq[Identifier] = Seq(snocId, consId)
   val builtinBooleanOps: Seq[Identifier] = Seq(equalityId, unequalityId, setContainsId, setNotContainsId, setDisjointId, ltId, gtId, leId, geId)
   val builtinCondBuilders: Seq[Identifier] = Seq(trueCondBuilderId)
-  val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId)
+  val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId, limitedAndCondBuilderId)
   val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId, limitedLetId, limitedDirectedLetId)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")

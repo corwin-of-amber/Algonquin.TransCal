@@ -98,7 +98,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("can parse different types of let") {
-    val parsed = Seq("f ?x = x + 1","f ?x >> x + 1","f ?x |>> x + 1","f ?x |= x + 1").map(p(_))
+    val parsed = Seq("f ?x = x + 1", "f ?x >> x + 1", "f ?x |>> x + 1", "f ?x |= x + 1").map(p(_))
     val allLets = parsed.map(_.root)
     allLets.toSet shouldEqual Set(Language.letId, Language.directedLetId, Language.limitedLetId, Language.limitedDirectedLetId)
   }
@@ -269,13 +269,13 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 
   test("Parse identifier polymorphic type of polymorphic") {
     val parsed = (new TranscalParser).apply("_: (list(list int)) -> x")
-    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(listlistintTree))
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listlistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
   test("Parse identifier map type") {
     val parsed = (new TranscalParser).apply("(_: int :> int) -> x")
-    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(intToIntTree))
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(intToIntTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
@@ -287,9 +287,16 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).subtrees(0).root.annotation shouldEqual Some(listlistgenericTree)
     parsed.subtrees(0).subtrees.size shouldEqual 1
   }
+
   test("Parse identifier polymorphic map type") {
     val parsed = (new TranscalParser).apply("(_: (list int) :> (list int)) -> x")
-    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation=Some(listintTolistintTree))
+    parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listintTolistintTree))
+    parsed.subtrees(1).root.literal shouldEqual "x"
+  }
+
+  test("Parse or cond builder") {
+    val parsed = (new TranscalParser).apply("x: int |||| int -> x")
+    parsed.subtrees(0).root shouldEqual Language.limitedAndCondBuilderId
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 }
@@ -298,4 +305,56 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser: TranscalParser = p.asInstanceOf[TranscalParser]
+  protected val symbols = Seq(
+    "var2 : string",
+    "var3 : (list int)",
+    "f1 : string :> (list real)"
+  )
+
+
+  test("Parse statement types and map types correctly simple") {
+    parser("_ -> " + symbols.head).subtrees.last.root match {
+      case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+    }
+  }
+
+  test("Parse statement types and map types correctly apllied type") {
+    parser("_ -> " + symbols(1)).subtrees.last.root match {
+      case Identifier("var3", Some(ann), ns) =>
+        ann.root should be(Language.typeListId)
+        ann.subtrees.head should be(Language.typeInt)
+    }
+  }
+
+  test("Parse statement types and map types correctly function type") {
+    parser("_ -> " + symbols.last).subtrees.last.root match {
+      case Identifier("f1", Some(ann), ns) =>
+        ann.root should be(Language.mapTypeId)
+        ann.subtrees.head.root.literal should be("string")
+        ann.subtrees(1).root.literal should be("list")
+    }
+  }
+
+  test("Parse expression types and map types correctly simple") {
+    parser.parseExpression(symbols.head).root match {
+      case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+    }
+  }
+
+  test("Parse expression types and map types correctly apllied type") {
+    parser.parseExpression(symbols(1)).root match {
+      case Identifier("var3", Some(ann), ns) =>
+        ann.root should be(Language.typeListId)
+        ann.subtrees.head should be(Language.typeInt)
+    }
+  }
+
+  test("Parse expression types and map types correctly function type") {
+    parser.parseExpression(symbols.last).root match {
+      case Identifier("f1", Some(ann), ns) =>
+        ann.root should be(Language.mapTypeId)
+        ann.subtrees.head.root.literal should be("string")
+        ann.subtrees(1).root.literal should be("list")
+    }
+  }
 }
