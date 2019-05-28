@@ -293,6 +293,12 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listintTolistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
+
+  test("Parse or cond builder") {
+    val parsed = (new TranscalParser).apply("x: int |||| int -> x")
+    parsed.subtrees(0).root shouldEqual Language.limitedAndCondBuilderId
+    parsed.subtrees(1).root.literal shouldEqual "x"
+  }
 }
 
 //class OldParserTest extends ParserTest(new OldParser())
