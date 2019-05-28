@@ -327,7 +327,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     (Infixer.MIDDLE + 2, Set(AND())),
     (Infixer.MIDDLE + 3, Set(OR())),
     //    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.MIDDLE + 5, Set(ANDCONDBUILDER(), LAMBDA()))
+    (Infixer.MIDDLE + 5, Set(LIMITEDANDCONDBUILDER(), ANDCONDBUILDER(), LAMBDA()))
   )
 
   /** The known right operators at the moment */

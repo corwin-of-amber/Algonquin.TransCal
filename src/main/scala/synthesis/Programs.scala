@@ -139,6 +139,9 @@ object Programs extends LazyLogging {
     var target = nodeCreator()
 
     val newHyperEdges = function match {
+      case Language.`limitedAndCondBuilderId` =>
+        target = targetToSubedges.head._1
+        targetToSubedges.flatMap(_._2)
       case Language.andCondBuilderId =>
         val res = mergeEdgesRoots(targetToSubedges)
         target = res.head._1
