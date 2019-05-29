@@ -191,7 +191,7 @@ object Programs extends LazyLogging {
     }
 
     val hyperEdges = innerDestruct(tree, hyperTermIdCreator, HyperTermIdentifier, knownTerms)
-    (VersionedHyperGraph(hyperEdges._2.toSeq:_*), hyperEdges._1)
+    (VersionedHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
   }
 
   private def innerDestructPattern(trees: Seq[AnnotatedTree]):
@@ -203,19 +203,31 @@ object Programs extends LazyLogging {
       () => ReferenceTerm[HyperTermId](creator.next())
     }
 
+    val knownHoles: Map[AnnotatedTree, ReferenceTerm[HyperTermId]] = {
+      val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
+        Set(t, AnnotatedTree(t.root.copy(literal = t.root.literal.drop(1)), Seq.empty, Seq.empty))
+      )
+      vars.flatMap(s => {
+        val newHole: ReferenceTerm[HyperTermId] = holeCreator()
+        Set((s.head, newHole), (s.last, newHole))
+      })
+    }.toMap
+
     val knownTerms: AnnotatedTree => Option[ReferenceTerm[HyperTermId]] = {
-      val knownHoles: Map[AnnotatedTree, ReferenceTerm[HyperTermId]] = {
-        val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
-          Set(t, AnnotatedTree(t.root.copy(literal=t.root.literal.drop(1)), Seq.empty, Seq.empty))
-        )
-        vars.flatMap(s => {
-          val newHole: ReferenceTerm[HyperTermId] = holeCreator()
-          Set((s.head, newHole), (s.last, newHole))
-        })
-      }.toMap
       t: AnnotatedTree =>
         if (t.root.literal == "_") Some(holeCreator())
         else knownHoles.get(t)
+    }
+
+    val knownTypes = {
+      for ((k, value) <- knownHoles;
+           (root, edges) = innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](k, holeCreator, edgeCreator, x => None)) yield {
+        val edgeType = ExplicitTerm(HyperTermIdentifier(k.root))
+
+        def replacer(r: TemplateTerm[HyperTermId]) = if (r == root) value else r
+
+        (k, edges.filter(_.edgeType != edgeType).map(e => e.copy(target = replacer(e.target), sources = e.sources.map(replacer))))
+      }
     }
 
     // A specific case is where we have a pattern of type ?x -> x
@@ -242,7 +254,9 @@ object Programs extends LazyLogging {
   private def mergeEdgesRoots[Node, EdgeType](edges: Seq[(Node, Set[HyperEdge[Node, EdgeType]])]): Seq[(Node, Set[HyperEdge[Node, EdgeType]])] = {
     val mainRoot = edges.head._1
     val roots = edges.map(_._1).toSet
+
     def switcher(templateTerm: Node) = if (roots.contains(templateTerm)) mainRoot else templateTerm
+
     edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
   }
 

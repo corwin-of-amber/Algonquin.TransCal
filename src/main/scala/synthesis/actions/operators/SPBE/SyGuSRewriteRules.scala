@@ -3,6 +3,7 @@ package synthesis.actions.operators.SPBE
 import structures.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, Hole, HyperEdge, Metadata}
+import synthesis.actions.operators.LetAction
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.Operator
@@ -14,30 +15,21 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   assert(terms.forall(_.root.annotation.nonEmpty))
   assert(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
 
-  //  def getExpressionAsTypedTree(typeTerm: AnnotatedTree): AnnotatedTree =
-  //    AnnotatedTree.identifierOnly(expressionId.copy(literal = expressionId.literal, annotation = Some(typeTerm)))
-  private def getRewrites: Set[Operator[RewriteSearchState]] = {
-    terms.map({ t =>
+  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = {
+    terms.flatMap({ t =>
       val typ = t.root.annotation.get
-      val params = typ.subtrees.dropRight(1).zipWithIndex.map(tup => AnnotatedTree.identifierOnly(Identifier(s"?autovar${tup._2}", annotation = Some(tup._1))))
       // sources are all typed expressions needed
-      val paramPatterns = Programs.destructPatterns(params)
-
-      val premise = VersionedHyperGraph(paramPatterns.flatMap(_.edges): _*)
-
-      val conclusion = VersionedHyperGraph(Programs.destructPattern(AnnotatedTree.withoutAnnotations(
-        t.root.copy(annotation = Some(typ.subtrees.last)),
-        params)).edges.toSeq: _*)
-
-      val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
-        t: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => metadata
+      val params = typ.subtrees.dropRight(1).zipWithIndex.map(tup => AnnotatedTree.identifierOnly(Identifier(s"?autovar${tup._2}", annotation = Some(tup._1))))
+      assert(params.nonEmpty)
+      val term = {
+        val premise = AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, params)
+        val conclusion = AnnotatedTree.withoutAnnotations(t.root.copy(annotation = Some(typ.subtrees.last)), params)
+        AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(premise, conclusion))
       }
 
-      new RewriteRule(premise, conclusion, metaCreator)
+      new LetAction(term).rules
     })
   }
-
-  override val rewriteRules: Set[Operator[RewriteSearchState]] = getRewrites
 
   override protected def ruleTemplates: Set[AnnotatedTree] = Set.empty
 
