@@ -237,9 +237,13 @@ object Programs extends LazyLogging {
       if (knownTerms(tree).nonEmpty) {
         val target = knownTerms(tree).get
         val edgeType = holeCreator()
-        (target, Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](target, ReferenceTerm[HyperTermIdentifier](edgeType.id), Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get), EmptyMetadata)))
+        (target, knownTypes(tree) ++ Set(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](target, ReferenceTerm[HyperTermIdentifier](edgeType.id), Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get), EmptyMetadata)))
       }
-      else innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)
+      else {
+        val inner = innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, knownTerms)
+        val typeEdges = knownTypes.filter(kv => tree.nodes.contains(kv._1)).flatMap(_._2).toSet
+        (inner._1, typeEdges ++ inner._2)
+      }
     })
   }
 
@@ -264,7 +268,8 @@ object Programs extends LazyLogging {
     val edges = innerDestructPattern(trees)
     // Add anchors on roots to return the right root later
     val rootAnchors = edges.zipWithIndex.map(t => ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for ${t._2}"))))
-    val anchoredGraphs = edges.zip(rootAnchors).map(t => (t._1._1, t._1._2 + HyperEdge(t._1._1, t._2, Seq.empty, NonConstructableMetadata))).map(es => VersionedHyperGraph(es._2.toSeq: _*))
+    val tempEdges = edges.zip(rootAnchors).map(t => (t._1._1, t._1._2 + HyperEdge(t._1._1, t._2, Seq.empty, NonConstructableMetadata)))
+    val anchoredGraphs = tempEdges.map(es => VersionedHyperGraph(es._2.toSeq: _*))
     val afterCompaction = anchoredGraphs.zip(rootAnchors).map(g => (g._1.findEdges(g._2).head.target, g._1.edges.filter(e => e.edgeType != g._2)))
     val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
       if (mergeRoots) mergeEdgesRoots(afterCompaction)
