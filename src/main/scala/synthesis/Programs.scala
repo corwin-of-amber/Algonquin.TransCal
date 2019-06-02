@@ -277,8 +277,8 @@ object Programs extends LazyLogging {
     }
     val results = modifiedEdges.map(es => (VersionedHyperGraph(es._2.toSeq: _*), es._1))
     for (t <- results) {
-      val targets = t._1.map(_.target)
-      assert(targets.toSet.contains(t._2))
+      val targets = t._1.map(_.target).toSet
+      assert(targets.contains(t._2))
     }
     results
   }
