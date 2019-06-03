@@ -16,6 +16,9 @@ xs = x' :: xs'
 
 (1) -> _ /\ _ /\ _ /\ _
 
+spacecomplex xs (len xs) = true
+timecomplex (elem _ _) _ -> 3
+
 // (1) -> (_ ∉ {x'}) /\ (_ ‖ _) /\ nodup xs' [lim(2)]
 
 // (1) -> (_ ∉ {x}) /\ (_ ∉ _) /\ (_ ∉ _) /\ _
@@ -24,7 +27,12 @@ xs = x' :: xs'
 
 (1) -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 
+timecomplex (_ ∉ _) _ -> 4
+timecomplex (_ ∪ _) _ -> 5
+
 (1) -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
+
+timecomplex _ _ -> 6
 
 /*
 x ∉ _ /\ x' ∉ _ -> 2
