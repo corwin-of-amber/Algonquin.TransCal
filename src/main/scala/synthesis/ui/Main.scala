@@ -12,8 +12,9 @@ import scala.io.Source
   * @since 11/24/18
   */
 object Main extends App {
-
   import org.rogach.scallop.ScallopConf
+
+  val parser = new TranscalParser()
 
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
     val file: ScallopOption[JFile] = opt[JFile]()
@@ -29,21 +30,26 @@ object Main extends App {
     }
   }
 
+  def readLines(lines: Iterator[String]) = {
+    val parser = new TranscalParser()
+    splitByStatements(parser(lines.mkString("\n")))
+  }
+
   def readJFile(jFile: JFile): Iterator[AnnotatedTree] = {
     val file = Source.fromFile(jFile)
     try {
-        splitByStatements(parser(file.getLines().mkString("\n")))
+      readLines(file.getLines())
     } finally {
       file.close()
     }
   }
 
-  val parser = new TranscalParser()
   val conf = new CommandLineConfiguration(args)
   val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
   val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readJFile)
   val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
   val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
   val interpreter = new Interpreter(userInput, userOutput)
+
   interpreter.start()
 }

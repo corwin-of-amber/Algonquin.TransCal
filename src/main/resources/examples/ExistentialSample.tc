@@ -2,6 +2,6 @@ f ?l = len ( l )   [++]
 
 len ?ys = len (take ys ?i ++ drop ys i)
 
-f l -> 1
-1 -> len ( _ ++ _ )
-1 -> len ( _ ++ drop ( _ ++ _ ) _ )
+f l -> a1
+a1 -> len ( _ ++ _ )
+a1 -> len ( _ ++ drop ( _ ++ _ ) _ )

@@ -18,7 +18,15 @@ trait RewriteRulesDB extends LazyLogging {
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite) ++ ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+}
+
+object SystemRewriteRulesDB extends RewriteRulesDB {
+  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
+
+  override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
+
+  override protected def metadata: Metadata = throw new NotImplementedError()
 }
 
 object SimpleRewriteRulesDB extends RewriteRulesDB {
@@ -44,6 +52,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "?x ∈ (?xs ∪ ?ys) = (x ∈ xs) \\/ (x ∈ ys)",
     "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
+    "?x + ?y = y + x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
     "⟨⟩ ++ ?xs' >> id xs'",

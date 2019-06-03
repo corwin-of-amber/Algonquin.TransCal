@@ -23,7 +23,7 @@ object Lexer extends RegexParsers {
   // Tokens is the main part of the lexer. Add your new token here!!!
   def tokens: Parser[List[WorkflowToken]] = {
     phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
-      truecondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
+      truecondbuilder | limitedandcondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
       | backslash | lambda | let | plus | minus | union | directedlet | hole | setin | setnotin | lt | gt | annotation
       | roundbracetopen | roundbracetclose | squarebracetopen | squarebracetclose | curlybracetopen | curlybracetclose | square
@@ -85,6 +85,7 @@ object Lexer extends RegexParsers {
   def semicolon: Lexer.Parser[SEMICOLON] = positioned { (";" | "\n") ^^ (_ => SEMICOLON() ) }
   def truecondbuilder: Lexer.Parser[TRUECONDBUILDER] = positioned { "||>" ^^ (_ => TRUECONDBUILDER() ) }
   def andcondbuilder: Lexer.Parser[ANDCONDBUILDER] = positioned { "|||" ^^ (_ => ANDCONDBUILDER() ) }
+  def limitedandcondbuilder: Lexer.Parser[LIMITEDANDCONDBUILDER] = positioned { "||||" ^^ (_ => LIMITEDANDCONDBUILDER() ) }
   def roundbracetopen: Lexer.Parser[ROUNDBRACETOPEN] = positioned { "(" ^^ (_ => ROUNDBRACETOPEN() ) } // (
   def roundbracetclose: Lexer.Parser[ROUNDBRACETCLOSE] = positioned { ")" ^^ (_ => ROUNDBRACETCLOSE() ) } // )
   def curlybracetopen: Lexer.Parser[CURLYBRACETOPEN] = positioned { "{" ^^ (_ => CURLYBRACETOPEN() ) } // {

@@ -125,4 +125,13 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val graphs = Programs.destructPatterns(Seq(term.subtrees(0), term.subtrees(1)))
     check(graphs.forall(_.edgeTypes.exists(_.isInstanceOf[ReferenceTerm[HyperTermIdentifier]])))
   }
+
+  property("when deconstructing orcondbuilder get a graph with 2 roots") {
+    val parser = new TranscalParser
+    val pattern = parser("id ?x |||| int -> id x")
+    val graphs = Programs.destructPatterns(Seq(pattern.subtrees(0), pattern.subtrees(1)))
+    val term = parser("id (x: int) -> y")
+    val g =Programs.destruct(term.subtrees(0))
+    check(g.findSubgraph[Int](graphs.head).nonEmpty)
+  }
 }

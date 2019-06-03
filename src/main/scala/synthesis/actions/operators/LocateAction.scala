@@ -25,19 +25,23 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
   protected def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findEdges(anchor).nonEmpty
 
   override def apply(state: ActionSearchState): ActionSearchState = {
+    // Anchor should not have a type as it will add a type annotation to the node we are marking
+    assert(anchor.identifier.annotation.isEmpty)
     // We assume only one root as it is a pattern from user.
     logger.debug(s"Running Locate with $anchor")
     val roots = {
-      val tempRoots = goal.edges.map(_.target).diff(goal.edges.flatMap(_.sources))
-      val typeRoots = goal.edges.filter(_.edgeType == ExplicitTerm(HyperTermIdentifier(Language.typeId))).map(_.target)
+      val allTargets = goal.edges.map(_.target)
+      val nonTypeSources = goal.edges.filter(_.edgeType != ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(_.sources)
+      val tempRoots = allTargets.diff(nonTypeSources)
+      val typeRoots = goal.edges.filter(_.edgeType == ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
       tempRoots.diff(typeRoots)
     }
     assert(roots.size == 1)
-    val root = roots.head
     //HyperGraphManyWithOrderToOne(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](root, ExplicitTerm(anchor), Seq.empty, NonConstructableMetadata))
     val destPattern = {
-      val anchorPattern = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
-      HyperGraphManyWithOrderToOne(anchorPattern._1.mergeNodes(root, anchorPattern._2).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
+      val root = roots.head
+      val (anchorPattern, anchorRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
+      HyperGraphManyWithOrderToOne(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
     }
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */

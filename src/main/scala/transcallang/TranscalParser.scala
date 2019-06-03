@@ -46,6 +46,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
+  def parseExpression(programText: String): AnnotatedTree = {
+    def cleanLineComments(text: String): String = "(.*?)(//.+)?".r.replaceAllIn(text, m => m.group(1))
+    val text = cleanLineComments(programText)
+    val tokens = Lexer.apply(text)
+    val reader = new WorkflowTokenReader(tokens.right.get)
+    expression(reader).get
+  }
+
   // Example of defining a parser for a word
   // def word: Parser[String]    = """[a-z]+""".r ^^ { _.toString }
 
@@ -74,8 +82,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name)))) })
 
   def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> exprValuesAndParens).*)("getting map type def")) ^^ {
-    case x ~ list if list.isEmpty => x
-    case x ~ list if list.nonEmpty => AnnotatedTree.withoutAnnotations(Language.mapTypeId, x +: list)
+    case x ~ Nil => x
+    case x ~ list => AnnotatedTree.withoutAnnotations(Language.mapTypeId, x +: list)
   }
 
   def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ log((COLON() ~> types).?)("type def")) ^^ {
@@ -319,7 +327,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     (Infixer.MIDDLE + 2, Set(AND())),
     (Infixer.MIDDLE + 3, Set(OR())),
     //    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.MIDDLE + 5, Set(ANDCONDBUILDER(), LAMBDA()))
+    (Infixer.MIDDLE + 5, Set(LIMITEDANDCONDBUILDER(), ANDCONDBUILDER(), LAMBDA()))
   )
 
   /** The known right operators at the moment */

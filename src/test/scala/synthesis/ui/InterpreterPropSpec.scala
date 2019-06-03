@@ -19,6 +19,8 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
   private val parser = new TranscalParser()
 
   private def abstractTest(fileName: String): ActionSearchState = {
+    val wd = new JFile(".").getCanonicalPath
+    println(wd)
     val userInput: Iterator[AnnotatedTree] = readJFile(new JFile(fileName))
     val userOutput: ByteArrayOutputStream = new ByteArrayOutputStream()
     val interpreter = new Interpreter(userInput, new PrintStream(userOutput))

@@ -138,6 +138,8 @@ object Programs extends LazyLogging {
     val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
 
     val (target, newHyperEdges) = function match {
+      case Language.`limitedAndCondBuilderId` =>
+        (targetToSubedges.head._1, targetToSubedges.flatMap(_._2))
       case Language.andCondBuilderId =>
         val res = mergeEdgesRoots(targetToSubedges)
         (res.head._1,
