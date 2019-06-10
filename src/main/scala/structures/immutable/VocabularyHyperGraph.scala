@@ -152,7 +152,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def toString: String = f"VocabularyHyperGraph($edges)"
 
-  override def hashCode(): Int = toString.hashCode
 
   /* --- IterableLike Impl. --- */
 

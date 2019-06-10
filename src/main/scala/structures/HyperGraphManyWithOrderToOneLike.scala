@@ -116,6 +116,15 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
   override def seq: TraversableOnce[HyperEdge[Node, EdgeType]] = this
 
+  /* --- Object Impl. --- */
+
+  override def hashCode(): Int = edges.hashCode
+
+  override def equals(obj: Any): Boolean = obj match {
+    case x: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This] => x.edges == edges
+    case _ => false
+  }
+
 }
 
 
