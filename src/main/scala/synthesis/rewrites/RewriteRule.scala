@@ -45,8 +45,8 @@ class RewriteRule(val premise: HyperPattern,
     }
 
     val newEdges = premiseReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m._1, m._2).merge(metadata)
-      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion(existentialsMax), m)
+      val meta = metaCreator(m._1, m._2).merge(metadataCreator(HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](premise, m)))
+      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion(existentialsMax, meta), m)
       if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
       else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
         e.copy(metadata = e.metadata.merge(meta)))
@@ -62,7 +62,7 @@ class RewriteRule(val premise: HyperPattern,
 
   /* --- Privates --- */
 
-  val metadata: RewriteRuleMetadata = RewriteRuleMetadata(this)
+  val metadataCreator: RewriteRule.SubHyperGraphPattern => RewriteRuleMetadata = RewriteRuleMetadata.curried(this)
 
   private val subGraphPremise: SubHyperGraphPattern = premise
 
@@ -71,7 +71,7 @@ class RewriteRule(val premise: HyperPattern,
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
-  private def subGraphConclusion(maxExist: Int): SubHyperGraphPattern = {
+  private def subGraphConclusion(maxExist: Int, metadata: Metadata): SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
     val existentialEdges = existentialHoles.zipWithIndex.map(((existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
@@ -88,8 +88,8 @@ object RewriteRule {
   type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
-  case class RewriteRuleMetadata(origin: RewriteRule) extends Metadata {
-    override def toStr: String = s"RewriteRuleMetadata($origin)"
+  case class RewriteRuleMetadata(origin: RewriteRule, originalEdges: RewriteRule.SubHyperGraphPattern) extends Metadata {
+    override def toStr: String = s"RewriteRuleMetadata($origin, $originalEdges)"
   }
 
   object CategoryMetadata extends Enumeration with Metadata {
