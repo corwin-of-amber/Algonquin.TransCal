@@ -47,8 +47,8 @@ class LetAction(val term: AnnotatedTree) extends Action {
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
       case Language.letId | Language.directedLetId | Language.limitedLetId | Language.limitedDirectedLetId =>
-        val isLimited = Seq(Language.limitedLetId, Language.limitedDirectedLetId).contains(t.root)
-        val isDirected = Seq(Language.directedLetId, Language.limitedDirectedLetId).contains(t.root)
+        val isLimited = Language.builtinLimitedDefinitions.contains(t.root)
+        val isDirected = Language.builtinDirectedDefinitions.contains(t.root)
 
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
