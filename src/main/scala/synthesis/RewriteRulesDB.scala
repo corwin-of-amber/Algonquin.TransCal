@@ -109,9 +109,10 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(elem ?x ?xs) |||| ((spacecomplex xs ?w) ||| true) |>> (timecomplex (elem x xs) w) ||| true",
+    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (spacecomplex xs ?w) ||> (elem ?x ?xs) |>> (timecomplex (elem x xs) (w + v + u)) ||| true",
     "(?xs ∪ ?ys) |||| ((spacecomplex xs ?w) ||| true) |||| ((spacecomplex ys ?v) ||| true) |>> (timecomplex ((?xs ∪ ?ys)) (w + v)) ||| true",
-    "(?x ∉ ?xs) |>> timecomplex (x ∉ xs) 1 ||| true"
+    "(timecomplex xs ?v) |||| (spacecomplex xs ?w) ||> (elems ?xs) |>> (timecomplex (elems xs) (w + v)) ||| true",
+    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (?x ∉ ?xs) |>> timecomplex (x ∉ xs) (v + u + 1) ||| true"
   ).map(t => parser.apply(t))
 
 }
