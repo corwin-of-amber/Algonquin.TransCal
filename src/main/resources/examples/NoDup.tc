@@ -16,7 +16,13 @@ xs = x' :: xs'
 
 a1 -> _ /\ _ /\ _ /\ _
 
-spacecomplex xs (len xs) = true
+true = spacecomplex xs (len xs) [++]
+true = timecomplex 0 0
+true = timecomplex 1 0
+true = timecomplex xs 0
+true = timecomplex x 0
+true = timecomplex true 0
+spacecomplex xs (len xs) -> timecomplex (elem _ _) _
 timecomplex (elem _ _) _ -> a3
 
 // (1) -> (_ ∉ {x'}) /\ (_ ‖ _) /\ nodup xs' [lim(2)]
