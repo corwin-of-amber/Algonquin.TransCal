@@ -13,7 +13,7 @@ object Lexer extends RegexParsers {
 //  override def skipWhitespace: Boolean = true
   protected override val whiteSpace: Regex = "[ \t]+".r
 
-  def apply(code: String): Either[WorkflowLexerError, List[WorkflowToken]] = {
+  def apply(code: String): Either[WorkflowLexerError, Seq[WorkflowToken]] = {
     parse(tokens, code) match {
       case NoSuccess(msg, next) => Left(WorkflowLexerError(next.pos, msg))
       case Success(result, next) => Right(result)
@@ -21,7 +21,7 @@ object Lexer extends RegexParsers {
   }
 
   // Tokens is the main part of the lexer. Add your new token here!!!
-  def tokens: Parser[List[WorkflowToken]] = {
+  def tokens: Parser[Seq[WorkflowToken]] = {
     phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
       truecondbuilder | limitedandcondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
@@ -32,10 +32,7 @@ object Lexer extends RegexParsers {
     }
   }
 
-  private def processIndentations(tokens: List[WorkflowToken],
-                                  indents: List[Int] = List(0)): List[WorkflowToken] = {
-    tokens
-  }
+  private def processIndentations(tokens: Seq[WorkflowToken], indents: Seq[Int] = List(0)): Seq[WorkflowToken] = tokens
 
   def identifier: Parser[IDENTIFIER] = positioned {
     Language.identifierRegex ^^ { str => IDENTIFIER(str) }
@@ -60,52 +57,52 @@ object Lexer extends RegexParsers {
 
   def annotation: Parser[ANNOTATION] = positioned { "\\[.+?\\]".r ^^ ( x => ANNOTATION(x.substring(1, x.length - 1)) ) }
 
-  def matchkeyword: Lexer.Parser[MATCH] = positioned { "match" ^^ (_ => MATCH() ) }
-  def colon: Lexer.Parser[COLON] = positioned { ":" ^^ (_ => COLON() ) }
-  def doublecolon: Lexer.Parser[DOUBLECOLON] = positioned { "::" ^^ (_ => DOUBLECOLON() ) }
-  def lambda: Lexer.Parser[LAMBDA] = positioned { "↦" ^^ (_ => LAMBDA() ) }
-  def let: Lexer.Parser[LET] = positioned { "=" ^^ (_ => LET() ) }
-  def directedlet: Lexer.Parser[DIRECTEDLET] = positioned { ">>" ^^ (_ => DIRECTEDLET() ) }
-  def limitedlet: Lexer.Parser[LIMITEDLET] = positioned { "|=" ^^ (_ => LIMITEDLET() ) }
-  def limiteddirectedlet: Lexer.Parser[LIMITEDDIRECTEDLET] = positioned { "|>>" ^^ (_ => LIMITEDDIRECTEDLET() ) }
-  def equals: Lexer.Parser[EQUALS] = positioned { "==" ^^ (_ => EQUALS() ) }
-  def comma: Lexer.Parser[COMMA] = positioned { "," ^^ (_ => COMMA() ) }
-  def typekeyword: Lexer.Parser[TYPE] = positioned { "type" ^^ (_ => TYPE() ) }
-  def maptype: Lexer.Parser[MAPTYPE] = positioned { ":>" ^^ (_ => MAPTYPE() ) }
-  def polymorphickeyword: Lexer.Parser[POLYMORPHIC] = positioned { "polymorphic" ^^ (_ => POLYMORPHIC() ) }
-  def backslash: Lexer.Parser[BACKSLASH] = positioned { "/" ^^ (_ => BACKSLASH() ) }
+  def matchkeyword: Parser[MATCH] = positioned { "match" ^^ (_ => MATCH() ) }
+  def colon: Parser[COLON] = positioned { ":" ^^ (_ => COLON() ) }
+  def doublecolon: Parser[DOUBLECOLON] = positioned { "::" ^^ (_ => DOUBLECOLON() ) }
+  def lambda: Parser[LAMBDA] = positioned { "↦" ^^ (_ => LAMBDA() ) }
+  def let: Parser[LET] = positioned { "=" ^^ (_ => LET() ) }
+  def directedlet: Parser[DIRECTEDLET] = positioned { ">>" ^^ (_ => DIRECTEDLET() ) }
+  def limitedlet: Parser[LIMITEDLET] = positioned { "|=" ^^ (_ => LIMITEDLET() ) }
+  def limiteddirectedlet: Parser[LIMITEDDIRECTEDLET] = positioned { "|>>" ^^ (_ => LIMITEDDIRECTEDLET() ) }
+  def equals: Parser[EQUALS] = positioned { "==" ^^ (_ => EQUALS() ) }
+  def comma: Parser[COMMA] = positioned { "," ^^ (_ => COMMA() ) }
+  def typekeyword: Parser[TYPE] = positioned { "type" ^^ (_ => TYPE() ) }
+  def maptype: Parser[MAPTYPE] = positioned { ":>" ^^ (_ => MAPTYPE() ) }
+  def polymorphickeyword: Parser[POLYMORPHIC] = positioned { "polymorphic" ^^ (_ => POLYMORPHIC() ) }
+  def backslash: Parser[BACKSLASH] = positioned { "/" ^^ (_ => BACKSLASH() ) }
   def falsekeyword: Parser[FALSE] = positioned { ("⊥" | "false") ^^ ( _ => FALSE() ) }
   def truekeyword: Parser[TRUE] = positioned { ("⊤" | "true") ^^ ( _ => TRUE() ) }
-  def nil: Lexer.Parser[NIL] = positioned { ("⟨⟩" | "nil") ^^ (_ => NIL() ) }
-  def not: Lexer.Parser[NOT] = positioned { ("¬" | "~") ^^ (_ => NOT() ) }
-  def guarded: Lexer.Parser[GUARDED] = positioned { ("=>" | "⇒") ^^ (_ => GUARDED() ) }
-  def rightarrow: Lexer.Parser[RIGHTARROW] = positioned { ("->"| "→") ^^ (_ => RIGHTARROW() ) }
-  def leftarrow: Lexer.Parser[LEFTARROW] = positioned { ("<-" | "←") ^^ (_ => LEFTARROW())}
-  def hole: Lexer.Parser[HOLE] = positioned { "_" ^^ (_ => HOLE() ) }
-  def semicolon: Lexer.Parser[SEMICOLON] = positioned { (";" | "\n") ^^ (_ => SEMICOLON() ) }
-  def truecondbuilder: Lexer.Parser[TRUECONDBUILDER] = positioned { "||>" ^^ (_ => TRUECONDBUILDER() ) }
-  def andcondbuilder: Lexer.Parser[ANDCONDBUILDER] = positioned { "|||" ^^ (_ => ANDCONDBUILDER() ) }
-  def limitedandcondbuilder: Lexer.Parser[LIMITEDANDCONDBUILDER] = positioned { "||||" ^^ (_ => LIMITEDANDCONDBUILDER() ) }
-  def roundbracetopen: Lexer.Parser[ROUNDBRACETOPEN] = positioned { "(" ^^ (_ => ROUNDBRACETOPEN() ) } // (
-  def roundbracetclose: Lexer.Parser[ROUNDBRACETCLOSE] = positioned { ")" ^^ (_ => ROUNDBRACETCLOSE() ) } // )
-  def curlybracetopen: Lexer.Parser[CURLYBRACETOPEN] = positioned { "{" ^^ (_ => CURLYBRACETOPEN() ) } // {
-  def curlybracetclose: Lexer.Parser[CURLYBRACETCLOSE] = positioned { "}" ^^ (_ => CURLYBRACETCLOSE() ) } // }
-  def squarebracetopen: Lexer.Parser[SQUAREBRACETOPEN] = positioned { "[" ^^ (_ => SQUAREBRACETOPEN() ) } // [
-  def squarebracetclose: Lexer.Parser[SQUAREBRACETCLOSE] = positioned { "]" ^^ (_ => SQUAREBRACETCLOSE() ) } // ]
-  def square: Lexer.Parser[SQUARE] = positioned { "□" ^^ (_ => SQUARE() ) } // □
-  def snoc: Lexer.Parser[SNOC] = positioned { ":+" ^^ (_ => SNOC() ) } // :+
-  def plusplus: Lexer.Parser[PLUSPLUS] = positioned { "++" ^^ ( _ => PLUSPLUS() ) }
-  def plus: Lexer.Parser[PLUS] = positioned { "+" ^^ ( _ => PLUS() ) }
-  def minus: Lexer.Parser[MINUS] = positioned { "-" ^^ ( _ => MINUS() ) }
-  def union: Lexer.Parser[UNION] = positioned { "∪" ^^ ( _ => UNION() ) }
-  def notequals: Lexer.Parser[NOTEQUALS] = positioned { ("≠" | "!=") ^^ ( _ => NOTEQUALS() ) }
-  def setin: Lexer.Parser[SETIN] = positioned { "∈" ^^ ( _ => SETIN() ) }
-  def setnotin: Lexer.Parser[SETNOTIN] = positioned { "∉" ^^ ( _ => SETNOTIN() ) }
-  def setdisjoint: Lexer.Parser[SETDISJOINT] = positioned { "‖" ^^ ( _ => SETDISJOINT() ) }
-  def lt: Lexer.Parser[LT] = positioned { "<" ^^ ( _ => LT() ) }
-  def le: Lexer.Parser[LE] = positioned { ("<=" | "≤") ^^ ( _ => LE() ) }
-  def ge: Lexer.Parser[GE] = positioned { (">=" | "≥") ^^ ( _ => GE() ) }
-  def gt: Lexer.Parser[GT] = positioned { ">" ^^ ( _ => GT() ) }
+  def nil: Parser[NIL] = positioned { ("⟨⟩" | "nil") ^^ (_ => NIL() ) }
+  def not: Parser[NOT] = positioned { ("¬" | "~") ^^ (_ => NOT() ) }
+  def guarded: Parser[GUARDED] = positioned { ("=>" | "⇒") ^^ (_ => GUARDED() ) }
+  def rightarrow: Parser[RIGHTARROW] = positioned { ("->"| "→") ^^ (_ => RIGHTARROW() ) }
+  def leftarrow: Parser[LEFTARROW] = positioned { ("<-" | "←") ^^ (_ => LEFTARROW())}
+  def hole: Parser[HOLE] = positioned { "_" ^^ (_ => HOLE() ) }
+  def semicolon: Parser[SEMICOLON] = positioned { (";" | "\n") ^^ (_ => SEMICOLON() ) }
+  def truecondbuilder: Parser[TRUECONDBUILDER] = positioned { "||>" ^^ (_ => TRUECONDBUILDER() ) }
+  def andcondbuilder: Parser[ANDCONDBUILDER] = positioned { "|||" ^^ (_ => ANDCONDBUILDER() ) }
+  def limitedandcondbuilder: Parser[LIMITEDANDCONDBUILDER] = positioned { "||||" ^^ (_ => LIMITEDANDCONDBUILDER() ) }
+  def roundbracetopen: Parser[ROUNDBRACETOPEN] = positioned { "(" ^^ (_ => ROUNDBRACETOPEN() ) } // (
+  def roundbracetclose: Parser[ROUNDBRACETCLOSE] = positioned { ")" ^^ (_ => ROUNDBRACETCLOSE() ) } // )
+  def curlybracetopen: Parser[CURLYBRACETOPEN] = positioned { "{" ^^ (_ => CURLYBRACETOPEN() ) } // {
+  def curlybracetclose: Parser[CURLYBRACETCLOSE] = positioned { "}" ^^ (_ => CURLYBRACETCLOSE() ) } // }
+  def squarebracetopen: Parser[SQUAREBRACETOPEN] = positioned { "[" ^^ (_ => SQUAREBRACETOPEN() ) } // [
+  def squarebracetclose: Parser[SQUAREBRACETCLOSE] = positioned { "]" ^^ (_ => SQUAREBRACETCLOSE() ) } // ]
+  def square: Parser[SQUARE] = positioned { "□" ^^ (_ => SQUARE() ) } // □
+  def snoc: Parser[SNOC] = positioned { ":+" ^^ (_ => SNOC() ) } // :+
+  def plusplus: Parser[PLUSPLUS] = positioned { "++" ^^ ( _ => PLUSPLUS() ) }
+  def plus: Parser[PLUS] = positioned { "+" ^^ ( _ => PLUS() ) }
+  def minus: Parser[MINUS] = positioned { "-" ^^ ( _ => MINUS() ) }
+  def union: Parser[UNION] = positioned { "∪" ^^ ( _ => UNION() ) }
+  def notequals: Parser[NOTEQUALS] = positioned { ("≠" | "!=") ^^ ( _ => NOTEQUALS() ) }
+  def setin: Parser[SETIN] = positioned { "∈" ^^ ( _ => SETIN() ) }
+  def setnotin: Parser[SETNOTIN] = positioned { "∉" ^^ ( _ => SETNOTIN() ) }
+  def setdisjoint: Parser[SETDISJOINT] = positioned { "‖" ^^ ( _ => SETDISJOINT() ) }
+  def lt: Parser[LT] = positioned { "<" ^^ ( _ => LT() ) }
+  def le: Parser[LE] = positioned { ("<=" | "≤") ^^ ( _ => LE() ) }
+  def ge: Parser[GE] = positioned { (">=" | "≥") ^^ ( _ => GE() ) }
+  def gt: Parser[GT] = positioned { ">" ^^ ( _ => GT() ) }
   def and: Parser[AND] = positioned { ("/\\" | "∧") ^^ ( _ => AND() ) }
   def or: Parser[OR] = positioned { ("\\/" | "∨") ^^ ( _ => OR() ) }
 }
