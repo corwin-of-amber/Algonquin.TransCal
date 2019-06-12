@@ -33,7 +33,7 @@ timecomplex (elem _ _) _ -> a3
 
 a1 -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 
-timecomplex (_ ∉ _) _ -> a4
+timecomplex (_ ∉ elems(xs)) _ -> a4
 timecomplex (_ ∪ _) _ -> a5
 
 a1 -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
