@@ -16,7 +16,8 @@ class SyGuSRewriteRulesTest extends FunSuite with Matchers {
     .map(parser.parseExpression)
 
   test("test creating rewrite rule per symbol") {
-    new SyGuSRewriteRules(symbols).rewriteRules.size shouldBe symbols.size
+    val rules = new SyGuSRewriteRules(symbols).rewriteRules
+    rules.size shouldBe symbols.size
   }
 
   test("test rewrite function correctly") {
@@ -35,14 +36,14 @@ class SyGuSRewriteRulesTest extends FunSuite with Matchers {
     ex should be (true)
   }
 
-  test("test rewrite tuple correctly") {
-    // var1 f2 var2
-    val g = Programs(parser("_ -> Expression: (int, int, string)").subtrees(1)).hyperGraph ++ basicGraph
-    val rules = new SyGuSRewriteRules(symbols).rewriteRules
-    val newG = rules.foldLeft(new RewriteSearchState(g))((s, r) => r(s)).graph
-    val wantedPattern = Programs.destructPattern(parser.parseExpression("(var1, f2(var3), var2)"))
-    newG.findSubgraph[Int](wantedPattern).nonEmpty should be (true)
-  }
+//  test("test rewrite tuple correctly") {
+//    // var1 f2 var2
+//    val g = Programs(parser("_ -> Expression: (int, int, string)").subtrees(1)).hyperGraph ++ basicGraph
+//    val rules = new SyGuSRewriteRules(symbols).rewriteRules
+//    val newG = rules.foldLeft(new RewriteSearchState(g))((s, r) => r(s)).graph
+//    val wantedPattern = Programs.destructPattern(parser.parseExpression("(var1, f2(var3), var2)"))
+//    newG.findSubgraph[Int](wantedPattern).nonEmpty should be (true)
+//  }
 
 //  test("test RewriteRules for zero is a single rewrite rule for int") {
 //    val sygus = SyGuSRewriteRules(Set("_ -> 0").map(x => parser.apply(x).subtrees(1)))

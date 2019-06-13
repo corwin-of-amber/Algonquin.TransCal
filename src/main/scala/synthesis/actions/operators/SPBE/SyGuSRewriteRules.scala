@@ -1,13 +1,10 @@
 package synthesis.actions.operators.SPBE
 
-import structures.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
-import structures.immutable.VersionedHyperGraph
-import structures.{EmptyMetadata, Hole, HyperEdge, Metadata}
+import structures.Metadata
+import synthesis.RewriteRulesDB
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
+import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs, RewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
@@ -19,14 +16,17 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
     terms.flatMap({ t =>
       val typ = t.root.annotation.get
       // sources are all typed expressions needed
-      val params = typ.subtrees.dropRight(1).zipWithIndex.map(tup => AnnotatedTree.identifierOnly(Identifier(s"?autovar${tup._2}", annotation = Some(tup._1))))
+      val params = typ.subtrees.dropRight(1).zipWithIndex.map(tup =>
+        AnnotatedTree.identifierOnly(Identifier(s"?autovar${tup._2}", annotation = Some(tup._1)))
+      )
       assert(params.nonEmpty)
+
       val term = {
         val premise =
           if (params.size > 1) AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, params)
           else params.head
         val conclusion = AnnotatedTree.withoutAnnotations(t.root.copy(annotation = Some(typ.subtrees.last)), params)
-        AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(premise, conclusion))
+        AnnotatedTree.withoutAnnotations(Language.limitedDirectedLetId, Seq(premise, conclusion))
       }
 
       new LetAction(term).rules

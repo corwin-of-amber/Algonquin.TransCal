@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import transcallang.{Identifier, Language}
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.VersionedHyperGraph
 import structures._
 import transcallang.AnnotatedTree
 import synthesis.Programs.NonConstructableMetadata
