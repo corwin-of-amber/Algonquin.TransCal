@@ -46,7 +46,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   // I can give temporary name and later override them by using merge nodes
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
-      case Language.letId | Language.directedLetId | Language.limitedLetId | Language.limitedDirectedLetId =>
+      case i: Identifier if Language.builtinDefinitions.contains(i) =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
           val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2))
@@ -54,7 +54,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
         }
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
-            if (t.root == Language.directedLetId) Set.empty
+            if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
             else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }

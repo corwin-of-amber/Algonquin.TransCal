@@ -80,6 +80,7 @@ object Language {
   val builtinBooleanOps: Seq[Identifier] = Seq(equalityId, unequalityId, setContainsId, setNotContainsId, setDisjointId, ltId, gtId, leId, geId)
   val builtinCondBuilders: Seq[Identifier] = Seq(trueCondBuilderId)
   val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId, limitedAndCondBuilderId)
+  val builtinDirectedDefinitions: Seq[Identifier] = Seq(directedLetId, limitedDirectedLetId)
   val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId, limitedLetId, limitedDirectedLetId)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
