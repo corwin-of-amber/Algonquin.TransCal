@@ -5,7 +5,7 @@ import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.HyperTermIdentifier
 import synthesis.rewrites.rewrites._
 import synthesis.search.VersionedOperator
-import transcallang.Language
+import transcallang.{Identifier, Language}
 
 
 /** This rewrite rule finds functions return types by looking on their types.
@@ -31,7 +31,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val argumentHoles = Repetition.rep1(Int.MaxValue, Stream.from(LAARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(Hole(_))).get
 
   // Used edges
-  private val trueEdge = patternEdgeCreator(trueIdHole, Language.trueId, Seq())
+  private val trueEdge = patternEdgeCreator(trueIdHole, Identifier("truetype"), Seq())
   private val functionTypeEdge = patternEdgeCreator(trueIdHole, Language.typeId, Seq(functionIdHole, functionTypeIdHole))
   private val functionIdEdge = patternEdgeCreator(functionIdHole, functionIdentifierHole, Seq())
 
