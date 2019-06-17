@@ -109,10 +109,11 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (spacecomplex xs ?w) ||> (elem ?x ?xs) |>> (timecomplex (elem x xs) (w + v + u)) ||| true",
-    "(?xs ∪ ?ys) |||| ((spacecomplex xs ?w) ||| true) |||| ((spacecomplex ys ?v) ||| true) |>> (timecomplex ((?xs ∪ ?ys)) (w + v)) ||| true",
-    "(timecomplex xs ?v) |||| (spacecomplex xs ?w) ||> (elems ?xs) |>> (timecomplex (elems xs) (w + v)) ||| true",
-    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (?x ∉ ?xs) |>> timecomplex (x ∉ xs) (v + u + 1) ||| true"
+    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (spacecomplex xs ?w) ||> (elem ?x ?xs) |>> (timecomplex (elem x xs) (w + v + u)) ||| truetimecomplex",
+    "(?xs ∪ ?ys) |||| (spacecomplex xs ?w) |||| (spacecomplex ys ?v) |>> (timecomplex ((?xs ∪ ?ys)) (w + v)) ||| truetimecomplex",
+    "(timecomplex xs ?v) |||| (spacecomplex xs ?w) ||> (elems ?xs) |>> (timecomplex (elems xs) (w + v)) ||| truetimecomplex",
+    "(timecomplex (~x) ?u) |||| (~x) |>> timecomplex x (u + 1) ||| truetimecomplex",
+    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (?x ∉ ?xs) |>> timecomplex (x ∉ xs) (v + u + 1) ||| truetimecomplex"
   ).map(t => parser.apply(t))
 
 }
