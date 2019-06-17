@@ -31,7 +31,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val argumentHoles = Repetition.rep1(Int.MaxValue, Stream.from(LAARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(Hole(_))).get
 
   // Used edges
-  private val trueEdge = patternEdgeCreator(trueIdHole, Identifier("truetype"), Seq())
+  private val trueEdge = patternEdgeCreator(trueIdHole, Identifier("typeTrue"), Seq())
   private val functionTypeEdge = patternEdgeCreator(trueIdHole, Language.typeId, Seq(functionIdHole, functionTypeIdHole))
   private val functionIdEdge = patternEdgeCreator(functionIdHole, functionIdentifierHole, Seq())
 

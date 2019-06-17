@@ -165,7 +165,7 @@ object Programs extends LazyLogging {
         hyperEdgesType ++ Set(
           HyperEdge(functionNode, identToEdge(function), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
-          HyperEdge(trueNode, identToEdge(Identifier("truetype")), Seq.empty, EmptyMetadata)
+          HyperEdge(trueNode, identToEdge(Identifier("typeTrue")), Seq.empty, EmptyMetadata)
         )
       case None => Set.empty
     }
