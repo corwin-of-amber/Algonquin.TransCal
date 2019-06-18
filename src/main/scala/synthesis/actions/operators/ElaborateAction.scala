@@ -3,7 +3,6 @@ package synthesis.actions.operators
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
@@ -15,13 +14,12 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @since 11/18/18
   */
 class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: TemplateTerm[HyperTermId], maxSearchDepth: Option[Int] = None) extends Action {
+  /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
+  private val updatedGoal = goal.addEdge(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
+
+  private def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph[Int](updatedGoal).nonEmpty
+
   override def apply(state: ActionSearchState): ActionSearchState = {
-    /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
-
-    val updatedGoal = goal.addEdge(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
-
-    def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph[Int](updatedGoal).nonEmpty
-
     // Rewrite search
     val newState = maxSearchDepth.map(d => ElaborateAction.RunNaiveSearch(state, goalPredicate, d)).getOrElse(ElaborateAction.RunNaiveSearch(state, goalPredicate))
 
