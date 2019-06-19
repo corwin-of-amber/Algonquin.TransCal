@@ -36,7 +36,8 @@ object LogComplexity {
   def unapply(arg: LogComplexity): Option[Complexity] = Some(arg.inner)
 }
 case class PolynomialComplexity private (base: Complexity, exponent: Complexity) extends Complexity
-class AddComplexity private (val complexities: Seq[Complexity]) extends Complexity {
+class AddComplexity private (complexitiesBasic: Seq[Complexity]) extends Complexity {
+  val complexities: Seq[Complexity] = complexitiesBasic.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)})
   override def toString: String = complexities.mkString(" + ")
 
   override def equals(obj: Any): Boolean = obj match {
@@ -45,7 +46,7 @@ class AddComplexity private (val complexities: Seq[Complexity]) extends Complexi
   }
 }
 object AddComplexity {
-  def apply(complexities: Seq[Complexity]): AddComplexity = new AddComplexity(complexities.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)}))
+  def apply(complexities: Seq[Complexity]): AddComplexity = new AddComplexity(complexities)
 
   def unapply(arg: AddComplexity): Option[Seq[Complexity]] = Some(arg.complexities)
 }
