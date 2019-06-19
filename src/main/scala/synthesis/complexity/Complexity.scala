@@ -42,7 +42,12 @@ object LogComplexity {
 }
 case class PolynomialComplexity private (base: Complexity, exponent: Complexity) extends Complexity
 class AddComplexity private (complexitiesBasic: Seq[Complexity]) extends Complexity {
-  val complexities: Seq[Complexity] = complexitiesBasic.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)})
+  val complexities: Seq[Complexity] = {
+    val flatted = complexitiesBasic.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)})
+    val canCalculate = ConstantComplexity(flatted.collect({ case c: ConstantComplexity => c.constant }).sum)
+    val cantCalculate = flatted.filterNot(_.isInstanceOf[ConstantComplexity])
+    canCalculate +: cantCalculate
+  }
   override def toString: String = complexities.mkString(" + ")
 
   override def equals(obj: Any): Boolean = obj match {
@@ -55,7 +60,13 @@ object AddComplexity {
 
   def unapply(arg: AddComplexity): Option[Seq[Complexity]] = Some(arg.complexities)
 }
-class MultipleComplexity private (val complexities: Seq[Complexity]) extends Complexity {
+class MultipleComplexity private (val complexitiesBasic: Seq[Complexity]) extends Complexity {
+  val complexities: Seq[Complexity] = {
+    val flatted = complexitiesBasic.flatMap({ case MultipleComplexity(inner) => inner ; case x => Some(x)})
+    val canCalculate = ConstantComplexity(flatted.collect({ case c: ConstantComplexity => c.constant }).product)
+    val cantCalculate = flatted.filterNot(_.isInstanceOf[ConstantComplexity])
+    canCalculate +: cantCalculate
+  }
   override def toString: String = complexities.mkString(" * ")
 
   override def equals(obj: Any): Boolean = obj match {
@@ -64,7 +75,7 @@ class MultipleComplexity private (val complexities: Seq[Complexity]) extends Com
   }
 }
 object MultipleComplexity {
-  def apply(complexities: Seq[Complexity]): MultipleComplexity = new MultipleComplexity(complexities.flatMap({ case MultipleComplexity(inner) => inner ; case x => Some(x)}))
+  def apply(complexities: Seq[Complexity]): MultipleComplexity = new MultipleComplexity(complexities)
 
   def unapply(arg: MultipleComplexity): Option[Seq[Complexity]] = Some(arg.complexities)
 }
