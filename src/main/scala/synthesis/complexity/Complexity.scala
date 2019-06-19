@@ -12,6 +12,11 @@ object Complexity {
     def +(that: Complexity): AddComplexity = AddComplexity(Seq(complexity, that))
     def *(that: Complexity): MultipleComplexity = MultipleComplexity(Seq(complexity, that))
   }
+  implicit class ConstantComplexityOp(complexity: ConstantComplexity) {
+    def ^(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(math.pow(complexity.constant, that.constant).toInt)
+    def +(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(complexity.constant + that.constant)
+    def *(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(complexity.constant * that.constant)
+  }
 }
 case class ConstantComplexity(constant: Int) extends Complexity {
   override def toString: String = constant.toString
