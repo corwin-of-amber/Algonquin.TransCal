@@ -7,7 +7,7 @@ import synthesis.Programs
 import synthesis.complexity.Complexity._
 import synthesis.complexity.{Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule
-import transcallang.{AnnotatedTree, Identifier, TranscalParser}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 import scala.io.Source
 import scala.util.Try
@@ -85,10 +85,32 @@ object Main extends App {
   }
 
   val fullProgram = lastState.programs
-  fullProgram.hyperGraph.edges.filter(_.edgeType.identifier == TIMECOMPLEX_IDENTIFIER)
-    .toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
+  val hyperGraph = fullProgram.hyperGraph
+  val timeComplexEdges = hyperGraph.edges.filter(_.edgeType.identifier == TIMECOMPLEX_IDENTIFIER)
+  val typeEdges = hyperGraph.edges.filter(_.edgeType.identifier == Language.typeId)
+  val size = hyperGraph.size
+  println(f"size: $size")
+  val nonComplexNodes = {
+    val matchNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("match")).map(_.target)
+    val lambdaNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("⇒")).map(_.target)
+    val typeNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("type")).map(_.target)
+    hyperGraph.nodes -- timeComplexEdges.flatMap(e => Seq(e.target, e.sources(1))) -- matchNodes -- typeNodes
+  }
+  println(f"nodes: $nonComplexNodes")
+  println(f"number of nodes: ${nonComplexNodes.size}")
+  timeComplexEdges.toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
     .map(tree=> (Programs.termToString(tree.subtrees.head), calculateComplex(tree.subtrees(1))))
     .groupBy(_._1).map(a => a.copy(_2 = a._2.map(_._2).min(FullComplexityPartialOrdering)))
     .filter(_._2 != ConstantComplexity(0))
+    .foreach(println)
+
+  val timeComplexStrings = timeComplexEdges.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
+    .map(Programs.termToString)
+  val typeStrings = typeEdges.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
+    .map(Programs.termToString)
+  println("============================== Not in complex ==============================")
+  nonComplexNodes.flatMap(fullProgram.reconstruct).map(Programs.termToString)
+    .filterNot(a => timeComplexStrings.exists(_ contains a))
+    .filterNot(a => Seq("⇒").exists(a.contains))
     .foreach(println)
 }
