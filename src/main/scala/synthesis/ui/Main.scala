@@ -94,23 +94,21 @@ object Main extends App {
     val matchNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("match")).map(_.target)
     val lambdaNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("⇒")).map(_.target)
     val typeNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("type")).map(_.target)
-    hyperGraph.nodes -- timeComplexEdges.flatMap(e => Seq(e.target, e.sources(1))) -- matchNodes -- typeNodes
+    hyperGraph.nodes -- timeComplexEdges.flatMap(e => Seq(e.target, e.sources(1))) -- matchNodes -- typeNodes -- lambdaNodes
   }
   println(f"nodes: $nonComplexNodes")
   println(f"number of nodes: ${nonComplexNodes.size}")
   timeComplexEdges.toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
     .map(tree=> (Programs.termToString(tree.subtrees.head), calculateComplex(tree.subtrees(1))))
     .groupBy(_._1).map(a => a.copy(_2 = a._2.map(_._2).min(FullComplexityPartialOrdering)))
-    .filter(_._2 != ConstantComplexity(0))
+    .toList.sortBy(_._1.length)
     .foreach(println)
 
   val timeComplexStrings = timeComplexEdges.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
-    .map(Programs.termToString)
-  val typeStrings = typeEdges.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
-    .map(Programs.termToString)
+    .map(tree => Programs.termToString(tree.subtrees.head))
   println("============================== Not in complex ==============================")
   nonComplexNodes.flatMap(fullProgram.reconstruct).map(Programs.termToString)
-    .filterNot(a => timeComplexStrings.exists(_ contains a))
-    .filterNot(a => Seq("⇒").exists(a.contains))
+    .filterNot(timeComplexStrings.contains)
+    .toList.sortBy(_.length)
     .foreach(println)
 }
