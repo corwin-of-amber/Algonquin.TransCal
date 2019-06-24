@@ -108,12 +108,47 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "TimeComplexMetadata"
   }
 
+  private def stringifyOperatorBinary(operator: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?x' ?u) |||| " +
+      f"(x $operator x') |>> timecomplex (x $operator x') (v + u + 1) ||| timecomplexTrue"
+  }
+
+  private def stringifyOperatorBinaryRightList(operator: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
+      f"(x $operator xs) |>> timecomplex (x $operator xs) (v + u + w + 1) ||| timecomplexTrue"
+  }
+
+  private def stringListUnary(function: String) = {
+    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| " +
+      f"($function ?xs) |>> (timecomplex ($function xs) (w + v + 1)) ||| timecomplexTrue"
+  }
+
+  private def stringListOperatorBinary(operator: String) = {
+    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
+      f"(ys $operator xs') |>> (timecomplex (ys $operator ?xs) (w + v + u + x + 1)) ||| timecomplexTrue"
+  }
+
+  private def stringListFunctionBinary(function: String) = {
+    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
+      f"($function xs xs') |>> (timecomplex ($function xs xs') (w + v + u + x + 1)) ||| timecomplexTrue"
+  }
+
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (spacecomplex xs ?w) |||| (elem ?x ?xs) |>> (timecomplex (elem x xs) (w + v + u)) ||| timecomplexTrue",
-    "(?xs ∪ ?ys) |||| (spacecomplex xs ?w) |||| (spacecomplex ys ?v) |>> (timecomplex ((?xs ∪ ?ys)) (w + v)) ||| timecomplexTrue",
-    "(timecomplex xs ?v) |||| (spacecomplex xs ?w) |||| (elems ?xs) |>> (timecomplex (elems xs) (w + v)) ||| timecomplexTrue",
-    "(timecomplex (~x) ?u) |||| (~x) |>> timecomplex x (u + 1) ||| timecomplexTrue",
-    "(timecomplex xs ?v) |||| (timecomplex x ?u) |||| (?x ∉ ?xs) |>> timecomplex (x ∉ xs) (v + u + 1) ||| timecomplexTrue"
+    stringListFunctionBinary("elem"),
+    stringListOperatorBinary("∪"),
+    stringListOperatorBinary("‖"),
+    stringListUnary("elems"),
+    stringListUnary("len"),
+    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
+    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
+    "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
+    stringifyOperatorBinary("=="),
+    stringifyOperatorBinary("∧"),
+    stringifyOperatorBinary("∨"),
+    stringifyOperatorBinary("≠"),
+    stringifyOperatorBinaryRightList("::"),
+    stringifyOperatorBinaryRightList("∈"),
+    stringifyOperatorBinaryRightList("∉")
   ).map(t => parser.apply(t))
 
 }
