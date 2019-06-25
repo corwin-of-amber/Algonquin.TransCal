@@ -98,6 +98,7 @@ object Main extends App {
   }
   println(f"nodes: $nonComplexNodes")
   println(f"number of nodes: ${nonComplexNodes.size}")
+  def timeComplexStrings = {
   timeComplexEdges.toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
     .map(tree=> (Programs.termToString(tree.subtrees.head), calculateComplex(tree.subtrees(1))))
     .groupBy(_._1).map(a => a.copy(_2 = a._2.map(_._2).min(FullComplexityPartialOrdering)))
@@ -111,4 +112,5 @@ object Main extends App {
     .filterNot(timeComplexStrings.contains)
     .toList.sortBy(_.length)
     .foreach(println)
+  }
 }
