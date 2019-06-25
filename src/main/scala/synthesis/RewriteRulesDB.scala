@@ -118,6 +118,11 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
       f"(x $operator xs) |>> timecomplex (x $operator xs) (v + u + w + 1) ||| timecomplexTrue"
   }
 
+  private def stringifyFunctionBinaryRightList(function: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
+      f"($function x xs) |>> timecomplex ($function x xs) (v + u + w + 1) ||| timecomplexTrue"
+  }
+
   private def stringListUnary(function: String) = {
     "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| " +
       f"($function ?xs) |>> (timecomplex ($function xs) (w + v + 1)) ||| timecomplexTrue"
@@ -128,18 +133,13 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
       f"(ys $operator xs') |>> (timecomplex (ys $operator ?xs) (w + v + u + x + 1)) ||| timecomplexTrue"
   }
 
-  private def stringListFunctionBinary(function: String) = {
-    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
-      f"($function xs xs') |>> (timecomplex ($function xs xs') (w + v + u + x + 1)) ||| timecomplexTrue"
-  }
-
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    stringListFunctionBinary("elem"),
-    stringListOperatorBinary("∪"),
-    stringListOperatorBinary("‖"),
+    stringifyFunctionBinaryRightList("elem"),
+//    stringListOperatorBinary("∪"),
+//    stringListOperatorBinary("‖"),
     stringListUnary("elems"),
 //    stringListUnary("len"),
-    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
+//    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
     "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
     stringifyOperatorBinary("=="),
