@@ -1,15 +1,14 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.{Identifier, Language}
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import structures._
-import transcallang.AnnotatedTree
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
 
@@ -50,6 +49,40 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
 
       recursive(fullPattern, hyperTermId, this)
     })
+  }
+
+  /** Builds trees from of programs where the hyper term is the base program.
+    * Disallow loops in buildings - each edges can be chose once in each branch.
+    *
+    * @param hyperTermId The hyper term to build.
+    * @return All the trees.
+    */
+  def reconstructWithEdges(hyperTermId: HyperTermId): Iterator[(AnnotatedTree, Set[HyperEdge[HyperTermId, HyperTermIdentifier]])] = {
+    logger.trace("Reconstruct programs")
+
+    if (!hyperGraph.nodes.contains(hyperTermId)) {
+      logger.debug(f"Unknown HyperTerm - $hyperTermId")
+      Iterator.empty
+    } else {
+      /** Build iterator of program's trees where their root is the current target.
+        *
+        * @param root The root of the programs we find
+        * @return Iterator with all the programs of root.
+        */
+      def recursive(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId): Iterator[(AnnotatedTree, Set[HyperEdge[HyperTermId, HyperTermIdentifier]])] = {
+        val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
+        val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
+        edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+          if (edge.sources.isEmpty) Iterator((AnnotatedTree(edge.edgeType.identifier, List.empty, List.empty), Set(edge)))
+          else {
+            val recRes = edge.sources.map(recursive(edgesInGraph - edge, _))
+            Programs.combineSeq(recRes).map(subtrees => (AnnotatedTree(edge.edgeType.identifier, subtrees.map(_._1).toList, List.empty), Set(edge) ++ subtrees.flatMap(_._2)))
+          }
+        })
+      }
+
+      recursive(hyperGraph.edges, hyperTermId)
+    }
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
