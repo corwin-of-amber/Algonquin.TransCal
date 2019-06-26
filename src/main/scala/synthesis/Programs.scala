@@ -258,15 +258,16 @@ object Programs extends LazyLogging {
       })
     }))
 
-    val afterCompaction = mergingVarHoles.zip(rootAnchors).map(g => (g._1.findEdges(g._2).head.target, g._1.edges.filter(e => e.edgeType != g._2)))
-    val modifiedEdges: Seq[(TemplateTerm[HyperTermId], Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]])] = {
-      if (mergeRoots) mergeEdgesRoots(afterCompaction)
+    val afterCompaction = mergingVarHoles.zip(rootAnchors).map({ case (graph, anchor) =>
+      (graph.filter(e => !rootAnchors.contains(e.edgeType)), graph.findEdges(anchor).head.target)})
+
+    val results = {
+      if (mergeRoots) afterCompaction.map({case (graph, target) => (graph.mergeNodes(afterCompaction.head._2, target), afterCompaction.head._2)})
       else afterCompaction
     }
-    val results = modifiedEdges.map(es => (VersionedHyperGraph(es._2.toSeq: _*), es._1))
-    for (t <- results) {
-      val targets = t._1.map(_.target).toSet
-      assert(targets.contains(t._2))
+
+    for ((graph, target) <- results) {
+      assert(graph.nodes.contains(target))
     }
     results
   }
