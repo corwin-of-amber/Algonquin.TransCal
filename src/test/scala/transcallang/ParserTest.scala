@@ -3,7 +3,7 @@ package transcallang
 import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{FunSuite, Inspectors, Matchers}
 
 import scala.io.Source

@@ -3,7 +3,7 @@ package structures.immutable
 import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
 import synthesis.rewrites.Template.ExplicitTerm
@@ -238,7 +238,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Compactions works correctly on mutliple swithces of same var") {
-    val graphs = Programs.destructPatterns(new TranscalParser apply "(?x ≤ ?y) ||> min(x, y) >> id x" subtrees)
+    val graphs = Programs.destructPatterns(new TranscalParser().apply("(?x ≤ ?y) ||> min(x, y) >> id x").subtrees)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head)
   }

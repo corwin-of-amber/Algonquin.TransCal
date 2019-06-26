@@ -31,7 +31,7 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   /* --- Object Impl. --- */
 
-  override def hashCode(): Int = wrapped.hashCode
+  override def hashCode(): Int = wrapped.hashCode()
 
   override def equals(obj: Any): Boolean = wrapped.equals(obj)
 }

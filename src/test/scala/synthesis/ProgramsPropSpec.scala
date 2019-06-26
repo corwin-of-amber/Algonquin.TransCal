@@ -5,7 +5,7 @@ import transcallang.{Identifier, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures.{EmptyMetadata, HyperEdge}
 import structures.immutable.VersionedHyperGraph
 import transcallang.AnnotatedTree

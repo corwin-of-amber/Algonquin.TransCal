@@ -152,7 +152,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def splitted: Parser[List[AnnotatedTree]] = ((RBO ~> splitted <~ RBC)| (guarded ~ (BACKSLASH() ~> guarded).+)) ^^ {
     case x: List[AnnotatedTree] => x
-    case x: (AnnotatedTree ~ List[AnnotatedTree]) => x._1 +: x._2
+    case x: AnnotatedTree ~ List[AnnotatedTree] => x._1 +: x._2
   }
 
   def expression: Parser[AnnotatedTree] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {

@@ -3,7 +3,7 @@ package synthesis.rewrites
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
