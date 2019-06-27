@@ -82,6 +82,7 @@ object Language {
   val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId, limitedAndCondBuilderId)
   val builtinDirectedDefinitions: Seq[Identifier] = Seq(directedLetId, limitedDirectedLetId)
   val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId, limitedLetId, limitedDirectedLetId)
+  val builtinLimitedDefinitions: Seq[Identifier] = Seq(limitedLetId, limitedDirectedLetId)
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 
