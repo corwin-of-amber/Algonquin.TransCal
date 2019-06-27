@@ -242,12 +242,14 @@ object Programs extends LazyLogging {
     })
 
     // ------------------ To Compact Graph -----------------------
+    def anchorCreator(i: Int) = ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for $i")))
+
     // Add anchors on roots to return the right root later
-    val rootAnchors: Seq[TemplateTerm[HyperTermIdentifier]] = edges.zipWithIndex.map(t =>
-      ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for ${t._2}"))))
-    val tempEdges = edges.zip(rootAnchors).map(t =>
-      (t._1._1, t._1._2 ++ Set(HyperEdge(t._1._1, t._2, Seq.empty, NonConstructableMetadata))))
-    val anchoredGraphs = tempEdges.map(es => VersionedHyperGraph(es._2.toSeq: _*))
+    val anchoredGraphs = edges.zipWithIndex.map({case ((target, graphEdges), i) =>
+      val anchorEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
+        target, anchorCreator(i), Seq.empty, NonConstructableMetadata)
+      VersionedHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
+    })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>
       val holeEdges = graph.findEdges(ExplicitTerm(HyperTermIdentifier(identifier)))
@@ -258,8 +260,8 @@ object Programs extends LazyLogging {
       })
     }))
 
-    val afterCompaction = mergingVarHoles.zip(rootAnchors).map({ case (graph, anchor) =>
-      (graph.filter(e => !rootAnchors.contains(e.edgeType)), graph.findEdges(anchor).head.target)})
+    val afterCompaction = mergingVarHoles.zipWithIndex.map({ case (graph, i) =>
+      (graph.filter(e => e.edgeType != anchorCreator(i)), graph.findEdges(anchorCreator(i)).head.target)})
 
     val results = {
       if (mergeRoots) afterCompaction.map({case (graph, target) => (graph.mergeNodes(afterCompaction.head._2, target), afterCompaction.head._2)})
