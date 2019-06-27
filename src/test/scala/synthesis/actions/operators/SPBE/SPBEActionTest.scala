@@ -22,7 +22,7 @@ class SPBEActionTest extends FunSuite with Matchers {
   test("testSygusStep can find reverse l") {
     val action = new SPBEAction(constantTeminals = Set(tru, fals, x), changingTerminals = Seq(Seq(l)), symbols = Set(reverse))
     val state = action.sygusStep(new RewriteSearchState(action.baseGraph))
-    val pattern = Programs.destructPattern(new TranscalParser().parseExpression("reverse _"))
+    val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
     state.graph.findSubgraph[Int](pattern) should not be empty
   }
 

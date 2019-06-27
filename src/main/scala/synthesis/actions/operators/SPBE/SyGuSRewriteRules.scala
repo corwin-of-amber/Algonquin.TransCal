@@ -25,7 +25,7 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
         val premise =
           if (params.size > 1) AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, params)
           else params.head
-        val conclusion = AnnotatedTree.withoutAnnotations(t.root.copy(annotation = Some(typ.subtrees.last)), params)
+        val conclusion = AnnotatedTree.withoutAnnotations(t.root, params)
         AnnotatedTree.withoutAnnotations(Language.limitedDirectedLetId, Seq(premise, conclusion))
       }
 
