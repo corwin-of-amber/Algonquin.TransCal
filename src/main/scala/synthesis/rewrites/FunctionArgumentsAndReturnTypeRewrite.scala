@@ -26,9 +26,9 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val functionIdentifierHole = Hole(3)
   private val functionReturnTypeHole = Hole(4)
   private val functionApplicationHole = Hole(5)
-  private val LAARGEST_STATIC_HOLE = 6
-  private val argumentTypesHoles = Repetition.rep1(Int.MaxValue, Stream.from(LAARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(Hole(_))).get
-  private val argumentHoles = Repetition.rep1(Int.MaxValue, Stream.from(LAARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(Hole(_))).get
+  private val LARGEST_STATIC_HOLE = 6
+  private val argumentTypesHoles = Repetition.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(Hole(_))).get
+  private val argumentHoles = Repetition.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(Hole(_))).get
 
   // Used edges
   private val trueEdge = patternEdgeCreator(trueIdHole, Language.trueId, Seq())
@@ -43,7 +43,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     val newFuncEdges = state.graph.findSubgraphVersioned[Int](funcTypeGraph, version)
       .flatMap { case (idMap, _) =>
-        val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LAARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
+        val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
           val argumentType = pairs.filterKeys(_ % 2 == 0).values.head
           val argument = pairs.filterKeys(_ % 2 == 1).values.head
           HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(argument, argumentType), ArgumentsTypeMetadata)
