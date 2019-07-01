@@ -13,6 +13,9 @@ import scala.collection.mutable
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
   extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
+  /** Needs to be overridden in subclasses. */
+  override def empty: Trie[Letter] = Trie.empty
+
   /** Inner constructor that adds words where this Trie is for specific place */
   private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
     this({

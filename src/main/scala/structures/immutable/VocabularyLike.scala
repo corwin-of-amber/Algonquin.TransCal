@@ -1,18 +1,16 @@
 package structures.immutable
 
-import structures.Item
 import structures.immutable.VocabularyLike.Word
+import structures.{Explicit, Item}
 
-import scala.collection.generic.Subtractable
-import scala.collection.{GenTraversableOnce, IterableLike}
+import scala.collection.{SetLike, immutable}
 
 /**
   * @author tomer
   * @since 11/15/18
   */
-trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
-  extends IterableLike[Word[Letter], This] with Subtractable[Word[Letter], This] {
-  // TODO: extend Set when we understand how
+trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with immutable.Set[Word[Letter]]]
+  extends SetLike[Word[Letter], This] {
 
   import VocabularyLike.WordRegex
 
@@ -24,6 +22,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     */
   def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])]
   def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_._1)
+  override def contains(elem: Word[Letter]): Boolean = findRegex(elem.map(Explicit(_))).nonEmpty
 
   /**
     * @return The words in the vocabulary
@@ -43,25 +42,9 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     */
   def replace(keep: Letter, change: Letter): This
 
-  /** Adds word.
-    *
-    * @param word The word to add.
-    * @return The vocabulary with the word.
-    */
-  def +(word:Word[Letter]): This
-
-  /** Adds words.
-    *
-    * @param words The words to add.
-    * @return The vocabulary with the words.
-    */
-  def ++[Other <: GenTraversableOnce[Seq[Letter]]](words: Other): This = (repr /: words.seq)(_ + _)
-
   /* --- IterableLike Impl. --- */
 
   override def iterator: Iterator[Word[Letter]] = words.iterator
-
-  override def seq: TraversableOnce[Word[Letter]] = this
 }
 
 object VocabularyLike {
