@@ -17,7 +17,7 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
   def leaves: Stream[AnnotatedTree] = nodes filter (_.isLeaf)
   def terminals: Stream[Identifier] = leaves map (_.root)
 
-  def size: Int = 1 + (0 /: (subtrees map (_.size)))(_ + _)
+  def size: Int = 1 + (subtrees map (_.size)).sum
 
   def map[S](rootOp: Identifier => Identifier) : AnnotatedTree =
     copy(root=rootOp(root), subtrees=subtrees.map (_.map(rootOp)))
