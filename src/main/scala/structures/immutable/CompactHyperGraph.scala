@@ -32,9 +32,9 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] {
-      override def result(): CompactHyperGraph[Node, EdgeType] = {
-        new CompactHyperGraph(parts.flatten.toSet)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new CompactHyperGraph(parts.toSet)
       }
     }
 
@@ -50,9 +50,9 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], CompactHyperGraph[A, B]] {
-    override def result(): CompactHyperGraph[A, B] = {
-      new CompactHyperGraph(parts.flatten.toSet)
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new CompactHyperGraph(parts.toSet)
     }
   }
 

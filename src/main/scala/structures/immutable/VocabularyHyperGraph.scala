@@ -5,7 +5,7 @@ import structures._
 import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.immutable.VocabularyLike.Word
 
-import scala.collection.{GenTraversableOnce, mutable, immutable}
+import scala.collection.{GenTraversableOnce, immutable, mutable}
 
 /**
   * @author tomer
@@ -158,9 +158,9 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
-      override def result(): VocabularyHyperGraph[Node, EdgeType] = {
-        new VocabularyHyperGraph(parts.flatten.toSet)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new VocabularyHyperGraph(parts.toSet)
       }
     }
 
@@ -190,9 +190,9 @@ object VocabularyHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompa
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] {
-    override def result(): VocabularyHyperGraph[A, B] = {
-      new VocabularyHyperGraph(parts.flatten.toSet)
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new VocabularyHyperGraph(parts.toSet)
     }
   }
 

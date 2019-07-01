@@ -54,9 +54,9 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
-    new mutable.LazyBuilder[Word[Letter], Trie[Letter]] {
-      override def result(): Trie[Letter] = {
-        new Trie(parts.flatten.toSet)
+    new mutable.ListBuffer[Word[Letter]].mapResult {
+      parts => {
+        new Trie(parts.toSet)
       }
     }
 

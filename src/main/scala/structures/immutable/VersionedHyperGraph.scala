@@ -66,9 +66,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] {
-      override def result(): VersionedHyperGraph[Node, EdgeType] = {
-        new VersionedHyperGraph(new CompactHyperGraph(parts.flatten.toSet), version + 1)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new VersionedHyperGraph(new CompactHyperGraph(parts.toSet), version + 1)
       }
     }
 }
@@ -80,9 +80,9 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], VersionedHyperGraph[A, B]] {
-    override def result(): VersionedHyperGraph[A, B] = {
-      new VersionedHyperGraph(CompactHyperGraph(parts.flatten: _*))
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new VersionedHyperGraph(CompactHyperGraph(parts: _*))
     }
   }
 
