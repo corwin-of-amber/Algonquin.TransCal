@@ -2,13 +2,15 @@ package structures.immutable
 
 import structures.{HyperEdge, Item}
 
-import scala.collection.mutable
+import scala.collection.{mutable, immutable}
 
 /**
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]] {
+trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends immutable.Set[HyperEdge[Node, EdgeType]] with HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]] {
+
+  override def empty: HyperGraphManyWithOrderToOne[Node, EdgeType] = HyperGraphManyWithOrderToOne.empty
 
   /** Finds subgraphs by a pattern graph.
     *

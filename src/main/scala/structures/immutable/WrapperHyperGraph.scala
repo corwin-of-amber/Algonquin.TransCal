@@ -3,7 +3,7 @@ package structures.immutable
 import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
 
-import scala.collection.GenTraversableOnce
+import scala.collection.{GenTraversableOnce, immutable}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
@@ -12,6 +12,8 @@ import scala.collection.GenTraversableOnce
 abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node, EdgeType, This]] protected (wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType])
   extends HyperGraphManyWithOrderToOne[Node, EdgeType]
     with HyperGraphManyWithOrderToOneLike[Node, EdgeType, This] {
+
+  override def empty: This = newBuilder.result()
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -27,7 +29,7 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)
 
-  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
+  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
 
