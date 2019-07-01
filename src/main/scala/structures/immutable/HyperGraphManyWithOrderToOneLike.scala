@@ -1,9 +1,9 @@
 package structures.immutable
 
-import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperGraphPattern, HyperEdgePattern}
+import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.{Explicit, Hole, HyperEdge, Item}
 
-import scala.collection.IterableLike
+import scala.collection.{GenTraversableOnce, IterableLike}
 
 /** A hyper graph from many to one.
   *
@@ -65,27 +65,21 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @param hyperEdge The edge to add.
     * @return The new hyper graph with the edge.
     */
-  def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
-
-  def +(hyperEdge: HyperEdge[Node, EdgeType]): This = addEdge(hyperEdge)
+  def +(hyperEdge: HyperEdge[Node, EdgeType]): This
 
   /** Adds edges to the hyper graph.
     *
     * @param hyperEdges The edges to add.
     * @return The new hyper graph with the edges.
     */
-  def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This
-
-  def :+(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This = addEdges(hyperEdges)
+  def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): This
 
   /** Removes an edge from the hyper graph.
     *
     * @param hyperEdge The edge to remove.
     * @return The new hyper graph without the edge.
     */
-  def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): This
-
-  def -(hyperEdge: HyperEdge[Node, EdgeType]): This = removeEdge(hyperEdge)
+  def -(hyperEdge: HyperEdge[Node, EdgeType]): This
 
   /** Merges two node to one.
     *
@@ -102,14 +96,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @return The new graph after the change.
     */
   def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This
-
-  /** Build a new hyper graph with the other hyper graph.
-    *
-    * @param hyperGraph Other hyper graph.
-    * @tparam Other Type of hyper graph
-    * @return New hyper graph includes the other.
-    */
-  def ++[Other <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, Other]](hyperGraph: Other): This = :+(hyperGraph.edges)
 
   /* --- IterableLike Impl. --- */
 

@@ -52,7 +52,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
         argumentsHyperEdges.toSet + returnHyperEdge
       }
 
-    val newGraph = state.graph.addEdges(newFuncEdges)
+    val newGraph = state.graph.++(newFuncEdges)
     (new RewriteSearchState(newGraph), newGraph.version)
   }
 }

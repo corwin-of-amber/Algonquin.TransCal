@@ -36,7 +36,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
     val premise: HyperPattern = {
       val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
       val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-      pattern.addEdge(newRootEdge).removeEdge(rootEdge)
+      pattern.+(newRootEdge).-(rootEdge)
     }
 
     (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))

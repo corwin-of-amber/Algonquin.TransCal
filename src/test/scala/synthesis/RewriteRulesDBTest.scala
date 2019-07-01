@@ -40,7 +40,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
     val resultPattern = Programs.destructPattern(patternTerm)
-    val state = new RewriteSearchState(Programs.destruct(term).addEdges(Set(
+    val state = new RewriteSearchState(Programs.destruct(term).++(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),

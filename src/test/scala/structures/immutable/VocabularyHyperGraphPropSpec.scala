@@ -246,7 +246,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("Compation works correctly when adding precondition after creation") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val tempGraph = Programs.destruct(term)
-    val graph = tempGraph.addEdges(Set(
+    val graph = tempGraph.++(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
@@ -384,6 +384,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("Compaction works for edges with changed sources") {
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
-    check(graph.addEdge(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
+    check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 }

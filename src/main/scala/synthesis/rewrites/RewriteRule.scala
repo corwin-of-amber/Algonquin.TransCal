@@ -52,7 +52,7 @@ class RewriteRule(val premise: HyperPattern,
         e.copy(metadata = e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
-    val graph = compactGraph :+ newEdges
+    val graph = compactGraph ++ newEdges
     if (graph.size > compactGraph.size) {
       logger.debug(s"Used RewriteRule $this")
     }
@@ -77,7 +77,7 @@ class RewriteRule(val premise: HyperPattern,
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
         Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
     }).tupled)
-    conclusion.addEdges(existentialEdges)
+    conclusion.++(existentialEdges)
   }
 }
 

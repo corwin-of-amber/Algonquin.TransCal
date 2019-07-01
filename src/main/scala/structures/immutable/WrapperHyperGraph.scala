@@ -3,6 +3,8 @@ package structures.immutable
 import structures.HyperEdge
 import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
 
+import scala.collection.GenTraversableOnce
+
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
   * @since 11/15/18
@@ -13,11 +15,11 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.addEdge(hyperEdge)).result()
+  override def +(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.+(hyperEdge)).result()
 
-  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This = newBuilder.++=(wrapped.addEdges(hyperEdges)).result()
+  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): This = newBuilder.++=(wrapped.++(hyperEdges)).result()
 
-  override def removeEdge(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.removeEdge(hyperEdge)).result()
+  override def -(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.-(hyperEdge)).result()
 
   override def mergeNodes(keep: Node, change: Node): This = newBuilder.++=(wrapped.mergeNodes(keep, change)).result()
 

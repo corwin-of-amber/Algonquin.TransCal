@@ -3,7 +3,7 @@ package structures.immutable
 import structures._
 
 import scala.annotation.tailrec
-import scala.collection.mutable
+import scala.collection.{GenTraversableOnce, mutable}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
@@ -17,11 +17,11 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
+  override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
     compact(List(hyperEdge))
   }
 
-  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
+  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
     compact(hyperEdges.toList)
   }
 
@@ -67,7 +67,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
           e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
         val hyperEdge = translateEdge(beforeChangeHyperEdge)
         val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
-        val g = wrapped.addEdge(hyperEdge)
+        val g = wrapped.+(hyperEdge)
         val foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
