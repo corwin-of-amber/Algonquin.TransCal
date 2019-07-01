@@ -5,7 +5,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike, VersionedHyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}

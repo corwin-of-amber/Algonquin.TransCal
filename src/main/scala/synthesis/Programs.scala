@@ -1,10 +1,8 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.{Identifier, Language}
-import structures.immutable.VersionedHyperGraph
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{HyperGraphManyWithOrderToOneLike, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState

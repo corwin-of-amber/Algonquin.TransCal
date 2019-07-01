@@ -1,6 +1,6 @@
 package structures.immutable
 
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, HyperGraphManyWithOrderToOneLikeGenericCompanion, Item}
+import structures.{HyperEdge, Item}
 
 import scala.collection.mutable
 
@@ -8,8 +8,17 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends structures.HyperGraphManyWithOrderToOne[Node, EdgeType]
-  with HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]]
+trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]] {
+
+  /** Finds subgraphs by a pattern graph.
+    *
+    * @param hyperPattern The pattern graph to match with
+    * @tparam Id A reference type to show a wanted connection in the pattern.
+    * @return The matched references.
+    */
+  def findSubgraph[Id](hyperPattern: HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
+    findSubgraph[Id, HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
+}
 
 object HyperGraphManyWithOrderToOne extends HyperGraphManyWithOrderToOneLikeGenericCompanion[HyperGraphManyWithOrderToOne] {
   type HyperGraphPattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]

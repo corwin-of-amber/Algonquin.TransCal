@@ -1,4 +1,6 @@
-package structures
+package structures.immutable
+
+import structures.HyperEdge
 
 import scala.collection.mutable
 import scala.language.higherKinds

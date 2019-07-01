@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
-import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
+import structures.immutable.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike}
+import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata

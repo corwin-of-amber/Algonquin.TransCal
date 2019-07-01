@@ -1,6 +1,7 @@
-package structures
+package structures.immutable
 
-import structures.VocabularyLike.Word
+import structures.Item
+import structures.immutable.VocabularyLike.Word
 
 import scala.collection.generic.Subtractable
 import scala.collection.{GenTraversableOnce, IterableLike}

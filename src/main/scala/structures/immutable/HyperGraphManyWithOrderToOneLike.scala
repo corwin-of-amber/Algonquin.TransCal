@@ -1,6 +1,7 @@
-package structures
+package structures.immutable
 
-import structures.HyperGraphManyWithOrderToOneLike._
+import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperGraphPattern, HyperEdgePattern}
+import structures.{Explicit, Hole, HyperEdge, Item}
 
 import scala.collection.IterableLike
 

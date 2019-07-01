@@ -1,7 +1,7 @@
 package structures.immutable
 
-import structures.HyperGraphManyWithOrderToOneLike._
-import structures._
+import structures.HyperEdge
+import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer

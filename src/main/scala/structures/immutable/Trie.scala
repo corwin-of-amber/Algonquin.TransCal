@@ -2,7 +2,7 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.VocabularyLike._
+import structures.immutable.VocabularyLike.{Word, WordRegex}
 
 import scala.collection.mutable
 

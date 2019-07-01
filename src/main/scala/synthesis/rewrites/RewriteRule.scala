@@ -1,9 +1,9 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike}
+import structures.immutable.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.VersionedOperator
