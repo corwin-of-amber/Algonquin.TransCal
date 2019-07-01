@@ -152,7 +152,7 @@ object Programs extends LazyLogging {
         Set(
           HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
         )
-      case _ => Set(HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata))
+      case _ => Set(HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata))
     }
     val annotationEdges = function.annotation match {
       case Some(annotatedTree) =>
@@ -160,7 +160,7 @@ object Programs extends LazyLogging {
         val trueNode = nodeCreator.next()
         val functionNode = nodeCreator.next()
         hyperEdgesType ++ Set(
-          HyperEdge(functionNode, identToEdge(function), Seq.empty, EmptyMetadata),
+          HyperEdge(functionNode, identToEdge(function.copy(annotation = None)), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.trueId), Seq.empty, EmptyMetadata)
         )
@@ -253,10 +253,10 @@ object Programs extends LazyLogging {
     })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>
-      val holeEdges = graph.findEdges(ExplicitTerm(HyperTermIdentifier(identifier)))
+      val holeEdges = graph.findEdges(ExplicitTerm(HyperTermIdentifier(identifier.copy(annotation = None))))
       val merged = holeEdges.foldLeft(graph)((g, e) => g.mergeNodes(hole, e.target))
       merged.filter(_.edgeType match {
-        case ExplicitTerm(HyperTermIdentifier(i)) if i == identifier => false
+        case ExplicitTerm(HyperTermIdentifier(i)) if i == identifier.copy(annotation = None) => false
         case _ => true
       })
     }))
