@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import structures.immutable.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike}
+import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -50,7 +50,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraphManyWithOrderToOneLike.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = HyperGraphManyWithOrderToOne.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 

@@ -2,7 +2,7 @@ package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, HyperGraphManyWithOrderToOneLike}
+import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.immutable.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
@@ -45,10 +45,10 @@ class RewriteRule(val premise: HyperPattern,
     }
 
     val newEdges = premiseReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m._1, m._2).merge(metadataCreator(HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](premise, m)))
-      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion(existentialsMax, meta), m)
+      val meta = metaCreator(m._1, m._2).merge(metadataCreator(HyperGraphManyWithOrderToOne.mergeMap(premise, m)))
+      val merged = HyperGraphManyWithOrderToOne.mergeMap(subGraphConclusion(existentialsMax, meta), m)
       if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-      else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
+      else HyperGraphManyWithOrderToOne.fillWithNewHoles(merged, nextHyperId).map(e =>
         e.copy(metadata = e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug

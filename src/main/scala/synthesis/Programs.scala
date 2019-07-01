@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOneLike, VersionedHyperGraph}
+import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
@@ -42,7 +42,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.toIterator.flatMap(m => {
-      val fullPattern = HyperGraphManyWithOrderToOneLike.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
+      val fullPattern = HyperGraphManyWithOrderToOne.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
       recursiveReconstruct(fullPattern, hyperTermId, Some(this))
     })
   }
