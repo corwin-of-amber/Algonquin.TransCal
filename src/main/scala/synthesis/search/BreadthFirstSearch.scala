@@ -56,7 +56,7 @@ object BreadthFirstSearch {
       * Produce a backtrace of the actions taken to find the goal node, using the recorded meta dictionary
       */
     def constructPath(first: Node[S]): IndexedSeq[S] = {
-      val total_path = mutable.MutableList[S]()
+      val total_path = mutable.ListBuffer[S]()
       var current = first
       total_path += current.state
 

@@ -21,7 +21,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
   private val seperator = "---------------------------"
 
   private val stateStack = new mutable.ArrayStack[ActionSearchState]
-  private val savedStates = new mutable.MutableList[ActionSearchState]
+  private val savedStates = new mutable.ListBuffer[ActionSearchState]
 
   /* --- Public --- */
 
