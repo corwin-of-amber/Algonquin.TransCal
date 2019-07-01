@@ -1,9 +1,9 @@
 package structures.immutable
 
 import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
-import structures.{Explicit, Hole, HyperEdge, Item}
+import structures.{Explicit, HyperEdge, Item}
 
-import scala.collection.{immutable, GenTraversableOnce, SetLike}
+import scala.collection.{GenTraversableOnce, SetLike, immutable}
 
 /** A hyper graph from many to one.
   *
@@ -114,45 +114,6 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
 
 
 object HyperGraphManyWithOrderToOneLike {
-  def mergeMap[Node, EdgeType, Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern,
-                                                                                              maps: (Map[Id, Node], Map[Id, EdgeType])): Pattern = {
-    val (nodeMap, edgeMap) = maps
-    val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
-      // From each map create new edges from the destination graph
-      graph.mergeNodes(Explicit[Node, Id](kv._2), Hole[Node, Id](kv._1))
-    })
-
-    val mergedAll = edgeMap.foldLeft(mergedNodes)((graph, kv) => {
-      // From each map create new edges from the destination graph
-      graph.mergeEdgeTypes(Explicit[EdgeType, Id](kv._2), Hole[EdgeType, Id](kv._1))
-    })
-    mergedAll
-  }
-
-  def fillWithNewHoles[Node, EdgeType, Id,
-  Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern, nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
-    val newTerms = hyperPattern.nodes.filter(_.isInstanceOf[Hole[Node, Id]]).map((_, nodeCreator()))
-
-    def translateEdge(hyperEdgePattern: HyperEdgePattern[Node, EdgeType, Id]): HyperEdge[Node, EdgeType] = {
-      hyperEdgePattern.copy(hyperEdgePattern.target.asInstanceOf[Explicit[Node, Id]].value, hyperEdgePattern.edgeType.asInstanceOf[Explicit[EdgeType, Id]].value,
-        hyperEdgePattern.sources.map(s => s.asInstanceOf[Explicit[Node, Id]].value))
-    }
-
-    newTerms.foldLeft(hyperPattern)((graph, kv) => {
-      // From each map create new edges from the destination graph
-      graph.mergeNodes(Explicit[Node, Id](kv._2), kv._1)
-    }).map(translateEdge(_)).toSet
-  }
-
-  def fillPattern[Node, EdgeType, Id,
-    Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern,
-                                                               maps: (Map[Id, Node], Map[Id, EdgeType]),
-                                                               nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
-    // Should crash if we still have holes as its a bug
-    val mergedAll = mergeMap[Node, EdgeType, Id, Pattern](hyperPattern, maps)
-    fillWithNewHoles[Node, EdgeType, Id, Pattern](mergedAll, nodeCreator)
-  }
-
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
   type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], This]
