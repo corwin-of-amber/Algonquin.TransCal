@@ -140,7 +140,7 @@ class TriePropSpec extends PropSpec with Checkers {
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && trie != newTrie && found.isEmpty
     }
-    check(forAll { (trie: Trie[Int], keepLetter: Int) =>
+    check(forAll { (trie: Trie[Int], keepLetter: Int) => trie.nonEmpty ==>
       validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)
     })
   }
