@@ -35,7 +35,7 @@ class RewriteRule(val premise: HyperPattern,
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
     val nextHyperId: () => HyperTermId = {
-      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
+      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).iterator
       () => creator.next
     }
 
@@ -73,10 +73,10 @@ class RewriteRule(val premise: HyperPattern,
 
   private def subGraphConclusion(maxExist: Int, metadata: Metadata): SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
-    val existentialEdges = existentialHoles.zipWithIndex.map(((existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
+    val existentialEdges = existentialHoles.zipWithIndex.map({case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
         Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
-    }).tupled)
+    }})
     conclusion.++(existentialEdges)
   }
 }

@@ -280,7 +280,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -305,7 +305,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -330,7 +330,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -358,7 +358,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
     val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
-      val creator = Stream.from(0).toIterator
+      val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
     val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {

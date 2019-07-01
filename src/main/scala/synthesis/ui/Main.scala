@@ -30,7 +30,7 @@ object Main extends App {
 
   private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] = {
     term.root match {
-      case transcallang.Language.semicolonId => term.subtrees.flatMap(splitByStatements).toIterator
+      case transcallang.Language.semicolonId => term.subtrees.flatMap(splitByStatements).iterator
       case _ => Iterator(term)
     }
   }
@@ -49,7 +49,7 @@ object Main extends App {
     }
   }
 
-  val conf = new CommandLineConfiguration(args)
+  val conf = new CommandLineConfiguration(args.toIndexedSeq)
   val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
   val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readJFile)
   val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
@@ -101,7 +101,7 @@ object Main extends App {
   def timeComplexStrings = {
   timeComplexEdges.toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
     .map(tree=> (Programs.termToString(tree.subtrees.head), calculateComplex(tree.subtrees(1))))
-    .groupBy(_._1).map(a => a.copy(_2 = a._2.map(_._2).min(FullComplexityPartialOrdering)))
+    .groupBy(_._1).mapValues(_.map(_._2).min(FullComplexityPartialOrdering))
     .toList.sortBy(_._1.length)
     .foreach(println)
 

@@ -36,7 +36,7 @@ case object EmptyMetadata extends Metadata {
 }
 
 final class UnionMetadata private (datas: Set[Metadata]) extends Metadata {
-  override def iterator: Iterator[Metadata] = datas.toIterator.flatMap(_.iterator)
+  override def iterator: Iterator[Metadata] = datas.iterator.flatMap(_.iterator)
   override def toStr: String = iterator mkString ", "
 }
 object UnionMetadata {

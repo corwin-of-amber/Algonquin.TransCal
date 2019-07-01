@@ -26,7 +26,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
   def findTypes(hyperTermId: HyperTermId): Iterator[AnnotatedTree] = {
     val searchGraph: VersionedHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
       VersionedHyperGraph(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.typeId)), Seq(ExplicitTerm(hyperTermId), Hole(1)), NonConstructableMetadata))
-    hyperGraph.findSubgraph[Int](searchGraph).flatMap(m => reconstruct(m._1(1))).toIterator
+    hyperGraph.findSubgraph[Int](searchGraph).flatMap(m => reconstruct(m._1(1))).iterator
   }
 
 
@@ -41,7 +41,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
   def reconstructWithPattern(hyperTermId: HyperTermId, pattern: HyperPattern, patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[AnnotatedTree] = {
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
-    maps.toIterator.flatMap(m => {
+    maps.iterator.flatMap(m => {
       val fullPattern = HyperGraphManyWithOrderToOne.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
       recursiveReconstruct(fullPattern, hyperTermId, Some(this))
     })
@@ -219,7 +219,7 @@ object Programs extends LazyLogging {
   def destructWithRoot(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
-    val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).toIterator.map(HyperTermId), HyperTermIdentifier)
+    val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)
     (VersionedHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
   }
 
@@ -311,11 +311,6 @@ object Programs extends LazyLogging {
     results
   }
 
-  private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
-    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
-  }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).
     *

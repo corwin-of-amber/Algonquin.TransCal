@@ -79,7 +79,7 @@ object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map( i =>
       HyperTermIdentifier(Identifier(s"temp anchor $i"))
-    ).toIterator
+    ).iterator
     anchors.next
   }
 
