@@ -7,7 +7,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{Action, LetAction}
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Identifier, Language}
 
@@ -73,8 +73,10 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     state
   }
 
-  def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState =
-    rules.foldLeft(rewriteSearchState)((s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s))
+  def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
+    val res = rules.foldLeft(rewriteSearchState)((s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s))
+    FunctionArgumentsAndReturnTypeRewrite(res)
+  }
 
 
   /** Each placeholder will be switched to the appropriate terminals and anchors will be added appropriately.
@@ -84,24 +86,25 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     */
   private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): VersionedHyperGraph[HyperTermId, HyperTermIdentifier] = {
     // We will duplicate the graph for each symbolic input and change the placeholder to correct representation.
-    val maxId = graph.nodes.map(_.id).max
-    val fullGraph = VersionedHyperGraph((for ((newTerminals, index) <- changingTerminals.zipWithIndex) yield {
+    var hGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
+    for ((newTerminals, index) <- changingTerminals.zipWithIndex) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
       val newEdges = for ((terminal, placeholder) <- newTerminals.zip(placeholders);
-                          target = graph.findEdges(HyperTermIdentifier(placeholder.root)).head.target) yield {
+                          target = graph.findEdges(HyperTermIdentifier(placeholder.root.copy(annotation = None))).head.target) yield {
         val newAnchors =
           graph.filter(_.edgeType.identifier.literal.startsWith(idAnchorStart)).map(e => anchorByIndex(e, index)).toSet
 
         val termGraph = {
-          val (tempGraph, root) = Programs.destructWithRoot(terminal)
+          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(hGraph.nodes.map(_.id).max))
           tempGraph.mergeNodes(target, root)
         }
-        shiftEdges(maxId*index, (graph.addEdges(newAnchors).filter(_.edgeType.identifier != placeholder.root) ++ termGraph).toSet)
+
+        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.addEdges(newAnchors).addEdges(termGraph.edges).edges)
       }
-      newEdges.flatten
-    }).flatten: _*)
-    fullGraph
+      hGraph = hGraph.addEdges(newEdges.flatten.toSet)
+    }
+    hGraph
   }
 
   def findEquives(rewriteState: RewriteSearchState,
@@ -114,7 +117,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     // ******** Observational equivalence ********
     // Use the anchors to create tuples for merging
     val idCreator: () => HyperTermId = {
-      var stream = Stream.from(fullGraph.nodes.map(_.id).max).map(HyperTermId)
+      var stream = Stream.from(fullGraph.nodes.map(_.id).max + 1).map(HyperTermId)
       () => {
         stream = stream.tail
         stream.head
@@ -125,8 +128,8 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     val tupleEdges = (for (r <- roots) yield {
       val targets = changingTerminals.indices.map(i => fullGraph.findEdges(anchorByIndex(createAnchor(r), i).edgeType).head.target)
       val newTarget = idCreator()
-      Seq(HyperEdge(newTarget, HyperTermIdentifier(Language.tupleId), targets, EmptyMetadata),
-        HyperEdge(newTarget, HyperTermIdentifier(Identifier(s"$tupleAnchorStart$r")), Seq.empty, NonConstructableMetadata))
+      Seq(HyperEdge(newTarget, HyperTermIdentifier(Language.tupleId), targets.toList, EmptyMetadata),
+        HyperEdge(newTarget, HyperTermIdentifier(Identifier(s"$tupleAnchorStart${r.id}")), Seq.empty, NonConstructableMetadata))
     }).flatten
 
     val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph.addEdges(tupleEdges)))(
