@@ -1,10 +1,14 @@
 package transcallang
 
-trait Namespace {
+trait Namespace
 
+case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None) {
+  override def equals(obj: Any): Boolean = obj match {
+    case Identifier(l, a ,n) => l == literal && (a == annotation || annotation.isEmpty || a.isEmpty) && n == namespace
+    case _ => false
+  }
 }
 
-case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None)
 object Identifier {
   def apply(literal: String): Identifier = new Identifier(literal, None, None)
 }
