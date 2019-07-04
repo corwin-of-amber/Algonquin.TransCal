@@ -2,7 +2,7 @@ package synthesis.rewrites
 
 import transcallang.{Identifier, Language}
 import org.scalatest.PropSpec
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.{HyperTermId, HyperTermIdentifier}

@@ -3,7 +3,7 @@ package structures.immutable
 import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
 import synthesis.rewrites.Template.ExplicitTerm
@@ -238,7 +238,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Compactions works correctly on mutliple swithces of same var") {
-    val graphs = Programs.destructPatterns(new TranscalParser apply "(?x ≤ ?y) ||> min(x, y) >> id x" subtrees)
+    val graphs = Programs.destructPatterns(new TranscalParser().apply("(?x ≤ ?y) ||> min(x, y) >> id x").subtrees)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head)
   }
@@ -246,7 +246,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("Compation works correctly when adding precondition after creation") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val tempGraph = Programs.destruct(term)
-    val graph = tempGraph.addEdges(Set(
+    val graph = tempGraph.++(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
@@ -280,7 +280,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -305,7 +305,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -330,7 +330,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -358,7 +358,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
     val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
-      val creator = Stream.from(0).toIterator
+      val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
     val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -384,6 +384,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("Compaction works for edges with changed sources") {
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
-    check(graph.addEdge(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
+    check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 }

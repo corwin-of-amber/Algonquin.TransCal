@@ -1,7 +1,7 @@
 package synthesis.rewrites
 
 import org.scalatest.FunSuite
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import synthesis.Programs
 import synthesis.rewrites.FunctionArgumentsAndReturnTypeRewrite.{ApplyTypeMetadata, ArgumentsTypeMetadata}
 import transcallang.{Language, TranscalParser}

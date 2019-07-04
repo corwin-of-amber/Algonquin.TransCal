@@ -39,7 +39,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         (temp, state)
       } else {
         logger.info("Generalize couldn't find term, trying to elaborate")
-        val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.addEdges(g2.edges))
+        val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.++(g2.edges))
         val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1), maxSearchDepth = maxSearchDepth)(state)
         var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
         val progs = new Programs(rewriteSearchState.graph)

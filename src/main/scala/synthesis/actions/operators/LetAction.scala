@@ -36,7 +36,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
     val premise: HyperPattern = {
       val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
       val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-      pattern.addEdge(newRootEdge).removeEdge(rootEdge)
+      pattern.+(newRootEdge).-(rootEdge)
     }
 
     (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))
@@ -47,14 +47,17 @@ class LetAction(val term: AnnotatedTree) extends Action {
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
       case Language.letId | Language.directedLetId | Language.limitedLetId | Language.limitedDirectedLetId =>
+        val isLimited = Language.builtinLimitedDefinitions.contains(t.root)
+        val isDirected = Language.builtinDirectedDefinitions.contains(t.root)
+
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
-          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2))
+          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2), mergeRoots = !isLimited)
           (temp(0), temp(1))
         }
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
-            if (t.root == Language.directedLetId) Set.empty
+            if (isDirected) Set.empty
             else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }

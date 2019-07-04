@@ -4,7 +4,7 @@ import structures._
 import structures.immutable.HyperGraphManyWithOrderToOne.HyperGraphPattern
 import structures.immutable.VersionedHyperGraph.VersionMetadata
 
-import scala.collection.mutable
+import scala.collection.{GenTraversableOnce, mutable}
 
 /** This hyper graph search the most upated edges.
   *
@@ -31,8 +31,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
           val nodesMap = Item.itemsValueToMap(nodes)
           val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-          val g = HyperGraphManyWithOrderToOneLike.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-          wrapped.findSubgraph[Id](g).map(t => (t._1 ++ nodesMap, t._2 ++ edgeTypeMap))
+          val g = HyperGraphManyWithOrderToOne.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+          wrapped.findSubgraph[Id](g).map{ case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
         })
     })
   }
@@ -45,8 +45,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
     * @param hyperEdge The edge to add.
     * @return The new hyper graph with the edge.
     */
-  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] = {
-    new VersionedHyperGraph(wrapped.addEdge(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))), version + 1)
+  override def +(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] = {
+    new VersionedHyperGraph(wrapped.+(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))), version + 1)
   }
 
   /**
@@ -55,8 +55,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
     * @param hyperEdges The edges to add.
     * @return The new hyper graph with the edge.
     */
-  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
-    new VersionedHyperGraph(wrapped.addEdges(hyperEdges.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))), version + 1)
+  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
+    new VersionedHyperGraph(wrapped.++(hyperEdges.toSeq.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))), version + 1)
   }
 
   /* --- Object Impl. --- */
@@ -66,9 +66,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] {
-      override def result(): VersionedHyperGraph[Node, EdgeType] = {
-        new VersionedHyperGraph(new CompactHyperGraph(parts.flatten.toSet), version + 1)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new VersionedHyperGraph(new CompactHyperGraph(parts.toSet), version + 1)
       }
     }
 }
@@ -80,9 +80,9 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], VersionedHyperGraph[A, B]] {
-    override def result(): VersionedHyperGraph[A, B] = {
-      new VersionedHyperGraph(CompactHyperGraph(parts.flatten: _*))
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new VersionedHyperGraph(CompactHyperGraph(parts: _*))
     }
   }
 

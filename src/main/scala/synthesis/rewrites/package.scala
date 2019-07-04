@@ -1,6 +1,7 @@
 package synthesis.rewrites
 
 import structures._
+import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Identifier
 

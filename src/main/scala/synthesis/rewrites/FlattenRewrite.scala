@@ -39,7 +39,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0), identMap(2), inner.sources ++ outer.sources.drop(1), outer.metadata.merge(inner.metadata).merge(FlattenMetadata))
     }
 
-    val newGraph = state.graph.addEdges(newFuncEdges)
+    val newGraph = state.graph.++(newFuncEdges)
     (new RewriteSearchState(newGraph), newGraph.version)
   }
 }

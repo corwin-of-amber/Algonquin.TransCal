@@ -4,11 +4,10 @@ import java.io.PrintStream
 
 import structures.immutable.HyperGraphManyWithOrderToOne
 import structures.{EmptyMetadata, HyperEdge}
-import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{Identifier, Language}
+import transcallang.{AnnotatedTree, Language}
 
 import scala.collection.mutable
 
@@ -21,8 +20,9 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   private val seperator = "---------------------------"
 
-  private val stateStack = new mutable.Stack[ActionSearchState]
-  private val savedStates = new mutable.MutableList[ActionSearchState]
+  private val stateStack = new mutable.ArrayStack[ActionSearchState]
+  private val savedStates = new mutable.ListBuffer[ActionSearchState]
+
   /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {

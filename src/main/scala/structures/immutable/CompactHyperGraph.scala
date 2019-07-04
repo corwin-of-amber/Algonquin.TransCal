@@ -3,7 +3,7 @@ package structures.immutable
 import structures._
 
 import scala.annotation.tailrec
-import scala.collection.mutable
+import scala.collection.{GenTraversableOnce, mutable}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
@@ -17,11 +17,11 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
+  override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
     compact(List(hyperEdge))
   }
 
-  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
+  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
     compact(hyperEdges.toList)
   }
 
@@ -32,9 +32,9 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] {
-      override def result(): CompactHyperGraph[Node, EdgeType] = {
-        new CompactHyperGraph(parts.flatten.toSet)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new CompactHyperGraph(parts.toSet)
       }
     }
 
@@ -50,9 +50,9 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], CompactHyperGraph[A, B]] {
-    override def result(): CompactHyperGraph[A, B] = {
-      new CompactHyperGraph(parts.flatten.toSet)
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new CompactHyperGraph(parts.toSet)
     }
   }
 
@@ -67,14 +67,18 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
           e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
         val hyperEdge = translateEdge(beforeChangeHyperEdge)
         val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
-        val g = wrapped.addEdge(hyperEdge)
+        val g = wrapped.+(hyperEdge)
         val foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>
             val willChange = g.edges.filter(_.sources.contains(hyperEdge.target)).map(translateEdge)
             val merged = g.mergeNodes(existsTarget, hyperEdge.target)
-            compact(merged, willChange.toList ++ otherHyperEdges, changedToKept.updated(hyperEdge.target, existsTarget))
+            val updatedChangedToKept = changedToKept.map {
+              case (change, hyperEdge.target) => (change, existsTarget)
+              case t => t
+            }.updated(hyperEdge.target, existsTarget)
+            compact(merged, willChange.toList ++ otherHyperEdges, updatedChangedToKept)
           case _ => compact(g, otherHyperEdges, changedToKept)
         }
     }

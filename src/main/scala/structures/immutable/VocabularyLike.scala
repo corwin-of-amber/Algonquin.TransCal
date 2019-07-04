@@ -1,16 +1,16 @@
-package structures
+package structures.immutable
 
-import structures.VocabularyLike.Word
+import structures.immutable.VocabularyLike.Word
+import structures.{Explicit, Item}
 
-import scala.collection.IterableLike
+import scala.collection.{SetLike, immutable}
 
 /**
   * @author tomer
   * @since 11/15/18
   */
-trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
-  extends IterableLike[Word[Letter], This] {
-  // TODO: extend Set when we understand how
+trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with immutable.Set[Word[Letter]]]
+  extends SetLike[Word[Letter], This] {
 
   import VocabularyLike.WordRegex
 
@@ -22,6 +22,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     */
   def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])]
   def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_._1)
+  override def contains(elem: Word[Letter]): Boolean = findRegex(elem.map(Explicit(_))).nonEmpty
 
   /**
     * @return The words in the vocabulary
@@ -41,37 +42,9 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This]]
     */
   def replace(keep: Letter, change: Letter): This
 
-  /** Removes an word from the vocabulary.
-    *
-    * @param word The word to remove.
-    * @return The new vocabulary without the edge.
-    */
-  def remove(word: Word[Letter]): This
-  def -(word:Word[Letter]): This = remove(word)
-
-  /** Adds word.
-    *
-    * @param word The word to add.
-    * @return The vocabulary with the word.
-    */
-  def add(word: Word[Letter]): This
-  def +(word:Word[Letter]): This = add(word)
-
-  /** Adds words.
-    *
-    * @param words The words to add.
-    * @return The vocabulary with the words.
-    */
-  def addAll(words: Set[Word[Letter]]): This
-  def :+(words:Set[Word[Letter]]): This = addAll(words)
-
-  def ++[Other <: VocabularyLike[Letter, Other]](other: Other): This = this :+ other.words
-
   /* --- IterableLike Impl. --- */
 
   override def iterator: Iterator[Word[Letter]] = words.iterator
-
-  override def seq: TraversableOnce[Word[Letter]] = this
 }
 
 object VocabularyLike {
