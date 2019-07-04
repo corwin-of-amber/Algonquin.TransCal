@@ -32,7 +32,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with immutabl
   /**
     * @return The letters in the vocabulary
     */
-  def letters: Set[Letter] = words.flatten
+  lazy val letters: Set[Letter] = words.flatten
 
   /** Replaces a letter with another/
     *

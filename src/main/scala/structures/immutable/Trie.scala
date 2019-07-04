@@ -46,7 +46,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     }
   }
 
-  override def toString: String = f"Trie (${words.mkString(", ")})"
+  override lazy val toString: String = f"Trie (${words.mkString(", ")})"
 
   /* --- IterableLike Impl. --- */
 
