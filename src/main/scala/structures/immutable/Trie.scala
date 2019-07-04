@@ -16,6 +16,8 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
 
+  override lazy val letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
+
   /** Inner constructor that adds words where this Trie is for specific place */
   private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
     this({
