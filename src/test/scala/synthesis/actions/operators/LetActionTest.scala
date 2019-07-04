@@ -59,4 +59,20 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
     state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
   }
+
+//  test("rewriteRules can rewrite reverse function") {
+//    val listInttoListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeList, Language.typeList))
+//    val nil = AnnotatedTree.identifierOnly(Identifier("nil", Some(Language.typeListId)))
+//    val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
+//    val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
+//    val xnil = AnnotatedTree.withoutAnnotations(Language.consId, Seq(x, nil))
+//    val yxnil = AnnotatedTree.withoutAnnotations(Language.consId, Seq(y, xnil))
+//    val term = new TranscalParser().apply("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => x :: (reverse xs)))")
+//    val (graph, root) = Programs.destructWithRoot(AnnotatedTree.withoutAnnotations(Identifier("reverse"), Seq(yxnil)))
+//    var state = new RewriteSearchState(graph)
+//    val letAction = new LetAction(term)
+//    for(i <- 0 to 4; r <- letAction.rules) state = r(state)
+//    val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
+//    state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
+//  }
 }
