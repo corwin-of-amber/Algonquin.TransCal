@@ -23,7 +23,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   /* --- Public Methods --- */
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    hyperPattern.edges.flatMap(edgePattern => {
+    hyperPattern.flatMap(edgePattern => {
       findRegexHyperEdges(edgePattern)
         .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
         .flatMap(edge => {
@@ -113,7 +113,7 @@ object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompan
       * @return
       */
     def getEdgeVersion[Node, EdgeType](edge: HyperEdge[Node, EdgeType]): Long = {
-      edge.metadata.filter(_.isInstanceOf[VersionMetadata]).map(_.asInstanceOf[VersionMetadata].version).headOption.getOrElse(0L)
+      edge.metadata.collectFirst { case v: VersionedHyperGraph.VersionMetadata => v.version }.getOrElse(0L)
     }
   }
 

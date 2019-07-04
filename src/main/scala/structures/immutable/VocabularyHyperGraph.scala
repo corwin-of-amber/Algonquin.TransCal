@@ -25,6 +25,9 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
+  override lazy val edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
+  override lazy val nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
+
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
     val newMetadata = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
