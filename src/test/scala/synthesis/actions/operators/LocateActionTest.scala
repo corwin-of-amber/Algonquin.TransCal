@@ -24,7 +24,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.letId)), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )
-    val template = VocabularyHyperGraph.empty.addEdge(equalEdge)
+    val template = VocabularyHyperGraph.empty.+(equalEdge)
     val newState = new LocateAction(HyperTermIdentifier(Identifier("anchor")), template)(state)
     val newEdges = newState.programs.hyperGraph.edges.diff(state.programs.hyperGraph.edges)
     newEdges.size should be (1)
@@ -42,7 +42,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("⇒"))), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )
-    val template = VocabularyHyperGraph.empty.addEdge(equalEdge)
+    val template = VocabularyHyperGraph.empty.+(equalEdge)
     val newState = new LocateAction(HyperTermIdentifier(Identifier("anchor")), template)(state)
     val newEdges = newState.programs.hyperGraph.edges.diff(state.programs.hyperGraph.edges)
     newEdges.count(_.edgeType.identifier.literal == "anchor") should be (1)

@@ -7,8 +7,14 @@ trait Namespace {
 }
 
 case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None) {
+  override def equals(obj: Any): Boolean = obj match {
+    case Identifier(l, a ,n) => l == literal && (a == annotation || annotation.isEmpty || a.isEmpty) && n == namespace
+    case _ => false
+  }
+
   override def toString: String = s"Identifier(${'"'}${literal.replace("\"", "'")}${'"'}, ${annotation.map(Programs.termToString).getOrElse("None")}, $namespace)"
 }
+
 object Identifier {
   def apply(literal: String): Identifier = new Identifier(literal, None, None)
 }
@@ -21,7 +27,7 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
   def leaves: Stream[AnnotatedTree] = nodes filter (_.isLeaf)
   def terminals: Stream[Identifier] = leaves map (_.root)
 
-  def size: Int = 1 + (0 /: (subtrees map (_.size)))(_ + _)
+  def size: Int = 1 + (subtrees map (_.size)).sum
 
   def map[S](rootOp: Identifier => Identifier) : AnnotatedTree =
     copy(root=rootOp(root), subtrees=subtrees.map (_.map(rootOp)))

@@ -1,9 +1,9 @@
 package synthesis.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperGraphManyWithOrderToOneLike._
 import structures._
 import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.VersionedOperator
@@ -35,7 +35,7 @@ class RewriteRule(val premise: HyperPattern,
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
     val nextHyperId: () => HyperTermId = {
-      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).toIterator
+      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).iterator
       () => creator.next
     }
 
@@ -45,14 +45,14 @@ class RewriteRule(val premise: HyperPattern,
     }
 
     val newEdges = premiseReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m._1, m._2).merge(metadata)
-      val merged = HyperGraphManyWithOrderToOneLike.mergeMap[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](subGraphConclusion(existentialsMax), m)
+      val meta = metaCreator(m._1, m._2).merge(metadataCreator(HyperGraphManyWithOrderToOne.mergeMap(premise, m)))
+      val merged = HyperGraphManyWithOrderToOne.mergeMap(subGraphConclusion(existentialsMax, meta), m)
       if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-      else HyperGraphManyWithOrderToOneLike.fillWithNewHoles[HyperTermId, HyperTermIdentifier, Int, SubHyperGraphPattern](merged, nextHyperId).map(e =>
+      else HyperGraphManyWithOrderToOne.fillWithNewHoles(merged, nextHyperId).map(e =>
         e.copy(metadata = e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
-    val graph = compactGraph :+ newEdges
+    val graph = compactGraph ++ newEdges
     if (graph.size > compactGraph.size) {
       logger.debug(s"Used RewriteRule $this")
     }
@@ -62,7 +62,7 @@ class RewriteRule(val premise: HyperPattern,
 
   /* --- Privates --- */
 
-  val metadata: RewriteRuleMetadata = RewriteRuleMetadata(this)
+  val metadataCreator: RewriteRule.SubHyperGraphPattern => RewriteRuleMetadata = RewriteRuleMetadata.curried(this)
 
   private val subGraphPremise: SubHyperGraphPattern = premise
 
@@ -71,13 +71,13 @@ class RewriteRule(val premise: HyperPattern,
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
-  private def subGraphConclusion(maxExist: Int): SubHyperGraphPattern = {
+  private def subGraphConclusion(maxExist: Int, metadata: Metadata): SubHyperGraphPattern = {
     // TODO: change to Uid from Programs instead of global
-    val existentialEdges = existentialHoles.zipWithIndex.map(t =>
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](t._1,
-        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + t._2 + 1}", namespace=Some(new Namespace {})))), Seq.empty, metadata)
-    )
-    conclusion.addEdges(existentialEdges)
+    val existentialEdges = existentialHoles.zipWithIndex.map({case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
+      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
+        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
+    }})
+    conclusion.++(existentialEdges)
   }
 }
 
@@ -88,8 +88,8 @@ object RewriteRule {
   type HyperPattern = HyperGraphManyWithOrderToOne[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
-  case class RewriteRuleMetadata(origin: RewriteRule) extends Metadata {
-    override def toStr: String = s"RewriteRuleMetadata($origin)"
+  case class RewriteRuleMetadata(origin: RewriteRule, originalEdges: RewriteRule.SubHyperGraphPattern) extends Metadata {
+    override def toStr: String = s"RewriteRuleMetadata($origin, $originalEdges)"
   }
 
   object CategoryMetadata extends Enumeration with Metadata {

@@ -3,10 +3,10 @@ package structures.immutable
 import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
-import synthesis.rewrites.Template.ExplicitTerm
+import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.util.Random
@@ -108,13 +108,13 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val g = grapher(es)
         es.toList match {
           case source :: toChange :: _ =>
-        val gMerged = g.mergeNodes(source.target, toChange.target)
-        val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
-          if (x == toChange.target) source.target
-          else x
-        }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
+            val gMerged = g.mergeNodes(source.target, toChange.target)
+            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
+              if (x == toChange.target) source.target
+              else x
+            }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
         }
       }
     })
@@ -238,7 +238,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Compactions works correctly on mutliple swithces of same var") {
-    val graphs = Programs.destructPatterns(new TranscalParser apply "(?x ≤ ?y) ||> min(x, y) >> id x" subtrees)
+    val graphs = Programs.destructPatterns(new TranscalParser().apply("(?x ≤ ?y) ||> min(x, y) >> id x").subtrees)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head)
     check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head)
   }
@@ -246,7 +246,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("Compation works correctly when adding precondition after creation") {
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val tempGraph = Programs.destruct(term)
-    val graph = tempGraph.addEdges(Set(
+    val graph = tempGraph.++(Set(
       HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
       HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
@@ -260,12 +260,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val newBTerm = HyperTermId(101)
     if (aTerm == originalATerm)
       graph.nodes should not contain newATerm
-    else if(aTerm == newATerm)
+    else if (aTerm == newATerm)
       graph.nodes should not contain originalATerm
     else fail()
     if (bTerm == originalBTerm)
       graph.nodes should not contain newBTerm
-    else if(bTerm == newBTerm)
+    else if (bTerm == newBTerm)
       graph.nodes should not contain originalBTerm
     else fail()
   }
@@ -280,7 +280,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -305,7 +305,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -330,7 +330,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       es.nonEmpty ==> {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
-          val creator = Stream.from(0).toIterator
+          val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
         val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -358,7 +358,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
     val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
-      val creator = Stream.from(0).toIterator
+      val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
     val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
@@ -384,6 +384,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("Compaction works for edges with changed sources") {
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
-    check(graph.addEdge(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
+    check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 }

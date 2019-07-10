@@ -3,7 +3,7 @@ package structures.immutable
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures.{Explicit, Hole, Ignored, Repetition}
 
 import scala.util.Random
@@ -88,7 +88,7 @@ class TriePropSpec extends PropSpec with Checkers {
   }
 
   property("Should find correct explicit in big graph") {
-    check(forAll { trie: Trie[Int] => (trie.size > 200 && trie.words.exists(_.length > 3)) ==> {
+    check(forAll { trie: Trie[Int] => (trie.size > 100 && trie.words.exists(_.length > 3)) ==> {
       trie.words.filter(_.length > 3).forall(w =>
         trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
           .forall(_(3) == w(3)))
@@ -132,13 +132,13 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("changed non exist letter") {
+  property("changed non exist letter keeps the trie the same") {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
-      beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && trie != newTrie && found.isEmpty
+      beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && found.isEmpty
     }
     check(forAll { (trie: Trie[Int], keepLetter: Int) =>
       validate(trie, keepLetter, if (trie.letters.isEmpty) 1 else trie.letters.max + 1)

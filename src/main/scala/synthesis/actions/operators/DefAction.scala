@@ -12,9 +12,10 @@ class DefAction(term: AnnotatedTree) extends Action {
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {
+    val isDirect = Language.builtinDirectedDefinitions.contains(term.root)
     val newProgs =
-      if (term.root == Language.directedLetId) state.programs.addTerm(updatedTerm.subtrees(1))
-      else state.programs.addTerm(updatedTerm.subtrees(0)).addTerm(updatedTerm.subtrees(1))
+      if (isDirect) state.programs.addTerm(updatedTerm.subtrees(1))
+      else state.programs.addTerm(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, updatedTerm.subtrees))
     ActionSearchState(newProgs, letAction(state).rewriteRules)
   }
 }

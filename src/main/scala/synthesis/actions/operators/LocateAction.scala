@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import structures.immutable.HyperGraphManyWithOrderToOne
-import structures.{HyperEdge, HyperGraphManyWithOrderToOneLike, Metadata}
+import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.LocateAction.LocateMetadata
@@ -50,7 +50,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraphManyWithOrderToOneLike.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = HyperGraphManyWithOrderToOne.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -64,7 +64,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).addEdges(newEdges))
+    val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).++(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else {
       val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
@@ -79,7 +79,7 @@ object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map( i =>
       HyperTermIdentifier(Identifier(s"temp anchor $i"))
-    ).toIterator
+    ).iterator
     anchors.next
   }
 

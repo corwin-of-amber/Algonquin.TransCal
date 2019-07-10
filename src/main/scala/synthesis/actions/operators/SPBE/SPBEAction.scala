@@ -100,9 +100,9 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
           tempGraph.mergeNodes(target, root)
         }
 
-        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.addEdges(newAnchors).addEdges(termGraph.edges).edges)
+        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.++(newAnchors).++(termGraph.edges).edges)
       }
-      hGraph = hGraph.addEdges(newEdges.flatten.toSet)
+      hGraph = hGraph.++(newEdges.flatten.toSet)
     }
     hGraph
   }
@@ -112,7 +112,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     // Use observational equivalence
     val roots = getRoots(rewriteState)
     val fullGraph: VersionedHyperGraph[HyperTermId, HyperTermIdentifier] =
-      switchPlaceholders(rewriteState.graph.addEdges(roots.map(r => createAnchor(r))))
+      switchPlaceholders(rewriteState.graph.++(roots.map(r => createAnchor(r))))
 
     // ******** Observational equivalence ********
     // Use the anchors to create tuples for merging
@@ -132,7 +132,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
         HyperEdge(newTarget, HyperTermIdentifier(Identifier(s"$tupleAnchorStart${r.id}")), Seq.empty, NonConstructableMetadata))
     }).flatten
 
-    val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph.addEdges(tupleEdges)))(
+    val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph.++(tupleEdges)))(
       (s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s)
     )
 

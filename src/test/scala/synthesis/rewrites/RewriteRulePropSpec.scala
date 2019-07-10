@@ -3,7 +3,7 @@ package synthesis.rewrites
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures._
 import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
@@ -74,11 +74,11 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
     check(forAll { (conditions: HyperPattern, destinationEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =>
       // Cant have illegal conditions or conditions containing destination
       (conditions.edges.forall(e1 => (conditions.edges.toSeq :+ destinationEdge).forall(e2 => e1 == e2 || (e1.edgeType != e2.edgeType || e1.sources != e2.sources))) &&
-        !HyperGraphManyWithOrderToOneLike.fillPattern[HyperTermId, HyperTermIdentifier, Int, HyperPattern](conditions, (Map.empty, Map.empty), () => HyperTermId(-1)).contains(destinationEdge)) ==> {
+        !HyperGraphManyWithOrderToOne.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1)).contains(destinationEdge)) ==> {
         val destination = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(destinationEdge.target), ExplicitTerm(destinationEdge.edgeType), destinationEdge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)
         // At most one
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
-        val filledConditions = HyperGraphManyWithOrderToOneLike.fillPattern[HyperTermId, HyperTermIdentifier, Int, HyperPattern](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
+        val filledConditions = HyperGraphManyWithOrderToOne.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
         val filledDestination = HyperGraphManyWithOrderToOne(destinationEdge)
 
         val rewriteRule = new RewriteRule(conditions, HyperGraphManyWithOrderToOne(destination), (a, b) => EmptyMetadata)

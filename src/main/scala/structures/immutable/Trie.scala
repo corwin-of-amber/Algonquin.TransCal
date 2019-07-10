@@ -2,7 +2,7 @@ package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.VocabularyLike._
+import structures.immutable.VocabularyLike.{Word, WordRegex}
 
 import scala.collection.mutable
 
@@ -13,16 +13,18 @@ import scala.collection.mutable
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
   extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
+  /** Needs to be overridden in subclasses. */
+  override def empty: Trie[Letter] = Trie.empty
+
+  override lazy val letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
+
   /** Inner constructor that adds words where this Trie is for specific place */
   private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
     this({
-      val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map(t => (t._2 + trieIndex, t._1, word)))
-      val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map(((index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) => {
-        wordsToIndexes.groupBy(_._2).map(((letter: Letter, wordsToLetters: Set[(Int, Letter, VocabularyLike.Word[Letter])]) => {
-          val words = wordsToLetters.map(_._3)
-          (letter, new Trie(words, index + 1))
-        }).tupled)
-      }).tupled)
+      val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map{case (letter, index) => (index + trieIndex, letter, word)})
+      val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map { case (index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) =>
+        wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => new Trie(wordsToLetters.map(_._3), index + 1))
+      }
       subtries
     }, wordsFull)
 
@@ -31,13 +33,11 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   /* --- Vocabulary Impl. --- */
 
-  override def add(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
-
-  override def addAll(words: Set[Word[Letter]]): Trie[Letter] = words.foldLeft(this)(_ + _)
+  override def +(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
-  override def remove(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
+  override def -(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
 
   override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])] = {
     logger.trace("find pattern prefix")
@@ -48,14 +48,14 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     }
   }
 
-  override def toString: String = f"Trie (${words.mkString(", ")})"
+  override lazy val toString: String = f"Trie (${words.mkString(", ")})"
 
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
-    new mutable.LazyBuilder[Word[Letter], Trie[Letter]] {
-      override def result(): Trie[Letter] = {
-        new Trie(parts.flatten.toSet)
+    new mutable.ListBuffer[Word[Letter]].mapResult {
+      parts => {
+        new Trie(parts.toSet)
       }
     }
 
@@ -102,9 +102,9 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
       val (mapSubtries, localIndex) = mapSubtriesWithIndex
       val mapSubtriesIndex = index + localIndex + 1
       logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = mapSubtries.map(((letter: Letter, trie: Trie[Letter]) => {
-        (letter, trie.replaceWithIndex(keep, change, mapSubtriesIndex))
-      }).tupled)
+      val mapSubtriesRemoved = mapSubtries.mapValues(trie =>
+        trie.replaceWithIndex(keep, change, mapSubtriesIndex)
+      )
 
       logger.trace("Merge change trie to keep trie")
       mapSubtriesRemoved.get(change) match {
@@ -134,13 +134,16 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
       case Nil => words.filter(_.length == length).zip(Stream.continually(placeholdersMap))
       case item +: more =>
         item match {
-          case Explicit(value: Letter) =>
+          case Explicit(value) =>
             specificValue(value, more, placeholdersMap)
-          case Hole(id: Id) =>
+          case Hole(id) =>
             placeholdersMap.get(id)
               .map(specificValue(_, more, placeholdersMap))
-              .getOrElse((for ((letter, subtrie) <- if (subtries.length > skip) subtries(skip) else Map.empty)
-                yield subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0)).flatten.toSet)
+              .getOrElse(
+                subtries.applyOrElse(skip, (a: Int) => Map.empty[Letter, Trie[Letter]])
+                  .flatMap {case (letter: Letter, subtrie: Trie[Letter]) => subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0)}
+                  .toSet
+              )
           case Ignored() =>
             recursiveFindRegex(more, placeholdersMap, length + 1, skip + 1)
           case Repetition(minR, maxR, repeated) =>

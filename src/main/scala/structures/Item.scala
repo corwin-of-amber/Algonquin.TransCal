@@ -7,8 +7,8 @@ package structures
 sealed trait Item[+Value, +Id]
 object Item {
   def itemsValueToMap[T, Id](tuples: Seq[(Item[T, Id], T)]): Map[Id, T] = {
-    tuples.filter(t => t._1.isInstanceOf[Hole[T, Id]])
-      .map(t => (t._1.asInstanceOf[Hole[T, Id]].id, t._2)).toMap
+    tuples.toMap.filterKeys(_.isInstanceOf[Hole[T, Id]])
+      .map(t => (t._1.asInstanceOf[Hole[T, Id]].id, t._2))
   }
 }
 final case class Explicit[+Value, +Id](value: Value) extends Item[Value, Id]

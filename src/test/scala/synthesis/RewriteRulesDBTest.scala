@@ -1,10 +1,12 @@
 package synthesis
 
-import transcallang.{Identifier, Language, TranscalParser}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
-import org.scalatest.prop.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import structures.{EmptyMetadata, HyperEdge}
+import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
 
 class RewriteRulesDBTest extends FunSuite with Matchers {
 

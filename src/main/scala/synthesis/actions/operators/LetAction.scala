@@ -36,7 +36,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
     val premise: HyperPattern = {
       val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
       val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-      pattern.addEdge(newRootEdge).removeEdge(rootEdge)
+      pattern.+(newRootEdge).-(rootEdge)
     }
 
     (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))
@@ -48,18 +48,21 @@ class LetAction(val term: AnnotatedTree) extends Action {
     t.root match {
       case i: Identifier if Language.builtinDefinitions.contains(i) =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
-        val mergeRoots = !Language.builtinLimitedDefinitions.contains(i)
         val (premise, conclusion) = {
-          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2), mergeRoots = mergeRoots)
+          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2),
+            mergeRoots = !Language.builtinLimitedDefinitions.contains(i))
           (temp(0), temp(1))
         }
+
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
             if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
             else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }
-        (newRules ++ results.flatMap(_._1), t)
+
+        if (premise == conclusion) (results.flatMap(_._1).toSet, t.copy(subtrees = results.map(_._2)))
+        else (newRules ++ results.flatMap(_._1), t.copy(subtrees = results.map(_._2)))
       case Language.lambdaId =>
         val newFunc = optName.getOrElse(LetAction.functionNamer(t))
         createRuleWithNameFromLambda(t.subtrees(0), t.subtrees(1), newFunc)

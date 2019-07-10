@@ -22,9 +22,9 @@ object Language {
   val typeId: Identifier = Identifier("type")
   val mapTypeId: Identifier = Identifier(":>")
 
-  val typeBoolean = AnnotatedTree.identifierOnly(typeBooleanId)
-  val typeInt = AnnotatedTree.identifierOnly(typeIntId)
-  val typeBooleanToBoolean = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
+  val typeBoolean: AnnotatedTree = AnnotatedTree.identifierOnly(typeBooleanId)
+  val typeInt: AnnotatedTree = AnnotatedTree.identifierOnly(typeIntId)
+  val typeBooleanToBoolean: AnnotatedTree = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
 
   val applyId: Identifier = Identifier("@")
   val innerTypeId: Identifier = Identifier("polymorphic")
@@ -80,9 +80,9 @@ object Language {
   val builtinBooleanOps: Seq[Identifier] = Seq(equalityId, unequalityId, setContainsId, setNotContainsId, setDisjointId, ltId, gtId, leId, geId)
   val builtinCondBuilders: Seq[Identifier] = Seq(trueCondBuilderId)
   val builtinHighLevel: Seq[Identifier] = Seq(splitId, guardedId, lambdaId, andCondBuilderId, limitedAndCondBuilderId)
-  val builtinDirectedDefinitions: Seq[Identifier] = Seq(directedLetId, limitedDirectedLetId)
-  val builtinDefinitions: Seq[Identifier] = Seq(letId, directedLetId, limitedLetId, limitedDirectedLetId)
   val builtinLimitedDefinitions: Seq[Identifier] = Seq(limitedLetId, limitedDirectedLetId)
+  val builtinDirectedDefinitions: Seq[Identifier] = Seq(directedLetId, limitedDirectedLetId)
+  val builtinDefinitions: Seq[Identifier] = Seq(letId, limitedLetId) ++ builtinDirectedDefinitions
 
   val builtinCommands: Seq[String] = Seq("→", "←", "[]", "□", "->", "<-")
 

@@ -11,7 +11,7 @@ class DepthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, 
 
   override def search(searchSpace: SS, maxDepth: Double): Option[S] = {
     // a LIFO open_set
-    val openStack = new mutable.Stack[DepthFirstSearch.Node[S]]()
+    val openStack = new mutable.ArrayStack[DepthFirstSearch.Node[S]]()
     // an empty set to maintain visited nodes
     val closedMap = new mutable.HashMap[S, DepthFirstSearch.Node[S]]()
 
@@ -56,7 +56,7 @@ object DepthFirstSearch {
       * Produce a backtrace of the actions taken to find the goal node, using the recorded meta dictionary
       */
     private def constructPath(first: Node[S]): IndexedSeq[S] = {
-      val total_path = mutable.MutableList[S]()
+      val total_path = mutable.ListBuffer[S]()
       var current = first
       total_path += current.state
 

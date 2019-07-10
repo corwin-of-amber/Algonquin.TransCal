@@ -8,7 +8,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteSearchState(val graph: RewriteSearchState.HyperGraph) extends State
+case class RewriteSearchState(graph: RewriteSearchState.HyperGraph) extends State
 
 object RewriteSearchState {
   type HyperGraph = VersionedHyperGraph[HyperTermId, HyperTermIdentifier]

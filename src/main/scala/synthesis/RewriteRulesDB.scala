@@ -34,10 +34,11 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
 
   override protected def metadata: Metadata = EmptyMetadata
 
+
   private val templates: Set[String] = Set(
     "~true = false",
     "~false = true",
-    "id (?x) >> x",
+//    "id (?x) >> x",
 
     "?x == ?x' = x' == x",
     "?x == ?x' = x' ∈ { x }",
@@ -55,6 +56,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "?x + ?y = y + x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
+    "(?x :: ?xs) ++ ?ys = (x :: (xs ++ ys))",
     "⟨⟩ ++ ?xs' >> id xs'",
     "?xs' ++ ⟨⟩ >> id xs'",
 
@@ -99,37 +101,59 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 
 }
 
-//object OwnershipRewriteRulesDB extends RewriteRulesDB {
-//  private val parser = new TranscalParser
-//
-//  override protected def metadata: Metadata = OwnershipMetadata
-//
-//  private case object OwnershipMetadata extends Metadata {
-//    override def toStr: String = "OwnershipMetadata"
-//  }
-//
-//  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-//    "(?x ++ ?y ||| ?z) & (own x ||| true) & (own y ||| true) ||> true = own z",
-//    "(?x +: nil ||| ?z) & (own x ||| true) ||> true = own z"
-//  ).map(t => parser.apply(t))
-//
-//}
+object TimeComplexRewriteRulesDB extends RewriteRulesDB {
+  private val parser = new TranscalParser
 
-//object TimeComplexRewriteRulesDB extends RewriteRulesDB {
-//  private val parser = new TranscalParser
-//
-//  override protected def metadata: Metadata = TimeComplexMetadata
-//
-//  private case object TimeComplexMetadata extends Metadata {
-//    override def toStr: String = "TimeComplexMetadata"
-//  }
-//
-//  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-//    "(?x ++ ?y ||| ?z) & (own z ||| true) ||> timecomplex z 1 = true",
-//    "(?x + ?y ||| ?z) ||> timecomplex z 1 = true"
-//  ).map(t => parser.apply(t))
-//
-//}
+  override protected def metadata: Metadata = TimeComplexMetadata
+
+  private case object TimeComplexMetadata extends Metadata {
+    override def toStr: String = "TimeComplexMetadata"
+  }
+
+  private def stringifyOperatorBinary(operator: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?x' ?u) |||| " +
+      f"(x $operator x') |>> timecomplex (x $operator x') (v + u + 1) ||| timecomplexTrue"
+  }
+
+  private def stringifyOperatorBinaryRightList(operator: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
+      f"(x $operator xs) |>> timecomplex (x $operator xs) (v + u + w + 1) ||| timecomplexTrue"
+  }
+
+  private def stringifyFunctionBinaryRightList(function: String) = {
+    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
+      f"($function x xs) |>> timecomplex ($function x xs) (v + u + w + 1) ||| timecomplexTrue"
+  }
+
+  private def stringListUnary(function: String) = {
+    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| " +
+      f"($function ?xs) |>> (timecomplex ($function xs) (w + v + 1)) ||| timecomplexTrue"
+  }
+
+  private def stringListOperatorBinary(operator: String) = {
+    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
+      f"(ys $operator xs') |>> (timecomplex (ys $operator ?xs) (w + v + u + x + 1)) ||| timecomplexTrue"
+  }
+
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+    stringifyFunctionBinaryRightList("elem"),
+//    stringListOperatorBinary("∪"),
+//    stringListOperatorBinary("‖"),
+    stringListUnary("elems"),
+//    stringListUnary("len"),
+//    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
+//    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
+    "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
+    stringifyOperatorBinary("=="),
+    stringifyOperatorBinary("∧"),
+    stringifyOperatorBinary("∨"),
+    stringifyOperatorBinary("≠"),
+    stringifyOperatorBinaryRightList("::"),
+    stringifyOperatorBinaryRightList("∈"),
+    stringifyOperatorBinaryRightList("∉")
+  ).map(t => parser.apply(t))
+
+}
 
 object ExistentialRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser

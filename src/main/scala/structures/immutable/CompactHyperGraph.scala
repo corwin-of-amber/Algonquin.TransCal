@@ -1,9 +1,11 @@
 package structures.immutable
 
 import structures._
+import synthesis.HyperTermIdentifier
+import transcallang.Language
 
 import scala.annotation.tailrec
-import scala.collection.mutable
+import scala.collection.{GenTraversableOnce, mutable}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
@@ -17,11 +19,11 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def addEdge(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
+  override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
     compact(List(hyperEdge))
   }
 
-  override def addEdges(hyperEdges: Set[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
+  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
     compact(hyperEdges.toList)
   }
 
@@ -32,9 +34,9 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] =
-    new mutable.LazyBuilder[HyperEdge[Node, EdgeType], CompactHyperGraph[Node, EdgeType]] {
-      override def result(): CompactHyperGraph[Node, EdgeType] = {
-        new CompactHyperGraph(parts.flatten.toSet)
+    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
+      parts => {
+        new CompactHyperGraph(parts.toSet)
       }
     }
 
@@ -50,9 +52,9 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.LazyBuilder[HyperEdge[A, B], CompactHyperGraph[A, B]] {
-    override def result(): CompactHyperGraph[A, B] = {
-      new CompactHyperGraph(parts.flatten.toSet)
+  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], CompactHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
+    parts => {
+      new CompactHyperGraph(parts.toSet)
     }
   }
 

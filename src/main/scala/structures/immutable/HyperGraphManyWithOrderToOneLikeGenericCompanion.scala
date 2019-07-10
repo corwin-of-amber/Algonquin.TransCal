@@ -1,13 +1,15 @@
-package structures
+package structures.immutable
 
-import scala.collection.mutable
+import structures.HyperEdge
+
+import scala.collection.{immutable, mutable}
 import scala.language.higherKinds
 
 /**
   * @author tomer
   * @since 1/14/19
   */
-abstract class HyperGraphManyWithOrderToOneLikeGenericCompanion[+G[N, E] <: HyperGraphManyWithOrderToOneLike[N, E, G[N, E]]] {
+abstract class HyperGraphManyWithOrderToOneLikeGenericCompanion[+G[N, E] <: HyperGraphManyWithOrderToOneLike[N, E, G[N, E]] with immutable.Set[HyperEdge[N ,E]]] {
 
 
   /** The underlying collection type with unknown element type */

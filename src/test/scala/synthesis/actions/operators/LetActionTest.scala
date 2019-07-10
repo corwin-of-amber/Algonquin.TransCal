@@ -3,10 +3,11 @@ package synthesis.actions.operators
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{FunSuite, Matchers}
 import structures.{EmptyMetadata, HyperEdge}
+import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.{HyperTermIdentifier, Programs}
+import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class LetActionTest extends FunSuite with Matchers with LazyLogging {
