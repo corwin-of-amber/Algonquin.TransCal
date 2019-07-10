@@ -35,6 +35,14 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
     result should not be empty
   }
 
+  test("NoDup with TimeComplex") {
+    val fileName = "src/main/resources/examples/NoDupWithTimeComplex.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.apply("(1) -> (_ ∉ {x}) /\\ nodup' _ _").subtrees(1))
+    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
   test("FilterMap") {
     val fileName = "src/main/resources/examples/FilterMap.tc"
     val lastState = abstractTest(fileName)
