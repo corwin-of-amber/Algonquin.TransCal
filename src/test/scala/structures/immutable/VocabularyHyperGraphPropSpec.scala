@@ -218,21 +218,18 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("find graph finds edge and replacer") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      es.exists(e => es.exists(e1 => e1.sources.contains(e.target))) ==> {
+      es.exists(usedEdge => es.exists(usingEdge => usingEdge.sources.contains(usedEdge.target))) ==> {
         val g = grapher(es)
         es.exists(e => {
           e.sources.indices exists { i =>
-            0 until 10 exists { j =>
-              val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(HyperEdge(Hole(0), Ignored(), (0 until j).map(_ => Ignored()), EmptyMetadata),
-                HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)))
-              val results = g.findSubgraph[Int](pg)
-              val resultsValues = results.map(t => (t._1.values, t._2.values))
-              val foundTarget = resultsValues.map(t => t._1 ++ t._2).forall(vals => vals.toList.contains(e.sources(i)))
-              results.nonEmpty && foundTarget
-            }
+            val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(
+              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Int, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
+              HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
+            ))
+            val results = g.findSubgraph[Int](pg).headOption.map(_._1)
+            results.nonEmpty && results.get(0) == e.sources(i)
           }
-        }
-        )
+        })
       }
     })
   }

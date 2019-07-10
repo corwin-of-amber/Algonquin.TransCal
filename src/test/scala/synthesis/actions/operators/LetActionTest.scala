@@ -31,24 +31,27 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val newEdges = searchState.graph.findEdges(HyperTermIdentifier(Identifier("+")))
     newEdges.size shouldEqual 1
-    Programs(searchState.graph).reconstruct(newEdges.head.target).toSeq should contain ((new TranscalParser).apply("_ -> z + y").subtrees(1))
+    Programs(searchState.graph).reconstruct(newEdges.head.target).toSeq should contain((new TranscalParser).apply("_ -> z + y").subtrees(1))
   }
 
   test("Handles precondition correctly") {
     val letTerm = (new TranscalParser).apply("(?x ≤ ?y) ||> min(x, y) >> id x")
     val letAction = new LetAction(letTerm)
+    val a = Identifier("a")
+    val b = Identifier("b")
+    val minTree = AnnotatedTree(Identifier("min"), List(AnnotatedTree.identifierOnly(a), AnnotatedTree.identifierOnly(b)), Seq.empty)
     val newState = letAction apply ActionSearchState(Programs(AnnotatedTree(
       Language.trueCondBuilderId,
       List(
-        AnnotatedTree(Identifier("≤"), List(AnnotatedTree.identifierOnly(Identifier("a")), AnnotatedTree.identifierOnly(Identifier("b"))), Seq.empty),
-        AnnotatedTree(Identifier("min"), List(AnnotatedTree.identifierOnly(Identifier("a")), AnnotatedTree.identifierOnly(Identifier("b"))), Seq.empty)
+        AnnotatedTree(Identifier("≤"), List(AnnotatedTree.identifierOnly(a), AnnotatedTree.identifierOnly(b)), Seq.empty),
+        AnnotatedTree(Identifier("min"), List(AnnotatedTree.identifierOnly(a), AnnotatedTree.identifierOnly(b)), Seq.empty)
       ),
       Seq.empty)
     ), Set.empty)
     newState.rewriteRules.size shouldEqual 1
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
-    val newEdges = searchState.graph.findEdges(HyperTermIdentifier(Language.idId))
-    newEdges.size shouldEqual 1
+    val aEdge = searchState.graph.findEdges(HyperTermIdentifier(a)).head
+    new Programs(searchState.graph).reconstruct(aEdge.target).contains(minTree) shouldEqual true
   }
 
   test("rewriteRules can rewrite correct matches") {
@@ -56,8 +59,24 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val (graph, root) = Programs.destructWithRoot(term)
     var state = new RewriteSearchState(graph)
     val letAction = new LetAction(term)
-    for(i <- 0 to 4; r <- letAction.rules) state = r(state)
+    for (i <- 0 to 4; r <- letAction.rules) state = r(state)
     val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
     state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
+  }
+
+  test("can create correct reverse rewrites") {
+    val term = new TranscalParser().apply("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")
+    val letAction = new LetAction(term)
+    val (graph, root) = Programs.destructWithRoot(new TranscalParser().parseExpression("reverse (x::y::nil)"))
+    val anchor = HyperTermIdentifier(Identifier("anchor"))
+    var state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
+    for (i <- 0 to 4;
+         r <- letAction.rules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules) {
+      state = r(state)
+    }
+    val newRoot = state.graph.findEdges(anchor).head.target
+    val resPattern = Programs.destructPattern(new TranscalParser().parseExpression("y :: _"))
+    val terms = new Programs(state.graph).reconstructWithPattern(newRoot, resPattern).take(100).toSeq
+    terms should not be empty
   }
 }

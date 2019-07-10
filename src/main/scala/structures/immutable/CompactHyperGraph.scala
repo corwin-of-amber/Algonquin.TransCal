@@ -68,9 +68,15 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
         def translateEdge(e: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
           e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
         val hyperEdge = translateEdge(beforeChangeHyperEdge)
-        val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
-        val g = wrapped.addEdge(hyperEdge)
-        val foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
+        var foundTarget = Set[Node]()
+        var g = wrapped
+        if (hyperEdge.edgeType == HyperTermIdentifier(Language.idId)) {
+          foundTarget = Set(hyperEdge.sources.head)
+        } else {
+          val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
+          g = wrapped.+(hyperEdge)
+          foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
+        }
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>
