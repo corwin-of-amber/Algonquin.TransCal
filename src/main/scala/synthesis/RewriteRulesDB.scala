@@ -3,7 +3,7 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, TranscalParser}
 
@@ -22,7 +22,7 @@ trait RewriteRulesDB extends LazyLogging {
 }
 
 object SystemRewriteRulesDB extends RewriteRulesDB {
-  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
+  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite)
 
   override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
 
