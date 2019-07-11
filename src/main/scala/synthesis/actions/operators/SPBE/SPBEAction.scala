@@ -86,25 +86,29 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     */
   private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): VersionedHyperGraph[HyperTermId, HyperTermIdentifier] = {
     // We will duplicate the graph for each symbolic input and change the placeholder to correct representation.
-    var hGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
+    val noPlaceholdersGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
+    val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
+    var fullGraph = noPlaceholdersGraph
     for ((newTerminals, index) <- changingTerminals.zipWithIndex) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
       val newEdges = for ((terminal, placeholder) <- newTerminals.zip(placeholders);
                           target = graph.findEdges(HyperTermIdentifier(placeholder.root.copy(annotation = None))).head.target) yield {
         val newAnchors =
-          graph.filter(_.edgeType.identifier.literal.startsWith(idAnchorStart)).map(e => anchorByIndex(e, index)).toSet
+          roots.map(root => anchorByIndex(createAnchor(root), index))
 
         val termGraph = {
-          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(hGraph.nodes.map(_.id).max))
+          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(noPlaceholdersGraph.nodes.map(_.id).max))
           tempGraph.mergeNodes(target, root)
         }
 
-        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.++(newAnchors).++(termGraph.edges).edges)
+        val afterAddingTerm = noPlaceholdersGraph.++(newAnchors).++(termGraph.edges).edges
+        val maxId = fullGraph.nodes.map(_.id).max
+        shiftEdges(maxId, afterAddingTerm)
       }
-      hGraph = hGraph.++(newEdges.flatten.toSet)
+      fullGraph = fullGraph.++(newEdges.flatten.toSet)
     }
-    hGraph
+    fullGraph
   }
 
   def findEquives(rewriteState: RewriteSearchState,
@@ -112,7 +116,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     // Use observational equivalence
     val roots = getRoots(rewriteState)
     val fullGraph: VersionedHyperGraph[HyperTermId, HyperTermIdentifier] =
-      switchPlaceholders(rewriteState.graph.++(roots.map(r => createAnchor(r))))
+      switchPlaceholders(rewriteState.graph)
 
     // ******** Observational equivalence ********
     // Use the anchors to create tuples for merging

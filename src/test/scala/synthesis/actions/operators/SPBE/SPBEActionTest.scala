@@ -11,9 +11,12 @@ class SPBEActionTest extends FunSuite with Matchers {
 
   val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
   val listInttoListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, listInt))
+  val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
+  val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
   val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
   val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
-  val typedCons = Language.consId.copy(annotation = Some(listInttoListInt))
+  val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
+  val typedSnoc = Language.snocId.copy(annotation = Some(listIntToIntToListInt))
   val nil = AnnotatedTree.identifierOnly(Language.nilId.copy(annotation = Some(listInt)))
   val xnil = AnnotatedTree.withoutAnnotations(typedCons, Seq(x, nil))
   val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
@@ -48,10 +51,13 @@ class SPBEActionTest extends FunSuite with Matchers {
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val equives = action.findEquives(state2, (0 to 8) flatMap (_ => AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules))
+    val equives = action.findEquives(state2, (0 to 8) flatMap (_ => AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules))
     equives should not be empty
-    equives.forall({case (k, v) => state2.graph.nodes.contains(k)}) should be (true)
-    equives.flatMap(_._2).forall(k => state2.graph.nodes.contains(k)) should be (true)
-    // TODO check equives contains reverese reverse to placeholder
+    equives.forall({case (k, v) => v.forall(state2.graph.nodes.contains)}) should be (true)
+    val programs = new Programs(state2.graph)
+    val terms = equives.values.filter(_.size > 1).map(_.map(programs.reconstruct))
+    val reversePlaceholderTwice = terms.map(_.map(_.toList)).exists(s => s.exists(_.exists(_.root.literal=="Placeholder(0)")) &&
+      s.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0)")))
+     reversePlaceholderTwice shouldEqual true
   }
 }
