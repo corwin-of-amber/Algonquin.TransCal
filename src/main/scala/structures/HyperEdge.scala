@@ -18,7 +18,7 @@ final case class HyperEdge[+Node, +EdgeType](target: Node, edgeType: EdgeType, s
 }
 
 trait Metadata extends collection.immutable.Iterable[Metadata] {
-  def merge(other: Metadata): Metadata = UnionMetadata(other.toSet ++ this.toSet)
+  def merge(other: Metadata): Metadata = if (other == EmptyMetadata) this else UnionMetadata(other.toSet ++ this.toSet)
 
   override def iterator: Iterator[Metadata] = Iterator(this)
 
