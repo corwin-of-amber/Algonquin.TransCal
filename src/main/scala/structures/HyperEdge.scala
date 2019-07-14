@@ -32,6 +32,8 @@ trait SpecificMergeMetadata extends Metadata {
 }
 
 case object EmptyMetadata extends Metadata {
+  override def merge(other: Metadata): Metadata = other
+
   override def toStr: String = "EmptyMetadata"
 }
 
