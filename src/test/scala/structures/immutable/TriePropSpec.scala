@@ -88,7 +88,7 @@ class TriePropSpec extends PropSpec with Checkers {
   }
 
   property("Should find correct explicit in big graph") {
-    check(forAll { trie: Trie[Int] => (trie.size > 200 && trie.words.exists(_.length > 3)) ==> {
+    check(forAll { trie: Trie[Int] => (trie.size > 100 && trie.words.exists(_.length > 3)) ==> {
       trie.words.filter(_.length > 3).forall(w =>
         trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
           .forall(_(3) == w(3)))

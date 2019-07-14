@@ -1,11 +1,12 @@
 package synthesis
 
-import transcallang.{Identifier, Language, TranscalParser}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
-
 import org.scalatestplus.scalacheck.Checkers
 import structures.{EmptyMetadata, HyperEdge}
+import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
 
 class RewriteRulesDBTest extends FunSuite with Matchers {
 
@@ -37,17 +38,14 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   //  }
 
   test("rewriteRules manage to rewrite (?x le ?y) ||> min(x, y) >> id x") {
-    val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
-    val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
-    val resultPattern = Programs.destructPattern(patternTerm)
-    val state = new RewriteSearchState(Programs.destruct(term).++(Set(
-      HyperEdge(HyperTermId(100), HyperTermIdentifier(Identifier("a")), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(101), HyperTermIdentifier(Identifier("b")), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.trueId), Seq.empty, EmptyMetadata),
-      HyperEdge(HyperTermId(103), HyperTermIdentifier(Language.leId), List(HyperTermId(100), HyperTermId(101)), EmptyMetadata)
-    )))
+    val term = new TranscalParser().parseExpression("min(a, b) |||| ((a <= b) ||| true)")
+    val state = new RewriteSearchState(Programs.destruct(term))
     val rules = SimpleRewriteRulesDB.rewriteRules
-    rules.exists(r => r.apply(state).graph.findSubgraph[Int](resultPattern).nonEmpty) shouldEqual true
+    rules.exists(r => {
+      val newProgs = new synthesis.Programs(r(state).graph)
+      val aRoot = newProgs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
+      newProgs.reconstruct(aRoot).contains(new TranscalParser().parseExpression("min(a, b)"))
+    }) shouldEqual true
   }
 
   test("rewriteRules doesnt rewrite (?x le ?y) ||> min(x, y) >> id(x) by mistake") {
@@ -57,5 +55,20 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).isEmpty) shouldEqual true
+  }
+
+  test("rule to a single hole works") {
+    val term = new TranscalParser().parseExpression("l ++ ⟨⟩")
+    val patternTerm = new TranscalParser().parseExpression("l")
+    val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(patternTerm)).head
+    val (graph, root) = Programs.destructWithRoot(term)
+    val anchor = HyperTermIdentifier(Identifier("anchor"))
+    val state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
+    val rules = SimpleRewriteRulesDB.rewriteRules
+    rules.exists(r => {
+      val newState = r.apply(state)
+      val id = patternRoot.asInstanceOf[ReferenceTerm[HyperTermId]].id
+      newState.graph.findSubgraph[Int](pattern).head._1(id) == newState.graph.findEdges(anchor).head.target
+    }) shouldEqual true
   }
 }

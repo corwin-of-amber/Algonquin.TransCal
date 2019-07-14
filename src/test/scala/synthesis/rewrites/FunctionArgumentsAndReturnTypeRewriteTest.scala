@@ -24,7 +24,7 @@ class FunctionArgumentsAndReturnTypeRewriteTest extends FunSuite with Checkers {
   }
 
   test("Finds in the graph number 2") {
-    val term = new TranscalParser().apply("bl = (flatten: list list :> list) al")
+    val term = new TranscalParser().apply("bl = (flatten: (list list) :> list) al")
     val programs = Programs(term)
     val graph = programs.hyperGraph
 

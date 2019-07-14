@@ -60,12 +60,6 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("every edge is constructable") {
-    check(forAll { programs: Programs =>
-      programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)
-    })
-  }
-
   property("unknown term returns empty iterator") {
     check(forAll { programs: Programs =>
       programs.reconstruct(HyperTermId(-1)).isEmpty
@@ -128,10 +122,11 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
   property("when deconstructing orcondbuilder get a graph with 2 roots") {
     val parser = new TranscalParser
-    val pattern = parser("id ?x |||| int -> id x")
-    val graphs = Programs.destructPatterns(Seq(pattern.subtrees(0), pattern.subtrees(1)))
-    val term = parser("id (x: int) -> y")
-    val g =Programs.destruct(term.subtrees(0))
-    check(g.findSubgraph[Int](graphs.head).nonEmpty)
+    val pattern = parser.parseExpression("x |||| int")
+    val pattern2 = parser.parseExpression("x ||| int")
+    val graph = Programs.destructPattern(pattern)
+    val graph2 = Programs.destructPattern(pattern2)
+    check(graph.nodes.size > 1)
+    check(graph.nodes.size > graph2.nodes.size)
   }
 }

@@ -12,6 +12,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
 
+
 /** Programs contains all the available programs holding them for future optimized rewrites and reconstruction of them.
   *
   * @author tomer
@@ -181,13 +182,13 @@ object Programs extends LazyLogging {
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
         (targetToSubedges.last._1,
-          subHyperEdges + HyperEdge(precondRoot, identToEdge(Language.trueId), List.empty, EmptyMetadata)
+          subHyperEdges + HyperEdge(precondRoot, identToEdge(Language.trueId.copy(annotation = None)), List.empty, EmptyMetadata)
         )
       case _ =>
         val target = nodeCreator.next()
         (
           target,
-          subHyperEdges + HyperEdge(target, identToEdge(function), targetToSubedges.map(_._1), EmptyMetadata)
+          subHyperEdges + HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata)
         )
     }
     val annotationEdges = function.annotation match {
@@ -196,7 +197,7 @@ object Programs extends LazyLogging {
         val trueNode = nodeCreator.next()
         val functionNode = nodeCreator.next()
         hyperEdgesType ++ Set(
-          HyperEdge(functionNode, identToEdge(function), Seq.empty, EmptyMetadata),
+          HyperEdge(functionNode, identToEdge(function.copy(annotation = None)), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Identifier("typeTrue")), Seq.empty, EmptyMetadata)
         )
@@ -289,10 +290,10 @@ object Programs extends LazyLogging {
     })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>
-      val holeEdges = graph.findEdges(ExplicitTerm(HyperTermIdentifier(identifier)))
+      val holeEdges = graph.findEdges(ExplicitTerm(HyperTermIdentifier(identifier.copy(annotation = None))))
       val merged = holeEdges.foldLeft(graph)((g, e) => g.mergeNodes(hole, e.target))
       merged.filter(_.edgeType match {
-        case ExplicitTerm(HyperTermIdentifier(i)) if i == identifier => false
+        case ExplicitTerm(HyperTermIdentifier(i)) if i == identifier.copy(annotation = None) => false
         case _ => true
       })
     }))
@@ -311,6 +312,11 @@ object Programs extends LazyLogging {
     results
   }
 
+  private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
+    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(Identifier(kv._1)), Seq.empty, EmptyMetadata))
+    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
+  }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).
     *

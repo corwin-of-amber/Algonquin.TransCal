@@ -34,10 +34,11 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
 
   override protected def metadata: Metadata = EmptyMetadata
 
+
   private val templates: Set[String] = Set(
     "~true = false",
     "~false = true",
-    "id (?x) >> x",
+//    "id (?x) >> x",
 
     "?x == ?x' = x' == x",
     "?x == ?x' = x' ∈ { x }",
@@ -55,6 +56,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "?x + ?y = y + x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
+    "(?x :: ?xs) ++ ?ys = (x :: (xs ++ ys))",
     "⟨⟩ ++ ?xs' >> id xs'",
     "?xs' ++ ⟨⟩ >> id xs'",
 

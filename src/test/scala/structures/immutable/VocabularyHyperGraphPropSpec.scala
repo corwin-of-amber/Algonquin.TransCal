@@ -6,7 +6,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
-import synthesis.rewrites.Template.ExplicitTerm
+import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.util.Random
@@ -108,13 +108,13 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         val g = grapher(es)
         es.toList match {
           case source :: toChange :: _ =>
-        val gMerged = g.mergeNodes(source.target, toChange.target)
-        val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-        !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
-          if (x == toChange.target) source.target
-          else x
-        }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
+            val gMerged = g.mergeNodes(source.target, toChange.target)
+            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
+              if (x == toChange.target) source.target
+              else x
+            }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
         }
       }
     })
@@ -218,21 +218,18 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("find graph finds edge and replacer") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      es.exists(e => es.exists(e1 => e1.sources.contains(e.target))) ==> {
+      es.exists(usedEdge => es.exists(usingEdge => usingEdge.sources.contains(usedEdge.target))) ==> {
         val g = grapher(es)
         es.exists(e => {
           e.sources.indices exists { i =>
-            0 until 10 exists { j =>
-              val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(HyperEdge(Hole(0), Ignored(), (0 until j).map(_ => Ignored()), EmptyMetadata),
-                HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)))
-              val results = g.findSubgraph[Int](pg)
-              val resultsValues = results.map(t => (t._1.values, t._2.values))
-              val foundTarget = resultsValues.map(t => t._1 ++ t._2).forall(vals => vals.toList.contains(e.sources(i)))
-              results.nonEmpty && foundTarget
-            }
+            val pg = grapher[Item[Int, Int], Item[Int, Int]](Set(
+              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Int, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
+              HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
+            ))
+            val results = g.findSubgraph[Int](pg).headOption.map(_._1)
+            results.nonEmpty && results.get(0) == e.sources(i)
           }
-        }
-        )
+        })
       }
     })
   }
@@ -260,12 +257,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val newBTerm = HyperTermId(101)
     if (aTerm == originalATerm)
       graph.nodes should not contain newATerm
-    else if(aTerm == newATerm)
+    else if (aTerm == newATerm)
       graph.nodes should not contain originalATerm
     else fail()
     if (bTerm == originalBTerm)
       graph.nodes should not contain newBTerm
-    else if(bTerm == newBTerm)
+    else if (bTerm == newBTerm)
       graph.nodes should not contain originalBTerm
     else fail()
   }

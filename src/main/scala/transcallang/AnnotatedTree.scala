@@ -1,12 +1,18 @@
 package transcallang
 
-trait Namespace
+import synthesis.Programs
+
+trait Namespace {
+
+}
 
 case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, namespace: Option[Namespace]=None) {
   override def equals(obj: Any): Boolean = obj match {
     case Identifier(l, a ,n) => l == literal && (a == annotation || annotation.isEmpty || a.isEmpty) && n == namespace
     case _ => false
   }
+
+  override def toString: String = s"Identifier(${'"'}${literal.replace("\"", "'")}${'"'}, ${annotation.map(Programs.termToString).getOrElse("None")}, $namespace)"
 }
 
 object Identifier {

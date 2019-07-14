@@ -22,7 +22,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
 
   assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId :+ Language.limitedAndCondBuilderId) contains term.root)
 
-  private def createRuleWithName(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
+  private def createRuleWithNameFromLambda(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
     val (innerRewrites, newTerm) = createRewrites(body)
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
@@ -46,30 +46,31 @@ class LetAction(val term: AnnotatedTree) extends Action {
   // I can give temporary name and later override them by using merge nodes
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
-      case Language.letId | Language.directedLetId | Language.limitedLetId | Language.limitedDirectedLetId =>
-        val isLimited = Language.builtinLimitedDefinitions.contains(t.root)
-        val isDirected = Language.builtinDirectedDefinitions.contains(t.root)
-
+      case i: Identifier if Language.builtinDefinitions.contains(i) =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
-          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2), mergeRoots = !isLimited)
+          val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2),
+            mergeRoots = !Language.builtinLimitedDefinitions.contains(i))
           (temp(0), temp(1))
         }
+
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
-            if (isDirected) Set.empty
+            if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
             else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
           optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
         }
-        (newRules ++ results.flatMap(_._1), t)
+
+        if (premise == conclusion) (results.flatMap(_._1).toSet, t.copy(subtrees = results.map(_._2)))
+        else (newRules ++ results.flatMap(_._1), t.copy(subtrees = results.map(_._2)))
       case Language.lambdaId =>
         val newFunc = optName.getOrElse(LetAction.functionNamer(t))
-        createRuleWithName(t.subtrees(0), t.subtrees(1), newFunc)
+        createRuleWithNameFromLambda(t.subtrees(0), t.subtrees(1), newFunc)
       case Language.matchId =>
         val param = t.subtrees.head
         val newFunc = optName.getOrElse(LetAction.functionNamer(t))
         val guarded = t.subtrees.tail
-        val innerRules = guarded.flatMap(g => createRuleWithName(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
+        val innerRules = guarded.flatMap(g => createRuleWithNameFromLambda(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
         (innerRules, AnnotatedTree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param), Seq.empty))
       case _ =>
         val results = t.subtrees map (s => createRewrites(s))
@@ -94,6 +95,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
 
 object LetAction {
   private val creator = Stream.from(transcallang.Language.arity.size).iterator
+
   protected def functionNamer(term: AnnotatedTree): Identifier = {
     Identifier(s"f${creator.next()}")
   }
