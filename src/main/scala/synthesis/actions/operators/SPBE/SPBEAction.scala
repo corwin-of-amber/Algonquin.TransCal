@@ -160,10 +160,20 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
   }
 
   private def inductionStep(state: ActionSearchState, term1: AnnotatedTree, term2: AnnotatedTree): Option[RewriteRule] = {
-    def replaceByOrder(annotatedTree: AnnotatedTree, original: Identifier, identifierSeq: Seq[Identifier]) = {
-      val it = identifierSeq.iterator
-      annotatedTree.map(i => if (i == original) it.next() else i)
-    }
+    // Each placeholder represents a value of a type.
+    // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
+
+    // Create new rewrite rule for induction hypothesis
+
+    // TODO: Add constructor as part of action and use it to create steps
+    val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
+//    val mutualPlaceholders = term1.nodes.filter(_.root.literal.startsWith("Placeholder"))
+//      .intersect(term2.nodes.filter(_.root.literal.startsWith("Placeholder")))
+//    mutualPlaceholders.forall(p => {
+//      // TODO: I might want to put all the rewrites on the same graph
+//      val graph = Programs.destruct(term1.map(t => t))
+//      true
+//    })
 
     // Change placeholder to differently named placeholders
     val placeholderReplacers1: mutable.Map[Identifier, Seq[Identifier]] =
@@ -189,8 +199,8 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
 //      } else i
 //    })
 
-    // Create new rewrite rule for induction hypothesis
-    val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
+
+
     // Need to rewrite the modified placeholder original expressions until equality
 
     None
