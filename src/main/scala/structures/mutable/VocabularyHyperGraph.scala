@@ -2,7 +2,7 @@ package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
-import structures.{HyperGraphLikeGenericCompanion, _}
+import structures._
 import structures.VocabularyLike.Word
 
 import scala.collection.{GenTraversableOnce, immutable, mutable}
@@ -11,7 +11,7 @@ import scala.collection.{GenTraversableOnce, immutable, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]], metadatas: Map[(Node, EdgeType, Seq[Node]), Metadata])
+class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]], metadatas: mutable.Map[(Node, EdgeType, Seq[Node]), Metadata])
   extends HyperGraph[Node, EdgeType]
     with HyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with LazyLogging {
 
@@ -20,7 +20,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   def this(edges: Set[HyperEdge[Node, EdgeType]] = Set.empty[HyperEdge[Node, EdgeType]]) =
     this(
       Trie(edges.map(VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType])),
-      edges.map(edge => ((edge.target, edge.edgeType, edge.sources), edge.metadata)).toMap
+      mutable.Map(edges.map(edge => ((edge.target, edge.edgeType, edge.sources), edge.metadata)).toSeq: _*)
     )
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -34,9 +34,21 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
+  def +=(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Add edge")
+    metadatas.update((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
+    vocabulary += hyperEdgeToWord(hyperEdge)
+    this
+  }
+
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edges")
     hyperEdges.foldLeft(this)(_ + _)
+  }
+
+  def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Add edges")
+    hyperEdges.foldLeft(this)(_ += _)
   }
 
   override def -(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
@@ -45,17 +57,27 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     new VocabularyHyperGraph(vocabulary - hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
+  def -=(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    logger.trace("Remove edge")
+    metadatas.remove((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources))
+    vocabulary -= hyperEdgeToWord(hyperEdge)
+    this
+  }
+
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
     if (keep == change) return this
 
     def swap(n: Node) = if (n == change) keep else n
 
-    val newMetadatas = metadatas.groupBy({
-      case (edge: (Node, EdgeType, Seq[Node]), metadata: Metadata) if edge._1 == change || edge._3.contains(change) => (swap(edge._1), edge._2, edge._3.map(swap))
-      case t => t._1
-    }).mapValues(_.values.reduce(_ merge _))
-    new VocabularyHyperGraph(vocabulary replace(Left(keep), Left(change)), newMetadatas)
+    for (((target, edgeType, sources), metadata) <- metadatas if target == change || sources.contains(change)) {
+      val newKey = (swap(target), edgeType, sources.map(swap))
+      metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
+      metadatas.remove((target, edgeType, sources))
+    }
+
+    vocabulary replace (Left(keep), Left(change))
+    this
   }
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {

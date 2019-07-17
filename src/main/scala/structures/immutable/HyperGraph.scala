@@ -1,7 +1,7 @@
 package structures.immutable
 
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.{Explicit, Hole, HyperEdge, HyperGraphLike, HyperGraphLikeGenericCompanion, Item}
+import structures.{Explicit, Hole, HyperEdge, HyperGraphLike, Item}
 
 
 trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {

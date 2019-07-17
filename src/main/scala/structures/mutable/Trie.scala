@@ -41,9 +41,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   def +=(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
 
-  override def replace(keep: Letter, change: Letter): Trie[Letter] = Trie[Letter](this).replaceInPlace(keep, change)
+  override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
-  def replaceInPlace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
+  def replaceNotInPlace(keep: Letter, change: Letter): Trie[Letter] = Trie(this).replaceNotInPlace(keep, change)
 
   override def -(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else Trie[Letter](this) -= word
 
