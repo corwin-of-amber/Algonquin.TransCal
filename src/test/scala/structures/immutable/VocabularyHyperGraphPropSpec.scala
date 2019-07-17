@@ -269,7 +269,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("If graphs are equal then hash is equal") {
     // Not necessarily true because of compaction
-    check(forAll { es: Set[HyperEdge[Int, Int]] => HyperGraphManyWithOrderToOne(es.toSeq: _*).hashCode == HyperGraphManyWithOrderToOne(es.toSeq: _*).hashCode() })
+    check(forAll { es: Set[HyperEdge[Int, Int]] => HyperGraph(es.toSeq: _*).hashCode == HyperGraph(es.toSeq: _*).hashCode() })
   }
 
   property("Find subgraph with and without merge returns same maps") {
@@ -280,11 +280,11 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+          HyperGraph(pEdges.toSeq: _*)
         }
-        val graph = HyperGraphManyWithOrderToOne(es.toSeq: _*)
+        val graph = HyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
         val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
         holes.forall(h => {
@@ -305,9 +305,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+          HyperGraph(pEdges.toSeq: _*)
         }
         val graph = CompactHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
@@ -330,9 +330,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+          HyperGraph(pEdges.toSeq: _*)
         }
         val graph = VersionedHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
@@ -358,9 +358,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
-    val pattern: HyperGraphManyWithOrderToOne[Item[Int, Int], Item[Int, Int]] = {
+    val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
       val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-      HyperGraphManyWithOrderToOne(pEdges.toSeq: _*)
+      HyperGraph(pEdges.toSeq: _*)
     }
 
     val maps = graph.findSubgraph[Int](pattern)

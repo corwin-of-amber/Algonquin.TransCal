@@ -1,8 +1,8 @@
-package structures.immutable
+package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
-import structures._
+import structures.{HyperGraphLikeGenericCompanion, _}
 import structures.VocabularyLike.Word
 
 import scala.collection.{GenTraversableOnce, immutable, mutable}

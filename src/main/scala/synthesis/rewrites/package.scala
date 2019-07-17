@@ -1,12 +1,11 @@
 package synthesis.rewrites
 
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Identifier
 
 package object rewrites {
-  private[synthesis] type HyperPrefix = HyperGraphManyWithOrderToOne[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)]
+  private[synthesis] type HyperPrefix = immutable.HyperGraph[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)]
 
   private[synthesis] def patternEdgeCreator(target: Item[HyperTermId, Int],
                                            edgeType: Item[HyperTermIdentifier, Int],

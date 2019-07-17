@@ -1,7 +1,7 @@
 package structures.immutable
 
-import structures.HyperEdge
-import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
+import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
+import structures.{HyperEdge, HyperGraphLike}
 
 import scala.collection.{GenTraversableOnce, immutable}
 
@@ -9,9 +9,9 @@ import scala.collection.{GenTraversableOnce, immutable}
   * @author tomer
   * @since 11/15/18
   */
-abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node, EdgeType, This]] protected (wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType])
-  extends HyperGraphManyWithOrderToOne[Node, EdgeType]
-    with HyperGraphManyWithOrderToOneLike[Node, EdgeType, This] {
+abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node, EdgeType, This]] protected (wrapped: HyperGraph[Node, EdgeType])
+  extends HyperGraph[Node, EdgeType]
+    with HyperGraphLike[Node, EdgeType, This] {
 
   override def empty: This = newBuilder.result()
 

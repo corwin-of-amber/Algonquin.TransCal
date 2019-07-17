@@ -2,11 +2,10 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
-import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
@@ -18,7 +17,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
+class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
 
   implicit class HasNextIterator[T](it: Iterator[T]) {
     def nextOption: Option[T] = if (it.hasNext) Some(it.next()) else None
@@ -43,7 +42,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.iterator.flatMap(m => {
-      val fullPattern = HyperGraphManyWithOrderToOne.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
+      val fullPattern = HyperGraph.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
       recursiveReconstruct(fullPattern, hyperTermId, Some(this))
     })
   }

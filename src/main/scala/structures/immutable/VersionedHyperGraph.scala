@@ -1,7 +1,7 @@
 package structures.immutable
 
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne.HyperGraphPattern
+import structures.immutable.HyperGraph.HyperGraphPattern
 import structures.immutable.VersionedHyperGraph.VersionMetadata
 
 import scala.collection.{GenTraversableOnce, mutable}
@@ -31,7 +31,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
           val nodesMap = Item.itemsValueToMap(nodes)
           val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-          val g = HyperGraphManyWithOrderToOne.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+          val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
           wrapped.findSubgraph[Id](g).map{ case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
         })
     })
@@ -73,7 +73,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
     }
 }
 
-object VersionedHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanion[VersionedHyperGraph] {
+object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {
   val STATIC_VERSION = 0L
 
   /** The default builder for `$Coll` objects.

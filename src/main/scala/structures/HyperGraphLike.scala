@@ -1,16 +1,15 @@
-package structures.immutable
+package structures
 
-import structures.immutable.HyperGraphManyWithOrderToOneLike.{HyperEdgePattern, HyperGraphPattern}
-import structures.{Explicit, HyperEdge, Item}
+import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 
-import scala.collection.{GenTraversableOnce, SetLike, immutable}
+import scala.collection.{GenTraversableOnce, SetLike}
 
 /** A hyper graph from many to one.
   *
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This] with immutable.Set[HyperEdge[Node, EdgeType]]]
+trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with Set[HyperEdge[Node, EdgeType]]]
   extends SetLike[HyperEdge[Node, EdgeType], This] {
 
   /** Finds all the edges with the EdgeType
@@ -38,7 +37,7 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
     * @tparam Pattern The type of the pattern subgraph
     * @return The matched references.
     */
-  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])]
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])]
 
   /**
     * @return all the nodes in the hyper graph.
@@ -106,15 +105,15 @@ trait HyperGraphManyWithOrderToOneLike[Node, EdgeType, +This <: HyperGraphManyWi
   override def hashCode(): Int = edges.hashCode
 
   override def equals(obj: Any): Boolean = obj match {
-    case x: HyperGraphManyWithOrderToOneLike[Node, EdgeType, This] => x.edges == edges
+    case x: HyperGraphLike[Node, EdgeType, This] => x.edges == edges
     case _ => false
   }
 
 }
 
 
-object HyperGraphManyWithOrderToOneLike {
+object HyperGraphLike {
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
-  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphManyWithOrderToOneLike[Item[Node, Id], Item[EdgeType, Id], This]
+  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphLike[Item[Node, Id], Item[EdgeType, Id], This]
 }

@@ -43,7 +43,7 @@ object UnionMetadata {
   def apply(datas: Set[Metadata]): UnionMetadata = {
     val noSpecific = datas.filterNot(_.isInstanceOf[SpecificMergeMetadata])
     val specific = datas.filter(_.isInstanceOf[SpecificMergeMetadata]).map(_.asInstanceOf[SpecificMergeMetadata])
-    val specificMerged = specific.foldLeft(mutable.HashMultiMap.empty[Class[_], SpecificMergeMetadata])((m, data)=>m.addBinding(data.getClass, data))
+    val specificMerged = specific.foldLeft(scala.collection.mutable.HashMultiMap.empty[Class[_], SpecificMergeMetadata])((m, data)=>m.addBinding(data.getClass, data))
       .values.map(_ reduce (_ mergeSpecific _))
     new UnionMetadata(noSpecific ++ specificMerged)
   }
