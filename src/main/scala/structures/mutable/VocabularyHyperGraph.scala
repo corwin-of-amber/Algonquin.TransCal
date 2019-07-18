@@ -25,8 +25,8 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override lazy val edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
-  override lazy val nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
+  override def edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
+  override def nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
 
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
@@ -34,11 +34,10 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
-  def +=(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+  def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
     logger.trace("Add edge")
-    metadatas.update((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
-    vocabulary += hyperEdgeToWord(hyperEdge)
-    this
+    metadatas((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)) = hyperEdge.metadata
+    vocabulary.+=(hyperEdgeToWord(hyperEdge))
   }
 
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
@@ -46,22 +45,21 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     hyperEdges.foldLeft(this)(_ + _)
   }
 
-  def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
+  def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = {
     logger.trace("Add edges")
-    hyperEdges.foldLeft(this)(_ += _)
+    for (e <- hyperEdges) this += e
   }
 
   override def -(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Remove edge")
     val newMetadata = metadatas.filter(t => t._1 != (hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources))
-    new VocabularyHyperGraph(vocabulary - hyperEdgeToWord(hyperEdge), newMetadata)
+    new VocabularyHyperGraph[Node, EdgeType](vocabulary - hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
-  def -=(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+  def -=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
     logger.trace("Remove edge")
     metadatas.remove((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources))
-    vocabulary -= hyperEdgeToWord(hyperEdge)
-    this
+    vocabulary.-=(hyperEdgeToWord(hyperEdge))
   }
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
@@ -83,12 +81,15 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge edge types")
     if (keep == change) return this
-    val newMetadatas = metadatas.filterNot(t => t._1._2 == change) ++ metadatas.filter(t => t._1._2 == change).map({case (edge: (Node, EdgeType, Seq[Node]), toChangeMetadata: Metadata) => {
-      val newKey = edge.copy(_2 = keep)
-      val newMetadata = metadatas.get(newKey).map(toChangeMetadata.merge).getOrElse(toChangeMetadata)
-      (newKey, newMetadata)
-    }})
-    new VocabularyHyperGraph(vocabulary replace(Right(keep), Right(change)), newMetadatas)
+
+    for (((target, edgeType, sources), metadata) <- metadatas if edgeType == change) {
+      val newKey = (target, keep, sources)
+      metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
+      metadatas.remove((target, edgeType, sources))
+    }
+
+    vocabulary replace(Right(keep), Right(change))
+    this
   }
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = {

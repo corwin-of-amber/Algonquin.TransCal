@@ -111,10 +111,9 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
             val gMerged = g.mergeNodes(source.target, toChange.target)
             val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
             val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-            !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
-              if (x == toChange.target) source.target
-              else x
-            }) && x.edgeType == toChange.edgeType) && (found1 ++ found2).isEmpty
+            val findChanged = gMerged.findRegex(HyperEdge(Explicit(source.target), Explicit(toChange.edgeType), toChange.sources.map(s => if (s == toChange.target) source.target else s).map(Explicit(_)), EmptyMetadata))
+            val exists = gMerged.edges.exists(e => e.target == source.target && e.edgeType == toChange.edgeType && e.sources == toChange.sources.map(s => if (s == toChange.target) source.target else s))
+            exists && (!gMerged.edges.contains(toChange)) && findChanged.nonEmpty && (found1 ++ found2).isEmpty
         }
       }
     })
@@ -159,7 +158,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
       val pg = grapher[Item[Int, Int], Item[Int, Int]](es map (e => HyperEdge(Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Int, Int]), EmptyMetadata)))
-      g.findSubgraph[Int](pg).size == 1
+      g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).size == 1
     })
   }
 
@@ -171,7 +170,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
       edges.forall(e => {
         val pg = grapher[Item[Int, Int], Item[Int, Int]](e)
-        g.findSubgraph[Int](pg).isEmpty
+        g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).isEmpty
       }
       )
     })
@@ -226,7 +225,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
               HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Int, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
               HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
             ))
-            val results = g.findSubgraph[Int](pg).headOption.map(_._1)
+            val results = g.findSubgraph[Int, VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]](pg).headOption.map(_._1)
             results.nonEmpty && results.get(0) == e.sources(i)
           }
         })
@@ -280,15 +279,15 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+        val pattern: structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraph(pEdges.toSeq: _*)
+          structures.immutable.HyperGraph(pEdges.toSeq: _*)
         }
         val graph = HyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
         holes.forall(h => {
-          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
+          maps.groupBy(m => m._1(h.id)).forall(vAndMaps => {
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
             updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
           })
@@ -305,13 +304,16 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+
+        val pattern: structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraph(pEdges.toSeq: _*)
+          structures.immutable.HyperGraph(pEdges.toSeq: _*)
         }
+
         val graph = CompactHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+
         holes.forall(h => {
           maps.groupBy(_._1(h.id)).forall(vAndMaps => {
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
@@ -330,13 +332,15 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
           val creator = Stream.from(0).iterator
           subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
         }
-        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+
+        val pattern: structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
           val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-          HyperGraph(pEdges.toSeq: _*)
+          structures.immutable.HyperGraph(pEdges.toSeq: _*)
         }
+
         val graph = VersionedHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
+        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
         holes.forall(h => {
           maps.groupBy(_._1(h.id)).forall(vAndMaps => {
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
@@ -348,33 +352,25 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
-    val es = Set(HyperEdge(40, 88, Vector(), EmptyMetadata), HyperEdge(14, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(4, 12, Vector(17, 11, 29, 10, 33), EmptyMetadata), HyperEdge(14, 88, Vector(), EmptyMetadata))
-    val graph = VersionedHyperGraph(es.toSeq: _*)
-    val temp = VocabularyHyperGraph(es.toSeq: _*)
-    val temp1 = CompactHyperGraph(es.toSeq: _*)
-
-    val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
+    val subgraph = Set(HyperEdge(31,1,Vector(),EmptyMetadata), HyperEdge(35,0,Vector(30, 20, 32, 48, 3),EmptyMetadata), HyperEdge(32,1,Vector(),EmptyMetadata))
     val asHoles: Map[Int, Int] = {
       val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
-    val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+
+    val pattern: structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
       val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-      HyperGraph(pEdges.toSeq: _*)
+      structures.immutable.HyperGraph(pEdges.toSeq: _*)
     }
 
+    val tempg = VocabularyHyperGraph(subgraph.toSeq: _*)
+    val graph = VersionedHyperGraph(subgraph.toSeq: _*)
     val maps = graph.findSubgraph[Int](pattern)
-    check(asHoles.forall(vh => {
-      maps.groupBy(_._1(vh._2)).forall(vAndMaps => {
-        val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
-        if (!updatedMaps.subsetOf(graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))))) {
-          println(s"working on $vh with $vAndMaps")
-          println(s"pattern is $pattern")
-          println(s"merged is ${pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))}")
-          println(s"new maps: $updatedMaps")
-          println(s"subgraph results ${graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))}")
-        }
-        updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
+    val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+    check(holes.forall(h => {
+      maps.groupBy(_._1(h.id)).forall(vAndMaps => {
+        val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+        updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
       })
     }))
   }

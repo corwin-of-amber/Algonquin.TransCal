@@ -42,12 +42,12 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
   /**
     * @return all the nodes in the hyper graph.
     */
-  lazy val nodes: Set[Node] = edges.flatMap(edge => edge.target +: edge.sources)
+  def nodes: Set[Node] = edges.flatMap(edge => edge.target +: edge.sources)
 
   /**
     * @return all the edge types in the hyper graph.
     */
-  lazy val edgeTypes: Set[EdgeType] = edges.flatMap(edge => Set(edge.edgeType))
+  def edgeTypes: Set[EdgeType] = edges.flatMap(edge => Set(edge.edgeType))
 
   /**
     * @return all the edges in the hyper graph.

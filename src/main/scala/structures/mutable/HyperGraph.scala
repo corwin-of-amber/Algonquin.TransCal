@@ -1,7 +1,7 @@
 package structures.mutable
 
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.{Explicit, Hole, HyperEdge, HyperGraphLike, Item}
+import structures.{Explicit, Hole, HyperEdge, Item}
 
 trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
 
@@ -13,13 +13,13 @@ trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with Hyp
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched references.
     */
-  def findSubgraph[Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
-    findSubgraph[Id, HyperGraph[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
+  def findSubgraph[Id](hyperPattern: structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
+    findSubgraph[Id, structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
 }
 
 
 object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
-  type HyperGraphPattern[Node, EdgeType, Id] = HyperGraph[Item[Node, Id], Item[EdgeType, Id]]
+  type HyperGraphPattern[Node, EdgeType, Id] = structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]
 
   /** The default builder for `$Coll` objects.
     *
