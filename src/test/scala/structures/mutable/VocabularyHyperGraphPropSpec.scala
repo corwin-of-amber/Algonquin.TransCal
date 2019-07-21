@@ -119,6 +119,20 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     })
   }
 
+  property("Specific - merge nodes renames edges") {
+    val es = Set(HyperEdge(29,4,Vector(46, 7, 0, 37, 12),EmptyMetadata), HyperEdge(32,20,Vector(2, 34),EmptyMetadata), HyperEdge(43,13,Vector(8, 32, 42, 38),EmptyMetadata))
+    val g = grapher(es)
+    es.toList match {
+      case source :: toChange :: _ =>
+        val gMerged = g.mergeNodes(source.target, toChange.target)
+        val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+        val findChanged = gMerged.findRegex(HyperEdge(Explicit(source.target), Explicit(toChange.edgeType), toChange.sources.map(s => if (s == toChange.target) source.target else s).map(Explicit(_)), EmptyMetadata))
+        val exists = gMerged.edges.exists(e => e.target == source.target && e.edgeType == toChange.edgeType && e.sources == toChange.sources.map(s => if (s == toChange.target) source.target else s))
+        check(exists && (!gMerged.edges.contains(toChange)) && findChanged.nonEmpty && (found1 ++ found2).isEmpty)
+    }
+  }
+
   property("find edge by target equal to empty pattern except edge type") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
       (es.size > 1) ==> {
@@ -285,7 +299,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
         }
         val graph = HyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+        val holes = pattern.nodes.collect({ case h: Hole[Int, Int] => h })
         holes.forall(h => {
           maps.groupBy(m => m._1(h.id)).forall(vAndMaps => {
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
@@ -312,7 +326,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
         val graph = CompactHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+        val holes = pattern.nodes.collect({ case h: Hole[Int, Int] => h })
 
         holes.forall(h => {
           maps.groupBy(_._1(h.id)).forall(vAndMaps => {
@@ -340,7 +354,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
         val graph = VersionedHyperGraph(es.toSeq: _*)
         val maps = graph.findSubgraph[Int](pattern)
-        val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+        val holes = pattern.nodes.collect({ case h: Hole[Int, Int] => h })
         holes.forall(h => {
           maps.groupBy(_._1(h.id)).forall(vAndMaps => {
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
@@ -352,7 +366,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   }
 
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
-    val subgraph = Set(HyperEdge(31,1,Vector(),EmptyMetadata), HyperEdge(35,0,Vector(30, 20, 32, 48, 3),EmptyMetadata), HyperEdge(32,1,Vector(),EmptyMetadata))
+    val subgraph = Set(HyperEdge(31, 1, Vector(), EmptyMetadata), HyperEdge(35, 0, Vector(30, 20, 32, 48, 3), EmptyMetadata), HyperEdge(32, 1, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
       val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
@@ -366,7 +380,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val tempg = VocabularyHyperGraph(subgraph.toSeq: _*)
     val graph = VersionedHyperGraph(subgraph.toSeq: _*)
     val maps = graph.findSubgraph[Int](pattern)
-    val holes = pattern.nodes.collect({case h: Hole[Int, Int] => h})
+    val holes = pattern.nodes.collect({ case h: Hole[Int, Int] => h })
     check(holes.forall(h => {
       maps.groupBy(_._1(h.id)).forall(vAndMaps => {
         val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))

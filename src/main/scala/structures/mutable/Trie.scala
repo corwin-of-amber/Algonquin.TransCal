@@ -43,7 +43,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
-  def replaceNotInPlace(keep: Letter, change: Letter): Trie[Letter] = Trie(this.words).replaceNotInPlace(keep, change)
+  def replaceNotInPlace(keep: Letter, change: Letter): Trie[Letter] = Trie(this.words).replace(keep, change)
 
   override def -(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else Trie[Letter](this.words) -= word
 
@@ -104,7 +104,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
     logger.trace("Replace local words")
 
-    for (w <- mutableWords if w.contains(change)) {
+    for (w <- mutableWords.filter(w => w.contains(change))) {
       mutableWords.remove(w)
       mutableWords.add(w.map(letter => if (letter == change) keep else letter))
     }

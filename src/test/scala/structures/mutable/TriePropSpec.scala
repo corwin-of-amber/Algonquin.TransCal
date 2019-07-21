@@ -110,7 +110,7 @@ class TriePropSpec extends PropSpec with Checkers {
   property("changed letter to exists letter") {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeLettersSize = trie.letters.size
-      val newTrie = trie.replace(keepLetter, changeLetter)
+      val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
       val equal = trie == newTrie
       beforeLettersSize == newTrie.letters.size + 1 && trie != newTrie && found.isEmpty
@@ -124,7 +124,7 @@ class TriePropSpec extends PropSpec with Checkers {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
-      val newTrie = trie.replace(keepLetter, changeLetter)
+      val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie && found.isEmpty
     }
@@ -133,11 +133,23 @@ class TriePropSpec extends PropSpec with Checkers {
     })
   }
 
+  property("Specific - changed exist letter to non exist letter") {
+    def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
+      val beforeWordsSize = trie.words.size
+      val beforeLettersSize = trie.letters.size
+      val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie && found.isEmpty
+    }
+    val trie = Trie[Int](Set(Vector(5, 10), Vector(6, 21, 3, 9, 10), Vector(9), Vector(20, 19, 8, 1, 8)))
+    check(validate(trie, trie.letters.max + 1, trie.letters.last))
+  }
+
   property("changed non exist letter keeps the trie the same") {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
-      val newTrie = trie.replace(keepLetter, changeLetter)
+      val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && found.isEmpty
     }

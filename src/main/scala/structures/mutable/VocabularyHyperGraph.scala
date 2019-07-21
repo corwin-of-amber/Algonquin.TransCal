@@ -68,7 +68,8 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
     def swap(n: Node) = if (n == change) keep else n
 
-    for (((target, edgeType, sources), metadata) <- metadatas if target == change || sources.contains(change)) {
+    val keys = metadatas.keys.filter({case (target, edgeType, sources) => target == change || sources.contains(change)})
+    for ((target, edgeType, sources) <- keys) {
       val newKey = (swap(target), edgeType, sources.map(swap))
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
       metadatas.remove((target, edgeType, sources))
@@ -82,7 +83,8 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     logger.trace("Merge edge types")
     if (keep == change) return this
 
-    for (((target, edgeType, sources), metadata) <- metadatas if edgeType == change) {
+    val keys = metadatas.keys.filter({case (target, edgeType, sources) => target == change || sources.contains(change)})
+    for ((target, edgeType, sources) <- keys) {
       val newKey = (target, keep, sources)
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
       metadatas.remove((target, edgeType, sources))
