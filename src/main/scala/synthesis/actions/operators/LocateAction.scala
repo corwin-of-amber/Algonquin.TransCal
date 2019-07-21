@@ -64,7 +64,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).++(newEdges))
+    val newPrograms = if (rewriteResult.nonEmpty) Programs(rewriteResult.get.graph)
+    else Programs(state.programs.hyperGraph.++(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else {
       val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, goalRoot)

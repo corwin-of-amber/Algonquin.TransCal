@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures._
 import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
+import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
@@ -17,7 +18,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: RewriteSearchState.HyperGraph) extends LazyLogging {
+class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
 
   implicit class HasNextIterator[T](it: Iterator[T]) {
     def nextOption: Option[T] = if (it.hasNext) Some(it.next()) else None
@@ -148,7 +149,9 @@ object Programs extends LazyLogging {
 
   def empty: Programs = Programs(VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier])
 
-  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(hyperGraph)
+  def apply(hyperGraph: ActionSearchState.HyperGraph): Programs = new Programs(hyperGraph)
+
+  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(VersionedHyperGraph(hyperGraph.toSeq: _*))
 
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
 
@@ -212,11 +215,11 @@ object Programs extends LazyLogging {
     * @param maxId - Max id so no ids will cross
     * @return
     */
-  def destruct(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): RewriteSearchState.HyperGraph = {
+  def destruct(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): ActionSearchState.HyperGraph = {
     destructWithRoot(tree, maxId)._1
   }
 
-  def destructWithRoot(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  def destructWithRoot(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): (ActionSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
     val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)

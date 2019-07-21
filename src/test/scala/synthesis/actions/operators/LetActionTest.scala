@@ -51,7 +51,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     newState.rewriteRules.size shouldEqual 1
     val searchState = newState.rewriteRules.head.apply(new RewriteSearchState(newState.programs.hyperGraph))
     val aEdge = searchState.graph.findEdges(HyperTermIdentifier(a)).head
-    new Programs(searchState.graph).reconstruct(aEdge.target).contains(minTree) shouldEqual true
+    Programs(searchState.graph).reconstruct(aEdge.target).contains(minTree) shouldEqual true
   }
 
   test("rewriteRules can rewrite correct matches") {
@@ -76,7 +76,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     }
     val newRoot = state.graph.findEdges(anchor).head.target
     val resPattern = Programs.destructPattern(new TranscalParser().parseExpression("y :: _"))
-    val terms = new Programs(state.graph).reconstructWithPattern(newRoot, resPattern).take(100).toSeq
+    val terms = Programs(state.graph).reconstructWithPattern(newRoot, resPattern).take(100).toSeq
     terms should not be empty
   }
 }

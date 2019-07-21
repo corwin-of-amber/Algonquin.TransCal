@@ -42,7 +42,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => {
-      val newProgs = new synthesis.Programs(r(state).graph)
+      val newProgs = synthesis.Programs(r(state).graph)
       val aRoot = newProgs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
       newProgs.reconstruct(aRoot).contains(new TranscalParser().parseExpression("min(a, b)"))
     }) shouldEqual true
