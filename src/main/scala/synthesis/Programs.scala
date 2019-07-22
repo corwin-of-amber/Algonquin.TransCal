@@ -44,7 +44,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.iterator.flatMap(m => {
       val fullPattern = HyperGraphManyWithOrderToOne.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
-      recursiveReconstruct(fullPattern, hyperTermId, Some(this))
+      recursiveReconstruct(fullPattern, hyperTermId, Some(this.reconstruct))
     })
   }
 
@@ -55,10 +55,10 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param fallTo       What to do if failed
     * @return Iterator with all the programs of root.
     */
-  private def recursiveReconstruct(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Option[Programs]): Iterator[AnnotatedTree] = {
+  private def recursiveReconstruct(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Option[HyperTermId => Iterator[AnnotatedTree]]): Iterator[AnnotatedTree] = {
     val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
     val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
-    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get.reconstruct(root)
+    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target)
       if (edge.sources.isEmpty) {
