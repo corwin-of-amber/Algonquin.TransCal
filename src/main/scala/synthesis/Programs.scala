@@ -62,7 +62,7 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target)
       if (edge.sources.isEmpty) {
-        Iterator(AnnotatedTree.identifierOnly(edge.edgeType.identifier.copy(annotation = typ.nextOption)))
+        Iterator(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.nextOption), Seq. empty, typ.nextOption.toSeq))
       }
       else {
         val recRes = edge.sources.map(recursiveReconstruct(edgesInGraph - edge, _, fallTo))
