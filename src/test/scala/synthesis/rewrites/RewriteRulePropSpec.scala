@@ -8,7 +8,7 @@ import structures._
 import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.Identifier
 
 /**
@@ -85,9 +85,10 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
         val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
         val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(x => Identifier(x.toString)).map(HyperTermIdentifier).iterator)
         val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
+        val tempProgs = Programs(state.graph)
         val newState = rewriteRule.apply(state)
 
-        if (willMerge.isEmpty) (newState.graph.edges -- state.graph.edges).size == 1
+        if (willMerge.isEmpty) (newState.graph.edges -- tempProgs.hyperGraph.edges).size == 1
         else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
       }
     })

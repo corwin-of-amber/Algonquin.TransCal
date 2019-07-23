@@ -16,25 +16,25 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
 
   def this(edges: Set[HyperEdge[Node, EdgeType]]) = {
     this(VocabularyHyperGraph.empty[Node, EdgeType])
-    compact(edges.toList)
+    compact(edges.toList, mutable.Map.empty[Node, Node])
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped).compact(List(hyperEdge))
+    new CompactHyperGraph(wrapped).compact(List(hyperEdge), mutable.Map.empty[Node, Node])
   }
 
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped).compact(hyperEdges.toList)
+    new CompactHyperGraph(wrapped).compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
   }
 
   override def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
-    compact(List(hyperEdge))
+    compact(List(hyperEdge), mutable.Map.empty[Node, Node])
   }
 
   override def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = {
-    compact(hyperEdges.toList)
+    compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
   }
 
   /* --- Object Impl. --- */
@@ -53,11 +53,12 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
   /* --- Private Methods --- */
 
   private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]],
-                      changedToKept: mutable.Map[Node, Node] = mutable.Map.empty[Node, Node]): CompactHyperGraph[Node, EdgeType] = {
-    def translateEdge(e: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
+                      changedToKept: mutable.Map[Node, Node]): CompactHyperGraph[Node, EdgeType] = {
+    def translateEdge(e: HyperEdge[Node, EdgeType], changedToKept: mutable.Map[Node, Node]): HyperEdge[Node, EdgeType] =
       e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
 
-    for (h <- hyperEdges; hyperEdge = translateEdge(h)) {
+    for (h <- hyperEdges) {
+      val hyperEdge = translateEdge(h, changedToKept)
       val foundTarget = mutable.Set.empty[Node]
       if (hyperEdge.edgeType == HyperTermIdentifier(Language.idId)) {
         foundTarget += hyperEdge.sources.head
@@ -70,11 +71,13 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
       if (foundTarget.nonEmpty) {
         val existsTarget = foundTarget.head
         // TODO: use find regex
-        val willChange = wrapped.edges.filter(_.sources.contains(hyperEdge.target)).map(translateEdge)
-        wrapped.mergeNodes(existsTarget, hyperEdge.target)
         for ((k, v) <- changedToKept if v == hyperEdge.target) {
           changedToKept(k) = existsTarget
         }
+        // TODO: Use rep0 to create a fast pattern for this
+        val willChange = wrapped.edges.filter(_.sources.contains(hyperEdge.target)).map(e => translateEdge(e, changedToKept))
+        wrapped.mergeNodes(existsTarget, hyperEdge.target)
+
         changedToKept(hyperEdge.target) = existsTarget
         compact(willChange.toList, changedToKept)
       }
