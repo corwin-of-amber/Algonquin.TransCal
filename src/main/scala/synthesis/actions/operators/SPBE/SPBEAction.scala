@@ -6,7 +6,7 @@ import synthesis.Programs.NonConstructableMetadata
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{Action, LetAction}
-import synthesis.rewrites.RewriteSearchState.HyperGraph
+import synthesis.rewrites
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -25,7 +25,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
 
   private val placeholderTerminals = constantTeminals ++ placeholders
 
-  val baseGraph: HyperGraph = {
+  val baseGraph: ActionSearchState.HyperGraph = {
     if (placeholderTerminals.size > 1)
       Programs.destruct(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, placeholderTerminals.toSeq))
     else
@@ -84,7 +84,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     * @param graph - basic graph with placeholders and anchors on roots
     * @return A graph duplicated so all placeholders were switched to the changing terms
     */
-  private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): VersionedHyperGraph[HyperTermId, HyperTermIdentifier] = {
+  private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
     // We will duplicate the graph for each symbolic input and change the placeholder to correct representation.
     var hGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
     for ((newTerminals, index) <- changingTerminals.zipWithIndex) {
@@ -93,16 +93,16 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
       val newEdges = for ((terminal, placeholder) <- newTerminals.zip(placeholders);
                           target = graph.findEdges(HyperTermIdentifier(placeholder.root.copy(annotation = None))).head.target) yield {
         val newAnchors =
-          graph.filter(_.edgeType.identifier.literal.startsWith(idAnchorStart)).map(e => anchorByIndex(e, index)).toSet
+          graph.filter(_.edgeType.identifier.literal.startsWith(idAnchorStart)).map(e => anchorByIndex(e, index))
 
         val termGraph = {
           val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(hGraph.nodes.map(_.id).max))
           tempGraph.mergeNodes(target, root)
         }
 
-        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.++(newAnchors).++(termGraph.edges).edges)
+        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.edges ++ newAnchors ++ termGraph.edges)
       }
-      hGraph = hGraph.++(newEdges.flatten.toSet)
+      hGraph.++=(newEdges.flatten.toSet)
     }
     hGraph
   }
@@ -111,7 +111,7 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
                           longRules: Seq[Operator[RewriteSearchState]]): mutable.MultiMap[HyperTermId, HyperTermId] = {
     // Use observational equivalence
     val roots = getRoots(rewriteState)
-    val fullGraph: VersionedHyperGraph[HyperTermId, HyperTermIdentifier] =
+    val fullGraph: RewriteSearchState.HyperGraph =
       switchPlaceholders(rewriteState.graph.++(roots.map(r => createAnchor(r))))
 
     // ******** Observational equivalence ********
@@ -132,7 +132,8 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
         HyperEdge(newTarget, HyperTermIdentifier(Identifier(s"$tupleAnchorStart${r.id}")), Seq.empty, NonConstructableMetadata))
     }).flatten
 
-    val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph.++(tupleEdges)))(
+    fullGraph.++=(tupleEdges)
+    val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph))(
       (s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s)
     )
 
@@ -145,14 +146,13 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
                                                longRules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
-    var state = rewriteState
     val toMerge = findEquives(rewriteState, longRules)
 
     for ((key, targets) <- toMerge;
          target <- targets) {
-      state = new RewriteSearchState(state.graph.mergeNodes(key, target))
+      rewriteState.graph.mergeNodes(key, target)
     }
-    state
+    rewriteState
   }
 
   private def inductionStep(state: ActionSearchState, term1: AnnotatedTree, term2: AnnotatedTree): Option[RewriteRule] = {

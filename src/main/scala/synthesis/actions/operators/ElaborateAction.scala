@@ -8,12 +8,15 @@ import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
-/** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
+/** Finding a hyperterm given a pattern.
+  * The given anchor will be added to the graph as a possible translation of the hyperterm.
   *
   * @author tomer
   * @since 11/18/18
   */
-class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: TemplateTerm[HyperTermId], maxSearchDepth: Option[Int] = None) extends Action {
+class ElaborateAction(anchor: HyperTermIdentifier,
+                      goal: HyperPattern,
+                      goalRoot: TemplateTerm[HyperTermId], maxSearchDepth: Option[Int] = None) extends Action {
   /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
   private val updatedGoal = goal.+(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
 
@@ -21,7 +24,8 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Rewrite search
-    val newState = maxSearchDepth.map(d => ElaborateAction.RunNaiveSearch(state, goalPredicate, d)).getOrElse(ElaborateAction.RunNaiveSearch(state, goalPredicate))
+    val newState = maxSearchDepth.map(d => ElaborateAction.RunNaiveSearch(state, goalPredicate, d))
+      .getOrElse(ElaborateAction.RunNaiveSearch(state, goalPredicate))
 
     // Process result
     val newPrograms = newState.map(_.programs).getOrElse(state.programs)
@@ -36,7 +40,9 @@ class ElaborateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot:
 }
 
 object ElaborateAction {
-  def RunNaiveSearch(state: ActionSearchState, predicate: RewriteSearchState => Boolean, maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
+  def RunNaiveSearch(state: ActionSearchState,
+                     predicate: RewriteSearchState => Boolean,
+                     maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
     // Rewrite search
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)

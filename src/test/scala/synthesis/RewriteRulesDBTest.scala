@@ -42,7 +42,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val state = new RewriteSearchState(Programs.destruct(term))
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => {
-      val newProgs = new synthesis.Programs(r(state).graph)
+      val newProgs = synthesis.Programs(r(state).graph)
       val aRoot = newProgs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
       newProgs.reconstruct(aRoot).contains(new TranscalParser().parseExpression("min(a, b)"))
     }) shouldEqual true
@@ -70,5 +70,26 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       val id = patternRoot.asInstanceOf[ReferenceTerm[HyperTermId]].id
       newState.graph.findSubgraph[Int](pattern).head._1(id) == newState.graph.findEdges(anchor).head.target
     }) shouldEqual true
+  }
+
+  test("And associativity") {
+    val rules = AssociativeRewriteRulesDB.rewriteRules
+    def validate(term: AnnotatedTree, patternTerm: AnnotatedTree) = {
+      val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(patternTerm)).head
+      val (graph, root) = Programs.destructWithRoot(term)
+      val anchor = HyperTermIdentifier(Identifier("anchor"))
+      val state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
+      rules.exists(r => {
+        val newState = r.apply(state)
+        val id = patternRoot.asInstanceOf[ReferenceTerm[HyperTermId]].id
+        val findRes = newState.graph.findSubgraph[Int](pattern)
+        findRes.nonEmpty && findRes.head._1(id) == newState.graph.findEdges(anchor).head.target
+      }) shouldEqual true
+    }
+
+    val term1 = new TranscalParser().parseExpression("((x ∧ y) ∧ z)")
+    val term2 = new TranscalParser().parseExpression("(x ∧ (y ∧ z))")
+    validate(term1, term2)
+    validate(term2, term1)
   }
 }

@@ -5,7 +5,7 @@ import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.{HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 
 class FlattenRewriteTest extends PropSpec with Checkers  {
@@ -17,8 +17,9 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("y")), Seq(), EmptyMetadata))
-    val state = new RewriteSearchState(VersionedHyperGraph(edges.toSeq: _*))
-    val newEdges = FlattenRewrite(state).graph.edges -- state.graph.edges
+    val progs = Programs(VersionedHyperGraph(edges.toSeq: _*))
+    val state = new RewriteSearchState(VersionedHyperGraph(progs.hyperGraph.toSeq: _*))
+    val newEdges = FlattenRewrite(state).graph.edges -- progs.hyperGraph.edges
     val newEdge = newEdges.filter(_.sources.size == 4)
     check(newEdges.size == 2)
     check(newEdge.head.sources.size == 4)
@@ -47,9 +48,10 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("y")), Seq(), EmptyMetadata))
-    val state = new RewriteSearchState(VersionedHyperGraph(edges.toSeq: _*))
+    val progs = Programs(VersionedHyperGraph(edges.toSeq: _*))
+    val state = new RewriteSearchState(VersionedHyperGraph(progs.hyperGraph.toSeq: _*))
     val flattened = FlattenRewrite(state)
-    val newEdge = (flattened.graph.edges -- state.graph.edges).filter(e => e.edgeType.identifier.literal == "f")
+    val newEdge = (flattened.graph.edges -- progs.hyperGraph.edges).filter(e => e.edgeType.identifier.literal == "f")
     check(newEdge.size == 1)
     check(newEdge.head.sources.size == 2)
     check(newEdge.head.sources.head.id == 4)

@@ -1,7 +1,7 @@
 package synthesis.rewrites
 
 import structures._
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.HyperGraph
 import synthesis.HyperTermIdentifier
 import synthesis.rewrites.rewrites._
 import synthesis.search.VersionedOperator
@@ -38,7 +38,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val functionReturnTypeEdge = patternEdgeCreator(functionTypeIdHole, Language.mapTypeId, Seq(argumentTypesHoles, functionReturnTypeHole))
   private val functionApplicationEdge = patternEdgeCreator(functionApplicationHole, functionIdentifierHole, Seq(argumentHoles))
 
-  private val funcTypeGraph = HyperGraphManyWithOrderToOne(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
+  private val funcTypeGraph = HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     val newFuncEdges = state.graph.findSubgraphVersioned[Int](funcTypeGraph, version)

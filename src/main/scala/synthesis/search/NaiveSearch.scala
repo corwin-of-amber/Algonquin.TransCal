@@ -8,7 +8,7 @@ import scala.collection.mutable
 /**
   * BFS returns last state only.
   */
-class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] with LazyLogging {
+class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] with LazyLogging {
 
   /* --- Search Impl. --- */
 
@@ -23,7 +23,7 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
 
     var oldState: Option[S] = Option.empty
     while (!oldState.contains(state) && i < maxDepth && !searchSpace.isGoal(state)) {
-      oldState = Some(state)
+      oldState = Some(state.deepCopy())
       import scala.util.control.Breaks._
       breakable {
         for (op <- searchSpace.operators(state)) {
@@ -46,7 +46,8 @@ class NaiveSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S
         logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
     }
 
-    Some(state).filter(searchSpace.isGoal)
+    val res = Some(state).filter(searchSpace.isGoal)
+    res
   }
 }
 

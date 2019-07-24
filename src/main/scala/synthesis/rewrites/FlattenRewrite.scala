@@ -1,11 +1,11 @@
 package synthesis.rewrites
 
-import transcallang.Language
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph, VocabularyHyperGraph}
+import structures.immutable.HyperGraph
 import synthesis.rewrites.rewrites._
-import synthesis.search.{Operator, VersionedOperator}
+import synthesis.search.VersionedOperator
 import synthesis.{HyperTermId, HyperTermIdentifier}
+import transcallang.Language
 
 
 /** The flatten works on 2 things. If we have a leftmost apply under an apply it means the function that we will use is
@@ -23,8 +23,8 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
   private val innerFunc: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
     patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
 
-  private val applyFuncGraph: HyperGraphManyWithOrderToOne.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
-    HyperGraphManyWithOrderToOne(Seq(outerApply, innerFunc): _*)
+  private val applyFuncGraph: HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
+    HyperGraph(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     // TODO: may need to do this for a few times so should find an efficient way

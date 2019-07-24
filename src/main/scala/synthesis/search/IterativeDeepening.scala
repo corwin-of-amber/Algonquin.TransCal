@@ -2,7 +2,7 @@ package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
 
-class IterativeDeepening[S <: State, SS <: SearchSpace[S]](search: SearchDepth[S, SS, S], globalMaxDepth: Double=Double.PositiveInfinity) extends Search[S, SS, S] with LazyLogging {
+class IterativeDeepening[S <: State[S], SS <: SearchSpace[S]](search: SearchDepth[S, SS, S], globalMaxDepth: Double=Double.PositiveInfinity) extends Search[S, SS, S] with LazyLogging {
   // Search Impl.
   override def search(searchSpace: SS): Option[S] = {
     Stream.from(0).takeWhile(i=>i < globalMaxDepth)  // Until we reached the max depth

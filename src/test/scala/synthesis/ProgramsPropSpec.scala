@@ -154,7 +154,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
     val graphBefore = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] ++ Seq(xEdge, xsEdge, buildEdge,
       zeroEdge, xTimeComplexBridgeEdge, xsTimeComplexBridgeEdge, xsSpaceComplexBridgeEdge, xsLenEdge)
-    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(graphBefore)((g, o) => o.apply(RewriteSearchState(g)).graph)
+    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
     assume((graphAfter -- graphBefore).nonEmpty)
 
     val programs = Programs(graphAfter)

@@ -1,15 +1,14 @@
-package structures.immutable
+package structures
 
-import structures.immutable.VocabularyLike.Word
-import structures.{Explicit, Item}
+import structures.VocabularyLike.Word
 
-import scala.collection.{SetLike, immutable}
+import scala.collection.SetLike
 
 /**
   * @author tomer
   * @since 11/15/18
   */
-trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with immutable.Set[Word[Letter]]]
+trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with Set[Word[Letter]]]
   extends SetLike[Word[Letter], This] {
 
   import VocabularyLike.WordRegex
@@ -32,7 +31,7 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with immutabl
   /**
     * @return The letters in the vocabulary
     */
-  lazy val letters: Set[Letter] = words.flatten
+  def letters: Set[Letter] = words.flatten
 
   /** Replaces a letter with another/
     *
