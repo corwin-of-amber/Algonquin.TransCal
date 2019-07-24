@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.HyperGraph
 import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -41,7 +41,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val destPattern = {
       val root = roots.head
       val (anchorPattern, anchorRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
-      HyperGraphManyWithOrderToOne(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
+      HyperGraph(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
     }
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
@@ -50,7 +50,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraphManyWithOrderToOne.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -64,7 +64,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
     // Process result
     val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newPrograms = Programs(rewriteResult.map(_.graph).getOrElse(state.programs.hyperGraph).++(newEdges))
+    val newPrograms = if (rewriteResult.nonEmpty) Programs(rewriteResult.get.graph)
+    else Programs(state.programs.hyperGraph.++(newEdges))
     if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
     else {
       val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, goalRoot)

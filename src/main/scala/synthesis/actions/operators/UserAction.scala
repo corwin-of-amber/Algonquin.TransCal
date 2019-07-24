@@ -2,7 +2,7 @@ package synthesis.actions.operators
 
 import java.io.PrintStream
 
-import structures.immutable.HyperGraphManyWithOrderToOne
+import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
@@ -73,7 +73,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
             logger.info("RHS is a symbol adding it to graph")
-            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraphManyWithOrderToOne(
+            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraph(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
                 ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
               ): _*), maxSearchDepth = lim).apply(tempState)

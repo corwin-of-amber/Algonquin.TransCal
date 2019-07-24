@@ -1,4 +1,4 @@
-package structures.immutable
+package structures.mutable
 
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.{HyperEdge, HyperGraphLike}
@@ -22,6 +22,12 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): This = newBuilder.++=(wrapped.++(hyperEdges)).result()
 
   override def -(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.-(hyperEdge)).result()
+
+  def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = wrapped.+=(hyperEdge)
+
+  def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = wrapped.++=(hyperEdges)
+
+  def -=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = wrapped.-=(hyperEdge)
 
   override def mergeNodes(keep: Node, change: Node): This = newBuilder.++=(wrapped.mergeNodes(keep, change)).result()
 
