@@ -2,11 +2,11 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.immutable.{HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
+import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
-import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
@@ -18,7 +18,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
+class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
 
   implicit class HasNextIterator[T](it: Iterator[T]) {
     def nextOption: Option[T] = if (it.hasNext) Some(it.next()) else None
@@ -43,8 +43,8 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.iterator.flatMap(m => {
-      val fullPattern = HyperGraphManyWithOrderToOne.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
-      recursiveReconstruct(fullPattern, hyperTermId, Some(this))
+      val fullPattern = HyperGraph.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
+      recursiveReconstruct(fullPattern, hyperTermId, Some(this.reconstruct))
     })
   }
 
@@ -55,14 +55,14 @@ class Programs(val hyperGraph: HyperGraph) extends LazyLogging {
     * @param fallTo       What to do if failed
     * @return Iterator with all the programs of root.
     */
-  private def recursiveReconstruct(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Option[Programs]): Iterator[AnnotatedTree] = {
+  private def recursiveReconstruct(edgesInGraph: Set[HyperEdge[HyperTermId, HyperTermIdentifier]], root: HyperTermId, fallTo: Option[HyperTermId => Iterator[AnnotatedTree]]): Iterator[AnnotatedTree] = {
     val hyperTermToEdge = mutable.HashMultiMap(edgesInGraph.groupBy(edge => edge.target))
     val edges = hyperTermToEdge.getOrElse(root, Iterator.empty)
-    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get.reconstruct(root)
+    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target)
       if (edge.sources.isEmpty) {
-        Iterator(AnnotatedTree.identifierOnly(edge.edgeType.identifier.copy(annotation = typ.nextOption)))
+        Iterator(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.nextOption), Seq. empty, typ.nextOption.toSeq))
       }
       else {
         val recRes = edge.sources.map(recursiveReconstruct(edgesInGraph - edge, _, fallTo))
@@ -149,7 +149,9 @@ object Programs extends LazyLogging {
 
   def empty: Programs = Programs(VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier])
 
-  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(hyperGraph)
+  def apply(hyperGraph: ActionSearchState.HyperGraph): Programs = new Programs(hyperGraph)
+
+  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(VersionedHyperGraph(hyperGraph.toSeq: _*))
 
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
 
@@ -213,11 +215,11 @@ object Programs extends LazyLogging {
     * @param maxId - Max id so no ids will cross
     * @return
     */
-  def destruct(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): RewriteSearchState.HyperGraph = {
+  def destruct(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): ActionSearchState.HyperGraph = {
     destructWithRoot(tree, maxId)._1
   }
 
-  def destructWithRoot(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): (RewriteSearchState.HyperGraph, HyperTermId) = {
+  def destructWithRoot(tree: AnnotatedTree, maxId: HyperTermId = HyperTermId(0)): (ActionSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
     val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)

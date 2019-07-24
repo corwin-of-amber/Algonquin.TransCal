@@ -5,7 +5,7 @@ import scala.collection.mutable
 /**
   * BFS returns last state only.
   */
-class BreadthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] {
+class BreadthFirstSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS, S] {
 
   /* --- Search Impl. --- */
 
@@ -50,7 +50,7 @@ class BreadthFirstSearch[S <: State, SS <: SearchSpace[S]] extends SearchDepth[S
 }
 
 object BreadthFirstSearch {
-  private class Node[S <: State](val state: S, val parent: Option[Node[S]], val depth: Double) {
+  private class Node[S <: State[S]](val state: S, val parent: Option[Node[S]], val depth: Double) {
 
     /**
       * Produce a backtrace of the actions taken to find the goal node, using the recorded meta dictionary
@@ -70,10 +70,10 @@ object BreadthFirstSearch {
     }
   }
   private object Node {
-    def apply[S <: State](state: S, parent: Option[Node[S]], depth: Double): Node[S] = new Node[S](state, parent, depth)
+    def apply[S <: State[S]](state: S, parent: Option[Node[S]], depth: Double): Node[S] = new Node[S](state, parent, depth)
 
-    def apply[S <: State](state: S, parent: Node[S]): Node[S] = new Node[S](state, Some(parent), parent.depth - 1)
+    def apply[S <: State[S]](state: S, parent: Node[S]): Node[S] = new Node[S](state, Some(parent), parent.depth - 1)
 
-    def apply[S <: State](state: S, depth: Double): Node[S] = new Node[S](state, None, depth)
+    def apply[S <: State[S]](state: S, depth: Double): Node[S] = new Node[S](state, None, depth)
   }
 }

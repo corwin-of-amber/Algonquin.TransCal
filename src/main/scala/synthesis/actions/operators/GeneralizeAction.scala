@@ -41,14 +41,15 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         logger.info("Generalize couldn't find term, trying to elaborate")
         val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.++(g2.edges))
         val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1), maxSearchDepth = maxSearchDepth)(state)
-        var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-        val progs = new Programs(rewriteSearchState.graph)
+        val progs = Programs(temp.programs.hyperGraph)
         val terms = getGeneralizedTerms(progs)
         if (terms.nonEmpty)
           (terms, ActionSearchState(progs, temp.rewriteRules))
         else {
+          var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
           for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
-          (getGeneralizedTerms(progs), ActionSearchState(progs, temp.rewriteRules))
+          val afterNaiveProgs = Programs(rewriteSearchState.graph)
+          (getGeneralizedTerms(afterNaiveProgs), ActionSearchState(afterNaiveProgs, temp.rewriteRules))
         }
       }
     }
@@ -57,6 +58,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
     gen.headOption match {
       case None =>
         logger.info("Failed to generalize")
+        // TODO: return state
         tempState
       case Some(newTerm) =>
         logger.info(s"Generalized to ${Programs.termToString(newTerm)}")

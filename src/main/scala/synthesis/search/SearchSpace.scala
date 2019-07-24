@@ -4,7 +4,7 @@ package synthesis.search
   * @author tomer
   * @since 11/18/18
   */
-trait SearchSpace[S <: State] {
+trait SearchSpace[S <: State[S]] {
   def operators(state: S): Stream[Operator[S]]
   def neighbors(state: S): Stream[S]
   def isGoal(state: S): Boolean

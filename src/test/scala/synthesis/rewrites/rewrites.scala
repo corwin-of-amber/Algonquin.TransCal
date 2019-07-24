@@ -2,7 +2,7 @@ package synthesis
 
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import structures.immutable._
+import structures.mutable._
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState.HyperGraph
@@ -20,7 +20,7 @@ package object rewrites {
 
   val hyperPatternGen: Gen[HyperPattern] = hyperGraphGen
     .map(graph => graph.map(edge => HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)))
-    .map(g => HyperGraphManyWithOrderToOne(g.toSeq:_*))
+    .map(g => structures.immutable.HyperGraph(g.toSeq:_*))
 
   val rewriteRuleGen: Gen[RewriteRule] = for {
     conditions <- hyperPatternGen

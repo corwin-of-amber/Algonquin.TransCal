@@ -18,7 +18,7 @@ final case class HyperEdge[+Node, +EdgeType](target: Node, edgeType: EdgeType, s
 }
 
 trait Metadata extends collection.immutable.Iterable[Metadata] {
-  def merge(other: Metadata): Metadata = UnionMetadata(other.toSet ++ this.toSet)
+  def merge(other: Metadata): Metadata = if (other == EmptyMetadata) this else UnionMetadata(other.toSet ++ this.toSet)
 
   override def iterator: Iterator[Metadata] = Iterator(this)
 
@@ -32,6 +32,8 @@ trait SpecificMergeMetadata extends Metadata {
 }
 
 case object EmptyMetadata extends Metadata {
+  override def merge(other: Metadata): Metadata = other
+
   override def toStr: String = "EmptyMetadata"
 }
 
@@ -42,8 +44,8 @@ final class UnionMetadata private (datas: Set[Metadata]) extends Metadata {
 object UnionMetadata {
   def apply(datas: Set[Metadata]): UnionMetadata = {
     val noSpecific = datas.filterNot(_.isInstanceOf[SpecificMergeMetadata])
-    val specific = datas.filter(_.isInstanceOf[SpecificMergeMetadata]).map(_.asInstanceOf[SpecificMergeMetadata])
-    val specificMerged = specific.foldLeft(mutable.HashMultiMap.empty[Class[_], SpecificMergeMetadata])((m, data)=>m.addBinding(data.getClass, data))
+    val specific = datas.collect{case a: SpecificMergeMetadata => a}
+    val specificMerged = specific.foldLeft(scala.collection.mutable.HashMultiMap.empty[Class[_], SpecificMergeMetadata])((m, data)=>m.addBinding(data.getClass, data))
       .values.map(_ reduce (_ mergeSpecific _))
     new UnionMetadata(noSpecific ++ specificMerged)
   }

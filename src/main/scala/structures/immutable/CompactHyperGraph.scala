@@ -11,7 +11,7 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType])
+class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraph[Node, EdgeType])
   extends WrapperHyperGraph[Node, EdgeType, CompactHyperGraph[Node, EdgeType]](wrapped) {
 
   def this(edges: Set[HyperEdge[Node, EdgeType]]) =
@@ -47,7 +47,7 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraphManyWithOrde
   }
 }
 
-object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanion[CompactHyperGraph] {
+object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGraph] {
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements
@@ -61,7 +61,7 @@ object CompactHyperGraph extends HyperGraphManyWithOrderToOneLikeGenericCompanio
   /* --- Private Methods --- */
 
   @tailrec
-  private def compact[Node, EdgeType](wrapped: HyperGraphManyWithOrderToOne[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): HyperGraphManyWithOrderToOne[Node, EdgeType] = {
+  private def compact[Node, EdgeType](wrapped: HyperGraph[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): HyperGraph[Node, EdgeType] = {
     hyperEdges match {
       case Nil => wrapped
       case beforeChangeHyperEdge +: otherHyperEdges =>

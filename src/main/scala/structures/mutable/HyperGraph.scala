@@ -1,17 +1,11 @@
-package structures.immutable
+package structures.mutable
 
-import structures.immutable.HyperGraphManyWithOrderToOneLike.HyperEdgePattern
+import structures.HyperGraphLike.HyperEdgePattern
 import structures.{Explicit, Hole, HyperEdge, Item}
 
-import scala.collection.{immutable, mutable}
+trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
 
-/**
-  * @author tomer
-  * @since 11/15/18
-  */
-trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends immutable.Set[HyperEdge[Node, EdgeType]] with HyperGraphManyWithOrderToOneLike[Node, EdgeType, HyperGraphManyWithOrderToOne[Node, EdgeType]] {
-
-  override def empty: HyperGraphManyWithOrderToOne[Node, EdgeType] = HyperGraphManyWithOrderToOne.empty
+  override def empty: HyperGraph[Node, EdgeType] = HyperGraph.empty
 
   /** Finds subgraphs by a pattern graph.
     *
@@ -19,18 +13,19 @@ trait HyperGraphManyWithOrderToOne[Node, EdgeType] extends immutable.Set[HyperEd
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched references.
     */
-  def findSubgraph[Id](hyperPattern: HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
-    findSubgraph[Id, HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
+  def findSubgraph[Id](hyperPattern: structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
+    findSubgraph[Id, structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
 }
 
-object HyperGraphManyWithOrderToOne extends HyperGraphManyWithOrderToOneLikeGenericCompanion[HyperGraphManyWithOrderToOne] {
-  type HyperGraphPattern[Node, EdgeType, Id] = HyperGraphManyWithOrderToOne[Item[Node, Id], Item[EdgeType, Id]]
+
+object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
+  type HyperGraphPattern[Node, EdgeType, Id] = structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]
 
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements
     */
-  override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], HyperGraphManyWithOrderToOne[A, B]] =
+  override def newBuilder[A, B]: collection.mutable.Builder[HyperEdge[A, B], HyperGraph[A, B]] =
     VocabularyHyperGraph.newBuilder
 
   def mergeMap[Node, EdgeType, Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id]]
