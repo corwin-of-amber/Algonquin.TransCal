@@ -1,6 +1,7 @@
 package synthesis.actions.operators.SPBE
 
 import org.scalatest.{FunSuite, Matchers}
+import structures.immutable
 import synthesis.actions.operators.LetAction
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import synthesis.rewrites.RewriteSearchState
@@ -51,10 +52,10 @@ class SPBEActionTest extends FunSuite with Matchers {
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val equives = action.findEquives(state2, (0 to 8) flatMap (_ => AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules))
+    val equives = action.findEquives(state2, (0 to 20) flatMap (_ => AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules))
     equives should not be empty
     equives.forall({case (k, v) => v.forall(state2.graph.nodes.contains)}) should be (true)
-    val programs = new Programs(state2.graph)
+    val programs = new Programs(immutable.VersionedHyperGraph(state2.graph.toSeq: _*))
     val terms = equives.values.filter(_.size > 1).map(_.map(programs.reconstruct))
     val reversePlaceholderTwice = terms.map(_.map(_.toList)).exists(s => s.exists(_.exists(_.root.literal=="Placeholder(0)")) &&
       s.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0)")))
