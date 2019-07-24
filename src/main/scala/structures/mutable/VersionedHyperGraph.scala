@@ -11,7 +11,7 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType], val version: Long)
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType], var version: Long)
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
   /* --- Constructors --- */
@@ -67,6 +67,28 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
     */
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
     new VersionedHyperGraph(wrapped.++(hyperEdges.toSeq.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))), version + 1)
+  }
+
+  /**
+    * Adding version to edge.
+    *
+    * @param hyperEdge The edge to add.
+    * @return The new hyper graph with the edge.
+    */
+  override def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
+    wrapped.+=(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
+    this.version += 1
+  }
+
+  /**
+    * Adding version to edges.
+    *
+    * @param hyperEdges The edges to add.
+    * @return The new hyper graph with the edge.
+    */
+  override def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = {
+    wrapped.++=(hyperEdges.toSeq.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))))
+    this.version += 1
   }
 
   /* --- Object Impl. --- */
