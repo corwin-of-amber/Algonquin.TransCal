@@ -2,7 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
-import structures.immutable.{HyperGraphת HyperGraphManyWithOrderToOne, VersionedHyperGraph}
+import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
