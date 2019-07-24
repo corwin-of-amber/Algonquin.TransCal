@@ -1,15 +1,16 @@
 package synthesis
 
-import transcallang.Language._
-import transcallang.{Identifier, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
-import structures.{EmptyMetadata, HyperEdge}
 import structures.immutable.VersionedHyperGraph
-import transcallang.AnnotatedTree
+import structures.{EmptyMetadata, HyperEdge}
+import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
+import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
+import transcallang.Language._
+import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
 class ProgramsPropSpec extends PropSpec with Checkers {
 
@@ -128,5 +129,42 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val graph2 = Programs.destructPattern(pattern2)
     check(graph.nodes.size > 1)
     check(graph.nodes.size > graph2.nodes.size)
+  }
+
+  property("Reconstruct simple value") {
+    val valueEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
+    val timeComplexEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
+    val timeComplexBridgeEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
+    val graph = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] + valueEdge + timeComplexEdge + timeComplexBridgeEdge
+    val programs = Programs(graph)
+
+    val result = programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq
+    check(result == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
+  }
+
+  property("Reconstruct 1 deep value") {
+    val xEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
+    val xsEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("xs")), Seq.empty, EmptyMetadata)
+    val buildEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("::")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
+    val zeroEdge = HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
+    val xTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(5)), EmptyMetadata)
+    val xsTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(1), HyperTermId(5)), EmptyMetadata)
+    val xsSpaceComplexBridgeEdge = HyperEdge(HyperTermId(10), HyperTermIdentifier(Identifier("spacecomplex")), Seq(HyperTermId(1), HyperTermId(11)), EmptyMetadata)
+    val xsLenEdge = HyperEdge(HyperTermId(11), HyperTermIdentifier(Identifier("len")), Seq(HyperTermId(1)), EmptyMetadata)
+
+    val graphBefore = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] ++ Seq(xEdge, xsEdge, buildEdge,
+      zeroEdge, xTimeComplexBridgeEdge, xsTimeComplexBridgeEdge, xsSpaceComplexBridgeEdge, xsLenEdge)
+    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(graphBefore)((g, o) => o.apply(RewriteSearchState(g)).graph)
+    assume((graphAfter -- graphBefore).nonEmpty)
+
+    val programs = Programs(graphAfter)
+
+    check(programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
+    check(programs.reconstructWithTimeComplex(HyperTermId(1)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0))))
+
+    val result = programs.reconstructWithTimeComplex(HyperTermId(2)).toSeq
+    val expectedTree = AnnotatedTree.withoutAnnotations(Identifier("::"), Seq(AnnotatedTree.identifierOnly(Identifier("x")), AnnotatedTree.identifierOnly(Identifier("xs"))))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
+    check(result == Seq((expectedTree, expectedComplexity)))
   }
 }
