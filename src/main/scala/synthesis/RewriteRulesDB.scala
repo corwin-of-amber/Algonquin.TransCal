@@ -127,7 +127,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
-    val parameters = whatIsConstant.indices.map("x" + _)
+    val parameters = whatIsConstant.indices.map("x" + "x"*_)
     val (firstCall, call) = if (isFunction) {
       (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
     } else {
