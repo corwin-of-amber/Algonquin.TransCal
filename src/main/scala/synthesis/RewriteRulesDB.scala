@@ -168,8 +168,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
     val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
-    val result = premise + " |>> " + conclusion
-    result
+    premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
