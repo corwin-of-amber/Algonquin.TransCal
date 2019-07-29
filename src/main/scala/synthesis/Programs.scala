@@ -146,23 +146,25 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                     .map(edge => {
                       reconstructAnnotationTreeWithTimeComplex(edge.sources.head, edge.sources(1), leftHyperGraph).map(res => ((edge.sources.head, res._1), (edge.sources(1), res._2)))
                     })).flatMap(combination => {
-
-                    val rootsToTrees = combination.map(t => t._1).toMap
-                    def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
-                      Iterator(rootsToTrees(rootAnnotatedTree))
-                    }
-                    val annotationTrees = recursiveReconstruct(VersionedHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
-
-                    val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Iterator(_))
-                    def timeComplexLinker(rootTimeComplex: HyperTermId): Iterator[Complexity] = {
-                      if (rootsToComplexities.contains(rootTimeComplex)) {
-                        rootsToComplexities(rootTimeComplex)
-                      } else {
-                        val b = reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker)).toList
-                        b.toIterator
+                    val annotationTrees = {
+                      val rootsToTrees = combination.map(t => t._1).toMap
+                      def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
+                        Iterator(rootsToTrees(rootAnnotatedTree))
                       }
+                      recursiveReconstruct(VersionedHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
                     }
-                    val timeComplexes = reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
+
+                    val timeComplexes = {
+                      val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Iterator(_))
+                      def timeComplexLinker(rootTimeComplex: HyperTermId): Iterator[Complexity] = {
+                        if (rootsToComplexities.contains(rootTimeComplex)) {
+                          rootsToComplexities(rootTimeComplex)
+                        } else {
+                          reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
+                        }
+                      }
+                      reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
+                    }
                     for (tree <- annotationTrees ; complex <- timeComplexes) yield {
                       (tree, complex)
                     }
