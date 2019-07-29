@@ -98,19 +98,8 @@ object Main extends App {
   }
   println(f"nodes: $nonComplexNodes")
   println(f"number of nodes: ${nonComplexNodes.size}")
-  def timeComplexStrings = {
-  timeComplexEdges.toStream.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
-    .map(tree=> (Programs.termToString(tree.subtrees.head), calculateComplex(tree.subtrees(1))))
-    .groupBy(_._1).mapValues(_.map(_._2).min(FullComplexityPartialOrdering))
-    .toList.sortBy(_._1.length)
-    .foreach(println)
-
-  val timeComplexStrings = timeComplexEdges.flatMap(e => fullProgram.reconstructWithPattern(e.target, TIMECOMPLEX_PATTERN))
-    .map(tree => Programs.termToString(tree.subtrees.head))
-  println("============================== Not in complex ==============================")
-  nonComplexNodes.flatMap(fullProgram.reconstruct).map(Programs.termToString)
-    .filterNot(timeComplexStrings.contains)
-    .toList.sortBy(_.length)
-    .foreach(println)
-  }
+  println("============================== In complex ==============================")
+  val a = nonComplexNodes.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
+  println(f"type edges ${hyperGraph.count(_.edgeType.identifier == Identifier("type"))} - total complexities ${a.size}")
+  a.foreach(println)
 }
