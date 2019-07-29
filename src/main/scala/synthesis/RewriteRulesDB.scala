@@ -169,7 +169,6 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     val premise = (firstCall +: complexities).mkString(" |||| ")
     val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
     val result = premise + " |>> " + conclusion
-    println(functionName, result)
     result
   }
 
