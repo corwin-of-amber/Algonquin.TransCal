@@ -99,7 +99,7 @@ object Main extends App {
   println(f"nodes: $nonComplexNodes")
   println(f"number of nodes: ${nonComplexNodes.size}")
   println("============================== In complex ==============================")
-  val a = nonComplexNodes.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
+  val a = nonComplexNodes.toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
   println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Identifier("timecomplex"))} - total complexities ${a.size}")
   a.foreach(println)
 }
