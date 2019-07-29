@@ -173,20 +173,20 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     buildFunction("elem", Seq(true, false)),
-    buildOperator("∪", false, false),
-    buildOperator("‖", false, false),
-    buildUnaryFunction("elems", false),
-    buildUnaryFunction("len", true),
-    buildUnaryFunction("~", true),
+    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildUnaryFunction("elems", isConstant = false),
+    buildUnaryFunction("len", isConstant = true),
+    buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
     "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
-    buildOperator("==", true, true),
-    buildOperator("∧", true, true),
-    buildOperator("∨", true, true),
-    buildOperator("≠", true, true),
-    buildOperator("::", true, true),
-    buildOperator("∈", true, true),
-    buildOperator("∉", true, true),
+    buildOperator("==", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∧", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∨", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("≠", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("::", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∈", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∉", isFirstConstant = true, isSecondConstant = true),
   ).map(t => parser.apply(t))
 
 }
