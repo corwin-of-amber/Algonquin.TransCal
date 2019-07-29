@@ -110,47 +110,66 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "TimeComplexMetadata"
   }
 
-  private def stringifyOperatorBinary(operator: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?x' ?u) |||| " +
-      f"(x $operator x') |>> timecomplex (x $operator x') (v + u + 1) ||| timecomplexTrue"
-  }
+  private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
+    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
 
-  private def stringifyOperatorBinaryRightList(operator: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
-      f"(x $operator xs) |>> timecomplex (x $operator xs) (v + u + w + 1) ||| timecomplexTrue"
-  }
+  private def buildFunction(operatorName: String, whatIsConstant: Seq[Boolean]): String =
+    build(operatorName, true, whatIsConstant)
 
-  private def stringifyFunctionBinaryRightList(function: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
-      f"($function x xs) |>> timecomplex ($function x xs) (v + u + w + 1) ||| timecomplexTrue"
-  }
+  private def buildUnaryFunction(operatorName: String, isConstant: Boolean): String =
+    buildFunction(operatorName, Seq(isConstant))
 
-  private def stringListUnary(function: String) = {
-    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| " +
-      f"($function ?xs) |>> (timecomplex ($function xs) (w + v + 1)) ||| timecomplexTrue"
-  }
+  /** Builds a time complex rule
+    *
+    * @param functionName The function name.
+    * @param isFunction If true, it's a function, otherwise a binary operator.
+    * @param whatIsConstant What is constant to the function, by arity order (also definse the arity).
+    * @return
+    */
+  private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    val parameters = whatIsConstant.indices.map("x" + _)
+    val (firstCall, call) = if (isFunction) {
+      (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
+    } else {
+      assert(whatIsConstant.size == 2)
+      (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
+    }
 
-  private def stringListOperatorBinary(operator: String) = {
-    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
-      f"(ys $operator xs') |>> (timecomplex (ys $operator ?xs) (w + v + u + x + 1)) ||| timecomplexTrue"
+    val complexitiesWithNames = whatIsConstant.zip(parameters).flatMap({
+      case (isConstant, parameterName) =>
+        Seq({
+          val tcParameter = "tc" + parameterName
+          (tcParameter, f"(timecomplex $parameterName ?$tcParameter)")
+        }) ++ (if (isConstant) None else Some({
+          val scParameter = "sc" + parameterName
+          (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+        }))
+    })
+    val complexities = complexitiesWithNames.map(_._2)
+    val names = complexitiesWithNames.map(_._1)
+    val premise = (firstCall +: complexities).mkString(" |||| ")
+    val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
+    val result = premise + " |>> " + conclusion
+    println(functionName, result)
+    result
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    stringifyFunctionBinaryRightList("elem"),
-//    stringListOperatorBinary("∪"),
-//    stringListOperatorBinary("‖"),
-    stringListUnary("elems"),
-//    stringListUnary("len"),
-//    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
+    buildFunction("elem", Seq(true, false)),
+    buildOperator("∪", false, false),
+    buildOperator("‖", false, false),
+    buildUnaryFunction("elems", false),
+    buildUnaryFunction("len", true),
+    buildUnaryFunction("~", true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
     "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
-    stringifyOperatorBinary("=="),
-    stringifyOperatorBinary("∧"),
-    stringifyOperatorBinary("∨"),
-    stringifyOperatorBinary("≠"),
-    stringifyOperatorBinaryRightList("::"),
-    stringifyOperatorBinaryRightList("∈"),
-    stringifyOperatorBinaryRightList("∉")
+    buildOperator("==", true, true),
+    buildOperator("∧", true, true),
+    buildOperator("∨", true, true),
+    buildOperator("≠", true, true),
+    buildOperator("::", true, true),
+    buildOperator("∈", true, true),
+    buildOperator("∉", true, true),
   ).map(t => parser.apply(t))
 
 }
