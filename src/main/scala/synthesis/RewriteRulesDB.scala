@@ -110,20 +110,39 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "TimeComplexMetadata"
   }
 
+  /** Builds a time complex rule for an operator.
+    *
+    * @param operatorName The function name.
+    * @param isFirstConstant Is the first parameter a constant.
+    * @param isSecondConstant Is the second parameter a constant.
+    * @return
+    */
   private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
     build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
-
-  private def buildFunction(operatorName: String, whatIsConstant: Seq[Boolean]): String =
-    build(operatorName, true, whatIsConstant)
-
-  private def buildUnaryFunction(operatorName: String, isConstant: Boolean): String =
-    buildFunction(operatorName, Seq(isConstant))
 
   /** Builds a time complex rule
     *
     * @param functionName The function name.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
+    build(functionName, true, whatIsConstant)
+
+  /** Builds a time complex rule for an unary function.
+    *
+    * @param functionName The function name.
+    * @param isConstant Is the parameter a constant.
+    * @return
+    */
+  private def buildUnaryFunction(functionName: String, isConstant: Boolean): String =
+    buildFunction(functionName, Seq(isConstant))
+
+  /** Builds a time complex rule.
+    *
+    * @param functionName The function name.
     * @param isFunction If true, it's a function, otherwise a binary operator.
-    * @param whatIsConstant What is constant to the function, by arity order (also definse the arity).
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
