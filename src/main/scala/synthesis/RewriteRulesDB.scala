@@ -205,7 +205,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     "(elems ?x) |||| (spacecomplex x ?scx) |>> spacecomplex (elems x) scx ||| spacecomplexTrue",
     "(?x ∪ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ∪ xx) (scx + scxx) ||| spacecomplexTrue",
     "(?x ‖ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ‖ xx) (scx + scxx) ||| spacecomplexTrue",
-//    "(?x :: ?xx) |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (1 + scxx) ||| spacecomplexTrue",
+    "(?x :: ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (scx + scxx) ||| spacecomplexTrue",
   ).map(t => parser.apply(t))
 
 }
