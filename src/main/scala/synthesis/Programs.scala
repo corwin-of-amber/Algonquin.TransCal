@@ -7,7 +7,7 @@ import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
-import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
@@ -128,14 +128,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
               .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
               .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
           }
-          hyperGraph.findSubgraph[Int](basicConclusion).iterator.flatMap {
-            maps =>
-              val fullConclusion = HyperGraph.fillPattern(basicConclusion, maps, () => throw new RuntimeException("unknown node"))
-              val basicPremise = HyperGraph.mergeMap(rewrite.premise, maps)
-              hyperGraph.findSubgraph[Int](basicPremise).iterator.flatMap {
-                maps =>
-                  val fullPremise = HyperGraph.fillPattern(basicPremise, maps, () => throw new RuntimeException("unknown node"))
-
+          RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
+            case Seq(fullConclusion, fullPremise) =>
                   val fullRewrite = (fullConclusion ++ fullPremise).toSeq
 
                   val leftHyperGraph = hyperGraph -- fullConclusion
@@ -168,7 +162,6 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                     }
                   })
               }
-          }
       }.getOrElse(
         Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph) ))
           .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity])}
