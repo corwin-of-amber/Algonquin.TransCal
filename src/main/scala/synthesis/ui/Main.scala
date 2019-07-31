@@ -3,11 +3,12 @@ package synthesis.ui
 import java.io.{PrintStream, File => JFile}
 
 import org.rogach.scallop.ScallopOption
-import synthesis.Programs
+import structures.Explicit
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.complexity.Complexity._
 import synthesis.complexity.{Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteRule
-import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
+import synthesis.rewrites.RewriteRule.RewriteRuleMetadata
+import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
 import scala.io.Source
 import scala.util.Try
@@ -63,7 +64,6 @@ object Main extends App {
   }
   val TIMECOMPLEX = "timecomplex"
   val TIMECOMPLEX_IDENTIFIER = Identifier(TIMECOMPLEX)
-  val TIMECOMPLEX_PATTERN: RewriteRule.HyperPattern = Programs.destructPattern(new TranscalParser().parseExpression(f"$TIMECOMPLEX(_, _)"))
 
   def calculateComplex(tree: AnnotatedTree): Complexity = {
     tree.root.literal match {
@@ -86,20 +86,33 @@ object Main extends App {
 
   val fullProgram = lastState.programs
   val hyperGraph = fullProgram.hyperGraph
-  val timeComplexEdges = hyperGraph.edges.filter(_.edgeType.identifier == TIMECOMPLEX_IDENTIFIER)
-  val typeEdges = hyperGraph.edges.filter(_.edgeType.identifier == Language.typeId)
-  val size = hyperGraph.size
-  println(f"size: $size")
-  val nonComplexNodes = {
-    val matchNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("match")).map(_.target)
-    val lambdaNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("⇒")).map(_.target)
-    val typeNodes = hyperGraph.edges.filter(_.edgeType.identifier == Identifier("type")).map(_.target)
-    hyperGraph.nodes -- timeComplexEdges.flatMap(e => Seq(e.target, e.sources(1))) -- matchNodes -- typeNodes -- lambdaNodes
+  println(f"size: $hyperGraph.size")
+  println(f"nodes: ${hyperGraph.nodes}")
+  println(f"number of nodes: ${hyperGraph.nodes.size}")
+  println("============================== In time complex ==============================")
+  val timeComplexes = hyperGraph.nodes.toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
+  println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == TIMECOMPLEX_IDENTIFIER)} - total time complexities ${timeComplexes.size}")
+  timeComplexes.foreach(println)
+  println("============================== In space complex ==============================")
+  val spaceComplexes = hyperGraph.toSeq.filter(_.edgeType.identifier == Identifier("spacecomplex")).map(_.sources.head).flatMap(fullProgram.reconstruct).map(Programs.termToString)
+  println(f"spacecomplex edges ${hyperGraph.count(_.edgeType.identifier == Identifier("spacecomplex"))} - total space complexities ${spaceComplexes.size}")
+  spaceComplexes.foreach(println)
+  println("============================== In complex - alt ==============================")
+  for(edge <- hyperGraph) {
+    if (edge.edgeType.identifier == TIMECOMPLEX_IDENTIFIER) {
+      for ( complexTree <- fullProgram.reconstruct(edge.sources(1)); tree <- fullProgram.reconstruct(edge.sources.head)) {
+        println((edge.sources.head.id, Programs.termToString(tree), Programs.termToString(complexTree)))
+      }
+      edge.metadata.toSeq.collectFirst {
+        case x: RewriteRuleMetadata =>
+          for (originalEdge <- x.originalEdges) {
+            println("  " + (
+              originalEdge.target.asInstanceOf[Explicit[HyperTermId, Int]].value.id,
+              originalEdge.edgeType.asInstanceOf[Explicit[HyperTermIdentifier, Int]].value.identifier,
+              originalEdge.sources.map(_.asInstanceOf[Explicit[HyperTermId, Int]].value.id)
+            ))
+          }
+      }
+    }
   }
-  println(f"nodes: $nonComplexNodes")
-  println(f"number of nodes: ${nonComplexNodes.size}")
-  println("============================== In complex ==============================")
-  val a = nonComplexNodes.toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
-  println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Identifier("timecomplex"))} - total complexities ${a.size}")
-  a.foreach(println)
 }
