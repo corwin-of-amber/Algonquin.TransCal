@@ -6,7 +6,7 @@ import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteRule.{HyperPattern, HyperPatternEdge, RewriteRuleMetadata}
+import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -83,10 +83,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return Tuples of annotation tree, hyper term id of the complex and the complexity.
     */
   private def innerReconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[(AnnotatedTree, HyperTermId, Complexity)] = {
-    val patternEdge: HyperPatternEdge = HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("timecomplex"))), Seq(ExplicitTerm(termRoot), Hole(1)), EmptyMetadata)
-    val patternGraph: HyperPattern = HyperGraph(patternEdge)
-    hyperGraph.findSubgraph[Int](patternGraph).iterator.flatMap(maps => {
-      reconstructAnnotationTreeWithTimeComplex(termRoot, maps._1(1), hyperGraph).map{case (tree, complex) => (tree,  maps._1(1), complex)}
+    hyperGraph.iterator.filter(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources.head == termRoot).flatMap(edge => {
+      reconstructAnnotationTreeWithTimeComplex(termRoot, edge.sources(1), hyperGraph).map{case (tree, complex) => (tree,  edge.sources(1), complex)}
     })
   }
 
@@ -121,8 +119,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return Tuples of annotation tree and the complexity.
     */
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId, complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[(AnnotatedTree, Complexity)] = {
-    hyperGraph.find(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources == Seq(termRoot, complexityRoot)).iterator.flatMap {
-      edge => edge.metadata.collectFirst {
+    val bridgeEdge = hyperGraph.find(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources == Seq(termRoot, complexityRoot)).get
+    bridgeEdge.metadata.collectFirst {
         case RewriteRuleMetadata(rewrite, _) =>
           val basicConclusion = {
             val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Identifier("timecomplex")))).get
@@ -143,8 +141,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                   val leftHyperGraph = hyperGraph -- fullConclusion
 
                   Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
-                    .map(edge => {
-                      reconstructAnnotationTreeWithTimeComplex(edge.sources.head, edge.sources(1), leftHyperGraph).map(res => ((edge.sources.head, res._1), (edge.sources(1), res._2)))
+                    .map(bridgeEdgeInPremise => {
+                      reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
                     })).flatMap(combination => {
                     val annotationTrees = {
                       val rootsToTrees = combination.map(t => t._1).toMap
@@ -172,10 +170,9 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
               }
           }
       }.getOrElse(
-        Programs.combineSeq(Seq(reconstructAnnotationTree(edge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph) ))
+        Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph) ))
           .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity])}
       )
-    }
   }
   /** Reconstruct annotation trees.
     *
