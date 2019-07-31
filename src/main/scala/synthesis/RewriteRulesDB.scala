@@ -203,7 +203,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
     "(elems ?x) |||| (spacecomplex x ?scx) |>> spacecomplex (elems x) scx ||| spacecomplexTrue",
-//    "(?x ∪ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ∪ xx) (scx + scxx) ||| spacecomplexTrue",
+    "(?x ∪ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ∪ xx) (scx + scxx) ||| spacecomplexTrue",
     "(?x ‖ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ‖ xx) (scx + scxx) ||| spacecomplexTrue",
 //    "(?x :: ?xx) |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (1 + scxx) ||| spacecomplexTrue",
   ).map(t => parser.apply(t))
