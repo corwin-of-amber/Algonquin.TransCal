@@ -180,9 +180,6 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
     "{?x} |||| (timecomplex x ?tcx) |>> timecomplex {x} (1 + tcx) ||| timecomplexTrue",
-    "{?x} |||| (spacecomplex x ?scx) |>> spacecomplex {x} 1 ||| spacecomplexTrue",
-    "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
-    "(elems ?x) |||| (spacecomplex x ?scx) |>> spacecomplex (elems x) ?scx ||| spacecomplexTrue",
     buildOperator("==", isFirstConstant = true, isSecondConstant = true),
     buildOperator("∧", isFirstConstant = true, isSecondConstant = true),
     buildOperator("∨", isFirstConstant = true, isSecondConstant = true),
@@ -190,6 +187,25 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     buildOperator("::", isFirstConstant = true, isSecondConstant = true),
     buildOperator("∈", isFirstConstant = true, isSecondConstant = true),
     buildOperator("∉", isFirstConstant = true, isSecondConstant = true),
+  ).map(t => parser.apply(t))
+
+}
+
+object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
+  private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = SpaceComplexMetadata
+
+  private case object SpaceComplexMetadata extends Metadata {
+    override def toStr: String = "SpaceComplexMetadata"
+  }
+
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+    "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
+    "(elems ?x) |||| (spacecomplex x ?scx) |>> spacecomplex (elems x) scx ||| spacecomplexTrue",
+//    "(?x ∪ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ∪ xx) (scx + scxx) ||| spacecomplexTrue",
+    "(?x ‖ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ‖ xx) (scx + scxx) ||| spacecomplexTrue",
+//    "(?x :: ?xx) |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (1 + scxx) ||| spacecomplexTrue",
   ).map(t => parser.apply(t))
 
 }
