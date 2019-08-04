@@ -6,7 +6,7 @@ import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.complexity.{AddComplexity, ConstantComplexity}
+import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
@@ -146,11 +146,10 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val parser = new TranscalParser
     val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
     val tree2 = parser.parseExpression("timecomplex xs 0 = timecomplexTrue")
-    val tree3 = parser.parseExpression("spacecomplex xs (len(x)) = spacecomplexTrue")
-    val tree4 = parser.parseExpression("x :: xs")
+    val tree3 = parser.parseExpression("x :: xs")
 
     val graphBefore = {
-      val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
+      val programs = Programs.empty + tree1 + tree2 + tree3
       programs.hyperGraph
     }
     val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
@@ -169,8 +168,37 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     assume(concatEdgeOption.nonEmpty)
 
     val result = programs.reconstructWithTimeComplex(concatEdgeOption.get).toSeq
-    val expectedTree = AnnotatedTree.withoutAnnotations(Identifier("::"), Seq(AnnotatedTree.identifierOnly(Identifier("x")), AnnotatedTree.identifierOnly(Identifier("xs"))))
+    val expectedTree = tree3
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1)))
+    check(result == Seq((expectedTree, expectedComplexity)))
+  }
+
+  property("Reconstruct elems time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex xs 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
+    val tree3 = parser.parseExpression("elems(xs)")
+
+    val programs = {
+      val graphBefore = {
+        val programs = Programs.empty + tree1 + tree2 + tree3
+        programs.hyperGraph
+      }
+      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter1 -- graphBefore).nonEmpty)
+
+      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter2 -- graphAfter1).nonEmpty)
+
+      Programs(graphAfter2)
+    }
+
+    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 1 && e.edgeType.identifier == Identifier("elems")).map(_.target)
+    assume(elemsEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
+    val expectedTree = tree3
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
     check(result == Seq((expectedTree, expectedComplexity)))
   }
 }
