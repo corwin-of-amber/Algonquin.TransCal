@@ -200,12 +200,73 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "SpaceComplexMetadata"
   }
 
+  /** Builds a time complex rule for an operator.
+    *
+    * @param operatorName The function name.
+    * @param isFirstConstant Is the first parameter a constant.
+    * @param isSecondConstant Is the second parameter a constant.
+    * @return
+    */
+  private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
+    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
+
+  /** Builds a time complex rule
+    *
+    * @param functionName The function name.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
+    build(functionName, true, whatIsConstant)
+
+  /** Builds a time complex rule for an unary function.
+    *
+    * @param functionName The function name.
+    * @param isConstant Is the parameter a constant.
+    * @return
+    */
+  private def buildUnaryFunction(functionName: String, isConstant: Boolean): String =
+    buildFunction(functionName, Seq(isConstant))
+
+  /** Builds a time complex rule.
+    *
+    * @param functionName The function name.
+    * @param isFunction If true, it's a function, otherwise a binary operator.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    val parameters = whatIsConstant.indices.map("x" + "x"*_)
+    val (firstCall, call) = if (isFunction) {
+      (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
+    } else {
+      assert(whatIsConstant.size == 2)
+      (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
+    }
+
+    val complexitiesWithNames = whatIsConstant.zip(parameters).map({
+      case (isConstant, parameterName) =>
+        val scParameter = if (isConstant) "1" else "sc" + parameterName
+        (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+    })
+    val complexities = complexitiesWithNames.map(_._2)
+    val names = complexitiesWithNames.map(_._1)
+    val premise = (firstCall +: complexities).mkString(" |||| ")
+    val conclusion = f"spacecomplex $call (${names.mkString(" + ")}) ||| spacecomplexTrue"
+    val a = premise + " |>> " + conclusion
+    if (functionName == "::") {
+      println(a)
+      println("(?x :: ?xx) |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (1 + scxx) ||| spacecomplexTrue")
+    }
+    a
+  }
+
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
-    "(elems ?x) |||| (spacecomplex x ?scx) |>> spacecomplex (elems x) scx ||| spacecomplexTrue",
-    "(?x ∪ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ∪ xx) (scx + scxx) ||| spacecomplexTrue",
-    "(?x ‖ ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x ‖ xx) (scx + scxx) ||| spacecomplexTrue",
-    "(?x :: ?xx) |||| (spacecomplex x ?scx)  |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (scx + scxx) ||| spacecomplexTrue",
+    buildUnaryFunction("elems", isConstant = false),
+    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("::", isFirstConstant = true, isSecondConstant = false),
   ).map(t => parser.apply(t))
 
 }
