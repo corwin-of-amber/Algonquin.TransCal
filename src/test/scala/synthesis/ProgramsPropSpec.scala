@@ -6,7 +6,7 @@ import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
+import synthesis.complexity.{AddComplexity, ConstantComplexity}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
@@ -136,35 +136,41 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val tree = parser.apply("timecomplexTrue = timecomplex x 0")
     val programs = Programs.empty.addTerm(tree)
 
-    val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x"))
+    val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
     assume(headEdge.nonEmpty)
-    val result = programs.reconstructWithTimeComplex(headEdge.get.target).toSeq
+    val result = programs.reconstructWithTimeComplex(headEdge.get).toSeq
     check(result == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
   }
 
-  property("Reconstruct 1 deep value") {
-    val xEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
-    val xsEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("xs")), Seq.empty, EmptyMetadata)
-    val buildEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("::")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
-    val zeroEdge = HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
-    val xTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(5)), EmptyMetadata)
-    val xsTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(1), HyperTermId(5)), EmptyMetadata)
-    val xsSpaceComplexBridgeEdge = HyperEdge(HyperTermId(10), HyperTermIdentifier(Identifier("spacecomplex")), Seq(HyperTermId(1), HyperTermId(11)), EmptyMetadata)
-    val xsLenEdge = HyperEdge(HyperTermId(11), HyperTermIdentifier(Identifier("len")), Seq(HyperTermId(1)), EmptyMetadata)
+  property("Reconstruct concat time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs 0 = timecomplexTrue")
+    val tree3 = parser.parseExpression("spacecomplex xs (len(x)) = spacecomplexTrue")
+    val tree4 = parser.parseExpression("x :: xs")
 
-    val graphBefore = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] ++ Seq(xEdge, xsEdge, buildEdge,
-      zeroEdge, xTimeComplexBridgeEdge, xsTimeComplexBridgeEdge, xsSpaceComplexBridgeEdge, xsLenEdge)
+    val graphBefore = {
+      val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
+      programs.hyperGraph
+    }
     val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
     assume((graphAfter -- graphBefore).nonEmpty)
 
     val programs = Programs(graphAfter)
 
-    check(programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
-    check(programs.reconstructWithTimeComplex(HyperTermId(1)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0))))
+    val xEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
+    assume(xEdgeOption.nonEmpty)
+    check(programs.reconstructWithTimeComplex(xEdgeOption.get).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
+    val xsEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("xs")).map(_.target)
+    assume(xsEdgeOption.nonEmpty)
+    check(programs.reconstructWithTimeComplex(xsEdgeOption.get).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0))))
 
-    val result = programs.reconstructWithTimeComplex(HyperTermId(2)).toSeq
+    val concatEdgeOption = programs.hyperGraph.find(e => e.sources == Seq(xEdgeOption.get, xsEdgeOption.get) && e.edgeType.identifier == Identifier("::")).map(_.target)
+    assume(concatEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(concatEdgeOption.get).toSeq
     val expectedTree = AnnotatedTree.withoutAnnotations(Identifier("::"), Seq(AnnotatedTree.identifierOnly(Identifier("x")), AnnotatedTree.identifierOnly(Identifier("xs"))))
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1)))
     check(result == Seq((expectedTree, expectedComplexity)))
   }
 }
