@@ -132,13 +132,13 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("Reconstruct simple value") {
-    val valueEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
-    val timeComplexEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
-    val timeComplexBridgeEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
-    val graph = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] + valueEdge + timeComplexEdge + timeComplexBridgeEdge
-    val programs = Programs(graph)
+    val parser = new TranscalParser
+    val tree = parser.apply("timecomplexTrue = timecomplex x 0")
+    val programs = Programs.empty.addTerm(tree)
 
-    val result = programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq
+    val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x"))
+    assume(headEdge.nonEmpty)
+    val result = programs.reconstructWithTimeComplex(headEdge.get.target).toSeq
     check(result == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
   }
 
