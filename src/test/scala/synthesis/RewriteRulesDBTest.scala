@@ -167,7 +167,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
   test("Reconstruct ∪ time complex") {
     val parser = new TranscalParser
     val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
-    val tree2 = parser.parseExpression("timecomplex xs (len(x) = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs (len(x)) = timecomplexTrue")
     val tree3 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
     val tree4 = parser.parseExpression("{x} ∪ elems(xs)")
 
@@ -176,10 +176,11 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
         val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
         programs.hyperGraph
       }
-      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val rewriteRules = TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)
