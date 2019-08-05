@@ -86,25 +86,28 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
     */
   private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
     // We will duplicate the graph for each symbolic input and change the placeholder to correct representation.
-    var hGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
+    val noPlaceholdersGraph = graph.filterNot(e => placeholders.map(_.root.copy(annotation = None)).contains(e.edgeType.identifier))
+    val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
+    var fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
     for ((newTerminals, index) <- changingTerminals.zipWithIndex) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
       val newEdges = for ((terminal, placeholder) <- newTerminals.zip(placeholders);
                           target = graph.findEdges(HyperTermIdentifier(placeholder.root.copy(annotation = None))).head.target) yield {
-        val newAnchors =
-          graph.filter(_.edgeType.identifier.literal.startsWith(idAnchorStart)).map(e => anchorByIndex(e, index))
+        val newAnchors = roots.map(root => anchorByIndex(createAnchor(root), index))
 
         val termGraph = {
-          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(hGraph.nodes.map(_.id).max))
+          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(noPlaceholdersGraph.nodes.map(_.id).max))
           tempGraph.mergeNodes(target, root)
         }
 
-        shiftEdges(termGraph.nodes.map(_.id).max, hGraph.edges ++ newAnchors ++ termGraph.edges)
+        val afterAddingTerm = noPlaceholdersGraph.edges ++ newAnchors ++ termGraph.edges
+        val maxId = fullGraph.nodes.map(_.id).max
+        shiftEdges(maxId, afterAddingTerm)
       }
-      hGraph.++=(newEdges.flatten.toSet)
+      fullGraph ++= newEdges.flatten.toSet
     }
-    hGraph
+    fullGraph
   }
 
   def findEquives(rewriteState: RewriteSearchState,
@@ -156,10 +159,20 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
   }
 
   private def inductionStep(state: ActionSearchState, term1: AnnotatedTree, term2: AnnotatedTree): Option[RewriteRule] = {
-    def replaceByOrder(annotatedTree: AnnotatedTree, original: Identifier, identifierSeq: Seq[Identifier]) = {
-      val it = identifierSeq.iterator
-      annotatedTree.map(i => if (i == original) it.next() else i)
-    }
+    // Each placeholder represents a value of a type.
+    // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
+
+    // Create new rewrite rule for induction hypothesis
+
+    // TODO: Add constructor as part of action and use it to create steps
+    val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
+//    val mutualPlaceholders = term1.nodes.filter(_.root.literal.startsWith("Placeholder"))
+//      .intersect(term2.nodes.filter(_.root.literal.startsWith("Placeholder")))
+//    mutualPlaceholders.forall(p => {
+//      // TODO: I might want to put all the rewrites on the same graph
+//      val graph = Programs.destruct(term1.map(t => t))
+//      true
+//    })
 
     // Change placeholder to differently named placeholders
     val placeholderReplacers1: mutable.Map[Identifier, Seq[Identifier]] =
@@ -185,8 +198,8 @@ class SPBEAction(constantTeminals: Set[AnnotatedTree], changingTerminals: Seq[Se
 //      } else i
 //    })
 
-    // Create new rewrite rule for induction hypothesis
-    val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
+
+
     // Need to rewrite the modified placeholder original expressions until equality
 
     None

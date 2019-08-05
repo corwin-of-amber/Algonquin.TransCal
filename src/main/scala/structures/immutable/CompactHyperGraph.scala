@@ -71,6 +71,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
         var foundTarget = Set[Node]()
         var g = wrapped
         if (hyperEdge.edgeType == HyperTermIdentifier(Language.idId)) {
+          // "id" Is a special function that says target == source and has a single source therefor the merge
           foundTarget = Set(hyperEdge.sources.head)
         } else {
           val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
