@@ -120,52 +120,56 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId, complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[(AnnotatedTree, Complexity)] = {
     val bridgeEdge = hyperGraph.find(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources == Seq(termRoot, complexityRoot)).get
-    bridgeEdge.metadata.collectFirst {
-        case RewriteRuleMetadata(rewrite, _) =>
-          val basicConclusion = {
-            val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Identifier("timecomplex")))).get
-            rewrite.conclusion
-              .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
-              .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
-          }
-          RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
-            case Seq(fullConclusion, fullPremise) =>
-                  val fullRewrite = (fullConclusion ++ fullPremise).toSeq
+    val rewriteRuleOption = bridgeEdge.metadata.collectFirst {
+      case RewriteRuleMetadata(rewrite, _) =>
+        rewrite
+    }
+    if (rewriteRuleOption.nonEmpty) {
+      val rewrite = rewriteRuleOption.get
+      val basicConclusion = {
+        val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Identifier("timecomplex")))).get
+        rewrite.conclusion
+          .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
+          .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
+      }
+      RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
+        case Seq(fullConclusion, fullPremise) =>
+          val fullRewrite = (fullConclusion ++ fullPremise).toSeq
 
-                  val leftHyperGraph = hyperGraph -- fullConclusion
+          val leftHyperGraph = hyperGraph -- fullConclusion
 
-                  Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
-                    .map(bridgeEdgeInPremise => {
-                      reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
-                    })).flatMap(combination => {
-                    val annotationTrees = {
-                      val rootsToTrees = combination.map(t => t._1).toMap
-                      def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
-                        Iterator(rootsToTrees(rootAnnotatedTree))
-                      }
-                      recursiveReconstruct(VersionedHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
-                    }
-
-                    val timeComplexes = {
-                      val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Iterator(_))
-                      def timeComplexLinker(rootTimeComplex: HyperTermId): Iterator[Complexity] = {
-                        if (rootsToComplexities.contains(rootTimeComplex)) {
-                          rootsToComplexities(rootTimeComplex)
-                        } else {
-                          reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
-                        }
-                      }
-                      reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
-                    }
-                    for (tree <- annotationTrees ; complex <- timeComplexes) yield {
-                      (tree, complex)
-                    }
-                  })
+          Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
+            .map(bridgeEdgeInPremise => {
+              reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
+            })).flatMap(combination => {
+            val annotationTrees = {
+              val rootsToTrees = combination.map(t => t._1).toMap
+              def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
+                Iterator(rootsToTrees(rootAnnotatedTree))
               }
-      }.getOrElse(
-        Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph) ))
-          .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity])}
-      )
+              recursiveReconstruct(VersionedHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
+            }
+
+            val timeComplexes = {
+              val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Iterator(_))
+              def timeComplexLinker(rootTimeComplex: HyperTermId): Iterator[Complexity] = {
+                if (rootsToComplexities.contains(rootTimeComplex)) {
+                  rootsToComplexities(rootTimeComplex)
+                } else {
+                  reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
+                }
+              }
+              reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
+            }
+            for (tree <- annotationTrees ; complex <- timeComplexes) yield {
+              (tree, complex)
+            }
+          })
+      }
+    } else {
+        Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph)))
+          .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity]) }
+    }
   }
   /** Reconstruct annotation trees.
     *
