@@ -136,12 +136,10 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
         case Seq(fullConclusion, fullPremise) =>
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
 
-          val leftHyperGraph = hyperGraph -- fullConclusion
-
           Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
             .map(bridgeEdgeInPremise => {
-              reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
-            })).flatMap(combination => {
+              reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), hyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
+            })).flatMap{combination =>
             val annotationTrees = {
               val rootsToTrees = combination.map(t => t._1).toMap
               def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
@@ -156,7 +154,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                 if (rootsToComplexities.contains(rootTimeComplex)) {
                   rootsToComplexities(rootTimeComplex)
                 } else {
-                  reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
+                  reconstructTimeComplex(rootTimeComplex, hyperGraph, Some(timeComplexLinker))
                 }
               }
               reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
@@ -164,7 +162,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
             for (tree <- annotationTrees ; complex <- timeComplexes) yield {
               (tree, complex)
             }
-          })
+          }
       }
     } else {
         Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph), reconstructTimeComplex(complexityRoot, hyperGraph)))
