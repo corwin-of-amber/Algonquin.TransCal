@@ -54,6 +54,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
     "?x + ?y = y + x",
+    "?x + 0 = id x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
     "(?x :: ?xs) ++ ?ys = (x :: (xs ++ ys))",
@@ -253,12 +254,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
     val conclusion = f"spacecomplex $call (${names.mkString(" + ")}) ||| spacecomplexTrue"
-    val a = premise + " |>> " + conclusion
-    if (functionName == "::") {
-      println(a)
-      println("(?x :: ?xx) |||| (spacecomplex xx ?scxx) |>> spacecomplex (x :: xx) (1 + scxx) ||| spacecomplexTrue")
-    }
-    a
+    premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
