@@ -3,15 +3,11 @@ package synthesis.ui
 import java.io.{PrintStream, File => JFile}
 
 import org.rogach.scallop.ScallopOption
-import structures.Explicit
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import synthesis.complexity.Complexity._
-import synthesis.complexity.{Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteRule.RewriteRuleMetadata
-import transcallang.{AnnotatedTree, Identifier, TranscalParser}
+import synthesis._
+import synthesis.rewrites.RewriteSearchState
+import transcallang.{AnnotatedTree, Language, TranscalParser}
 
 import scala.io.Source
-import scala.util.Try
 
 /**
   * @author tomer
@@ -59,60 +55,23 @@ object Main extends App {
 
   val lastState = interpreter.start()
 
-  implicit object AnnotatedTreeByDepth extends Ordering[AnnotatedTree] {
-    override def compare(x: AnnotatedTree, y: AnnotatedTree): Int = x.toString.compareTo(y.toString)
-  }
-  val TIMECOMPLEX = "timecomplex"
-  val TIMECOMPLEX_IDENTIFIER = Identifier(TIMECOMPLEX)
-
-  def calculateComplex(tree: AnnotatedTree): Complexity = {
-    tree.root.literal match {
-      case "+" =>
-        val first = calculateComplex(tree.subtrees.head)
-        val second = calculateComplex(tree.subtrees(1))
-        val added = first + second
-        added
-      case literal: String if Try(literal.toInt).isSuccess => ConstantComplexity(literal.toInt)
-      case _ => ContainerComplexity(Programs.termToString(tree))
+  var hyperGraph = structures.mutable.VersionedHyperGraph(lastState.programs.hyperGraph.toSeq:_*)
+  for(i <- 1 to 2) {
+    for (rewriteRule <- TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules) {
+      hyperGraph = rewriteRule.apply(RewriteSearchState(hyperGraph)).graph
     }
   }
+  val fullProgram = Programs(hyperGraph)
 
-  object FullComplexityPartialOrdering extends Ordering[Complexity] {
-    override def compare(x: Complexity, y: Complexity): Int = {
-      val res = ComplexityPartialOrdering.tryCompare(x, y)
-        res.getOrElse(y.toString compare x.toString)
-    }
-  }
-
-  val fullProgram = lastState.programs
-  val hyperGraph = fullProgram.hyperGraph
   println(f"size: $hyperGraph.size")
   println(f"nodes: ${hyperGraph.nodes}")
   println(f"number of nodes: ${hyperGraph.nodes.size}")
   println("============================== In time complex ==============================")
-  val timeComplexes = hyperGraph.nodes.toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
-  println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == TIMECOMPLEX_IDENTIFIER)} - total time complexities ${timeComplexes.size}")
+  val timeComplexes = hyperGraph.filter(_.edgeType.identifier == Language.unionId).map(_.target).toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
+  println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Language.timeComplexId)} - total time complexities ${timeComplexes.size}")
   timeComplexes.foreach(println)
-  println("============================== In space complex ==============================")
-  val spaceComplexes = hyperGraph.toSeq.filter(_.edgeType.identifier == Identifier("spacecomplex")).map(_.sources.head).flatMap(fullProgram.reconstruct).map(Programs.termToString)
-  println(f"spacecomplex edges ${hyperGraph.count(_.edgeType.identifier == Identifier("spacecomplex"))} - total space complexities ${spaceComplexes.size}")
-  spaceComplexes.foreach(println)
-  println("============================== In complex - alt ==============================")
-  for(edge <- hyperGraph) {
-    if (edge.edgeType.identifier == TIMECOMPLEX_IDENTIFIER) {
-      for ( complexTree <- fullProgram.reconstruct(edge.sources(1)); tree <- fullProgram.reconstruct(edge.sources.head)) {
-        println((edge.sources.head.id, Programs.termToString(tree), Programs.termToString(complexTree)))
-      }
-      edge.metadata.toSeq.collectFirst {
-        case x: RewriteRuleMetadata =>
-          for (originalEdge <- x.originalEdges) {
-            println("  " + (
-              originalEdge.target.asInstanceOf[Explicit[HyperTermId, Int]].value.id,
-              originalEdge.edgeType.asInstanceOf[Explicit[HyperTermIdentifier, Int]].value.identifier,
-              originalEdge.sources.map(_.asInstanceOf[Explicit[HyperTermId, Int]].value.id)
-            ))
-          }
-      }
-    }
-  }
+//  println("============================== Reconstruct ==============================")
+//  hyperGraph.nodes.flatMap(
+//    node => fullProgram.reconstruct(node).take(10).map(Programs.termToString).map((node, _))
+//  ).foreach(println)
 }

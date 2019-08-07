@@ -83,7 +83,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return Tuples of annotation tree, hyper term id of the complex and the complexity.
     */
   private def innerReconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[(AnnotatedTree, HyperTermId, Complexity)] = {
-    hyperGraph.iterator.filter(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources.head == termRoot).flatMap(edge => {
+    hyperGraph.iterator.filter(e => e.edgeType.identifier == Language.timeComplexId && e.sources.head == termRoot).flatMap(edge => {
       reconstructAnnotationTreeWithTimeComplex(termRoot, edge.sources(1), hyperGraph).map{case (tree, complex) => (tree,  edge.sources(1), complex)}
     })
   }
@@ -119,7 +119,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return Tuples of annotation tree and the complexity.
     */
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId, complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[(AnnotatedTree, Complexity)] = {
-    val bridgeEdge = hyperGraph.find(e => e.edgeType.identifier == Identifier("timecomplex") && e.sources == Seq(termRoot, complexityRoot)).get
+    val bridgeEdge = hyperGraph.find(e => e.edgeType.identifier == Language.timeComplexId && e.sources == Seq(termRoot, complexityRoot)).get
     val rewriteRuleOption = bridgeEdge.metadata.collectFirst {
       case RewriteRuleMetadata(rewrite, _) =>
         rewrite
@@ -127,7 +127,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     if (rewriteRuleOption.nonEmpty) {
       val rewrite = rewriteRuleOption.get
       val basicConclusion = {
-        val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Identifier("timecomplex")))).get
+        val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Language.timeComplexId))).get
         rewrite.conclusion
           .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
           .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
@@ -137,7 +137,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
           val leftHyperGraph = hyperGraph - bridgeEdge
 
-          Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
+          Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Language.timeComplexId)
             .map(bridgeEdgeInPremise => {
               reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
             })).flatMap{combination =>
@@ -282,7 +282,7 @@ object Programs extends LazyLogging {
         hyperEdgesType ++ Set(
           HyperEdge(functionNode, identToEdge(function.copy(annotation = None)), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
-          HyperEdge(trueNode, identToEdge(Identifier("typeTrue")), Seq.empty, EmptyMetadata)
+          HyperEdge(trueNode, identToEdge(Language.typeTrueId), Seq.empty, EmptyMetadata)
         )
       case None => Set.empty
     }
