@@ -67,7 +67,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
         foundTarget ++= wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         wrapped.+=(hyperEdge)
       }
-      assert(foundTarget.size <= 1)
+//      assert(foundTarget.size <= 1)
       if (foundTarget.nonEmpty) {
         val existsTarget = foundTarget.head
         // TODO: use find regex
