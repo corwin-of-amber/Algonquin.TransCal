@@ -135,10 +135,11 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
       RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
         case Seq(fullConclusion, fullPremise) =>
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
+          val leftHyperGraph = hyperGraph - bridgeEdge
 
           Programs.combineSeq(fullPremise.toSeq.filter(e => e.edgeType.identifier == Identifier("timecomplex"))
             .map(bridgeEdgeInPremise => {
-              reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), hyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
+              reconstructAnnotationTreeWithTimeComplex(bridgeEdgeInPremise.sources.head, bridgeEdgeInPremise.sources(1), leftHyperGraph).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
             })).flatMap{combination =>
             val annotationTrees = {
               val rootsToTrees = combination.map(t => t._1).toMap
@@ -154,7 +155,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                 if (rootsToComplexities.contains(rootTimeComplex)) {
                   rootsToComplexities(rootTimeComplex)
                 } else {
-                  reconstructTimeComplex(rootTimeComplex, hyperGraph, Some(timeComplexLinker))
+                  reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
                 }
               }
               reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
