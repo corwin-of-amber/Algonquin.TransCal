@@ -101,7 +101,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
     assume(headEdge.nonEmpty)
     val result = programs.reconstructWithTimeComplex(headEdge.get).toSeq
-    result == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
+    result shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
   }
 
   test("Reconstruct concat time complex") {
@@ -121,8 +121,10 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
 
     val xEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
     assume(xEdgeOption.nonEmpty)
+    programs.reconstructWithTimeComplex(xEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
     val xsEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("xs")).map(_.target)
     assume(xsEdgeOption.nonEmpty)
+    programs.reconstructWithTimeComplex(xsEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0)))
 
     val concatEdgeOption = programs.hyperGraph.find(e => e.sources == Seq(xEdgeOption.get, xsEdgeOption.get) && e.edgeType.identifier == Identifier("::")).map(_.target)
     assume(concatEdgeOption.nonEmpty)
@@ -130,9 +132,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val result = programs.reconstructWithTimeComplex(concatEdgeOption.get).toSeq
     val expectedTree = tree3
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1)))
-    programs.reconstructWithTimeComplex(xEdgeOption.get).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))) &&
-      programs.reconstructWithTimeComplex(xsEdgeOption.get).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0))) &&
-      (result == Seq((expectedTree, expectedComplexity)))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
   }
 
   test("Reconstruct elems time complex") {
@@ -161,7 +162,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
     val expectedTree = tree3
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
-    result == Seq((expectedTree, expectedComplexity))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
   }
 
   test("Reconstruct ∪ time complex") {
@@ -192,13 +194,14 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSet
     val expectedTree = parser.parseExpression("{x} ∪ (elems xs)")
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
-    1 == result.size && (expectedTree, expectedComplexity) == result.head
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
   }
 
   test("Reconstruct ‖ time complex") {
     val parser = new TranscalParser
     val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
-    val tree2 = parser.parseExpression("timecomplex xs (len(x)) = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs (len(xs)) = timecomplexTrue")
     val tree3 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
     val tree4 = parser.parseExpression("{x} ‖ elems(xs)")
 
@@ -222,7 +225,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
     val expectedTree = tree4
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
-    result == Seq((expectedTree, expectedComplexity))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
   }
 }
