@@ -3,6 +3,7 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import structures.immutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.VersionedOperator
@@ -96,6 +97,19 @@ object RewriteRule {
     val Basic, Associative, Goal, Definition, Existential = Value
 
     override protected def toStr: String = this.getClass.getName
+  }
+
+  def fillPatterns(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[HyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
+    patterns match {
+      case Nil => Iterator(Seq.empty)
+      case pattern :: rest =>
+        hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
+          maps =>
+            val fullPattern = HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map(HyperGraph.mergeMap(_, maps)))
+              .map(a => fullPattern +: a)
+        }
+    }
   }
 
   def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = immutable.HyperGraph(

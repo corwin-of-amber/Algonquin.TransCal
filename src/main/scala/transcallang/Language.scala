@@ -70,6 +70,9 @@ object Language {
   val unionId: Identifier = Identifier("∪")
   val andId: Identifier = Identifier("∧")
   val orId: Identifier = Identifier("∨")
+  val timeComplexId = Identifier("timecomplex")
+  val timeComplexTrueId = Identifier("timecomplexTrue")
+  val typeTrueId = Identifier("typeTrue")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 

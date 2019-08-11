@@ -54,6 +54,7 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "elem(?x, ?xs) = x ∈ elems(xs)",
     "elems(?x' :: ?xs') = ({x'} ∪ elems(xs'))", // <-- this one is somewhat superfluous?
     "?x + ?y = y + x",
+    "?x + 0 = id x",
 
     "(?y :+ ?x) = (y ++ (x :: ⟨⟩))",
     "(?x :: ?xs) ++ ?ys = (x :: (xs ++ ys))",
@@ -110,47 +111,158 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     override def toStr: String = "TimeComplexMetadata"
   }
 
-  private def stringifyOperatorBinary(operator: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?x' ?u) |||| " +
-      f"(x $operator x') |>> timecomplex (x $operator x') (v + u + 1) ||| timecomplexTrue"
-  }
+  /** Builds a time complex rule for an operator.
+    *
+    * @param operatorName The function name.
+    * @param isFirstConstant Is the first parameter a constant.
+    * @param isSecondConstant Is the second parameter a constant.
+    * @return
+    */
+  private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
+    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
 
-  private def stringifyOperatorBinaryRightList(operator: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
-      f"(x $operator xs) |>> timecomplex (x $operator xs) (v + u + w + 1) ||| timecomplexTrue"
-  }
+  /** Builds a time complex rule
+    *
+    * @param functionName The function name.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
+    build(functionName, true, whatIsConstant)
 
-  private def stringifyFunctionBinaryRightList(function: String) = {
-    "(timecomplex ?x ?v) |||| (timecomplex ?xs ?u) |||| (spacecomplex xs ?w) |||| " +
-      f"($function x xs) |>> timecomplex ($function x xs) (v + u + w + 1) ||| timecomplexTrue"
-  }
+  /** Builds a time complex rule for an unary function.
+    *
+    * @param functionName The function name.
+    * @param isConstant Is the parameter a constant.
+    * @return
+    */
+  private def buildUnaryFunction(functionName: String, isConstant: Boolean): String =
+    buildFunction(functionName, Seq(isConstant))
 
-  private def stringListUnary(function: String) = {
-    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| " +
-      f"($function ?xs) |>> (timecomplex ($function xs) (w + v + 1)) ||| timecomplexTrue"
-  }
+  /** Builds a time complex rule.
+    *
+    * @param functionName The function name.
+    * @param isFunction If true, it's a function, otherwise a binary operator.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    val parameters = whatIsConstant.indices.map("x" + "x"*_)
+    val (firstCall, call) = if (isFunction) {
+      (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
+    } else {
+      assert(whatIsConstant.size == 2)
+      (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
+    }
 
-  private def stringListOperatorBinary(operator: String) = {
-    "(timecomplex ?xs ?v) |||| (spacecomplex xs ?w) |||| (timecomplex ?xs' ?u) |||| (spacecomplex xs' ?x) |||| " +
-      f"(ys $operator xs') |>> (timecomplex (ys $operator ?xs) (w + v + u + x + 1)) ||| timecomplexTrue"
+    val complexitiesWithNames = whatIsConstant.zip(parameters).flatMap({
+      case (isConstant, parameterName) =>
+        Seq({
+          val tcParameter = "tc" + parameterName
+          (tcParameter, f"(timecomplex $parameterName ?$tcParameter)")
+        }) ++ (if (isConstant) None else Some({
+          val scParameter = "sc" + parameterName
+          (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+        }))
+    })
+    val complexities = complexitiesWithNames.map(_._2)
+    val names = complexitiesWithNames.map(_._1)
+    val premise = (firstCall +: complexities).mkString(" |||| ")
+    val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
+    premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    stringifyFunctionBinaryRightList("elem"),
-//    stringListOperatorBinary("∪"),
-//    stringListOperatorBinary("‖"),
-    stringListUnary("elems"),
-//    stringListUnary("len"),
-//    "(timecomplex (?x) ?u) |||| (~x) |>> timecomplex (~x) (u + 1) ||| timecomplexTrue",
+    buildFunction("elem", Seq(true, false)),
+    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildUnaryFunction("elems", isConstant = false),
+    buildUnaryFunction("len", isConstant = true),
+    buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
-    "(timecomplex (?x) ?u) |||| ({x}) |>> timecomplex ({x}) (u + 1) ||| timecomplexTrue",
-    stringifyOperatorBinary("=="),
-    stringifyOperatorBinary("∧"),
-    stringifyOperatorBinary("∨"),
-    stringifyOperatorBinary("≠"),
-    stringifyOperatorBinaryRightList("::"),
-    stringifyOperatorBinaryRightList("∈"),
-    stringifyOperatorBinaryRightList("∉")
+    "{?x} |||| (timecomplex x ?tcx) |>> timecomplex {x} (1 + tcx) ||| timecomplexTrue",
+    buildOperator("==", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∧", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∨", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("≠", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("::", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∈", isFirstConstant = true, isSecondConstant = true),
+    buildOperator("∉", isFirstConstant = true, isSecondConstant = true),
+  ).map(t => parser.apply(t))
+
+}
+
+object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
+  private val parser = new TranscalParser
+
+  override protected def metadata: Metadata = SpaceComplexMetadata
+
+  private case object SpaceComplexMetadata extends Metadata {
+    override def toStr: String = "SpaceComplexMetadata"
+  }
+
+  /** Builds a time complex rule for an operator.
+    *
+    * @param operatorName The function name.
+    * @param isFirstConstant Is the first parameter a constant.
+    * @param isSecondConstant Is the second parameter a constant.
+    * @return
+    */
+  private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
+    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
+
+  /** Builds a time complex rule
+    *
+    * @param functionName The function name.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
+    build(functionName, true, whatIsConstant)
+
+  /** Builds a time complex rule for an unary function.
+    *
+    * @param functionName The function name.
+    * @param isConstant Is the parameter a constant.
+    * @return
+    */
+  private def buildUnaryFunction(functionName: String, isConstant: Boolean): String =
+    buildFunction(functionName, Seq(isConstant))
+
+  /** Builds a time complex rule.
+    *
+    * @param functionName The function name.
+    * @param isFunction If true, it's a function, otherwise a binary operator.
+    * @param whatIsConstant What is constant to the function, by arity order (also defines the arity).
+    * @return
+    */
+  private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    val parameters = whatIsConstant.indices.map("x" + "x"*_)
+    val (firstCall, call) = if (isFunction) {
+      (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
+    } else {
+      assert(whatIsConstant.size == 2)
+      (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
+    }
+
+    val complexitiesWithNames = whatIsConstant.zip(parameters).map({
+      case (isConstant, parameterName) =>
+        val scParameter = if (isConstant) "1" else "sc" + parameterName
+        (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+    })
+    val complexities = complexitiesWithNames.map(_._2)
+    val names = complexitiesWithNames.map(_._1)
+    val premise = (firstCall +: complexities).mkString(" |||| ")
+    val conclusion = f"spacecomplex $call (${names.mkString(" + ")}) ||| spacecomplexTrue"
+    premise + " |>> " + conclusion
+  }
+
+  override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+    "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
+    buildUnaryFunction("elems", isConstant = false),
+    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildOperator("::", isFirstConstant = true, isSecondConstant = false),
   ).map(t => parser.apply(t))
 
 }
