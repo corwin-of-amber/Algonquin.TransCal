@@ -26,14 +26,14 @@ class SPBEActionTest extends FunSuite with Matchers {
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
 
   test("testSygusStep can find reverse l") {
-    val action = new SPBEAction(constantTeminals = Set(tru, fals, x), changingTerminals = Seq(Seq(nil)), symbols = Set(reverse))
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
     val state = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
     state.graph.findSubgraph[Int](pattern) should not be empty
   }
 
   test("testSygusStep can find reverse reverse l") {
-    val action = new SPBEAction(constantTeminals = Set(tru, fals, x), changingTerminals = Seq(Seq(nil)), symbols = Set(reverse))
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
@@ -48,7 +48,7 @@ class SPBEActionTest extends FunSuite with Matchers {
   }
 
   test("test find that l == reverse reverse l") {
-    val action = new SPBEAction(constantTeminals = Set(tru, fals, x), changingTerminals = Seq(Seq(nil), Seq(xnil), Seq(xynil)), symbols = Set(reverse))
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
