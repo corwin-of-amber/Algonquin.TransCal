@@ -52,7 +52,7 @@ class SPBEActionTest extends FunSuite with Matchers {
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val equives = action.findEquives(state2, (0 to 20) flatMap (_ => AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules))
+    val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     equives should not be empty
     equives.forall({case (k, v) => v.forall(state2.graph.nodes.contains)}) should be (true)
     val programs = new Programs(immutable.VersionedHyperGraph(state2.graph.toSeq: _*))

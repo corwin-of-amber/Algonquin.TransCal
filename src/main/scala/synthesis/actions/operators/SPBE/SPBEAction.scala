@@ -13,7 +13,7 @@ import scala.collection.mutable
 
 // Constructors than split by datatype
 // Grammar use this during graph expansion
-class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], examples: Map[AnnotatedTree, Seq[AnnotatedTree]], termDepth: Int = 5, equivDepth: Int = 8) extends Action {
+class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], examples: Map[AnnotatedTree, Seq[AnnotatedTree]], termDepth: Int = 5, equivDepth: Int = 4) extends Action {
   private def isFunctionType(annotatedTree: AnnotatedTree) = annotatedTree.root.annotation match {
     case Some(annotation) => annotation.root == Language.mapTypeId
     case None => false
@@ -85,8 +85,6 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     edges.map(e => e.copy(target = e.target.copy(e.target.id + startId), sources = e.sources.map(hid => hid.copy(id = hid.id + startId))))
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-
-    val longRules = (0 until equivDepth).flatMap(_ => state.rewriteRules.toSeq)
     var rewriteState = new RewriteSearchState(baseGraph)
 
     for (_ <- 1 to termDepth) {
@@ -94,7 +92,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       rewriteState = sygusStep(rewriteState)
-      rewriteState = findAndMergeEquives(rewriteState, longRules)
+      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
     }
 
     // Prove equivalence by induction.
@@ -150,7 +148,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   }
 
   def findEquives(rewriteState: RewriteSearchState,
-                          longRules: Seq[Operator[RewriteSearchState]]): mutable.MultiMap[HyperTermId, HyperTermId] = {
+                  rules: Seq[Operator[RewriteSearchState]]): mutable.MultiMap[HyperTermId, HyperTermId] = {
     // Use observational equivalence
     val roots = getRoots(rewriteState)
     val fullGraph: RewriteSearchState.HyperGraph =
@@ -175,20 +173,23 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     }).flatten
 
     fullGraph.++=(tupleEdges)
-    val compressed = longRules.foldLeft(new RewriteSearchState(fullGraph))(
-      (s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s)
-    )
+    var searchState = new RewriteSearchState(fullGraph)
+    for (_ <- 0 until equivDepth) {
+      searchState = rules.foldLeft(searchState)(
+        (s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s))
+      logger.debug(s"Finished equiv rules round. Graph size is: ${searchState.graph.size}")
+    }
 
     val toMerge = mutable.HashMultiMap.empty[HyperTermId, HyperTermId]
-    for (e <- compressed.graph.edges if e.edgeType.identifier.literal.startsWith(tupleAnchorStart)) {
+    for (e <- searchState.graph.edges if e.edgeType.identifier.literal.startsWith(tupleAnchorStart)) {
       toMerge.addBinding(e.target, HyperTermId(e.edgeType.identifier.literal.substring(tupleAnchorStart.length).toInt))
     }
     toMerge
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
-                                               longRules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
-    val toMerge = findEquives(rewriteState, longRules)
+                                  rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
+    val toMerge = findEquives(rewriteState, rules)
 
     for ((key, targets) <- toMerge;
          target <- targets) {
