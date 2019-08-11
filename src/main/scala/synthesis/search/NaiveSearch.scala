@@ -12,7 +12,7 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
 
   /* --- Search Impl. --- */
 
-  def search(searchSpace: SS, maxDepth: Double): Option[S] = {
+  def search(searchSpace: SS, maxDepth: Double): (Boolean, S) = {
     var state = searchSpace.initialStates.head
     state match {
       case state1: RewriteSearchState => logger.debug(s"Starting Naive Search. Graph size: ${state1.graph.size}")
@@ -46,8 +46,7 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
         logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
     }
 
-    val res = Some(state).filter(searchSpace.isGoal)
-    res
+    (searchSpace.isGoal(state), state)
   }
 }
 

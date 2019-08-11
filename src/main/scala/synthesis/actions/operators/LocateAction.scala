@@ -13,6 +13,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Finding a hyperterm given a pattern. The given anchor will be added to the graph as a possible translation of the hyperterm.
+  *
   * @author tomer
   * @since 11/18/18
   */
@@ -60,25 +61,28 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(locateRule +: state.rewriteRules.toSeq, initialState, goalPredicate)
-    val rewriteResult = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
+    val (rewriteResult, newState) = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
 
     // Process result
-    val newEdges = rewriteResult.map(_.graph.findEdges(anchor)).toSet.flatten.take(1)
-    val newPrograms = if (rewriteResult.nonEmpty) Programs(rewriteResult.get.graph)
-    else Programs(state.programs.hyperGraph.++(newEdges))
-    if (newEdges.isEmpty) logger.warn("Locate did not find the requested pattern.")
-    else {
-      val terms = newPrograms.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
-      if (terms.hasNext) logger.debug(terms.next().toString())
-      else logger.debug("Found term not constructable (probably a symbol)")
-    }
+    val newEdges = newState.graph.findEdges(anchor).take(1)
+    val newPrograms =
+      if (rewriteResult) {
+        val tempProgs = Programs(newState.graph)
+        val terms = tempProgs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
+        if (terms.hasNext) logger.debug(terms.next().toString())
+        else logger.debug("Found term not constructable (probably a symbol)")
+        tempProgs
+      } else {
+        logger.warn("Locate did not find the requested pattern.")
+        Programs(state.programs.hyperGraph.++(newEdges))
+      }
     ActionSearchState(newPrograms, state.rewriteRules)
   }
 }
 
 object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
-    val anchors = Stream.from(0).map( i =>
+    val anchors = Stream.from(0).map(i =>
       HyperTermIdentifier(Identifier(s"temp anchor $i"))
     ).iterator
     anchors.next
@@ -87,4 +91,5 @@ object LocateAction {
   case class LocateMetadata(edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) extends Metadata {
     override def toStr: String = s"LocateMetadata($edges)"
   }
+
 }
