@@ -21,9 +21,7 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
     val operatorVer: mutable.Map[Operator[S], Long] = mutable.Map.empty
     var i = 0
 
-    var oldState: Option[S] = Option.empty
-    while (!oldState.contains(state) && i < maxDepth && !searchSpace.isGoal(state)) {
-      oldState = Some(state.deepCopy())
+    while (i < maxDepth && !searchSpace.isGoal(state)) {
       import scala.util.control.Breaks._
       breakable {
         for (op <- searchSpace.operators(state)) {
@@ -37,13 +35,14 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
               logger.warn(s"Using a non versioned operator $op")
               op(state)
           }
-          i += 1
           if (searchSpace.isGoal(state)) {
+            logger.debug("Found goal. Stopping NaiveSearch")
             break
           }
         }
       }
-        logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
+      i += 1
+      logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
     }
 
     (searchSpace.isGoal(state), state)
