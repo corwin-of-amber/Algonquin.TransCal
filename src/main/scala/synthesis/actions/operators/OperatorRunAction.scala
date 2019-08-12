@@ -17,6 +17,7 @@ class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearch
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, predicate)
+    logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as ${goalPredicate}")
     val (success, newState) = rewriteSearch.search(spaceSearch, maxSearchDepth)
     if (success) logger.info("Found goal while running operator run")
     else logger.info("Finished operator run to max depth")

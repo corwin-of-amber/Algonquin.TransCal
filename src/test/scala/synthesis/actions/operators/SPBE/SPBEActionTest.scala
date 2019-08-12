@@ -54,11 +54,14 @@ class SPBEActionTest extends FunSuite with Matchers {
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     equives should not be empty
-    equives.forall({case (k, v) => v.forall(state2.graph.nodes.contains)}) should be (true)
-    val programs = new Programs(immutable.VersionedHyperGraph(state2.graph.toSeq: _*))
-    val terms = equives.values.filter(_.size > 1).map(_.map(programs.reconstruct))
-    val reversePlaceholderTwice = terms.map(_.map(_.toList)).exists(s => s.exists(_.exists(_.root.literal=="Placeholder(0)")) &&
-      s.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0)")))
-     reversePlaceholderTwice shouldEqual true
+    equives.forall({s => s.forall(state2.graph.nodes.contains)}) should be (true)
+    val programs = Programs(state2.graph)
+    val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
+    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(_.exists(_.root.literal=="Placeholder(0)")))
+    correctSet should not be empty
+    println("Found correct set of equives")
+    print(correctSet.get)
+    val reversePlaceholderTwice = correctSet.get.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0)"))
+   reversePlaceholderTwice shouldEqual true
   }
 }

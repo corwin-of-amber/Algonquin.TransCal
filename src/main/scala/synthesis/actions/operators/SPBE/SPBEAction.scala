@@ -3,7 +3,7 @@ package synthesis.actions.operators.SPBE
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{Action, LetAction}
+import synthesis.actions.operators.{Action, LetAction, OperatorRunAction}
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -13,7 +13,9 @@ import scala.collection.mutable
 
 // Constructors than split by datatype
 // Grammar use this during graph expansion
-class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], examples: Map[AnnotatedTree, Seq[AnnotatedTree]], termDepth: Int = 5, equivDepth: Int = 4) extends Action {
+class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], examples: Map[AnnotatedTree, Seq[AnnotatedTree]], termDepth: Int = 3, equivDepth: Int = 4) extends Action {
+  assert(examples.values.map(_.size).toSet.size == 1)
+
   private def isFunctionType(annotatedTree: AnnotatedTree) = annotatedTree.root.annotation match {
     case Some(annotation) => annotation.root == Language.mapTypeId
     case None => false
@@ -56,10 +58,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 //  }
 
   private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
-    Identifier(literal = s"Placeholder($i)", annotation = Some(placeholderType))
+    Identifier(literal = s"Placeholder($i) type(${Programs.termToString(placeholderType)})", annotation = Some(placeholderType))
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
-    types.map(t => (t, 0 until 3 map (i => createPlaceholder(t, i)))).toMap
+    types.map(t => (t, 0 to 1 map (i => createPlaceholder(t, i)))).toMap
 
   val baseGraph: ActionSearchState.HyperGraph = {
     val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)) ++ constants
@@ -126,10 +128,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val noPlaceholdersGraph = graph.filterNot(e => updatedPlaceholders.contains(e.edgeType.identifier))
     val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
     var fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
-    for (((exampleKey, exampleValues), index) <- examples.zipWithIndex) {
+    for ((exampleKey, exampleValues) <- examples) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
-      val newEdges = for ((terminal, placeholder) <- exampleValues.zip(placeholders(exampleKey));
+      val newEdges = for ((terminal, index) <- exampleValues.zipWithIndex;
+                          placeholder = placeholders(exampleKey).head;
                           target = graph.findEdges(HyperTermIdentifier(placeholder.copy(annotation = None))).head.target) yield {
         val newAnchors = roots.map(root => anchorByIndex(createAnchor(root), index))
 
@@ -148,7 +151,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   }
 
   def findEquives(rewriteState: RewriteSearchState,
-                  rules: Seq[Operator[RewriteSearchState]]): mutable.MultiMap[HyperTermId, HyperTermId] = {
+                  rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Use observational equivalence
     val roots = getRoots(rewriteState)
     val fullGraph: RewriteSearchState.HyperGraph =
@@ -173,27 +176,24 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     }).flatten
 
     fullGraph.++=(tupleEdges)
-    var searchState = new RewriteSearchState(fullGraph)
-    for (_ <- 0 until equivDepth) {
-      searchState = rules.foldLeft(searchState)(
-        (s: RewriteSearchState, r: Operator[RewriteSearchState]) => r(s))
-      logger.debug(s"Finished equiv rules round. Graph size is: ${searchState.graph.size}")
-    }
+    val searchState = new OperatorRunAction(equivDepth)(ActionSearchState(Programs(fullGraph), rules.toSet))
 
     val toMerge = mutable.HashMultiMap.empty[HyperTermId, HyperTermId]
-    for (e <- searchState.graph.edges if e.edgeType.identifier.literal.startsWith(tupleAnchorStart)) {
+    for (e <- searchState.programs.hyperGraph.edges if e.edgeType.identifier.literal.startsWith(tupleAnchorStart)) {
       toMerge.addBinding(e.target, HyperTermId(e.edgeType.identifier.literal.substring(tupleAnchorStart.length).toInt))
     }
-    toMerge
+
+    toMerge.values.collect({case s: mutable.Set[HyperTermId] if s.size > 1 => s.toSet}).toSet
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
                                   rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
     val toMerge = findEquives(rewriteState, rules)
 
-    for ((key, targets) <- toMerge;
-         target <- targets) {
-      rewriteState.graph.mergeNodes(key, target)
+    for (targets <- toMerge;
+        source = targets.head;
+         target <- targets.tail) {
+      rewriteState.graph.mergeNodes(source, target)
     }
     rewriteState
   }
