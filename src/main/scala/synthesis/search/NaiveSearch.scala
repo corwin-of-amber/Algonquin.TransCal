@@ -21,7 +21,9 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
     val operatorVer: mutable.Map[Operator[S], Long] = mutable.Map.empty
     var i = 0
 
-    while (i < maxDepth && !searchSpace.isGoal(state)) {
+    var oldState: Option[S] = None
+    while (i < maxDepth && !searchSpace.isGoal(state) && !oldState.contains(state)) {
+      oldState = Some(state.deepCopy())
       import scala.util.control.Breaks._
       breakable {
         for (op <- searchSpace.operators(state)) {
