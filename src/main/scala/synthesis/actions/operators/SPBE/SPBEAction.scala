@@ -44,18 +44,18 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   // * Assume you have a base value
   // * create placeholders as needed by constructors
   // * run each constructor on previous values by order or not
-//  private val symbolicSamples = {
-//    val allTypes = types.map(AnnotatedTree.identifierOnly) ++ constructors.flatMap(_.root.annotation.flatMap(_.subtrees))
-//    val placehodlers = allTypes.flatMap(t => 0 until 3 map (i => createPlaceholder(t, i)))
-////    for (t <- types;
-////         vals = constants.filter(_.root.annotation.get.root == t);
-////         consts = constructors.filter(_.root.annotation.get.subtrees.last.root == t)) yield {
-////      val knownVals = mutable.Set[AnnotatedTree](vals.toSeq: _*)
-////      for (i <- 0 until exampleDepth) yield {
-////        val newVals = consts.map(c => AnnotatedTree.withoutAnnotations(c.root, ))
-////      }
-////    }
-//  }
+  //  private val symbolicSamples = {
+  //    val allTypes = types.map(AnnotatedTree.identifierOnly) ++ constructors.flatMap(_.root.annotation.flatMap(_.subtrees))
+  //    val placehodlers = allTypes.flatMap(t => 0 until 3 map (i => createPlaceholder(t, i)))
+  ////    for (t <- types;
+  ////         vals = constants.filter(_.root.annotation.get.root == t);
+  ////         consts = constructors.filter(_.root.annotation.get.subtrees.last.root == t)) yield {
+  ////      val knownVals = mutable.Set[AnnotatedTree](vals.toSeq: _*)
+  ////      for (i <- 0 until exampleDepth) yield {
+  ////        val newVals = consts.map(c => AnnotatedTree.withoutAnnotations(c.root, ))
+  ////      }
+  ////    }
+  //  }
 
   private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
     Identifier(literal = s"Placeholder($i) type(${Programs.termToString(placeholderType)})", annotation = Some(placeholderType))
@@ -104,7 +104,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       val terms = programs.reconstruct(r).take(20)
       // Do the induction step for each couple of terms
       (for ((term1, term2) <- terms.toSeq.combinations(2).map(it => (it(0), it(1)))) yield {
-        inductionStep(state, term1, term2).collect({case rr => rr })
+        inductionStep(state, term1, term2).collect({ case rr => rr })
       }).flatten
     }
     ActionSearchState(state.programs, state.rewriteRules ++ newRules.flatten)
@@ -127,13 +127,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val updatedPlaceholders = placeholders.values.flatMap(_.map(_.copy(annotation = None))).toSet
     val noPlaceholdersGraph = graph.filterNot(e => updatedPlaceholders.contains(e.edgeType.identifier))
     val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
-    var fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
+    val fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
     for ((exampleKey, exampleValues) <- examples) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
-      val newEdges = for ((terminal, index) <- exampleValues.zipWithIndex;
-                          placeholder = placeholders(exampleKey).head;
-                          target = graph.findEdges(HyperTermIdentifier(placeholder.copy(annotation = None))).head.target) yield {
+      for ((terminal, index) <- exampleValues.zipWithIndex;
+           placeholder = placeholders(exampleKey).head;
+           target = graph.findEdges(HyperTermIdentifier(placeholder.copy(annotation = None))).head.target) {
         val newAnchors = roots.map(root => anchorByIndex(createAnchor(root), index))
 
         val termGraph = {
@@ -143,9 +143,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
         val afterAddingTerm = noPlaceholdersGraph.edges ++ newAnchors ++ termGraph.edges
         val maxId = fullGraph.nodes.map(_.id).max
-        shiftEdges(maxId, afterAddingTerm)
+        fullGraph ++= shiftEdges(maxId, afterAddingTerm)
       }
-      fullGraph ++= newEdges.flatten.toSet
     }
     fullGraph
   }
@@ -169,7 +168,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
     // Using tuples to compare all equivalent terms over the different inputs  simultaneously
     val tupleEdges = (for (r <- roots) yield {
-      val targets = 0 until examples.size map(i => fullGraph.findEdges(anchorByIndex(createAnchor(r), i).edgeType).head.target)
+      val anchorsByIndex = examples.head._2.indices map (i => anchorByIndex(createAnchor(r), i))
+      val targets = anchorsByIndex.map(a => fullGraph.findEdges(a.edgeType).head.target)
       val newTarget = idCreator()
       Seq(HyperEdge(newTarget, HyperTermIdentifier(Language.tupleId), targets.toList, EmptyMetadata),
         HyperEdge(newTarget, HyperTermIdentifier(Identifier(s"$tupleAnchorStart${r.id}")), Seq.empty, NonConstructableMetadata))
@@ -183,7 +183,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       toMerge.addBinding(e.target, HyperTermId(e.edgeType.identifier.literal.substring(tupleAnchorStart.length).toInt))
     }
 
-    toMerge.values.collect({case s: mutable.Set[HyperTermId] if s.size > 1 => s.toSet}).toSet
+    toMerge.values.collect({ case s: mutable.Set[HyperTermId] if s.size > 1 => s.toSet }).toSet
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
@@ -191,7 +191,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val toMerge = findEquives(rewriteState, rules)
 
     for (targets <- toMerge;
-        source = targets.head;
+         source = targets.head;
          target <- targets.tail) {
       rewriteState.graph.mergeNodes(source, target)
     }
@@ -206,38 +206,37 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
     // TODO: Add constructor as part of action and use it to create steps
     val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
-//    val mutualPlaceholders = term1.nodes.filter(_.root.literal.startsWith("Placeholder"))
-//      .intersect(term2.nodes.filter(_.root.literal.startsWith("Placeholder")))
-//    mutualPlaceholders.forall(p => {
-//      // TODO: I might want to put all the rewrites on the same graph
-//      val graph = Programs.destruct(term1.map(t => t))
-//      true
-////    })
-//
-//    // Change placeholder to differently named placeholders
-//    val placeholderReplacers1: mutable.Map[Identifier, Seq[Identifier]] =
-//      mutable.HashMap(placeholders.map(p =>
-//        p.root -> (0 until term1.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
-//      ):_ *)
-//
-//    val placeholderReplacers2: mutable.Map[Identifier, Seq[Identifier]] =
-//      mutable.HashMap(placeholders.map(p =>
-//        p.root -> (0 until term2.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
-//      ):_ *)
+    //    val mutualPlaceholders = term1.nodes.filter(_.root.literal.startsWith("Placeholder"))
+    //      .intersect(term2.nodes.filter(_.root.literal.startsWith("Placeholder")))
+    //    mutualPlaceholders.forall(p => {
+    //      // TODO: I might want to put all the rewrites on the same graph
+    //      val graph = Programs.destruct(term1.map(t => t))
+    //      true
+    ////    })
+    //
+    //    // Change placeholder to differently named placeholders
+    //    val placeholderReplacers1: mutable.Map[Identifier, Seq[Identifier]] =
+    //      mutable.HashMap(placeholders.map(p =>
+    //        p.root -> (0 until term1.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
+    //      ):_ *)
+    //
+    //    val placeholderReplacers2: mutable.Map[Identifier, Seq[Identifier]] =
+    //      mutable.HashMap(placeholders.map(p =>
+    //        p.root -> (0 until term2.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
+    //      ):_ *)
 
-//    val updatedTerm1 = {
-//      placeholderReplacers1.map((k, phs) => )
-//    }
+    //    val updatedTerm1 = {
+    //      placeholderReplacers1.map((k, phs) => )
+    //    }
 
     val allVars2 = placeholders.map(p => term2.nodes.count(_ == p))
 
-//    val updatedTerm1 = term1.map(i => {
-//      if(placeholders.map(_.root).contains(i)) {
-//        placeholderCounters(i) = placeholderCounters(i) + 1
-//        i.copy(literal = i.literal + placeholderCounters(i))
-//      } else i
-//    })
-
+    //    val updatedTerm1 = term1.map(i => {
+    //      if(placeholders.map(_.root).contains(i)) {
+    //        placeholderCounters(i) = placeholderCounters(i) + 1
+    //        i.copy(literal = i.literal + placeholderCounters(i))
+    //      } else i
+    //    })
 
 
     // Need to rewrite the modified placeholder original expressions until equality
