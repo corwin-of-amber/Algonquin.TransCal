@@ -4,7 +4,6 @@ import java.io.{PrintStream, File => JFile}
 
 import org.rogach.scallop.ScallopOption
 import synthesis._
-import synthesis.rewrites.RewriteSearchState
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
 import scala.io.Source
@@ -55,13 +54,8 @@ object Main extends App {
 
   val lastState = interpreter.start()
 
-  var hyperGraph = structures.mutable.VersionedHyperGraph(lastState.programs.hyperGraph.toSeq:_*)
-  for(i <- 1 to 2) {
-    for (rewriteRule <- TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules) {
-      hyperGraph = rewriteRule.apply(RewriteSearchState(hyperGraph)).graph
-    }
-  }
-  val fullProgram = Programs(hyperGraph)
+  val fullProgram = lastState.programs
+  val hyperGraph = fullProgram.hyperGraph
 
   println(f"size: $hyperGraph.size")
   println(f"nodes: ${hyperGraph.nodes}")
