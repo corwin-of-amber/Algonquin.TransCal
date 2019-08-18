@@ -48,7 +48,7 @@ class SPBEActionTest extends FunSuite with Matchers {
   }
 
   test("test find that l == reverse reverse l") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 8)
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
@@ -57,7 +57,7 @@ class SPBEActionTest extends FunSuite with Matchers {
     equives.forall({s => s.forall(state2.graph.nodes.contains)}) should be (true)
     val programs = Programs(state2.graph)
     val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
-    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(_.exists(_.root.literal=="Placeholder(0)")))
+    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(_.exists(_.root.literal=="Placeholder(0) type(list(int))")))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)

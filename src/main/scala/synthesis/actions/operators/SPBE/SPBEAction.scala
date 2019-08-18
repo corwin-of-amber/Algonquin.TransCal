@@ -143,7 +143,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
         val afterAddingTerm = noPlaceholdersGraph.edges ++ newAnchors ++ termGraph.edges
         val maxId = fullGraph.nodes.map(_.id).max
-        fullGraph ++= shiftEdges(maxId, afterAddingTerm)
+        val afterShift = shiftEdges(maxId, afterAddingTerm).filterNot(e => {
+          val literal = e.edgeType.identifier.literal
+          literal.startsWith(idAnchorStart) && !literal.contains("iter:")
+        })
+        fullGraph ++= afterShift
       }
     }
     fullGraph
