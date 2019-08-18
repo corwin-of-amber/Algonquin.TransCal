@@ -23,28 +23,32 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   /* --- Public Methods --- */
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    hyperPattern.flatMap((edgePattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]) => {
-      val rightVersionEdges = findRegexHyperEdges(edgePattern).filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
-      rightVersionEdges.flatMap((edge: HyperEdge[Node, EdgeType]) => {
-        val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
-        val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-        val nodesMap = Item.itemsValueToMap(nodes)
-        val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-        val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-        wrapped.findSubgraph[Id](g).map{ case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
+    if (version == 0)
+      wrapped.findSubgraph[Id](hyperPattern)
+    else {
+      hyperPattern.flatMap((edgePattern: HyperEdge[Item[Node, Id], Item[EdgeType, Id]]) => {
+        val rightVersionEdges = findRegexHyperEdges(edgePattern).filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
+        rightVersionEdges.flatMap((edge: HyperEdge[Node, EdgeType]) => {
+          val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
+          val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
+          val nodesMap = Item.itemsValueToMap(nodes)
+          val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
+          val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+          wrapped.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
+        })
       })
-    })
-//      findRegexHyperEdges(edgePattern)
-//        .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
-//        .flatMap(edge => {
-//          val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
-//          val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-//          val nodesMap = Item.itemsValueToMap(nodes)
-//          val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-//          val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-//          wrapped.findSubgraph[Id](g).map{ case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
-//        })
-//    })
+    }
+    //      findRegexHyperEdges(edgePattern)
+    //        .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
+    //        .flatMap(edge => {
+    //          val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
+    //          val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
+    //          val nodesMap = Item.itemsValueToMap(nodes)
+    //          val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
+    //          val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+    //          wrapped.findSubgraph[Id](g).map{ case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
+    //        })
+    //    })
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
