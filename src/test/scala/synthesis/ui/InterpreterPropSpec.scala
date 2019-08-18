@@ -60,5 +60,13 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
     result should not be empty
   }
 
+  test("ReverseReverse") {
+    val fileName = "src/main/resources/examples/ReverseReverse.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩"))
+    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
   override def timeLimit: Span = Span(3, Minutes)
 }
