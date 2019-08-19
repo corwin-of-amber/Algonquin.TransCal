@@ -25,9 +25,9 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("every node is constructable") {
+  property("10 first nodes are constructable") {
     check(forAll { programs: Programs =>
-      programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)
+      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty)
     })
   }
 
@@ -127,5 +127,22 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     val graph2 = Programs.destructPattern(pattern2)
     check(graph.nodes.size > 1)
     check(graph.nodes.size > graph2.nodes.size)
+  }
+
+  property("Destruct typed list with max hypertermid with correct root") {
+    val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
+    val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
+    val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
+    val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
+    val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
+    val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
+    val nil = AnnotatedTree.identifierOnly(Language.nilId.copy(annotation = Some(listInt)))
+    val xnil = AnnotatedTree.withoutAnnotations(typedCons, Seq(x, nil))
+    val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
+
+    val (tempGraph, root) = Programs.destructWithRoot(xynil,
+      maxId = HyperTermId(558))
+
+    check(tempGraph.map(_.target).contains(root))
   }
 }

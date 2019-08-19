@@ -278,7 +278,10 @@ object Programs extends LazyLogging {
       case Some(annotatedTree) =>
         val (targetType, hyperEdgesType) = innerDestruct(annotatedTree, nodeCreator, identToEdge)
         val trueNode = nodeCreator.next()
-        val functionNode = if (newHyperEdges.exists(e => e.sources.isEmpty && e.edgeType == identToEdge(function.copy(annotation = None)))) target else nodeCreator.next()
+        val functionNode = {
+          val found = newHyperEdges.find(e => e.sources.isEmpty && e.edgeType == identToEdge(function.copy(annotation = None)))
+          if (found.nonEmpty) found.get.target else nodeCreator.next()
+        }
         hyperEdgesType ++ Set(
           HyperEdge(functionNode, identToEdge(function.copy(annotation = None)), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
