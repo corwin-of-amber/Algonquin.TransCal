@@ -61,7 +61,7 @@ class SPBEActionTest extends FunSuite with Matchers {
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
-    val reversePlaceholderTwice = correctSet.get.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0)"))
+    val reversePlaceholderTwice = correctSet.get.exists(_.exists(t => t.root.literal=="reverse" && t.subtrees.head.root.literal=="reverse" && t.subtrees.head.subtrees.head.root.literal == "Placeholder(0) type(list(int))"))
    reversePlaceholderTwice shouldEqual true
   }
 }
