@@ -2,9 +2,9 @@ package synthesis.rewrites
 
 import org.scalatest.{FunSuite, Matchers}
 import structures.mutable.VersionedHyperGraph
-import synthesis.{Programs, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesDB}
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{DefAction, RecursiveTimeComplexActionTest}
+import synthesis.{Programs, TimeComplexRewriteRulesDB}
 import transcallang.TranscalParser
 
 class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
@@ -20,7 +20,7 @@ class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
       ).foldLeft(ActionSearchState(Programs.empty, Set.empty))((s, action) => action apply s).programs.hyperGraph
     }
     val basicSize = hyperGraphBasic.size
-    val hyperGraphStart = VersionedHyperGraph.empty ++ RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, hyperGraphBasic)
+    val hyperGraphStart = VersionedHyperGraph.empty ++ RecursiveTimeComplexActionTest.populate(TimeComplexRewriteRulesDB.rewriteRules - MatchTimeComplexRewrite, hyperGraphBasic)
     val startSize = hyperGraphStart.size
     assume(startSize > basicSize)
 
