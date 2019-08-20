@@ -3,6 +3,7 @@ package synthesis.rewrites
 import structures._
 import structures.immutable.HyperGraph
 import synthesis.HyperTermIdentifier
+import synthesis.rewrites.Template.{ReferenceTerm, RepetitionTerm}
 import synthesis.rewrites.rewrites._
 import synthesis.search.VersionedOperator
 import transcallang.Language
@@ -20,15 +21,15 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   }
 
   // Used holes
-  private val trueIdHole = Hole(0)
-  private val functionIdHole = Hole(1)
-  private val functionTypeIdHole = Hole(2)
-  private val functionIdentifierHole = Hole(3)
-  private val functionReturnTypeHole = Hole(4)
-  private val functionApplicationHole = Hole(5)
+  private val trueIdHole = ReferenceTerm(0)
+  private val functionIdHole = ReferenceTerm(1)
+  private val functionTypeIdHole = ReferenceTerm(2)
+  private val functionIdentifierHole = ReferenceTerm(3)
+  private val functionReturnTypeHole = ReferenceTerm(4)
+  private val functionApplicationHole = ReferenceTerm(5)
   private val LARGEST_STATIC_HOLE = 6
-  private val argumentTypesHoles = Repetition.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(Hole(_))).get
-  private val argumentHoles = Repetition.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(Hole(_))).get
+  private val argumentTypesHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(ReferenceTerm(_))).get
+  private val argumentHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(ReferenceTerm(_))).get
 
   // Used edges
   private val trueEdge = patternEdgeCreator(trueIdHole, Language.typeTrueId, Seq())

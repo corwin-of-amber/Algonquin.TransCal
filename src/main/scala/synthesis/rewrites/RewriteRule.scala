@@ -5,7 +5,7 @@ import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 import structures.immutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
-import synthesis.rewrites.Template.TemplateTerm
+import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.search.VersionedOperator
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
@@ -76,7 +76,7 @@ class RewriteRule(val premise: HyperPattern,
     // TODO: change to Uid from Programs instead of global
     val existentialEdges = existentialHoles.zipWithIndex.map({case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
       HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
-        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
+        ExplicitTerm(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
     }})
     conclusion.++(existentialEdges)
   }

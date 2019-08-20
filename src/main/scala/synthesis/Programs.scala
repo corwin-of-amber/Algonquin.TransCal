@@ -32,7 +32,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def findTypes(hyperTermId: HyperTermId): Iterator[AnnotatedTree] = {
     val searchGraph: HyperPattern =
-      VersionedHyperGraph(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.typeId)), Seq(ExplicitTerm(hyperTermId), Hole(1)), NonConstructableMetadata))
+      VersionedHyperGraph(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.typeId)), Seq(ExplicitTerm(hyperTermId), ReferenceTerm(1)), NonConstructableMetadata))
     hyperGraph.findSubgraph[Int](searchGraph).iterator.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
   }
 
