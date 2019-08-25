@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import structures.{EmptyMetadata, HyperEdge}
+import structures.{EmptyMetadata, HyperEdge, Ignored}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.VersionedOperator
@@ -22,8 +22,11 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
   /* --- VersionedOperator Impl. --- */
 
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
-    val timeComplexTrueEdge = HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.timeComplexTrueId)), Seq.empty, EmptyMetadata)
-    val timeComplexTrueId = state.graph.findRegexHyperEdges(timeComplexTrueEdge).map(_.target).head
+    val timeComplexTrueEdge = HyperEdge(Ignored(), ExplicitTerm(HyperTermIdentifier(Language.timeComplexTrueId)), Seq.empty, EmptyMetadata)
+    val timeComplexTrueIdOption = state.graph.findRegexHyperEdges(timeComplexTrueEdge).map(_.target).headOption
+    timeComplexTrueIdOption match {
+      case None => (state, lastVersion)
+      case Some(timeComplexTrueId) =>
     val nodeCreator = Stream.from(state.graph.nodes.map(_.id).max + 1).iterator.map(HyperTermId)
 
     val newMatchTimeComplexEdges = state.graph.findRegexHyperEdges(matchTimeComplexEdge).flatMap(
@@ -41,5 +44,6 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
     })
     val newGraph = state.graph ++ newMatchTimeComplexEdges
     (new RewriteSearchState(newGraph), newGraph.version)
+    }
   }
 }
