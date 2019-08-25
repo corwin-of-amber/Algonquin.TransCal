@@ -11,8 +11,6 @@ case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, n
     case Identifier(l, a ,n) => l == literal && (a == annotation || annotation.isEmpty || a.isEmpty) && n == namespace
     case _ => false
   }
-
-  override def toString: String = s"Identifier(${'"'}${literal.replace("\"", "'")}${'"'}, ${annotation.map(Programs.termToString).getOrElse("None")}, $namespace)"
 }
 
 object Identifier {
@@ -43,14 +41,6 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
       case Some(sw) => sw._2
       case _ => copy(subtrees=subtrees map (_.replaceDescendants(switch)))
     }
-
-  override def toString: String = {
-    if (subtrees.isEmpty) root.toString
-    else {
-      val children = subtrees mkString ", "
-      s"$root{$children}"
-    }
-  }
 }
 
 object AnnotatedTree {
