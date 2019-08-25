@@ -3,11 +3,11 @@ package synthesis.actions.operators.SPBE
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{Action, LetAction, OperatorRunAction}
+import synthesis.actions.operators.{Action, ElaborateAction, LetAction, OperatorRunAction}
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{AnnotatedTree, Identifier, Language}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 import scala.collection.mutable
 
@@ -30,32 +30,15 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
   private val types: Set[AnnotatedTree] = constructors.flatMap(_.root.annotation.get match {
     case AnnotatedTree(Language.mapTypeId, trees, _) => trees
-    case t => Set(t)
+    case t => throw new RuntimeException("All constructors should be function types")
   })
 
-  // How to do this? for now given by user
-  // Maybe i should use the rewrite system
+  // use the rewrite system
   // * Create sygus rules only from constructors.
   // * Create placeholders ahead of time
   // * Base graph of placeholders and constants of created type
   // * Find all hyper terms by type
   // * reconstruct
-  // Or manually apply constructors - more control on created values, a bad assumption
-  // * Assume you have a base value
-  // * create placeholders as needed by constructors
-  // * run each constructor on previous values by order or not
-  //  private val symbolicSamples = {
-  //    val allTypes = types.map(AnnotatedTree.identifierOnly) ++ constructors.flatMap(_.root.annotation.flatMap(_.subtrees))
-  //    val placehodlers = allTypes.flatMap(t => 0 until 3 map (i => createPlaceholder(t, i)))
-  ////    for (t <- types;
-  ////         vals = constants.filter(_.root.annotation.get.root == t);
-  ////         consts = constructors.filter(_.root.annotation.get.subtrees.last.root == t)) yield {
-  ////      val knownVals = mutable.Set[AnnotatedTree](vals.toSeq: _*)
-  ////      for (i <- 0 until exampleDepth) yield {
-  ////        val newVals = consts.map(c => AnnotatedTree.withoutAnnotations(c.root, ))
-  ////      }
-  ////    }
-  //  }
 
   private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
     Identifier(literal = s"Placeholder($i) type(${Programs.termToString(placeholderType)})", annotation = Some(placeholderType))
@@ -101,9 +84,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val roots = getRoots(rewriteState)
     val programs = Programs(rewriteState.graph)
     val newRules = for (r <- roots) yield {
-      val terms = programs.reconstruct(r).take(20)
+      val terms = programs.reconstruct(r).take(20).toList
       // Do the induction step for each couple of terms
-      (for ((term1, term2) <- terms.toSeq.combinations(2).map(it => (it(0), it(1)))) yield {
+      (for ((term1, term2) <- terms.combinations(2).toSeq.map(it => (it(0), it(1)))) yield {
         inductionStep(state, term1, term2).collect({ case rr => rr })
       }).flatten
     }
@@ -202,49 +185,104 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     rewriteState
   }
 
-  private def inductionStep(state: ActionSearchState, term1: AnnotatedTree, term2: AnnotatedTree): Option[RewriteRule] = {
+  private val ltwfId = Identifier("ltwf")
+  private val ltwfTransivity = new LetAction(new TranscalParser()("ltwf(?x, ?y) ||| ltwf(?z, x) >> ltwf(z, y)")).rules
+  private val ltwfByConstructor = {
+    constructors.flatMap(c => {
+      val cType = c.root.annotation.get.subtrees.last
+      val holesAndIgnores = c.subtrees.dropRight(1).zipWithIndex.map({
+        case (t, i) if t == cType => AnnotatedTree.identifierOnly(Identifier(s"?param$i"))
+        case _ => AnnotatedTree.identifierOnly(Identifier("_"))
+      })
+      val rootTree = AnnotatedTree.identifierOnly(Identifier("?root"))
+      val lhs = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
+        rootTree,
+        AnnotatedTree.withoutAnnotations(c.root, holesAndIgnores)
+      ))
+
+      val trueTree = AnnotatedTree.identifierOnly(Language.trueId)
+      val holesLtwf = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, trueTree +: holesAndIgnores.collect({
+        case holeTree if holeTree.root.literal.startsWith("?") =>
+          AnnotatedTree.withoutAnnotations(ltwfId, Seq(holeTree, rootTree))
+      }))
+
+      new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(
+        AnnotatedTree.withoutAnnotations(c.root, holesAndIgnores),
+        holesLtwf
+      ))).rules
+    })
+  }
+  private val ltfwRules = ltwfTransivity ++ ltwfByConstructor
+
+  def inductionStep(state: ActionSearchState, term1: AnnotatedTree, term2: AnnotatedTree): Set[RewriteRule] = {
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 
+    val relevantTypes = constructors.map(_.root.annotation.get match {
+      case AnnotatedTree(Language.mapTypeId, trees, _) => trees.last
+    }).toSet.filter(t => term1.nodes.map(_.root.annotation).contains(Some(t))
+      || term2.nodes.map(_.root.annotation).contains(Some(t)))
+
+    if (relevantTypes.isEmpty) return Set.empty
+
+    assert(relevantTypes.size == 1)
+    val ourType = relevantTypes.head
     // Create new rewrite rule for induction hypothesis
+    // Need to demand that the used hypothesis works only on structures smaller than new applied constructor
+    // For that i created the ltwf relation. The constructor rules will add the needed intial relations.
+    // So I will do directed let and add ltwf(?params from correct type, PH0) on the premise
+    val inductionPh = placeholders(ourType).head
 
-    // TODO: Add constructor as part of action and use it to create steps
-    val hypoth = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(term1, term2))).rules
-    //    val mutualPlaceholders = term1.nodes.filter(_.root.literal.startsWith("Placeholder"))
-    //      .intersect(term2.nodes.filter(_.root.literal.startsWith("Placeholder")))
-    //    mutualPlaceholders.forall(p => {
-    //      // TODO: I might want to put all the rewrites on the same graph
-    //      val graph = Programs.destruct(term1.map(t => t))
-    //      true
-    ////    })
-    //
-    //    // Change placeholder to differently named placeholders
-    //    val placeholderReplacers1: mutable.Map[Identifier, Seq[Identifier]] =
-    //      mutable.HashMap(placeholders.map(p =>
-    //        p.root -> (0 until term1.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
-    //      ):_ *)
-    //
-    //    val placeholderReplacers2: mutable.Map[Identifier, Seq[Identifier]] =
-    //      mutable.HashMap(placeholders.map(p =>
-    //        p.root -> (0 until term2.nodes.count(n => n == p)).map(i => p.root.copy(literal = s"${p.root.literal}$i"))
-    //      ):_ *)
+    def identMapper(i: Identifier) = i match {
+      case i if i == inductionPh => i.copy(literal = "?inductionVar")
+      case i if i.literal.startsWith("Placeholder") => i.copy(literal = "?" + i.literal)
+      case i => i
+    }
 
-    //    val updatedTerm1 = {
-    //      placeholderReplacers1.map((k, phs) => )
-    //    }
+    val updatedTerm1 = term1.map(identMapper)
+    val updatedTerm2 = term2.map(identMapper)
 
-    val allVars2 = placeholders.map(p => term2.nodes.count(_ == p))
+    val hypoths = {
+      val precondition = AnnotatedTree.withoutAnnotations(ltwfId,
+        Seq(identMapper(inductionPh), inductionPh).map(AnnotatedTree.identifierOnly))
 
-    //    val updatedTerm1 = term1.map(i => {
-    //      if(placeholders.map(_.root).contains(i)) {
-    //        placeholderCounters(i) = placeholderCounters(i) + 1
-    //        i.copy(literal = i.literal + placeholderCounters(i))
-    //      } else i
-    //    })
+      val dir1 = new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(
+        AnnotatedTree.withoutAnnotations(Language.trueCondBuilderId, Seq(precondition, updatedTerm1)),
+        updatedTerm2
+      ))).rules
+      val dir2 = new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(
+        AnnotatedTree.withoutAnnotations(Language.trueCondBuilderId, Seq(precondition, updatedTerm2)),
+        updatedTerm1
+      ))).rules
+      dir1 ++ dir2
+    }
 
-
-    // Need to rewrite the modified placeholder original expressions until equality
-
-    None
+    val conses = constructors.filter(c =>
+      (c.root.annotation.get match {
+        case AnnotatedTree(Language.mapTypeId, trees, _) => trees.last
+      }) == ourType)
+    if (conses.forall(c => {
+      // Replace inductionPh by inductionVar
+      // Create base graph where inductionPh ||| c(existentials: _*)
+      val constructedVal = AnnotatedTree.withoutAnnotations(c.root,
+        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (t, i) =>
+          AnnotatedTree.identifierOnly(Identifier(s"param$i", annotation=Some(t)))
+        })
+      )
+      val inductionPhTree = AnnotatedTree.identifierOnly(inductionPh.copy(literal = "?inductionVar"))
+      val anchorForTerm1 = AnnotatedTree.identifierOnly(Identifier("AnchorForTerm1"))
+      val anchorForTerm2 = AnnotatedTree.identifierOnly(Identifier("AnchorForTerm2"))
+      val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId,
+        Seq(anchorForTerm1, anchorForTerm2)))).head
+      val term1WithAnchor = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(updatedTerm1, anchorForTerm1))
+      val term2WithAnchor = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(updatedTerm2, anchorForTerm2))
+      val phToConstructed = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(inductionPhTree, constructedVal)))
+      val actionSearchState = new ActionSearchState(Programs(term1WithAnchor).addTerm(term2WithAnchor), rules ++ ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+      val elaborateState = new ElaborateAction(HyperTermIdentifier(anchorForTerm1.root), pattern, patternRoot, maxSearchDepth = Some(8))(actionSearchState)
+      // If they are different it was found
+      elaborateState != actionSearchState
+    }))
+      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2))).rules
+    else Set.empty
   }
 }
