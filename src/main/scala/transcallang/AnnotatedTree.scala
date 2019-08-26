@@ -11,6 +11,8 @@ case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, n
     case Identifier(l, a ,n) => l == literal && (a == annotation || annotation.isEmpty || a.isEmpty) && n == namespace
     case _ => false
   }
+
+  override def toString: String = "Identifier(\"" + s"$literal" + "\", " + s"$annotation, $namespace)"
 }
 
 object Identifier {
