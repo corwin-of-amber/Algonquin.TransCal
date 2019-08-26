@@ -15,7 +15,7 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
 
   private val matchTimeComplexEdge = HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.matchId)), Seq(RepetitionTerm.rep1(Int.MaxValue, Stream.from(1).map(ReferenceTerm(_))).get), EmptyMetadata)
 
-  private def createRimeComplexRegex(id: HyperTermId): HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]] = {
+  private def createTimeComplexRegex(id: HyperTermId): HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]] = {
     HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.timeComplexId)), Seq(ExplicitTerm(id), ReferenceTerm(1)), EmptyMetadata)
   }
 
@@ -33,7 +33,7 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
       edge => {
         val matchExpressionNodeId = edge.target
         Programs.combineSeq(edge.sources.map(id =>
-          state.graph.findRegexHyperEdges(createRimeComplexRegex(id)).map(_.sources(1)).iterator
+          state.graph.findRegexHyperEdges(createTimeComplexRegex(id)).map(_.sources(1)).iterator
         )).flatMap(timeComplexSources => {
           val matchTimeComplexId = nodeCreator.next()
           Set(
