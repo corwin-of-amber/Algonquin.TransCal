@@ -267,6 +267,26 @@ object Programs extends LazyLogging {
         (targetToSubedges.last._1,
           subHyperEdges + HyperEdge(precondRoot, identToEdge(Language.trueId.copy(annotation = None)), List.empty, EmptyMetadata)
         )
+      case Language.guardedId =>
+        val target = nodeCreator.next()
+        val timeComplexTrueNode = nodeCreator.next()
+        val zeroNode = nodeCreator.next()
+        val argsTarget = Seq(
+          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(targetToSubedges.head._1, zeroNode), EmptyMetadata)
+        ) ++ (if (args.head.root == Language.tupleId) {
+          val temp = args.head.subtrees.flatMap(arg => subHyperEdges.find(edge => edge.edgeType == identToEdge(arg.root))).map(edge =>
+            HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(edge.target, zeroNode), EmptyMetadata)
+          )
+          temp
+        } else { Seq.empty })
+        (
+          target,
+          subHyperEdges ++ argsTarget ++ Seq(
+            HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata),
+            HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexTrueId), Seq.empty, EmptyMetadata),
+            HyperEdge(zeroNode, identToEdge(Identifier("0")), Seq.empty, EmptyMetadata)
+          )
+        )
       case _ =>
         val target = nodeCreator.next()
         (
