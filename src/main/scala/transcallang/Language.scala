@@ -72,6 +72,8 @@ object Language {
   val orId: Identifier = Identifier("∨")
   val timeComplexId = Identifier("timecomplex")
   val timeComplexTrueId = Identifier("timecomplexTrue")
+  val spaceComplexId = Identifier("spacecomplex")
+  val spaceComplexTrueId = Identifier("spacecomplexTrue")
   val typeTrueId = Identifier("typeTrue")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
