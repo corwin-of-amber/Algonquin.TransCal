@@ -5,7 +5,7 @@ import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge, Ignored, Metadata}
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.rewrites.{FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite, MatchTimeComplexRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite, MatchTimeComplexRewrite, RewriteRule, RewriteSearchState, TupleTimeComplexRewrite}
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
@@ -205,7 +205,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     (_, _) => TimeComplexMetadata
   )
   override lazy val rewriteRules = ruleTemplates.flatMap(ruleTemplatesToRewriteRules) ++ Seq(
-    guardedTimeComplexRewriteRule, MatchTimeComplexRewrite
+    guardedTimeComplexRewriteRule, MatchTimeComplexRewrite, TupleTimeComplexRewrite
   )
 
 }
