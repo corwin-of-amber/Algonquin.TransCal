@@ -287,6 +287,22 @@ object Programs extends LazyLogging {
             HyperEdge(zeroNode, identToEdge(Identifier("0")), Seq.empty, EmptyMetadata)
           )
         )
+      case function if Language.builtinConsts.contains(function) || Try(function.literal.toInt).isSuccess =>
+        val target = nodeCreator.next()
+        val timeComplexTrueNode = nodeCreator.next()
+        val spaceComplexTrueNode = nodeCreator.next()
+        val zeroNode = nodeCreator.next()
+        (
+        target,
+        subHyperEdges ++ Seq(
+          HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata),
+          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(target, zeroNode), EmptyMetadata),
+          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexTrueId), Seq.empty, EmptyMetadata),
+          HyperEdge(spaceComplexTrueNode, identToEdge(Language.spaceComplexId), Seq(target, zeroNode), EmptyMetadata),
+          HyperEdge(spaceComplexTrueNode, identToEdge(Language.spaceComplexTrueId), Seq.empty, EmptyMetadata),
+          HyperEdge(zeroNode, identToEdge(Identifier("0")), Seq.empty, EmptyMetadata),
+        )
+        )
       case _ =>
         val target = nodeCreator.next()
         (
