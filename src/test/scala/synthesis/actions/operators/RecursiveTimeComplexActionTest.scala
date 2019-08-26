@@ -16,8 +16,6 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
     val terms = List(
       parser.apply("nodup ?w ?l = l match (⟨⟩ => true) / ((?x :: ?xs) => ({x} ∉ w) ∧ (nodup ({x} ∪ w) xs)) [++]"),
       parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} ?l 0 [++]"),
-      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} ⟨⟩ 0 [++]"),
-      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} true 0 [++]"),
       parser.apply("a1 -> ?nodup' {x} xs"),
       parser.apply("xs = x' :: xs'"),
       parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} l 0 [++]"),
