@@ -12,13 +12,6 @@ import scala.collection.{GenTraversableOnce, SetLike}
 trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with Set[HyperEdge[Node, EdgeType]]]
   extends SetLike[HyperEdge[Node, EdgeType], This] {
 
-  /** Finds all the edges with the EdgeType
-    *
-    * @param edgeType to search.
-    * @return correspond edges.
-    */
-  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = edges.filter(_.edgeType == edgeType)
-
   /** Find a pattern of an edge in the graph.
     *
     * @param pattern The pattern of an edge.
@@ -29,6 +22,18 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
   def findRegexHyperEdges[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = findRegex(pattern).map(_._1)
   def findRegexMaps[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = findRegex(pattern).map(t => (t._2, t._3))
   def contains(elem: HyperEdge[Node, EdgeType]): Boolean = findRegex(HyperEdge(Explicit(elem.target), Explicit(elem.edgeType), elem.sources.map(Explicit(_)), elem.metadata)).nonEmpty
+
+  def findInSources[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(n), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+  def findByTarget[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Explicit(n), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+  def findByEdgeType[Id](et: EdgeType): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Explicit(et), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+
+
+  /** Finds all the edges with the EdgeType
+    *
+    * @param edgeType to search.
+    * @return correspond edges.
+    */
+  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = findByEdgeType[Int](edgeType)
 
   /** Finds subgraphs by a pattern graph.
     *

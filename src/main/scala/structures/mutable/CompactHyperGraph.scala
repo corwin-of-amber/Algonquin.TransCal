@@ -39,12 +39,12 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
 
   override def mergeNodes(keep: Node, change: Node): CompactHyperGraph[Node, EdgeType] = {
     wrapped.mergeNodes(keep, change)
-    compact(edges.filter(e => e.target == keep || e.sources.contains(keep)).toList, mutable.Map.empty[Node, Node])
+    compact((findByTarget(keep) ++ findInSources(keep)).toList, mutable.Map.empty[Node, Node])
   }
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): CompactHyperGraph[Node, EdgeType] = {
     wrapped.mergeEdgeTypes(keep, change)
-    compact(edges.filter(e => e.edgeType == keep).toList, mutable.Map.empty[Node, Node])
+    compact(findEdges(keep).toList, mutable.Map.empty[Node, Node])
   }
 
   /* --- Object Impl. --- */
@@ -81,11 +81,9 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
 //      assert(foundTarget.size <= 1)
       if (foundTarget.nonEmpty) {
         val existsTarget = foundTarget.head
-        // TODO: use find regex
         val keysToChange = changedToKept.collect({case (k, v) if v == hyperEdge.target => k})
         for (k <- keysToChange) { changedToKept(k) = existsTarget }
-        // TODO: Use rep0 to create a fast pattern for this
-        val willChange = wrapped.edges.filter(_.sources.contains(hyperEdge.target)).map(e => translateEdge(e, changedToKept))
+        val willChange = wrapped.findInSources[Int](hyperEdge.target).map(e => translateEdge(e, changedToKept))
         wrapped.mergeNodes(existsTarget, hyperEdge.target)
 
         changedToKept(hyperEdge.target) = existsTarget
