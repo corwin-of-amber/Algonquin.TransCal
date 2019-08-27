@@ -15,12 +15,6 @@ class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
   val containerComplexityGen: Gen[ContainerComplexity] = Gen.alphaNumStr.map(ContainerComplexity(_))
   private implicit val containerComplexityCreator: Arbitrary[ContainerComplexity] = Arbitrary(containerComplexityGen)
 
-  val logComplexityGen: Gen[LogComplexity] = containerComplexityGen.map(_.log.asInstanceOf)
-  private implicit val logComplexityCreator: Arbitrary[LogComplexity] = Arbitrary(logComplexityGen)
-
-  val polynomialComplexityGen: Gen[PolynomialComplexity] = containerComplexityGen.flatMap(a => containerComplexityGen.map(_ ^ a))
-  private implicit val polynomialComplexityCreator: Arbitrary[PolynomialComplexity] = Arbitrary(polynomialComplexityGen)
-
   val addComplexityGen: Gen[AddComplexity] = containerComplexityGen.flatMap(a => containerComplexityGen.map(_ + a))
   private implicit val addComplexityCreator: Arbitrary[AddComplexity] = Arbitrary(addComplexityGen)
 
@@ -36,12 +30,6 @@ class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
   property("mul of mul is flatten") {
     check(forAll { multipleComplexity: MultipleComplexity =>
       (multipleComplexity * multipleComplexity).complexities.forall(!_.isInstanceOf[MultipleComplexity])
-    })
-  }
-
-  property("log of poly is flatten") {
-    check(forAll { polynomialComplexity: PolynomialComplexity =>
-      polynomialComplexity.log == polynomialComplexity.exponent
     })
   }
 }
