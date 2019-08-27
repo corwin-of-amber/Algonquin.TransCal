@@ -52,9 +52,8 @@ class RewriteRule(val premise: HyperPattern,
         e.copy(metadata = e.metadata.merge(meta)))
     })
     // Should crash if we still have holes as its a bug
-    val origSize = compactGraph.size
     compactGraph ++= newEdges
-    if (compactGraph.size > origSize) {
+    if (newEdges.nonEmpty) {
       logger.debug(s"Used RewriteRule $this")
     }
 
