@@ -39,6 +39,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
       pattern.+(newRootEdge).-(rootEdge)
     }
 
+    // TODO: Add non existantial double directed rewrites for matches
     (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))
   }
 
