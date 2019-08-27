@@ -22,7 +22,7 @@ trait RewriteRulesDB extends LazyLogging {
 }
 
 object SystemRewriteRulesDB extends RewriteRulesDB {
-  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite)
+  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
 
   override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
 

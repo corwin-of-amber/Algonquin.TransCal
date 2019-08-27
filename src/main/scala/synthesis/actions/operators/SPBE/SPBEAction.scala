@@ -178,7 +178,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     }).flatten
 
     fullGraph.++=(tupleEdges)
-    val searchState = new OperatorRunAction(equivDepth)(ActionSearchState(Programs(fullGraph), rules.toSet))
+    val searchState = new OperatorRunAction(equivDepth)(ActionSearchState(Programs(fullGraph.filterNot(_.edgeType.identifier.literal == "type")), rules.toSet))
 
     val toMerge = mutable.HashMultiMap.empty[HyperTermId, HyperTermId]
     for (e <- searchState.programs.hyperGraph.edges if e.edgeType.identifier.literal.startsWith(tupleAnchorStart)) {
