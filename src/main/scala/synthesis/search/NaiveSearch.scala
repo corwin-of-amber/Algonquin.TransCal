@@ -12,7 +12,7 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
 
   /* --- Search Impl. --- */
 
-  def search(searchSpace: SS, maxDepth: Double): Option[S] = {
+  def search(searchSpace: SS, maxDepth: Double): (Boolean, S) = {
     var state = searchSpace.initialStates.head
     state match {
       case state1: RewriteSearchState => logger.debug(s"Starting Naive Search. Graph size: ${state1.graph.size}")
@@ -21,8 +21,8 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
     val operatorVer: mutable.Map[Operator[S], Long] = mutable.Map.empty
     var i = 0
 
-    var oldState: Option[S] = Option.empty
-    while (!oldState.contains(state) && i < maxDepth && !searchSpace.isGoal(state)) {
+    var oldState: Option[S] = None
+    while (i < maxDepth && !searchSpace.isGoal(state) && !oldState.contains(state)) {
       oldState = Some(state.deepCopy())
       import scala.util.control.Breaks._
       breakable {
@@ -30,24 +30,24 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
           state = op match {
             case versionedOp: VersionedOperator[S] =>
               val version = operatorVer.getOrElse(versionedOp, 0L)
-              val (s, newVer) = versionedOp.apply(state, version)
+              val (s, newVer) = versionedOp.apply(state, 0)
               operatorVer.put(versionedOp, newVer)
               s
             case _ =>
               logger.warn(s"Using a non versioned operator $op")
               op(state)
           }
-          i += 1
           if (searchSpace.isGoal(state)) {
+            logger.debug("Found goal. Stopping NaiveSearch")
             break
           }
         }
       }
-        logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
+      i += 1
+      logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
     }
 
-    val res = Some(state).filter(searchSpace.isGoal)
-    res
+    (searchSpace.isGoal(state), state)
   }
 }
 

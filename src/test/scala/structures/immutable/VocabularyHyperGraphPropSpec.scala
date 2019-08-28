@@ -383,4 +383,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
     check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
+
+
 }

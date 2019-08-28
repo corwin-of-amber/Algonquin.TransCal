@@ -1,12 +1,12 @@
 package synthesis
 
-import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
-import org.scalatest.{FunSpec, FunSuite, Matchers, PropSpec}
-import org.scalatestplus.scalacheck.Checkers
-import structures.{EmptyMetadata, HyperEdge}
+import org.scalatest.{FunSuite, Matchers}
+import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
+import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
+import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
 class RewriteRulesDBTest extends FunSuite with Matchers {
 
@@ -91,5 +91,142 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val term2 = new TranscalParser().parseExpression("(x ∧ (y ∧ z))")
     validate(term1, term2)
     validate(term2, term1)
+  }
+
+  test("Reconstruct simple value") {
+    val parser = new TranscalParser
+    val tree = parser.apply("timecomplexTrue = timecomplex x 0")
+    val programs = Programs.empty.addTerm(tree)
+
+    val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
+    assume(headEdge.nonEmpty)
+    val result = programs.reconstructWithTimeComplex(headEdge.get).toSeq
+    result shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
+  }
+
+  test("Reconstruct concat time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs 0 = timecomplexTrue")
+    val tree3 = parser.parseExpression("x :: xs")
+
+    val graphBefore = {
+      val programs = Programs.empty + tree1 + tree2 + tree3
+      programs.hyperGraph
+    }
+    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+    assume((graphAfter -- graphBefore).nonEmpty)
+
+    val programs = Programs(graphAfter)
+
+    val xEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
+    assume(xEdgeOption.nonEmpty)
+    programs.reconstructWithTimeComplex(xEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
+    val xsEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("xs")).map(_.target)
+    assume(xsEdgeOption.nonEmpty)
+    programs.reconstructWithTimeComplex(xsEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0)))
+
+    val concatEdgeOption = programs.hyperGraph.find(e => e.sources == Seq(xEdgeOption.get, xsEdgeOption.get) && e.edgeType.identifier == Identifier("::")).map(_.target)
+    assume(concatEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(concatEdgeOption.get).toSeq
+    val expectedTree = tree3
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1)))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
+  }
+
+  test("Reconstruct elems time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex xs 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
+    val tree3 = parser.parseExpression("elems(xs)")
+
+    val programs = {
+      val graphBefore = {
+        val programs = Programs.empty + tree1 + tree2 + tree3
+        programs.hyperGraph
+      }
+      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter1 -- graphBefore).nonEmpty)
+
+      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter2 -- graphAfter1).nonEmpty)
+
+      Programs(graphAfter2)
+    }
+
+    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 1 && e.edgeType.identifier == Identifier("elems")).map(_.target)
+    assume(elemsEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
+    val expectedTree = tree3
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
+  }
+
+  test("Reconstruct ∪ time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs (len(xs)) = timecomplexTrue")
+    val tree3 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
+    val tree4 = parser.parseExpression("elems(x :: xs)")
+
+    val programs = {
+      val graphBefore = {
+        val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
+        programs.hyperGraph
+      }
+      val rewriteRules = SimpleRewriteRulesDB.rewriteRules.toSeq ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter1 -- graphBefore).nonEmpty)
+
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter2 -- graphAfter1).nonEmpty)
+
+      Programs(graphAfter2)
+    }
+
+    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("∪")).map(_.target)
+    assume(elemsEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSet
+    val expectedTree = parser.parseExpression("{x} ∪ (elems xs)")
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
+  }
+
+  test("Reconstruct ‖ time complex") {
+    val parser = new TranscalParser
+    val tree1 = parser.parseExpression("timecomplex x 0 = timecomplexTrue")
+    val tree2 = parser.parseExpression("timecomplex xs (len(xs)) = timecomplexTrue")
+    val tree3 = parser.parseExpression("spacecomplex xs (len(xs)) = spacecomplexTrue")
+    val tree4 = parser.parseExpression("{x} ‖ elems(xs)")
+
+    val programs = {
+      val graphBefore = {
+        val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
+        programs.hyperGraph
+      }
+      val rewriteRules = TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter1 -- graphBefore).nonEmpty)
+
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      assume((graphAfter2 -- graphAfter1).nonEmpty)
+
+      Programs(graphAfter2)
+    }
+
+    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("‖")).map(_.target)
+    assume(elemsEdgeOption.nonEmpty)
+
+    val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
+    val expectedTree = tree4
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
+    result.size shouldEqual 1
+    result.head shouldEqual (expectedTree, expectedComplexity)
   }
 }

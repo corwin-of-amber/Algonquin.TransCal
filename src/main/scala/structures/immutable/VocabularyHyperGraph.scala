@@ -145,7 +145,9 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       }
     }
 
-    getReferencesMap(hyperPattern.toSeq, Map.empty, Map.empty)
+    val countNodes = hyperPattern.nodes.foldLeft(Map.empty[Item[Node, Id], Int])((map, node) => map.+((node, map.getOrElse(node, 0))))
+    val countEdgeTypes = hyperPattern.edgeTypes.foldLeft(Map.empty[Item[EdgeType, Id], Int])((map, node) => map.+((node, map.getOrElse(node, 0))))
+    getReferencesMap(hyperPattern.toList.sorted(new RegexOrdering(countNodes, countEdgeTypes).reverse), Map.empty, Map.empty)
   }
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = vocabulary.words.map(wordToHyperEdge)

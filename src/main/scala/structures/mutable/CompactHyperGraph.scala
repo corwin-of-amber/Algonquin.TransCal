@@ -37,6 +37,16 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
     compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
   }
 
+  override def mergeNodes(keep: Node, change: Node): CompactHyperGraph[Node, EdgeType] = {
+    wrapped.mergeNodes(keep, change)
+    compact((findByTarget(keep) ++ findInSources(keep)).toList, mutable.Map.empty[Node, Node])
+  }
+
+  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): CompactHyperGraph[Node, EdgeType] = {
+    wrapped.mergeEdgeTypes(keep, change)
+    compact(findEdges(keep).toList, mutable.Map.empty[Node, Node])
+  }
+
   /* --- Object Impl. --- */
 
   override def toString: String = f"CompactHyperGraph($edges)"
@@ -67,15 +77,13 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
         foundTarget ++= wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         wrapped.+=(hyperEdge)
       }
-      assert(foundTarget.size <= 1)
+      // Commented out as it is not always true anymore
+//      assert(foundTarget.size <= 1)
       if (foundTarget.nonEmpty) {
         val existsTarget = foundTarget.head
-        // TODO: use find regex
-        for ((k, v) <- changedToKept if v == hyperEdge.target) {
-          changedToKept(k) = existsTarget
-        }
-        // TODO: Use rep0 to create a fast pattern for this
-        val willChange = wrapped.edges.filter(_.sources.contains(hyperEdge.target)).map(e => translateEdge(e, changedToKept))
+        val keysToChange = changedToKept.collect({case (k, v) if v == hyperEdge.target => k})
+        for (k <- keysToChange) { changedToKept(k) = existsTarget }
+        val willChange = wrapped.findInSources[Int](hyperEdge.target).map(e => translateEdge(e, changedToKept))
         wrapped.mergeNodes(existsTarget, hyperEdge.target)
 
         changedToKept(hyperEdge.target) = existsTarget
@@ -83,6 +91,8 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeTy
       }
     }
     this
+    // If you changed compact please runn all tests with breakpoint condition on this:
+    // edges.exists(e => edges.exists(e1 => e.edgeType == e1.edgeType && e.sources == e1.sources && e.target != e1.target))
   }
 }
 

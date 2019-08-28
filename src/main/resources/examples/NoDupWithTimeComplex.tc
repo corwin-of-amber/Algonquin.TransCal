@@ -26,8 +26,6 @@ timecomplexTrue = timecomplex xs' 0 [++]
 timecomplexTrue = timecomplex x 0 [++]
 timecomplexTrue = timecomplex x' 0 [++]
 timecomplexTrue = timecomplex true 0 [++]
-timecomplexTrue -> timecomplex (elem _ _) _
-timecomplex (elem _ _) _ -> a3
 
 // (1) -> (_ ∉ {x'}) /\ (_ ‖ _) /\ nodup xs' [lim(2)]
 
@@ -37,12 +35,9 @@ timecomplex (elem _ _) _ -> a3
 
 a1 -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 
-timecomplex (_ ∈ elems(xs)) _ -> a4
-timecomplex (_ ∪ _) _ -> a5
+timecomplexTrue -> timecomplex ({x'} ∪ elems(xs')) (1 + 1 + 1 + 1 + len(xs') + len(xs'))
 
 a1 -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
-
-timecomplex _ _ -> a6
 
 /*
 x ∉ _ /\ x' ∉ _ -> 2

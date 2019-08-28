@@ -31,10 +31,13 @@ object Language {
   val lambdaId: Identifier = Identifier("↦")
   val splitId: Identifier = Identifier("/")
   val idId: Identifier = Identifier("id")
-  val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))
-  val falseId: Identifier = Identifier("⊥", annotation=Some(typeBoolean))
+  val trueId: Identifier = Identifier("⊤")
+//  val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))
+  val falseId: Identifier = Identifier("⊥")
+//  val falseId: Identifier = Identifier("⊥", annotation=Some(typeBoolean))
   val nilId: Identifier = Identifier("⟨⟩")
-  val negId: Identifier = Identifier("¬", annotation=Some(typeBooleanToBoolean))
+  val negId: Identifier = Identifier("¬")
+//  val negId: Identifier = Identifier("¬", annotation=Some(typeBooleanToBoolean))
   val holeId: Identifier = Identifier("_")
   val guardedId: Identifier = Identifier("⇒")
   val tacticId: Identifier = Identifier("->")
@@ -70,6 +73,9 @@ object Language {
   val unionId: Identifier = Identifier("∪")
   val andId: Identifier = Identifier("∧")
   val orId: Identifier = Identifier("∨")
+  val timeComplexId = Identifier("timecomplex")
+  val timeComplexTrueId = Identifier("timecomplexTrue")
+  val typeTrueId = Identifier("typeTrue")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 

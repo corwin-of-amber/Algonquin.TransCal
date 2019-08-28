@@ -20,7 +20,6 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
 
   private def abstractTest(fileName: String): ActionSearchState = {
     val wd = new JFile(".").getCanonicalPath
-    println(wd)
     val userInput: Iterator[AnnotatedTree] = readJFile(new JFile(fileName))
     val userOutput: ByteArrayOutputStream = new ByteArrayOutputStream()
     val interpreter = new Interpreter(userInput, new PrintStream(userOutput))
@@ -38,7 +37,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
   test("NoDup with TimeComplex") {
     val fileName = "src/main/resources/examples/NoDupWithTimeComplex.tc"
     val lastState = abstractTest(fileName)
-    val pattern = Programs.destructPattern(parser.apply("(1) -> (_ ∉ {x}) /\\ nodup' _ _").subtrees(1))
+    val pattern = Programs.destructPattern(parser.apply("(1) -> timecomplex ({x'} ∪ elems(xs')) (1 + 1 + 1 + 1 + len(xs') + len(xs'))").subtrees(1))
     val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
@@ -57,6 +56,14 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
     val fileName = "src/main/resources/examples/ConcatMap.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.apply("_ ++ _ -> concatMap' _ _ _").subtrees(1))
+    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
+  test("ReverseReverse") {
+    val fileName = "src/main/resources/examples/ReverseReverse.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩"))
     val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
     result should not be empty
   }

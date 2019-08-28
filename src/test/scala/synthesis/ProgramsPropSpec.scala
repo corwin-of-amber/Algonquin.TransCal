@@ -6,11 +6,9 @@ import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.VersionedHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
-import transcallang.{AnnotatedTree, Identifier, TranscalParser}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class ProgramsPropSpec extends PropSpec with Checkers {
 
@@ -27,9 +25,9 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     })
   }
 
-  property("every node is constructable") {
+  property("10 first nodes are constructable") {
     check(forAll { programs: Programs =>
-      programs.hyperGraph.nodes.map(programs.reconstruct).forall(_.nonEmpty)
+      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty)
     })
   }
 
@@ -71,7 +69,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(forAll { (term1: AnnotatedTree, term2: AnnotatedTree) =>
       (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
         val progs = Programs(new AnnotatedTree(splitId, List(term1, term2), Seq.empty))
-        val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("id")))
+        val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Language.idId))
         edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
       }
     })
@@ -102,16 +100,16 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("x")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("xs")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(7), HyperTermIdentifier(Identifier("elem")), List(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
-        HyperEdge(HyperTermId(7), HyperTermIdentifier(Identifier("‖")), List(HyperTermId(15), HyperTermId(12)), EmptyMetadata),
-        HyperEdge(HyperTermId(8), HyperTermIdentifier(Identifier("∉")), List(HyperTermId(1), HyperTermId(12)), EmptyMetadata),
+        HyperEdge(HyperTermId(7), HyperTermIdentifier(Language.setDisjointId), List(HyperTermId(15), HyperTermId(12)), EmptyMetadata),
+        HyperEdge(HyperTermId(8), HyperTermIdentifier(Language.setNotContainsId), List(HyperTermId(1), HyperTermId(12)), EmptyMetadata),
         HyperEdge(HyperTermId(8), HyperTermIdentifier(Identifier("¬")), List(HyperTermId(7)), EmptyMetadata),
         HyperEdge(HyperTermId(10), HyperTermIdentifier(Identifier("nodup")), List(HyperTermId(2)), EmptyMetadata),
-        HyperEdge(HyperTermId(11), HyperTermIdentifier(Identifier("∧")), List(HyperTermId(8), HyperTermId(10)), EmptyMetadata),
+        HyperEdge(HyperTermId(11), HyperTermIdentifier(Language.andId), List(HyperTermId(8), HyperTermId(10)), EmptyMetadata),
         HyperEdge(HyperTermId(12), HyperTermIdentifier(Identifier("elems")), List(HyperTermId(2)), EmptyMetadata),
-        HyperEdge(HyperTermId(15), HyperTermIdentifier(Identifier("{.}")), List(HyperTermId(1)), EmptyMetadata)
+        HyperEdge(HyperTermId(15), HyperTermIdentifier(Language.setId), List(HyperTermId(1)), EmptyMetadata)
       ): _*)
     val terms = new Programs(graph).reconstruct(HyperTermId(11))
-    check(terms.exists((t: AnnotatedTree) => t.nodes.map(_.root.literal).contains("‖")))
+    check(terms.exists((t: AnnotatedTree) => t.nodes.map(_.root).contains(Language.setDisjointId)))
   }
 
   property("when deconstructing any hole create a special edge to match all nodes") {
@@ -131,40 +129,20 @@ class ProgramsPropSpec extends PropSpec with Checkers {
     check(graph.nodes.size > graph2.nodes.size)
   }
 
-  property("Reconstruct simple value") {
-    val valueEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
-    val timeComplexEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
-    val timeComplexBridgeEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
-    val graph = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] + valueEdge + timeComplexEdge + timeComplexBridgeEdge
-    val programs = Programs(graph)
+  property("Destruct typed list with max hypertermid with correct root") {
+    val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
+    val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
+    val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
+    val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
+    val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
+    val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
+    val nil = AnnotatedTree.identifierOnly(Language.nilId.copy(annotation = Some(listInt)))
+    val xnil = AnnotatedTree.withoutAnnotations(typedCons, Seq(x, nil))
+    val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
 
-    val result = programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq
-    check(result == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
-  }
+    val (tempGraph, root) = Programs.destructWithRoot(xynil,
+      maxId = HyperTermId(558))
 
-  property("Reconstruct 1 deep value") {
-    val xEdge = HyperEdge(HyperTermId(0), HyperTermIdentifier(Identifier("x")), Seq.empty, EmptyMetadata)
-    val xsEdge = HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("xs")), Seq.empty, EmptyMetadata)
-    val buildEdge = HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("::")), Seq(HyperTermId(0), HyperTermId(1)), EmptyMetadata)
-    val zeroEdge = HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("0")), Seq.empty, EmptyMetadata)
-    val xTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(0), HyperTermId(5)), EmptyMetadata)
-    val xsTimeComplexBridgeEdge = HyperEdge(HyperTermId(9), HyperTermIdentifier(Identifier("timecomplex")), Seq(HyperTermId(1), HyperTermId(5)), EmptyMetadata)
-    val xsSpaceComplexBridgeEdge = HyperEdge(HyperTermId(10), HyperTermIdentifier(Identifier("spacecomplex")), Seq(HyperTermId(1), HyperTermId(11)), EmptyMetadata)
-    val xsLenEdge = HyperEdge(HyperTermId(11), HyperTermIdentifier(Identifier("len")), Seq(HyperTermId(1)), EmptyMetadata)
-
-    val graphBefore = VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier] ++ Seq(xEdge, xsEdge, buildEdge,
-      zeroEdge, xTimeComplexBridgeEdge, xsTimeComplexBridgeEdge, xsSpaceComplexBridgeEdge, xsLenEdge)
-    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
-    assume((graphAfter -- graphBefore).nonEmpty)
-
-    val programs = Programs(graphAfter)
-
-    check(programs.reconstructWithTimeComplex(HyperTermId(0)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0))))
-    check(programs.reconstructWithTimeComplex(HyperTermId(1)).toSeq == Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0))))
-
-    val result = programs.reconstructWithTimeComplex(HyperTermId(2)).toSeq
-    val expectedTree = AnnotatedTree.withoutAnnotations(Identifier("::"), Seq(AnnotatedTree.identifierOnly(Identifier("x")), AnnotatedTree.identifierOnly(Identifier("xs"))))
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
-    check(result == Seq((expectedTree, expectedComplexity)))
+    check(tempGraph.map(_.target).contains(root))
   }
 }

@@ -81,7 +81,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
         assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>
-            val willChange = g.edges.filter(_.sources.contains(hyperEdge.target)).map(translateEdge)
+            val willChange = g.findInSources[Int](hyperEdge.target).map(translateEdge)
             val merged = g.mergeNodes(existsTarget, hyperEdge.target)
             val updatedChangedToKept = changedToKept.map {
               case (change, hyperEdge.target) => (change, existsTarget)

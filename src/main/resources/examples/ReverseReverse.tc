@@ -1,0 +1,4 @@
+reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))
+add = reverse(reverse(x :: y :: ⟨⟩)) [++]
+
+reverse(reverse(x :: y :: ⟨⟩)) -> x :: y :: ⟨⟩
