@@ -67,7 +67,7 @@ class RewriteRule(val premise: HyperPattern,
   private val subGraphPremise: HyperPattern = premise
 
   // Existential cannot be a function
-  private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.edges.map(_.target))
+  private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.targets)
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 

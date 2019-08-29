@@ -404,4 +404,10 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       g.edges.filter(_.edgeType == s) == g.findByEdgeType(s)
     }})
   }
+
+  property("test nodes and edges agree on nodes in graph") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => {
+      g.nodes == g.edges.flatMap(e => e.target +: e.sources)
+    }})
+  }
 }

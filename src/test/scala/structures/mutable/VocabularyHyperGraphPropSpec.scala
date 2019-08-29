@@ -6,6 +6,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
+import structures.immutable.VocabularyHyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
@@ -413,5 +414,12 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
       val s = g.head.edgeType
       g.edges.filter(_.edgeType == s) == g.findByEdgeType(s)
     }})
+  }
+
+  property("test nodes and edges agree on nodes in graph") {
+    check(forAll { (g: VocabularyHyperGraph[Int, Int]) => {
+      g.nodes == g.edges.flatMap(e => e.target +: e.sources)
+    }
+    })
   }
 }

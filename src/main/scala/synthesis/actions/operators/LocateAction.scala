@@ -31,10 +31,10 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     // We assume only one root as it is a pattern from user.
     logger.debug(s"Running Locate with $anchor")
     val roots = {
-      val allTargets = goal.edges.map(_.target)
+      val allTargets = goal.targets
       val nonTypeSources = goal.edges.filter(_.edgeType != ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(_.sources)
       val tempRoots = allTargets.diff(nonTypeSources)
-      val typeRoots = goal.edges.filter(_.edgeType == ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
+      val typeRoots = goal.findByEdgeType[Int](ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
       tempRoots.diff(typeRoots)
     }
     assert(roots.size == 1)
