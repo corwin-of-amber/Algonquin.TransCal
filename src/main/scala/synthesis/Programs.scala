@@ -210,7 +210,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return New programs with the term in it.
     */
   def addTerm(term: AnnotatedTree): Programs = {
-    Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.nodes.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
+    Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
   }
 
   def +(term: AnnotatedTree): Programs = addTerm(term)

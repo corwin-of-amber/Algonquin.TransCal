@@ -35,7 +35,7 @@ class RewriteRule(val premise: HyperPattern,
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
     val nextHyperId: () => HyperTermId = {
-      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).iterator
+      val creator = Stream.from(if (compactGraph.isEmpty) 0 else compactGraph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
       () => creator.next
     }
 
