@@ -384,5 +384,24 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 
+  property("test FindInSources works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => (g.nonEmpty && g.head.sources.nonEmpty) ==> {
+      val s = g.head.sources.head
+      g.edges.filter(_.sources.contains(s)) == g.findInSources(s)
+    }})
+  }
 
+  property("test findByTarget works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.target
+      g.edges.filter(_.target == s) == g.findByTarget(s)
+    }})
+  }
+
+  property("test FindByEdgeType works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.edgeType
+      g.edges.filter(_.edgeType == s) == g.findByEdgeType(s)
+    }})
+  }
 }
