@@ -29,6 +29,6 @@ class ObservationalEquivalenceTest extends FunSuite with Matchers {
       programs.hyperGraph.findSubgraph[Int](graph).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     }).toSeq
     val res = new ObservationalEquivalence(3).getEquives(ActionSearchState(Programs(programs.hyperGraph ++ ids.map(ObservationalEquivalence.createAnchor)), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
-    Set(Set(ids take 2), Set(ids.slice(3, 5)), Set(ids(2))) shouldEqual res
+    Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res
   }
 }

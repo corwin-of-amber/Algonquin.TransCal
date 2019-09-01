@@ -294,19 +294,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
         constructedVal
       )))
 
-      val anchorForTerm1 = AnnotatedTree.identifierOnly(Identifier("AnchorForTerm1"))
-      val anchorForTerm2 = AnnotatedTree.identifierOnly(Identifier("AnchorForTerm2"))
-      val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId,
-        Seq(anchorForTerm1, anchorForTerm2)))).head
-
-      val term1WithAnchor = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(updatedTerm1.map(cleanVars), anchorForTerm1))
-      val term2WithAnchor = AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(updatedTerm2.map(cleanVars), anchorForTerm2))
-      //      val phToConstructed = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(inductionPhTree, constructedVal)))      val actionSearchState = new ActionSearchState(Programs(term1WithAnchor).addTerm(term2WithAnchor).addTerm(indIsLTWFThenPh), rules ++ ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-
-      val actionSearchState = new ActionSearchState(Programs(term1WithAnchor).addTerm(term2WithAnchor), ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-      val elaborateState = new ElaborateAction(HyperTermIdentifier(anchorForTerm1.root), pattern, patternRoot, maxSearchDepth = Some(8))(actionSearchState)
-      // If they are different it was found
-      elaborateState != actionSearchState
+      val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
+      val equives = new ObservationalEquivalence(equivDepth).fromTerms(cleanUpdatedTerms, ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+      equives.contains(cleanUpdatedTerms.toSet)
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
       new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2))).rules
