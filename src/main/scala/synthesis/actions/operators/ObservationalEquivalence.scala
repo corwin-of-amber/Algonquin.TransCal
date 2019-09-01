@@ -9,16 +9,46 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 
-object ObservationalEquivalence {
-  def getEquives(rewriteRules: Set[Operator[RewriteSearchState]], terms: Seq[AnnotatedTree]): Set[Set[AnnotatedTree]] = {
-    val (allInOne, root) = Programs.destructWithRoot(AnnotatedTree.withoutAnnotations(Language.semicolonId, terms.toList))
-    val top = allInOne.edges.find(e => e.target == root && e.edgeType == HyperTermIdentifier(Language.semicolonId)).head
-    val anchorToTerm = top.sources.zipWithIndex.map(tAndI => (HyperEdge(tAndI._1, HyperTermIdentifier(Identifier(s"${terms(tAndI._2)}")), List.empty, NonConstructableMetadata), terms(tAndI._2))).toMap
-    val anchors = anchorToTerm.keys.toSet
-    val searchGraph = allInOne.++(anchors)
-    var rewriteState = new RewriteSearchState(searchGraph)
-    for (i <- 1 to 10; op <- rewriteRules) rewriteState = op(rewriteState)
-    val termToTarget: Map[AnnotatedTree, HyperTermId] = anchorToTerm.map(t => (t._2, rewriteState.graph.findEdges(t._1.edgeType).head.target))
-    termToTarget.groupBy(t => t._2).map(_._2.keys.toSet).toSet
+class ObservationalEquivalence(maxDepth: Int = 4) extends Action {
+  def getEquives(actionSearchState: ActionSearchState): Set[Set[HyperTermId]] = {
+    val allAnchors = actionSearchState.programs.hyperGraph.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+    val endPattern = Programs.destructPattern(AnnotatedTree(Language.andCondBuilderId, allAnchors.map(a => AnnotatedTree.identifierOnly(a.edgeType.identifier)).toSeq, Seq.empty))
+    val opAction = new OperatorRunAction(maxDepth, Some((r: RewriteSearchState) => r.graph.findSubgraph[Int](endPattern).nonEmpty))
+    val newState = opAction(actionSearchState)
+    val merged: Set[Set[HyperTermId]] = newState.programs.hyperGraph.edges
+      .filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+      .groupBy(_.target).values.toSet
+      .map((set:  Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
+        set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(ObservationalEquivalence.anchorStart.length).toInt)))
+    merged
   }
+
+  override def apply(state: ActionSearchState): ActionSearchState = {
+    val equives = getEquives(state)
+    val rewriteSearchState = new RewriteSearchState(state.programs.hyperGraph)
+    for (s <- equives; first = s.head; next <- s.tail) {
+      rewriteSearchState.graph.mergeNodes(first, next)
+    }
+    ActionSearchState(Programs(rewriteSearchState.graph), state.rewriteRules)
+  }
+
+  def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
+    var maxId = -1
+    val termToGraph = (for (t <- terms) yield {
+      val (graph, root) = Programs.destructWithRoot(t, HyperTermId(maxId + 1))
+      maxId = graph.nodes.map(_.id).max
+      (t, (graph + ObservationalEquivalence.createAnchor(root), root))
+    }).toMap
+    val idToTerm = termToGraph.map({case (term, (_, id)) => (id, term)})
+    val fullGraph = termToGraph.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
+    getEquives(ActionSearchState(Programs(fullGraph), rewriteRules))
+      .map(s => s.map(id => idToTerm(id)))
+  }
+}
+
+object ObservationalEquivalence {
+  val anchorStart = "Equiv_Anchor_For_"
+
+  def createAnchor(hyperTermId: HyperTermId): HyperEdge[HyperTermId, HyperTermIdentifier] =
+    HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"$anchorStart${hyperTermId.id}")), Seq(), NonConstructableMetadata)
 }
