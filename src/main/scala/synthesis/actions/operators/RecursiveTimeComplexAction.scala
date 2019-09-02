@@ -3,8 +3,8 @@ package synthesis.actions.operators
 import structures._
 import structures.immutable.HyperGraph
 import structures.mutable.VersionedHyperGraph
-import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
+import synthesis.complexity.{AddComplexity, ConstantComplexity}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
@@ -49,8 +49,8 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
       (idMap, _) <- hyperGraph.findSubgraph[Int](hyperPattern)
     ) if (!hyperGraph.exists(edge => edge.target == timeComplexTrue && edge.edgeType.identifier == Language.timeComplexId && edge.sources.head == idMap(0))) {
       val newNode = HyperTermId(filledHyperGraph.nodes.map(_.id).max + 1)
-      val bridgeEdge = HyperEdge(timeComplexTrue, HyperTermIdentifier(Language.timeComplexId), Seq(idMap(0), newNode), NonConstructableMetadata)
-      val timeComplexFunctionEdge = HyperEdge(newNode, HyperTermIdentifier(timeComplexFunction), idMap.filterKeys(_ > 0).toList.sortWith(_._1 < _._1).map(_._2), NonConstructableMetadata)
+      val bridgeEdge = HyperEdge(timeComplexTrue, HyperTermIdentifier(Language.timeComplexId), Seq(idMap(0), newNode), EmptyMetadata)
+      val timeComplexFunctionEdge = HyperEdge(newNode, HyperTermIdentifier(timeComplexFunction), idMap.filterKeys(_ > 0).toList.sortWith(_._1 < _._1).map(_._2), EmptyMetadata)
       filledHyperGraph ++= Seq(bridgeEdge, timeComplexFunctionEdge)
     }
     filledHyperGraph
@@ -70,9 +70,25 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     tempHyperGraph
   }
 
-  def findEquive(populated: VersionedHyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+  private def findEquive(populated: VersionedHyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
     for ((idMaps, _) <- populated.findSubgraph[Int](hyperPattern1)) if (idMaps(2) != idMaps(3)) {
-      println(idMaps)
+      val functionTC = idMaps(2)
+      val fullTC = idMaps(3)
+      val functionArguments = idMaps.filterKeys(_ >= 4).values
+      val fullTimeComplexes = Programs(populated).reconstructTimeComplex(fullTC).toList
+
+      fullTimeComplexes.map{fullTimeComplex =>
+        fullTimeComplex match {
+          case ConstantComplexity(_) => fullTimeComplex
+          case AddComplexity(complexities) =>
+            val nonConstants = complexities.filter(!_.isInstanceOf[ConstantComplexity])
+            println("nonConstants " + nonConstants)
+//            if (nonConstants.size == 1) {
+//
+//            }
+        }
+      }
+      println("fullTimeComplexes " + fullTimeComplexes)
     }
     Set.empty
   }

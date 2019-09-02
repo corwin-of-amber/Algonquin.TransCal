@@ -17,7 +17,7 @@ object ComplexityPartialOrdering extends PartialOrdering[Complexity] {
 
   override def lteq(x: Complexity, y: Complexity): Boolean = {
     tryCompare(x, y) match {
-      case Some(i) => i <= 0
+      case Some(i) => i >= 0
       case None => false
     }
   }
