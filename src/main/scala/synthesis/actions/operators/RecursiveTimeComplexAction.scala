@@ -3,13 +3,13 @@ package synthesis.actions.operators
 import structures._
 import structures.immutable.HyperGraph
 import structures.mutable.VersionedHyperGraph
+import synthesis._
 import synthesis.actions.ActionSearchState
-import synthesis.complexity.{AddComplexity, ConstantComplexity}
+import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis._
-import transcallang.{Identifier, Language}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Calculate time complex of recursive terms.
   *
@@ -71,26 +71,45 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   }
 
   private def findEquive(populated: VersionedHyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    for ((idMaps, _) <- populated.findSubgraph[Int](hyperPattern1)) if (idMaps(2) != idMaps(3)) {
-      val functionTC = idMaps(2)
-      val fullTC = idMaps(3)
-      val functionArguments = idMaps.filterKeys(_ >= 4).values
-      val fullTimeComplexes = Programs(populated).reconstructTimeComplex(fullTC).toList
+    val populatedPrograms = Programs(populated)
+    def contains(big: AnnotatedTree, small: AnnotatedTree): Boolean = (big == small) || big.subtrees.exists(contains(_, small))
+    val nodeCreator = Stream.from(populated.nodes.map(_.id).max).map(HyperTermId).iterator
+    val r = for ((idMaps, _) <- populated.findSubgraph[Int](hyperPattern1) if idMaps(2) != idMaps(3)) yield {
+        val trueTC = idMaps(0)
+        val functionNode = idMaps(1)
+        //      val functionTC = idMaps(2)
+        val fullTC = idMaps(3)
+        val functionArguments = idMaps.filterKeys(_ >= 4).toList.sortBy(_._1).map(_._2)
+        val ttt = functionArguments.map(functionArguments => (functionArguments, populatedPrograms.reconstruct(functionArguments)))
+        val fullTimeComplexes = populatedPrograms.reconstructTimeComplex(fullTC).toList
 
-      fullTimeComplexes.map{fullTimeComplex =>
-        fullTimeComplex match {
-          case ConstantComplexity(_) => fullTimeComplex
+        fullTimeComplexes.flatMap {
+          case ConstantComplexity(_) =>
+            Seq(
+              HyperEdge(trueTC, HyperTermIdentifier(Language.timeComplexId), Seq(functionNode, fullTC), EmptyMetadata),
+            )
           case AddComplexity(complexities) =>
-            val nonConstants = complexities.filter(!_.isInstanceOf[ConstantComplexity])
-            println("nonConstants " + nonConstants)
-//            if (nonConstants.size == 1) {
-//
-//            }
+            val nonConstants = complexities.collect { case ContainerComplexity(tree) => tree }.filter(_.root == timeComplexFunction)
+            nonConstants match {
+              case Seq(oneCall) =>
+                val arguments = oneCall.subtrees
+
+                println("arguments " + arguments)
+                val filtered = ttt.zip(arguments).map(t => (t._1._1, t._1._2.filter(a => contains(a, t._2)).toSeq)).filter(_._2.nonEmpty)
+                println("filtered " + filtered)
+                filtered match {
+                  case Seq(one) =>
+                    println(one)
+                    val newTC = nodeCreator.next()
+                    Seq(
+                      HyperEdge(trueTC, HyperTermIdentifier(Language.timeComplexId), Seq(functionNode, newTC), EmptyMetadata),
+                      HyperEdge(newTC, HyperTermIdentifier(Identifier("len")), Seq(one._1), EmptyMetadata)
+                    )
+                }
+            }
         }
       }
-      println("fullTimeComplexes " + fullTimeComplexes)
-    }
-    Set.empty
+    r.flatten
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {
