@@ -14,9 +14,7 @@ class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
     val hyperGraphBasic = {
       Seq(
         new DefAction(parser.apply("example ?i = i match ((0 => true) / (0 => true))")),
-        new DefAction(parser.apply("timecomplex 0 0 = timecomplexTrue")),
         new DefAction(parser.apply("timecomplex i 0 = timecomplexTrue")),
-        new DefAction(parser.apply("timecomplex true 0 = timecomplexTrue")),
       ).foldLeft(ActionSearchState(Programs.empty, Set.empty))((s, action) => action apply s).programs.hyperGraph
     }
     val basicSize = hyperGraphBasic.size
