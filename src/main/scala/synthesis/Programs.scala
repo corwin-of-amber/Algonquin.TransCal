@@ -1,11 +1,12 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import math.PartialOrderingOps
 import structures._
 import structures.immutable.{HyperGraph, VersionedHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
+import synthesis.complexity.{AddComplexity, Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
@@ -104,6 +105,13 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
         edge.edgeType.identifier.literal match {
           case "+" =>
             Programs.combineSeq(edge.sources.map(reconstructTimeComplex(_, leftHyperGraph, fallTo))).map(AddComplexity(_))
+          case "max" =>
+            val a = edge.sources.flatMap(reconstructTimeComplex(_, leftHyperGraph, fallTo)).toList
+            val maximums = PartialOrderingOps.max(a)(ComplexityPartialOrdering)
+            maximums match {
+              case Nil => Iterator.empty
+              case Seq(maximum) => Iterator(maximum)
+            }
           case _ =>
             reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
         }
@@ -181,6 +189,10 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[Complexity] = {
     reconstructTimeComplex(complexityRoot, hyperGraph, None)
+  }
+
+  def reconstructTimeComplex(complexityRoot: HyperTermId): Iterator[Complexity] = {
+    reconstructTimeComplex(complexityRoot, hyperGraph)
   }
 
   def reconstructWithTimeComplex(termRoot: HyperTermId): Iterator[(AnnotatedTree, Complexity)] = {
