@@ -98,7 +98,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
         edge.edgeType.identifier.literal match {
           case number if Try(number.toInt).isSuccess => Iterator(ConstantComplexity(number.toInt))
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph).map(ContainerComplexity)
         }
       } else {
         val leftHyperGraph = hyperGraph - edge
@@ -113,7 +113,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
               case Seq(maximum) => Iterator(maximum)
             }
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph).map(ContainerComplexity)
         }
       }
     })

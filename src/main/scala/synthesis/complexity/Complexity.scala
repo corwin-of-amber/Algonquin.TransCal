@@ -1,5 +1,8 @@
 package synthesis.complexity
 
+import synthesis.Programs
+import transcallang.AnnotatedTree
+
 /**
   * @author tomer
   * @since 2/11/19
@@ -18,8 +21,8 @@ object Complexity {
 case class ConstantComplexity(constant: Int) extends Complexity {
   override def toString: String = constant.toString
 }
-case class ContainerComplexity(contained: Any) extends Complexity {
-  override def toString: String = contained.toString
+case class ContainerComplexity(contained: AnnotatedTree) extends Complexity {
+  override def toString: String = Programs.termToString(contained)
 }
 class AddComplexity private (complexitiesBasic: Seq[Complexity]) extends Complexity {
   val complexities: Seq[Complexity] = {
