@@ -35,8 +35,11 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
 
     val newPrograms = testedAction.apply(ActionSearchState(programs, rewriteRules))
     val newSize = newPrograms.programs.hyperGraph.size
-
+    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (nodup' ?w ?l) (len(l))>> ${Language.timeComplexTrueId.literal}")).rules.head.premise
     newSize should be > size
+
+    val found = newPrograms.programs.hyperGraph.findSubgraph[Int](wantedGraph)
+    found should have size(1)
   }
 }
 
