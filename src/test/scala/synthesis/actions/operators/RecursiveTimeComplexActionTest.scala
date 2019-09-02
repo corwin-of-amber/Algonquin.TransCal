@@ -15,7 +15,6 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
     val parser = new TranscalParser()
     val terms = List(
       parser.apply("nodup' ?w ?l = l match (⟨⟩ => true) / ((?x :: ?xs) => ({x} ∉ w) ∧ (nodup' ({x} ∪ w) xs)) [++]"),
-      parser.apply("a1 -> ?nodup' {x} xs"),
       parser.apply("l = x :: xs [++]"),
       parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} l 0 [++]"),
       parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} x 0 [++]"),
@@ -25,19 +24,19 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} w (len w) [++]"),
-      parser.apply("a1 -> (_ ∉ {x}) ∧ ((_ ∪ _) ‖ _) ∧ nodup' _"),
+      parser.apply("timecomplexTrue-> a1 [only assoc]"),
+      parser.apply("a1 -> timecomplex (nodup' _ _)"),
     )
-    val sumHyperGraph = new Interpreter(terms.iterator, System.out).start().programs
-    val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, sumHyperGraph.hyperGraph)
+    val lastState = new Interpreter(terms.iterator, System.out).start()
+    val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, lastState.programs.hyperGraph)
     val programs = Programs(populated)
     val size = programs.hyperGraph.size
-    val rewriteRules = Set.empty[Operator[RewriteSearchState]]
 
-    val newPrograms = testedAction.apply(ActionSearchState(programs, rewriteRules))
+    val newPrograms = testedAction.apply(ActionSearchState(programs, Set.empty))
     val newSize = newPrograms.programs.hyperGraph.size
-    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (nodup' ?w ?l) (len(l))>> ${Language.timeComplexTrueId.literal}")).rules.head.premise
     newSize should be > size
 
+    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (nodup' ?w ?l) (len(l)) >> ${Language.timeComplexTrueId.literal}")).rules.head.premise
     val found = newPrograms.programs.hyperGraph.findSubgraph[Int](wantedGraph)
     found should have size(1)
   }
