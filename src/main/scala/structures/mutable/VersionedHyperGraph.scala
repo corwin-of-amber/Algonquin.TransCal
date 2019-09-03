@@ -11,12 +11,12 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Node, EdgeType], var version: Long)
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeType], var version: Long)
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
   /* --- Constructors --- */
 
-  def this(wrapped: CompactHyperGraph[Node, EdgeType]) = {
+  def this(wrapped: HyperGraph[Node, EdgeType]) = {
     this(wrapped, VersionMetadata.latestVersion(wrapped.edges))
   }
 
@@ -104,7 +104,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: CompactHyperGraph[Nod
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
     new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
       parts => {
-        new VersionedHyperGraph(new CompactHyperGraph(parts.toSet), version + 1)
+        new VersionedHyperGraph(HyperGraph(parts:_*), version + 1)
       }
     }
 }
@@ -118,7 +118,7 @@ object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyper
     */
   override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VersionedHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
     parts => {
-      new VersionedHyperGraph(CompactHyperGraph(parts: _*))
+      new VersionedHyperGraph(HyperGraph(parts: _*))
     }
   }
 

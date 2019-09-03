@@ -1,6 +1,6 @@
 package synthesis.actions
 
-import structures.immutable.VersionedHyperGraph
+import structures.immutable.CompactHyperGraph
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.{Operator, State}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -14,5 +14,5 @@ case class ActionSearchState(programs: Programs, rewriteRules: Set[Operator[Rewr
 }
 
 object ActionSearchState {
-  type HyperGraph = VersionedHyperGraph[HyperTermId, HyperTermIdentifier]
+  type HyperGraph = CompactHyperGraph[HyperTermId, HyperTermIdentifier]
 }

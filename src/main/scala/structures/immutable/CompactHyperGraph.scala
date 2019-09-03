@@ -11,11 +11,14 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class CompactHyperGraph[Node, EdgeType] private (wrapped: HyperGraph[Node, EdgeType])
+class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[Node, EdgeType])
   extends WrapperHyperGraph[Node, EdgeType, CompactHyperGraph[Node, EdgeType]](wrapped) {
 
   def this(edges: Set[HyperEdge[Node, EdgeType]]) =
-    this(CompactHyperGraph.compact[Node, EdgeType](VocabularyHyperGraph.empty[Node, EdgeType], edges.toList))
+    this(CompactHyperGraph.compact[Node, EdgeType](VersionedHyperGraph.empty[Node, EdgeType], edges.toList))
+
+  def version: Long = wrapped.version
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -61,7 +64,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
   /* --- Private Methods --- */
 
   @tailrec
-  private def compact[Node, EdgeType](wrapped: HyperGraph[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): HyperGraph[Node, EdgeType] = {
+  private def compact[Node, EdgeType](wrapped: VersionedHyperGraph[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): VersionedHyperGraph[Node, EdgeType] = {
     hyperEdges match {
       case Nil => wrapped
       case beforeChangeHyperEdge +: otherHyperEdges =>
