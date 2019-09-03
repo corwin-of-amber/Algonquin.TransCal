@@ -12,7 +12,7 @@ import synthesis.complexity.Complexity._
   * @since 20/05/19
   */
 class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
-  val containerComplexityGen: Gen[ContainerComplexity] = Gen.alphaNumStr.map(ContainerComplexity(_))
+  val containerComplexityGen: Gen[ContainerComplexity] = synthesis.identifierTreesGen.map(ContainerComplexity)
   private implicit val containerComplexityCreator: Arbitrary[ContainerComplexity] = Arbitrary(containerComplexityGen)
 
   val addComplexityGen: Gen[AddComplexity] = containerComplexityGen.flatMap(a => containerComplexityGen.map(_ + a))

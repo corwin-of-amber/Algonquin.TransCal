@@ -161,7 +161,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
     val expectedTree = tree3
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), ContainerComplexity("len(xs)")))
+    val lenContainer = ContainerComplexity(parser.parseExpression("len(xs)"))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(1), lenContainer))
     result.size shouldEqual 1
     result.head shouldEqual (expectedTree, expectedComplexity)
   }
@@ -193,7 +194,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSet
     val expectedTree = parser.parseExpression("{x} ∪ (elems xs)")
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
+    val lenContainer = ContainerComplexity(parser.parseExpression("len(xs)"))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), lenContainer, lenContainer, lenContainer))
     result.size shouldEqual 1
     result.head shouldEqual (expectedTree, expectedComplexity)
   }
@@ -225,7 +227,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
     val expectedTree = tree4
-    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
+    val lenContainer = ContainerComplexity(parser.parseExpression("len(xs)"))
+    val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), lenContainer, lenContainer, lenContainer))
     result.size shouldEqual 1
     result.head shouldEqual (expectedTree, expectedComplexity)
   }
