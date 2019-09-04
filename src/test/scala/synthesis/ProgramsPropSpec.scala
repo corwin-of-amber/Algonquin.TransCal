@@ -145,4 +145,13 @@ class ProgramsPropSpec extends PropSpec with Checkers {
 
     check(tempGraph.map(_.target).contains(root))
   }
+
+  property("Destruct ?x >> reverse(reverse(?x)) is correct regarding target and source") {
+    val tree = new TranscalParser()("?x >> reverse(reverse(?x))")
+    val res = Programs.destructPatternsWithRoots(tree.subtrees)
+    check(res.head._2 == res.last._2)
+    val rootEdge = res.last._1.findByTarget[Int](res.last._2).head
+    val innerEdge = res.last._1.findByTarget[Int](rootEdge.sources.head).head
+    check(res.last._2 == innerEdge.sources.head)
+  }
 }

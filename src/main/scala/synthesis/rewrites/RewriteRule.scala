@@ -68,6 +68,8 @@ class RewriteRule(val premise: HyperPattern,
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
+  def isExistential: Boolean = existentialHoles.nonEmpty
+
   private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata): HyperPattern = {
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {

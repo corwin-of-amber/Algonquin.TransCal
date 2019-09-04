@@ -80,32 +80,43 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   private val idAnchorStart = "anchor for "
   private val tupleAnchorStart = "anchor tuple for "
 
-  override def apply(state: ActionSearchState): ActionSearchState = {
+  override def apply(initialState: ActionSearchState): ActionSearchState = {
     var rewriteState = new RewriteSearchState(baseGraph)
+    var state = initialState
+    val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
 
-    for (_ <- 1 to termDepth) {
+    for (i <- 1 to termDepth) {
       // ******** SPBE ********
-
+      foundRules += mutable.Buffer.empty
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
+      // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+      // Prove equivalence by induction.
+      val roots = getRoots(rewriteState)
+      val programs = Programs(rewriteState.graph)
+      for (r <- roots) {
+        val terms = programs.reconstruct(r).toList
+        // Before running induction steps, should filter out some of the terms.
+        // To do that I will run an observational equivalence step and insert temporary rules.
+        // Because we might need these temporary rules to help with future induction rules.
+        logger.info("Filtering terms that don't need induction using observational equivalence")
+        val equives = new ObservationalEquivalence(equivDepth).fromTerms(terms, state.rewriteRules)
+        // Take smallest of each set as heuristic to have no unneeded subterms
+        val filteredTerms = equives.map(_.minBy(_.size)).toSeq
+        // Do the induction step for each couple of terms
+        for ((term1, term2) <- filteredTerms.combinations(2).toSeq.map(it => (it(0), it(1)))) {
+          val res = inductionStep(state, term1, term2).collect({ case rr => rr })
+          if (res.nonEmpty) {
+            state = ActionSearchState(state.programs, state.rewriteRules ++ res)
+            foundRules.last.+=((term1, term2))
+          }
+        }
+      }
+      logger.info(s"Found new lemmas in depth $i:")
+      for((t1, t2) <- foundRules.last)
+        logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     }
-
-    // Prove equivalence by induction.
-    val roots = getRoots(rewriteState)
-    val programs = Programs(rewriteState.graph)
-    val newRules = for (r <- roots) yield {
-      val terms = programs.reconstruct(r).take(20).toList
-      // Before running induction steps, should filter out some of the terms.
-      // To do that I will run an observational equivalence step and insert temporary rules.
-      // Because we might need these temporary rules to help with future induction rules.
-
-      // Do the induction step for each couple of terms
-      (for ((term1, term2) <- terms.combinations(2).toSeq.map(it => (it(0), it(1)))) yield {
-        inductionStep(state, term1, term2).collect({ case rr => rr })
-      }).flatten
-    }
-    ActionSearchState(state.programs, state.rewriteRules ++ newRules.flatten)
     state
   }
 
@@ -180,6 +191,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     }).flatten
 
     fullGraph.++=(tupleEdges)
+    logger.info("Running Observational Equivalence on symbolic examples")
     new ObservationalEquivalence(equivDepth).getEquives(new ActionSearchState(Programs(fullGraph), rules.toSet)).filter(_.size > 1)
   }
 
@@ -270,7 +282,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     if ((!term1.nodes.map(_.root).contains(inductionPh)) || (!term2.nodes.map(_.root).contains(inductionPh)))
       return Set.empty
 
-    logger.debug(s"Trying to prove ${Programs.termToString(term1)} == ${Programs.termToString(term2)}")
+    logger.info(s"Trying to prove ${Programs.termToString(term1)} == ${Programs.termToString(term2)}")
 
     val updatedTerm1 = term1.map(identMapper(_, inductionPh))
     val updatedTerm2 = term2.map(identMapper(_, inductionPh))
@@ -300,6 +312,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
       new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2))).rules
-    } else Set.empty
+    } else {
+      logger.info(s"Proof Failed")
+      Set.empty
+    }
   }
 }

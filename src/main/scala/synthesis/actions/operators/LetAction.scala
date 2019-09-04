@@ -40,7 +40,9 @@ class LetAction(val term: AnnotatedTree) extends Action {
     }
 
     // TODO: Add non existantial double directed rewrites for matches
-    (innerRewrites + new RewriteRule(premise, conclusion, metadataCreator(funcName)), AnnotatedTree.identifierOnly(funcName))
+    val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName))
+    if (newRewrite.isExistential) logger.info(s"Created Existential rule: ${Programs.termToString(condTerm)} >> ${Programs.termToString(newTerm)}")
+    (innerRewrites + newRewrite, AnnotatedTree.identifierOnly(funcName))
   }
 
   // Start by naming lambdas and removing the bodies into rewrites.
@@ -48,19 +50,29 @@ class LetAction(val term: AnnotatedTree) extends Action {
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
       case i: Identifier if Language.builtinDefinitions.contains(i) =>
+        val conclusionIsSingle = t.subtrees.last.size == 1 && (t.subtrees.last.root.literal.startsWith("?") || t.nodes.map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(t.subtrees.last.root.literal))
+        val premiseIsSingle = t.subtrees.last.size == 1 && (t.subtrees.head.root.literal.startsWith("?") || t.nodes.map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(t.subtrees.head.root.literal))
+
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
         val (premise, conclusion) = {
           val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2),
             mergeRoots = !Language.builtinLimitedDefinitions.contains(i))
-          (temp(0), temp(1))
+          (temp.head, temp.last)
         }
 
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
             if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
-            else Set(new RewriteRule(conclusion, premise, metadataCreator(t.subtrees(1).root)))
-          optionalRule + new RewriteRule(premise, conclusion, metadataCreator(t.subtrees.head.root))
+            else {
+              val toUsePremise = if (!premiseIsSingle) premise
+                                else Programs.destructPatterns(Seq(AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(0)._2)), results(1)._2), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).head
+              Set(new RewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root)))
+            }
+          val toUseConclusion = if (!conclusionIsSingle) conclusion
+                                else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
+          optionalRule + new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root))
         }
+        if (newRules.exists(_.isExistential)) logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
 
         if (premise == conclusion) (results.flatMap(_._1).toSet, t.copy(subtrees = results.map(_._2)))
         else (newRules ++ results.flatMap(_._1), t.copy(subtrees = results.map(_._2)))
