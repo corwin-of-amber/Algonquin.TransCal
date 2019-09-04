@@ -25,9 +25,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     if (version == 0) wrapped.findSubgraph[Id](hyperPattern)
     else {
+      val relevantVersionGraph = HyperGraph(mapByVersion.filterKeys(_ >= version).values.flatten.toSeq:_*)
       hyperPattern.flatMap(edgePattern => {
-        findRegexHyperEdges(edgePattern)
-          .filter(edge => VersionMetadata.getEdgeVersion(edge) >= version)
+        relevantVersionGraph.findRegexHyperEdges(edgePattern)
           .flatMap(edge => {
             val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
             val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
