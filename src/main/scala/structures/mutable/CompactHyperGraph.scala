@@ -11,13 +11,16 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class CompactHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeType])
+class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Node, EdgeType])
   extends WrapperHyperGraph[Node, EdgeType, CompactHyperGraph[Node, EdgeType]](wrapped) {
 
   def this(edges: Set[HyperEdge[Node, EdgeType]]) = {
-    this(VocabularyHyperGraph.empty[Node, EdgeType])
+    this(VersionedHyperGraph.empty[Node, EdgeType])
     compact(edges.toList, mutable.Map.empty[Node, Node])
   }
+
+  def version: Long = wrapped.version
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 

@@ -27,7 +27,7 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
     * @tparam A the type of the ${coll}'s elements
     */
   override def newBuilder[A, B]: collection.mutable.Builder[HyperEdge[A, B], HyperGraph[A, B]] =
-    VersionedHyperGraph.newBuilder
+    VocabularyHyperGraph.newBuilder
 
   def mergeMap[Node, EdgeType, Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id]]
   (hyperPattern: Pattern, maps: (Map[Id, Node], Map[Id, EdgeType])): Pattern = {

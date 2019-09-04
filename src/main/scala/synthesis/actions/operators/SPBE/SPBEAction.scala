@@ -140,7 +140,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val untypedPlaceholders = placeholders.values.flatMap(_.map(_.copy(annotation = None))).toSet
     val noPlaceholdersGraph = graph.filterNot(e => untypedPlaceholders.contains(e.edgeType.identifier))
     val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
-    val fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
+    val fullGraph = structures.mutable.CompactHyperGraph(noPlaceholdersGraph.toSeq: _*)
     for ((exampleKey, exampleValues) <- examples) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples

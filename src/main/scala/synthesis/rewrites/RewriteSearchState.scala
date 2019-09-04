@@ -1,6 +1,6 @@
 package synthesis.rewrites
 
-import structures.mutable.VersionedHyperGraph
+import structures.mutable.CompactHyperGraph
 import synthesis.actions.ActionSearchState
 import synthesis.search.State
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -10,11 +10,11 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
   * @since 11/18/18
   */
 case class RewriteSearchState(graph: RewriteSearchState.HyperGraph) extends State[RewriteSearchState] {
-  def this(graph: ActionSearchState.HyperGraph) = this(VersionedHyperGraph(graph.toSeq: _*))
+  def this(graph: ActionSearchState.HyperGraph) = this(CompactHyperGraph(graph.toSeq: _*))
 
-  override def deepCopy(): RewriteSearchState = RewriteSearchState(VersionedHyperGraph(graph.toSeq: _*))
+  override def deepCopy(): RewriteSearchState = RewriteSearchState(CompactHyperGraph(graph.toSeq: _*))
 }
 
 object RewriteSearchState {
-  type HyperGraph = VersionedHyperGraph[HyperTermId, HyperTermIdentifier]
+  type HyperGraph = CompactHyperGraph[HyperTermId, HyperTermIdentifier]
 }
