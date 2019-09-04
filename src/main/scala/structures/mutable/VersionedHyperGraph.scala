@@ -11,13 +11,13 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeType], var version: Long)
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, EdgeType], var version: Long, mapByVersion: mutable.MultiMap[Long, HyperEdge[Node, EdgeType]])
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
   /* --- Constructors --- */
 
   def this(wrapped: HyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionMetadata.latestVersion(wrapped.edges))
+    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), mutable.HashMultiMap.apply(structures.immutable.VersionedHyperGraph.createMapOfVersions(wrapped)))
   }
 
   /* --- Public Methods --- */
@@ -60,7 +60,16 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
     * @return The new hyper graph with the edge.
     */
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] = {
-    new VersionedHyperGraph(wrapped.+(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))), version + 1)
+    if (contains(hyperEdge)) this
+    else {
+      val newHyperEdge = hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))
+      val newMapByVersion = mutable.HashMultiMap.apply(mapByVersion.clone()).addBinding(version, newHyperEdge)
+      new VersionedHyperGraph(
+        wrapped.+(newHyperEdge),
+        version + 1,
+        newMapByVersion
+      )
+    }
   }
 
   /**
@@ -70,7 +79,16 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
     * @return The new hyper graph with the edge.
     */
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
-    new VersionedHyperGraph(wrapped.++(hyperEdges.toSeq.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))), version + 1)
+    val newEdges = hyperEdges.toSeq.filter(contains).map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
+    if (newEdges.isEmpty) this
+    else {
+      val newMapByVersion = mutable.HashMultiMap.put(mapByVersion, (version, newEdges.to[Set]))
+      new VersionedHyperGraph(
+        wrapped.++(newEdges),
+        version + 1,
+        newMapByVersion
+      )
+    }
   }
 
   /**
@@ -80,8 +98,12 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
     * @return The new hyper graph with the edge.
     */
   override def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
-    wrapped.+=(hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
-    this.version += 1
+    if (!contains(hyperEdge)) {
+      val newEdge = hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))
+      wrapped += newEdge
+      mapByVersion.addBinding(version, newEdge)
+      this.version += 1
+    }
   }
 
   /**
@@ -91,8 +113,12 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
     * @return The new hyper graph with the edge.
     */
   override def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = {
-    wrapped.++=(hyperEdges.toSeq.map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))))
-    this.version += 1
+    val newEdges = hyperEdges.toSeq.filter(contains).map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
+    if (newEdges.nonEmpty) {
+      wrapped ++= newEdges
+      mutable.HashMultiMap.put(mapByVersion, (version, hyperEdges.to[Set]))
+      this.version += 1
+    }
   }
 
   /* --- Object Impl. --- */
@@ -104,7 +130,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
     new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
       parts => {
-        new VersionedHyperGraph(HyperGraph(parts:_*), version + 1)
+        new VersionedHyperGraph(HyperGraph(parts:_*))
       }
     }
 }
