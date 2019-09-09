@@ -40,6 +40,35 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
     val found = newPrograms.programs.hyperGraph.findSubgraph[Int](wantedGraph)
     found should have size(1)
   }
+
+  test("sum example") {
+    val testedAction = new RecursiveTimeComplexAction(Identifier("sum"), 2)
+    val parser = new TranscalParser()
+    val terms = List(
+      parser.apply("sum ?l = l match (⟨⟩ => 0) / ((?x :: ?xs) => 1 + (sum xs)) [++]"),
+      parser.apply("l = x :: xs [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} l 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} xs 0 [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} l (len l) [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
+      parser.apply("timecomplexTrue-> a1 [only assoc]"),
+      parser.apply("a1 -> timecomplex (sum _ _)"),
+    )
+    val lastState = new Interpreter(terms.iterator, System.out).start()
+    val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, lastState.programs.hyperGraph)
+    val programs = Programs(populated)
+    val size = programs.hyperGraph.size
+
+    val newPrograms = testedAction.apply(ActionSearchState(programs, Set.empty))
+    val newSize = newPrograms.programs.hyperGraph.size
+    newSize should be > size
+
+    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (sum ?l) (len(l)) >> ${Language.timeComplexTrueId.literal}")).rules.head.premise
+    val found = newPrograms.programs.hyperGraph.findSubgraph[Int](wantedGraph)
+    found should have size(1)
+  }
 }
 
 object RecursiveTimeComplexActionTest {
