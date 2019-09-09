@@ -10,7 +10,7 @@ import synthesis.{Programs, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesD
 import transcallang.{Identifier, Language, TranscalParser}
 
 class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
-  test("sum example") {
+  test("nodup' example") {
     val testedAction = new RecursiveTimeComplexAction(Identifier("nodup'"), 2)
     val parser = new TranscalParser()
     val terms = List(
