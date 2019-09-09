@@ -113,7 +113,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
 
   /* --- Object Impl. --- */
 
-  override def toString: String = f"VersionedHyperGraph($edges)"
+  override def toString: String = f"VersionedHyperGraph($version, $wrapped)"
 
   /* --- IterableLike Impl. --- */
 

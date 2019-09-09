@@ -1,7 +1,7 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.{Explicit, Hole, Ignored, Repetition, Vocabulary, VocabularyLike}
+import structures.{Explicit, Hole, Ignored, Repetition}
 import structures.VocabularyLike.{Word, WordRegex}
 
 import scala.collection.mutable

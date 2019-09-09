@@ -32,7 +32,7 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   /* --- Object Impl. --- */
 
-  override def toString: String = f"CompactHyperGraph($edges)"
+  override lazy val toString: String = f"CompactHyperGraph($edges)"
 
   /* --- IterableLike Impl. --- */
 
