@@ -6,6 +6,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
+import structures.immutable.VocabularyHyperGraph
 import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
@@ -392,5 +393,33 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("Compaction works for edges with changed sources") {
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
     check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
+  }
+
+  property("test FindInSources works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => (g.nonEmpty && g.head.sources.nonEmpty) ==> {
+      val s = g.head.sources.head
+      g.edges.filter(_.sources.contains(s)) == g.findInSources(s)
+    }})
+  }
+
+  property("test findByTarget works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.target
+      g.edges.filter(_.target == s) == g.findByTarget(s)
+    }})
+  }
+
+  property("test FindByEdgeType works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.edgeType
+      g.edges.filter(_.edgeType == s) == g.findByEdgeType(s)
+    }})
+  }
+
+  property("test nodes and edges agree on nodes in graph") {
+    check(forAll { (g: VocabularyHyperGraph[Int, Int]) => {
+      g.nodes == g.edges.flatMap(e => e.target +: e.sources)
+    }
+    })
   }
 }

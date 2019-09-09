@@ -5,7 +5,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures._
-import structures.immutable.{HyperGraph, VersionedHyperGraph}
+import structures.immutable.{HyperGraph, CompactHyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
@@ -84,7 +84,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
         val rewriteRule = new RewriteRule(conditions, HyperGraph(destination), (a, b) => EmptyMetadata)
         val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
         val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(x => Identifier(x.toString)).map(HyperTermIdentifier).iterator)
-        val state = new RewriteSearchState(VersionedHyperGraph(filledConditions.toSeq: _*))
+        val state = new RewriteSearchState(CompactHyperGraph(filledConditions.toSeq: _*))
         val tempProgs = Programs(state.graph)
         val newState = rewriteRule.apply(state)
 

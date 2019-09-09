@@ -1,12 +1,11 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import math.PartialOrderingOps
 import structures._
-import structures.immutable.{HyperGraph, VersionedHyperGraph}
+import structures.immutable.{HyperGraph, CompactHyperGraph}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.complexity.{AddComplexity, Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
+import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
@@ -33,7 +32,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def findTypes(hyperTermId: HyperTermId): Iterator[AnnotatedTree] = {
     val searchGraph: HyperPattern =
-      VersionedHyperGraph(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.typeId)), Seq(ExplicitTerm(hyperTermId), ReferenceTerm(1)), NonConstructableMetadata))
+      CompactHyperGraph(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.typeId)), Seq(ExplicitTerm(hyperTermId), Hole(1)), NonConstructableMetadata))
     hyperGraph.findSubgraph[Int](searchGraph).iterator.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
   }
 
@@ -50,7 +49,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.iterator.flatMap(m => {
       val fullPattern = HyperGraph.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
-      recursiveReconstruct(VersionedHyperGraph.empty ++ fullPattern, hyperTermId, Some(this.reconstruct))
+      recursiveReconstruct(CompactHyperGraph.empty ++ fullPattern, hyperTermId, Some(this.reconstruct))
     })
   }
 
@@ -63,7 +62,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def recursiveReconstruct(hyperGraph: ActionSearchState.HyperGraph, root: HyperTermId, fallTo: Option[HyperTermId => Iterator[AnnotatedTree]]): Iterator[AnnotatedTree] = {
     val hyperTermToEdge = hyperGraph.groupBy(_.target)
-    val edges = hyperTermToEdge.getOrElse(root, VersionedHyperGraph.empty)
+    val edges = hyperTermToEdge.getOrElse(root, CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target)
@@ -91,29 +90,22 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph, fallTo: Option[HyperTermId => Iterator[Complexity]]): Iterator[Complexity] = {
     val hyperTermToEdge = hyperGraph.groupBy(_.target)
-    val edges = hyperTermToEdge.getOrElse(complexityRoot, VersionedHyperGraph.empty)
+    val edges = hyperTermToEdge.getOrElse(complexityRoot, CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(complexityRoot)
     else edges.iterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       if (edge.sources.isEmpty) {
         edge.edgeType.identifier.literal match {
           case number if Try(number.toInt).isSuccess => Iterator(ConstantComplexity(number.toInt))
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
         }
       } else {
         val leftHyperGraph = hyperGraph - edge
         edge.edgeType.identifier.literal match {
           case "+" =>
             Programs.combineSeq(edge.sources.map(reconstructTimeComplex(_, leftHyperGraph, fallTo))).map(AddComplexity(_))
-          case "max" =>
-            val a = edge.sources.flatMap(reconstructTimeComplex(_, leftHyperGraph, fallTo)).toList
-            val maximums = PartialOrderingOps.max(a)(ComplexityPartialOrdering)
-            maximums match {
-              case Nil => Iterator.empty
-              case Seq(maximum) => Iterator(maximum)
-            }
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
         }
       }
     })
@@ -154,7 +146,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
               def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
                 Iterator(rootsToTrees(rootAnnotatedTree))
               }
-              recursiveReconstruct(VersionedHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
+              recursiveReconstruct(CompactHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
             }
 
             val timeComplexes = {
@@ -166,7 +158,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                   reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
                 }
               }
-              reconstructTimeComplex(complexityRoot, VersionedHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
+              reconstructTimeComplex(complexityRoot, CompactHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
             }
             for (tree <- annotationTrees ; complex <- timeComplexes) yield {
               (tree, complex)
@@ -189,10 +181,6 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph): Iterator[Complexity] = {
     reconstructTimeComplex(complexityRoot, hyperGraph, None)
-  }
-
-  def reconstructTimeComplex(complexityRoot: HyperTermId): Iterator[Complexity] = {
-    reconstructTimeComplex(complexityRoot, hyperGraph)
   }
 
   def reconstructWithTimeComplex(termRoot: HyperTermId): Iterator[(AnnotatedTree, Complexity)] = {
@@ -222,7 +210,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return New programs with the term in it.
     */
   def addTerm(term: AnnotatedTree): Programs = {
-    Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.nodes.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
+    Programs(hyperGraph ++ Programs.destruct(term, if (hyperGraph.isEmpty) HyperTermId(0) else hyperGraph.nodes.maxBy(_.id)))
   }
 
   def +(term: AnnotatedTree): Programs = addTerm(term)
@@ -240,11 +228,11 @@ object Programs extends LazyLogging {
     override protected def toStr: String = "NonConstructable"
   }
 
-  def empty: Programs = Programs(VersionedHyperGraph.empty[HyperTermId, HyperTermIdentifier])
+  def empty: Programs = Programs(CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier])
 
   def apply(hyperGraph: ActionSearchState.HyperGraph): Programs = new Programs(hyperGraph)
 
-  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(VersionedHyperGraph(hyperGraph.toSeq: _*))
+  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(CompactHyperGraph(hyperGraph.toSeq: _*))
 
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
 
@@ -279,42 +267,6 @@ object Programs extends LazyLogging {
         (targetToSubedges.last._1,
           subHyperEdges + HyperEdge(precondRoot, identToEdge(Language.trueId.copy(annotation = None)), List.empty, EmptyMetadata)
         )
-      case Language.guardedId =>
-        val target = nodeCreator.next()
-        val timeComplexTrueNode = nodeCreator.next()
-        val zeroNode = nodeCreator.next()
-        val argsTarget = Seq(
-          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(targetToSubedges.head._1, zeroNode), EmptyMetadata)
-        ) ++ (if (args.head.root == Language.tupleId) {
-          val temp = args.head.subtrees.flatMap(arg => subHyperEdges.find(edge => edge.edgeType == identToEdge(arg.root))).map(edge =>
-            HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(edge.target, zeroNode), EmptyMetadata)
-          )
-          temp
-        } else { Seq.empty })
-        (
-          target,
-          subHyperEdges ++ argsTarget ++ Seq(
-            HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata),
-            HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexTrueId), Seq.empty, EmptyMetadata),
-            HyperEdge(zeroNode, identToEdge(Identifier("0")), Seq.empty, EmptyMetadata)
-          )
-        )
-      case function if Language.builtinConsts.contains(function) || Try(function.literal.toInt).isSuccess =>
-        val target = nodeCreator.next()
-        val timeComplexTrueNode = nodeCreator.next()
-        val spaceComplexTrueNode = nodeCreator.next()
-        val zeroNode = nodeCreator.next()
-        (
-        target,
-        subHyperEdges ++ Seq(
-          HyperEdge(target, identToEdge(function.copy(annotation = None)), targetToSubedges.map(_._1), EmptyMetadata),
-          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexId), Seq(target, zeroNode), EmptyMetadata),
-          HyperEdge(timeComplexTrueNode, identToEdge(Language.timeComplexTrueId), Seq.empty, EmptyMetadata),
-          HyperEdge(spaceComplexTrueNode, identToEdge(Language.spaceComplexId), Seq(target, zeroNode), EmptyMetadata),
-          HyperEdge(spaceComplexTrueNode, identToEdge(Language.spaceComplexTrueId), Seq.empty, EmptyMetadata),
-          HyperEdge(zeroNode, identToEdge(Identifier("0")), Seq.empty, EmptyMetadata),
-        )
-        )
       case _ =>
         val target = nodeCreator.next()
         (
@@ -326,7 +278,10 @@ object Programs extends LazyLogging {
       case Some(annotatedTree) =>
         val (targetType, hyperEdgesType) = innerDestruct(annotatedTree, nodeCreator, identToEdge)
         val trueNode = nodeCreator.next()
-        val functionNode = nodeCreator.next()
+        val functionNode = {
+          val found = newHyperEdges.find(e => e.sources.isEmpty && e.edgeType == identToEdge(function.copy(annotation = None)))
+          if (found.nonEmpty) found.get.target else nodeCreator.next()
+        }
         hyperEdgesType ++ Set(
           HyperEdge(functionNode, identToEdge(function.copy(annotation = None)), Seq.empty, EmptyMetadata),
           HyperEdge(trueNode, identToEdge(Language.typeId), Seq(functionNode, targetType), EmptyMetadata),
@@ -352,7 +307,7 @@ object Programs extends LazyLogging {
     logger.trace("Destruct a program")
 
     val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)
-    (VersionedHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
+    (CompactHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
   }
 
   def destructPattern(tree: AnnotatedTree): HyperPattern = {
@@ -417,7 +372,7 @@ object Programs extends LazyLogging {
     val anchoredGraphs = edges.zipWithIndex.map({case ((target, graphEdges), i) =>
       val anchorEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
         target, anchorCreator(i), Seq.empty, NonConstructableMetadata)
-      VersionedHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
+      CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
     })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>

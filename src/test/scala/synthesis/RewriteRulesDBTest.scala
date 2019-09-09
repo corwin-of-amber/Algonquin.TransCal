@@ -114,7 +114,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       val programs = Programs.empty + tree1 + tree2 + tree3
       programs.hyperGraph
     }
-    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
     assume((graphAfter -- graphBefore).nonEmpty)
 
     val programs = Programs(graphAfter)
@@ -147,10 +147,10 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
         val programs = Programs.empty + tree1 + tree2 + tree3
         programs.hyperGraph
       }
-      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)
@@ -180,10 +180,10 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
         programs.hyperGraph
       }
       val rewriteRules = SimpleRewriteRulesDB.rewriteRules.toSeq ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
-      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)
@@ -213,10 +213,10 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
         programs.hyperGraph
       }
       val rewriteRules = TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
-      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.VersionedHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)

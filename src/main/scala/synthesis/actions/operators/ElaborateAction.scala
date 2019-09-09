@@ -24,18 +24,20 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Rewrite search
-    val newState = maxSearchDepth.map(d => ElaborateAction.RunNaiveSearch(state, goalPredicate, d))
-      .getOrElse(ElaborateAction.RunNaiveSearch(state, goalPredicate))
+    val newState = new OperatorRunAction(maxSearchDepth.getOrElse(Int.MaxValue), Some(goalPredicate))(state)
+    val success = goalPredicate(new RewriteSearchState(newState.programs.hyperGraph))
 
     // Process result
-    val newPrograms = newState.map(_.programs).getOrElse(state.programs)
-    if (newState.nonEmpty) {
-      val root = newPrograms.hyperGraph.edges.find(_.edgeType == anchor).get.target
-      val terms = newPrograms.reconstructWithPattern(root, goal, Some(goalRoot))
+    if (success) {
+      val root = newState.programs.hyperGraph.findByEdgeType(anchor).head.target
+      val terms = newState.programs.reconstructWithPattern(root, goal, Some(goalRoot))
       if (terms.hasNext) logger.info(s"Elaborated term is '${Programs.termToString(terms.next())}'")
       else logger.info("Found term not constructable (probably a symbol)")
-    } else logger.info("Failed to elaborate to pattern")
-    newState.getOrElse(state)
+      newState
+    } else {
+      logger.info("Failed to elaborate to pattern")
+      state
+    }
   }
 }
 
@@ -47,6 +49,7 @@ object ElaborateAction {
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, predicate)
-    rewriteSearch.search(spaceSearch, maxDepth).map(s => ActionSearchState(Programs(s.graph), state.rewriteRules))
+    val (success, newState) = rewriteSearch.search(spaceSearch, maxDepth)
+    if (success) Some(ActionSearchState(Programs(newState.graph), state.rewriteRules)) else None
   }
 }

@@ -1,0 +1,18 @@
+/*
+ * Induction step for:
+ *
+ *   rev (l :+ y) = y :: (rev l)
+ */
+
+f ?y = rev (l :+ y)   [++]
+
+rev (?z :: ?zs) = (rev zs) :+ z     /* (defn) */
+
+l = x :: xs
+
+ltwf xs l = ⊤  [++]
+
+ltwf ?t l ||> rev (t :+ ?w) >> w :: rev t     /* IH */
+
+rev (_ :+ _) -> a1
+a1 -> _ :: (rev _)
