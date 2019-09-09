@@ -25,7 +25,7 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} w (len w) [++]"),
       parser.apply("timecomplexTrue-> a1 [only assoc]"),
-      parser.apply("a1 -> timecomplex (nodup' _ _)"),
+      parser.apply("a1 -> timecomplex (nodup' _ _) _"),
     )
     val lastState = new Interpreter(terms.iterator, System.out).start()
     val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, lastState.programs.hyperGraph)
@@ -73,7 +73,7 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
 
 object RecursiveTimeComplexActionTest {
   def populate(rewriteRules: Set[Operator[RewriteSearchState]], hyperGraph: ActionSearchState.HyperGraph): ActionSearchState.HyperGraph = {
-    var populated = RewriteSearchState(mutable.VersionedHyperGraph.empty ++ hyperGraph)
+    var populated = RewriteSearchState(mutable.CompactHyperGraph.empty ++ hyperGraph)
     var lastSize = 0
     var size = populated.graph.size
     do {
@@ -83,6 +83,6 @@ object RecursiveTimeComplexActionTest {
       lastSize = size
       size = populated.graph.size
     } while (size != lastSize)
-    immutable.VersionedHyperGraph.empty ++ populated.graph
+    immutable.CompactHyperGraph.empty ++ populated.graph
   }
 }
