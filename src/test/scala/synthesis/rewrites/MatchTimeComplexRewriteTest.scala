@@ -1,7 +1,7 @@
 package synthesis.rewrites
 
 import org.scalatest.{FunSuite, Matchers}
-import structures.mutable.VersionedHyperGraph
+import structures.mutable.CompactHyperGraph
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{DefAction, RecursiveTimeComplexActionTest}
 import synthesis.{Programs, TimeComplexRewriteRulesDB}
@@ -18,7 +18,7 @@ class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
       ).foldLeft(ActionSearchState(Programs.empty, Set.empty))((s, action) => action apply s).programs.hyperGraph
     }
     val basicSize = hyperGraphBasic.size
-    val hyperGraphStart = VersionedHyperGraph.empty ++ RecursiveTimeComplexActionTest.populate(TimeComplexRewriteRulesDB.rewriteRules - MatchTimeComplexRewrite, hyperGraphBasic)
+    val hyperGraphStart = CompactHyperGraph.empty ++ RecursiveTimeComplexActionTest.populate(TimeComplexRewriteRulesDB.rewriteRules - MatchTimeComplexRewrite, hyperGraphBasic)
     val startSize = hyperGraphStart.size
     assume(startSize > basicSize)
 

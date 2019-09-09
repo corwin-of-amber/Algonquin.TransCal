@@ -2,7 +2,6 @@ package synthesis.actions.operators
 
 import structures._
 import structures.immutable.HyperGraph
-import structures.mutable.VersionedHyperGraph
 import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
@@ -42,8 +41,8 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     )
   }
 
-  private def findUntouchedTerms(hyperGraph: ActionSearchState.HyperGraph): VersionedHyperGraph[HyperTermId, HyperTermIdentifier] = {
-    var filledHyperGraph = mutable.VersionedHyperGraph.empty ++ hyperGraph
+  private def findUntouchedTerms(hyperGraph: ActionSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
+    var filledHyperGraph = mutable.CompactHyperGraph.empty ++ hyperGraph
     for(
       timeComplexTrue <- hyperGraph.find(_.edgeType.identifier == Language.timeComplexTrueId).map(_.target);
       (idMap, _) <- hyperGraph.findSubgraph[Int](hyperPattern)
@@ -56,7 +55,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     filledHyperGraph
   }
 
-  private def populateEdges(hyperGraph: VersionedHyperGraph[HyperTermId, HyperTermIdentifier]): VersionedHyperGraph[HyperTermId, HyperTermIdentifier] = {
+  private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
     var tempHyperGraph = hyperGraph
     var lastSize = 0
     var size = tempHyperGraph.size
@@ -70,7 +69,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     tempHyperGraph
   }
 
-  private def findEquive(populated: VersionedHyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+  private def findEquive(populated: RewriteSearchState.HyperGraph): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
     val populatedPrograms = Programs(populated)
     def contains(big: AnnotatedTree, small: AnnotatedTree): Boolean = (big == small) || big.subtrees.exists(contains(_, small))
     val nodeCreator = Stream.from(populated.nodes.map(_.id).max).map(HyperTermId).iterator
