@@ -194,8 +194,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSet
     val expectedTree = parser.parseExpression("{x} ∪ (elems xs)")
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)"), ContainerComplexity("len(xs)")))
-    result.size shouldEqual 1
-    result.head shouldEqual (expectedTree, expectedComplexity)
+    result should contain (expectedTree, expectedComplexity)
   }
 
   test("Reconstruct ‖ time complex") {
