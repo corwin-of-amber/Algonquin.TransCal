@@ -1,6 +1,7 @@
 package structures.mutable
 
 import structures._
+import structures.generic.HyperGraph.HyperGraphPattern
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 
@@ -20,7 +21,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   }
 
   def version: Long = wrapped.version
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 

@@ -1,8 +1,8 @@
 package structures.mutable
 
 import structures._
-import structures.immutable.HyperGraph.HyperGraphPattern
-import structures.immutable.VersionedHyperGraph.VersionMetadata
+import structures.generic.HyperGraph.HyperGraphPattern
+import structures.generic.VersionedHyperGraph.VersionMetadata
 
 import scala.collection.{GenTraversableOnce, mutable}
 
@@ -17,7 +17,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
   /* --- Constructors --- */
 
   def this(wrapped: HyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), mutable.HashMultiMap.apply(structures.immutable.VersionedHyperGraph.createMapOfVersions(wrapped)))
+    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), mutable.HashMultiMap.apply(structures.generic.VersionedHyperGraph.createMapOfVersions(wrapped)))
   }
 
   /* --- Public Methods --- */
@@ -34,7 +34,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
           val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
           val nodesMap = Item.itemsValueToMap(nodes)
           val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-          val g = HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+          val g = structures.generic.HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
           wrapped.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
         })
       })
@@ -126,8 +126,6 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
 }
 
 object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {
-  val STATIC_VERSION = 0L
-
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements
@@ -137,36 +135,4 @@ object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyper
       new VersionedHyperGraph(HyperGraph(parts: _*))
     }
   }
-
-  case class VersionMetadata(version: Long) extends SpecificMergeMetadata {
-    override protected def toStr: String = s"VersionMetadata($version)"
-
-    override def mergeSpecific(other: SpecificMergeMetadata): SpecificMergeMetadata = other match {
-      case metadata: VersionMetadata => if (metadata.version < version) other else this
-    }
-  }
-
-  object VersionMetadata {
-    /**
-      *
-      * @param edges To check with
-      * @tparam Node     node type
-      * @tparam EdgeType edge type
-      * @return
-      */
-    def latestVersion[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): Long = (edges.map(getEdgeVersion) + 0L).min
-
-    /**
-      * Getting the edge version
-      *
-      * @param edge Edge to check with
-      * @tparam Node     node type
-      * @tparam EdgeType edge type
-      * @return
-      */
-    def getEdgeVersion[Node, EdgeType](edge: HyperEdge[Node, EdgeType]): Long = {
-      edge.metadata.collectFirst { case v: VersionedHyperGraph.VersionMetadata => v.version }.getOrElse(0L)
-    }
-  }
-
 }

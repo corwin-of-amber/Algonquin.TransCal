@@ -51,7 +51,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = structures.generic.HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 

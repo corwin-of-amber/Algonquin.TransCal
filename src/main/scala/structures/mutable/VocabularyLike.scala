@@ -1,9 +1,9 @@
 package structures.mutable
 
-import structures.{Explicit, Item}
-import structures.VocabularyLike.Word
+import structures.Explicit
+import structures.VocabularyLike.{Word, WordRegex}
 
-import scala.collection.{SetLike}
+import scala.collection.SetLike
 
 /**
   * @author tomer
@@ -11,8 +11,6 @@ import scala.collection.{SetLike}
   */
 trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with Set[Word[Letter]]]
   extends SetLike[Word[Letter], This] {
-
-  import VocabularyLike.WordRegex
 
   /** Find words by a regex.
     *
@@ -49,10 +47,4 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with Set[Word
   /* --- IterableLike Impl. --- */
 
   override def iterator: Iterator[Word[Letter]] = words.iterator
-}
-
-object VocabularyLike {
-  type Word[Letter] = Seq[Letter]
-  type LetterPattern[Letter, Id] = Item[Letter, Id]
-  type WordRegex[Letter, Id] = Word[LetterPattern[Letter, Id]]
 }

@@ -23,7 +23,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
   private val innerFunc: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
     patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
 
-  private val applyFuncGraph: HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
+  private val applyFuncGraph: generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     HyperGraph(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {

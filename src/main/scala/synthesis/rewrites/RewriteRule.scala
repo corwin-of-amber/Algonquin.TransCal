@@ -41,10 +41,10 @@ class RewriteRule(val premise: HyperPattern,
       }
 
       val newEdges = premiseReferencesMaps.flatMap(m => {
-        val meta = metaCreator(m._1, m._2).merge(metadataCreator(immutable.HyperGraph.mergeMap(premise, m)))
-        val merged = immutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+        val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
+        val merged = generic.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
         if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-        else immutable.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
+        else generic.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
           e.copy(metadata = e.metadata.merge(meta)))
       })
 
@@ -110,8 +110,8 @@ object RewriteRule {
       case pattern :: rest =>
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
-            val fullPattern = HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(HyperGraph.mergeMap(_, maps)))
+            val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMap(_, maps)))
               .map(a => fullPattern +: a)
         }
     }
