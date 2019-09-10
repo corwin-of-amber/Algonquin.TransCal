@@ -9,7 +9,7 @@ import scala.collection.{GenTraversableOnce, SetLike}
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with Set[HyperEdge[Node, EdgeType]]]
+trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]
   extends SetLike[HyperEdge[Node, EdgeType], This] {
 
   /** Find a pattern of an edge in the graph.
