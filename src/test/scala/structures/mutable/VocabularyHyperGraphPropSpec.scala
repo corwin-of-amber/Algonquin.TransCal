@@ -6,8 +6,7 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
 import structures._
-import structures.immutable.VocabularyHyperGraph
-import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
+import synthesis.rewrites.Template.{ExplicitTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.util.Random

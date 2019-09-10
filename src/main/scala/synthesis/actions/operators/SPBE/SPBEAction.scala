@@ -76,7 +76,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   private def getRoots(rewriteState: RewriteSearchState) =
     rewriteState.graph.findEdges(HyperTermIdentifier(Language.typeId)).map(_.sources.head)
 
-  private def shiftEdges(startId: Int, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =
+  private def shiftEdges(startId: Int, edges: collection.Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =
     edges.map(e => e.copy(target = e.target.copy(e.target.id + startId), sources = e.sources.map(hid => hid.copy(id = hid.id + startId))))
 
   override def apply(state: ActionSearchState): ActionSearchState = {

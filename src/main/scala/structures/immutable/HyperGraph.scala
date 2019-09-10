@@ -2,8 +2,12 @@ package structures.immutable
 
 import structures.{HyperEdge, HyperGraphLike, Item}
 
+import scala.collection.immutable
 
-trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
+
+trait HyperGraph[Node, EdgeType]
+  extends immutable.Set[HyperEdge[Node, EdgeType]]
+     with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
 
   override def empty: HyperGraph[Node, EdgeType] = HyperGraph.empty
 

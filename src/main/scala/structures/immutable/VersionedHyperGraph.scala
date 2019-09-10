@@ -25,18 +25,18 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     if (version == 0) wrapped.findSubgraph[Id](hyperPattern)
     else {
-      val relevantVersionGraph = HyperGraph(mapByVersion.filterKeys(_ >= version).values.flatten.toSeq:_*)
-      hyperPattern.flatMap(edgePattern => {
-        relevantVersionGraph.findRegexHyperEdges(edgePattern)
-          .flatMap(edge => {
-            val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
-            val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-            val nodesMap = Item.itemsValueToMap(nodes)
-            val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-            val g = generic.HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-            wrapped.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
-          })
-      })
+      (for (
+        relevantVersionGraph <- mapByVersion.filterKeys(_ >= version).values;
+        edgePattern <- hyperPattern;
+        edge <- relevantVersionGraph.findRegexHyperEdges(edgePattern)
+      ) yield {
+        val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
+        val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
+        val nodesMap = Item.itemsValueToMap(nodes)
+        val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
+        val g = structures.generic.HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
+        wrapped.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
+      }).flatten.toSet
     }
   }
 
@@ -130,6 +130,6 @@ object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyper
     }
   }
 
-  private def createMapOfVersions[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): Map[Long, HyperGraph[Node, EdgeType]] =
+  private def createMapOfVersions[Node, EdgeType](edges: HyperGraph[Node, EdgeType]): Map[Long, HyperGraph[Node, EdgeType]] =
     edges.groupBy(edge => VersionMetadata.getEdgeVersion(edge)).mapValues(g => HyperGraph(g.toSeq:_*))
 }

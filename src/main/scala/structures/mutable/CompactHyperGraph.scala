@@ -5,7 +5,7 @@ import structures.generic.HyperGraph.HyperGraphPattern
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 
-import scala.collection.{GenTraversableOnce, mutable}
+import scala.collection.mutable
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   *
@@ -25,19 +25,11 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped).compact(List(hyperEdge), mutable.Map.empty[Node, Node])
-  }
-
-  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
-    new CompactHyperGraph(wrapped).compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
-  }
-
-  override def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = {
+  override def +=(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
     compact(List(hyperEdge), mutable.Map.empty[Node, Node])
   }
 
-  override def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = {
+  override def ++=(hyperEdges: TraversableOnce[HyperEdge[Node, EdgeType]]): this.type = {
     compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
   }
 
@@ -67,7 +59,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   /* --- Private Methods --- */
 
   private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]],
-                      changedToKept: mutable.Map[Node, Node]): CompactHyperGraph[Node, EdgeType] = {
+                      changedToKept: mutable.Map[Node, Node]): this.type = {
     def translateEdge(e: HyperEdge[Node, EdgeType], changedToKept: mutable.Map[Node, Node]): HyperEdge[Node, EdgeType] =
       e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))
 
