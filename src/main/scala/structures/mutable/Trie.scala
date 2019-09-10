@@ -8,7 +8,8 @@ import scala.collection.mutable
 import scala.collection.immutable
 
 class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Letter]]], private val mutableWords: mutable.Set[Word[Letter]])
-  extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
+  extends Vocabulary[Letter]
+    with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
@@ -37,9 +38,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   override def words: Set[Word[Letter]] = mutableWords.toSet
 
-  override def +(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else Trie[Letter](this.words) += word
-
-  def +=(word: Word[Letter]): Trie[Letter] = if (words.contains(word)) this else addRecursive(word, word)
+  def +=(word: Word[Letter]): this.type = if (words.contains(word)) this else addRecursive(word, word)
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
@@ -47,7 +46,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   override def -(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else Trie[Letter](this.words) -= word
 
-  def -=(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else removeRecursive(word, word)
+  def -=(word: Word[Letter]): this.type = if (!words.contains(word)) this else removeRecursive(word, word)
 
   override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])] = {
     logger.trace("find pattern prefix")
@@ -71,7 +70,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   /* --- Private Methods --- */
 
-  private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
+  private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type = {
     logger.trace("Add word")
     logger.trace("Make subtries larger if needed")
     subtries ++= (0 to word.length - subtries.length).map(_ => mutable.Map.empty[Letter, Trie[Letter]])
@@ -86,7 +85,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
     this
   }
 
-  private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
+  private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type = {
     logger.trace("Remove with index")
     logger.trace(f"Trying to remove $word")
     for (((letter, mapSubtries), mapIndex) <- word.zip(subtries).zipWithIndex) {

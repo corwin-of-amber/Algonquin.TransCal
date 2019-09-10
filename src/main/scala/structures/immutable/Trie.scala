@@ -11,7 +11,10 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
-  extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
+  extends Vocabulary[Letter]
+    with Set[Word[Letter]]
+    with VocabularyLike[Letter, Trie[Letter]]
+    with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
