@@ -1,13 +1,13 @@
 package structures.immutable
 
-import transcallang.{Identifier, Language, TranscalParser}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
+import org.scalatestplus.scalacheck.Checkers
 import structures._
-import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
+import synthesis.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.{Identifier, Language, TranscalParser}
 
 import scala.util.Random
 
@@ -408,6 +408,13 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
   property("test nodes and edges agree on nodes in graph") {
     check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => {
       g.nodes == g.edges.flatMap(e => e.target +: e.sources)
+    }})
+  }
+
+  property("test FindInNodes works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.edgeType
+      g.edges.filter(e => e.target == s || e.sources.contains(s)) == g.findInNodes(s)
     }})
   }
 }

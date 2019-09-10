@@ -421,4 +421,11 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     }
     })
   }
+
+  property("test FindInNodes works correctly vs naive implementation") {
+    check(forAll{ (g: VocabularyHyperGraph[Int, Int]) => g.nonEmpty ==> {
+      val s = g.head.edgeType
+      g.edges.filter(e => e.target == s || e.sources.contains(s)) == g.findInNodes(s)
+    }})
+  }
 }

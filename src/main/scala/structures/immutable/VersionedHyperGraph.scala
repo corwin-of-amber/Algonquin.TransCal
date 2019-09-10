@@ -82,7 +82,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VersionedHyperGraph[Node, EdgeType] = {
     val newMapByVersion = mapByVersion.mapValues(_.mergeEdgeTypes(keep, change))
-    val diff = newMapByVersion.map{case (version, graph) => mapByVersion(version) -- graph}.foldLeft(HyperGraph.empty[Node, EdgeType])(_ ++ _).mergeEdgeTypes(keep, change)
+    val diff = findByEdgeType(change)
     val newMapByVersion1 = newMapByVersion.+((version, newMapByVersion.getOrElse(version, HyperGraph.empty) ++ diff))
     new VersionedHyperGraph(
       wrapped.mergeEdgeTypes(keep, change),
@@ -93,7 +93,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
 
   override def mergeNodes(keep: Node, change: Node): VersionedHyperGraph[Node, EdgeType] = {
     val newMapByVersion = mapByVersion.mapValues(_.mergeNodes(keep, change))
-    val diff = newMapByVersion.map{case (version, graph) => mapByVersion(version) -- graph}.foldLeft(HyperGraph.empty[Node, EdgeType])(_ ++ _).mergeNodes(keep, change)
+    val diff = findInNodes(change)
     val newMapByVersion1 = newMapByVersion.updated(version, newMapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
     new VersionedHyperGraph(
       wrapped.mergeNodes(keep, change),
