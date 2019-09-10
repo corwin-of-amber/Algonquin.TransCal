@@ -75,24 +75,24 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: HyperGraph[Node, Edge
     this
   }
 
-  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VersionedHyperGraph[Node, EdgeType] = {
+  override def mergeEdgeTypesInPlace(keep: EdgeType, change: EdgeType): VersionedHyperGraph[Node, EdgeType] = {
     for (value <- mapByVersion.values) {
-      value.mergeEdgeTypes(keep, change)
+      value.mergeEdgeTypesInPlace(keep, change)
     }
-    val diff = (wrapped --  mapByVersion.values.foldLeft(HyperGraph.empty[Node, EdgeType])(_ ++ _)).mergeEdgeTypes(keep, change)
+    val diff = mapByVersion.values.foldLeft(wrapped)(_ -- _).mergeEdgeTypesInPlace(keep, change)
     mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
-    wrapped.mergeEdgeTypes(keep, change)
+    wrapped.mergeEdgeTypesInPlace(keep, change)
     version += 1
     this
   }
 
-  override def mergeNodes(keep: Node, change: Node): VersionedHyperGraph[Node, EdgeType] = {
+  override def mergeNodesInPlace(keep: Node, change: Node): VersionedHyperGraph[Node, EdgeType] = {
     for (value <- mapByVersion.values) {
-      value.mergeNodes(keep, change)
+      value.mergeNodesInPlace(keep, change)
     }
-    val diff = (wrapped --  mapByVersion.values.foldLeft(HyperGraph.empty[Node, EdgeType])(_ ++ _)).mergeNodes(keep, change)
+    val diff = mapByVersion.values.foldLeft(wrapped)(_ -- _).mergeNodesInPlace(keep, change)
     mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
-    wrapped.mergeNodes(keep, change)
+    wrapped.mergeNodesInPlace(keep, change)
     version += 1
     this
   }

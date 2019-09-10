@@ -194,7 +194,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     for (targets <- toMerge;
          source = targets.head;
          target <- targets.tail) {
-      rewriteState.graph.mergeNodes(source, target)
+      rewriteState.graph.mergeNodesInPlace(source, target)
     }
     rewriteState
   }

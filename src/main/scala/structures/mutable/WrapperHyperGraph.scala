@@ -15,12 +15,7 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-
   override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {wrapped -= elem; this }
-
-  override def mergeNodes(keep: Node, change: Node): This = newBuilder.++=(wrapped.mergeNodes(keep, change)).result()
-
-  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This = newBuilder.++=(wrapped.mergeEdgeTypes(keep, change)).result()
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)
 

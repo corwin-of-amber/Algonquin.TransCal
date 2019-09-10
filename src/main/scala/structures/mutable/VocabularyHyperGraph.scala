@@ -43,7 +43,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     this
   }
 
-  override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
+  override def mergeNodesInPlace(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
     if (keep == change) return this
 
@@ -60,7 +60,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     this
   }
 
-  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
+  override def mergeEdgeTypesInPlace(keep: EdgeType, change: EdgeType): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge edge types")
     if (keep == change) return this
 
