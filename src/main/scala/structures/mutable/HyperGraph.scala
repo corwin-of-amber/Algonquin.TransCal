@@ -1,23 +1,15 @@
 package structures.mutable
 
-import structures.{HyperEdge, Item}
+import structures.HyperEdge
 
 import scala.collection.mutable
 
 trait HyperGraph[Node, EdgeType]
   extends mutable.Set[HyperEdge[Node, EdgeType]]
+    with structures.generic.HyperGraph[Node, EdgeType]
      with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
 
   override def empty: HyperGraph[Node, EdgeType] = HyperGraph.empty
-
-  /** Finds subgraphs by a pattern graph.
-    *
-    * @param hyperPattern The pattern graph to match with
-    * @tparam Id A reference type to show a wanted connection in the pattern.
-    * @return The matched references.
-    */
-  def findSubgraph[Id](hyperPattern: structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
-    findSubgraph[Id, structures.immutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
 }
 
 object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
