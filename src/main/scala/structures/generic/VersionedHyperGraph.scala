@@ -13,9 +13,6 @@ object VersionedHyperGraph {
     }
   }
 
-  def createMapOfVersions[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): Map[Long, Set[HyperEdge[Node, EdgeType]]] =
-    edges.groupBy(edge => VersionMetadata.getEdgeVersion(edge)).withDefaultValue(Set.empty)
-
   object VersionMetadata {
     /**
       *
