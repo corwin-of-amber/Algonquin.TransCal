@@ -2,7 +2,11 @@ package structures.mutable
 
 import structures.{HyperEdge, Item}
 
-trait HyperGraph[Node, EdgeType] extends Set[HyperEdge[Node, EdgeType]] with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
+import scala.collection.mutable
+
+trait HyperGraph[Node, EdgeType]
+  extends mutable.Set[HyperEdge[Node, EdgeType]]
+     with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] {
 
   override def empty: HyperGraph[Node, EdgeType] = HyperGraph.empty
 
