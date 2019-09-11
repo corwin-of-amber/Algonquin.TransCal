@@ -45,6 +45,14 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     new VocabularyHyperGraph(vocabulary - hyperEdgeToWord(hyperEdge), newMetadata)
   }
 
+  def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
+    if (!this.contains(hyperEdge)) this
+    else {
+      val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
+      new VocabularyHyperGraph(vocabulary, newMetadatas)
+    }
+  }
+
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
     if (keep == change) return this

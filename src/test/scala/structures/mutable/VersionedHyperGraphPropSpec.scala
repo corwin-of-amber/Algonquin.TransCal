@@ -25,7 +25,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Checkers with Matchers w
 
   property("find graph finds nothing") {
     check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      val g = new VersionedHyperGraph(grapher(es))
+      val g = grapher(es)
       val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
         HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
         HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
@@ -38,7 +38,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Checkers with Matchers w
   }
 
   property("find regex rep0 with 0 sources") {
-    val graph = new VersionedHyperGraph(grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata))))
+    val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
     val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
     val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
