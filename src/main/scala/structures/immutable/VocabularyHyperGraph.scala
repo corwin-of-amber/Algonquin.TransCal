@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures._
+import structures.generic.HyperGraphLikeGenericCompanion
 
 import scala.collection.{GenTraversableOnce, mutable}
 

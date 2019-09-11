@@ -2,6 +2,7 @@ package structures.immutable
 
 import structures._
 import structures.generic.HyperGraph.HyperGraphPattern
+import structures.generic.HyperGraphLikeGenericCompanion
 import structures.generic.VersionedHyperGraph.VersionMetadata
 
 import scala.collection.{GenTraversableOnce, mutable}
