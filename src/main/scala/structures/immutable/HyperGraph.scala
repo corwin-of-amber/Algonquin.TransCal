@@ -1,5 +1,6 @@
 package structures.immutable
 
+import structures.generic.HyperGraphLikeGenericCompanion
 import structures.{HyperEdge, HyperGraphLike}
 
 import scala.collection.immutable

@@ -149,7 +149,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
             placeholdersMap.get(id)
               .map(specificValue(_, more, placeholdersMap))
               .getOrElse(
-                subtries.applyOrElse(skip, (a: Int) => Map.empty[Letter, Trie[Letter]])
+                subtries.applyOrElse(skip, (_: Int) => Map.empty[Letter, Trie[Letter]])
                   .flatMap { case (letter: Letter, subtrie: Trie[Letter]) => subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0) }
                   .toSet
               )

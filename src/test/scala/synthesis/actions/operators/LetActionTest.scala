@@ -56,10 +56,10 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
 
   test("rewriteRules can rewrite correct matches") {
     val term = new TranscalParser().apply("f >> true match (true ⇒ hello / false => world)")
-    val (graph, root) = Programs.destructWithRoot(term)
+    val (graph, _) = Programs.destructWithRoot(term)
     var state = new RewriteSearchState(graph)
     val letAction = new LetAction(term)
-    for (i <- 0 to 4; r <- letAction.rules) state = r(state)
+    for (_ <- 0 to 4; r <- letAction.rules) state = r(state)
     val fRoot = state.graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
     state.graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
   }
@@ -70,7 +70,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val (graph, root) = Programs.destructWithRoot(new TranscalParser().parseExpression("reverse (x::y::nil)"))
     val anchor = HyperTermIdentifier(Identifier("anchor"))
     var state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
-    for (i <- 0 to 4;
+    for (_ <- 0 to 4;
          r <- letAction.rules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules) {
       state = r(state)
     }

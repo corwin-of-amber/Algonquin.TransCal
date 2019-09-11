@@ -5,11 +5,10 @@ import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
 import structures._
-import structures.immutable.{HyperGraph, CompactHyperGraph}
+import structures.immutable.{CompactHyperGraph, HyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.Identifier
 
 /**
   * @author tomer
@@ -79,11 +78,8 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
         // At most one
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
         val filledConditions = generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
-        val filledDestination = HyperGraph(destinationEdge)
 
-        val rewriteRule = new RewriteRule(conditions, HyperGraph(destination), (a, b) => EmptyMetadata)
-        val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
-        val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(x => Identifier(x.toString)).map(HyperTermIdentifier).iterator)
+        val rewriteRule = new RewriteRule(conditions, HyperGraph(destination), (_, _) => EmptyMetadata)
         val state = new RewriteSearchState(CompactHyperGraph(filledConditions.toSeq: _*))
         val tempProgs = Programs(state.graph)
         val newState = rewriteRule.apply(state)

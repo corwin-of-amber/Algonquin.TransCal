@@ -1,6 +1,7 @@
 package structures.mutable
 
 import structures.HyperEdge
+import structures.generic.HyperGraphLikeGenericCompanion
 
 import scala.collection.mutable
 

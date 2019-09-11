@@ -21,7 +21,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   override def patterner(es: Set[HyperEdgePattern[Int, Int, Int]]): CompactHyperGraph[Item[Int, Int], Item[Int, Int]] = CompactHyperGraph(es.toSeq: _*)
 
   property("all constructor") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] => (es.forall(e1 => es.forall(e2 => e1.target == e2.target || e1.sources != e2.sources || e1.edgeType != e2.edgeType))) ==> {
+    check(forAll { es: Set[HyperEdge[Int, Int]] => es.forall(e1 => es.forall(e2 => e1.target == e2.target || e1.sources != e2.sources || e1.edgeType != e2.edgeType)) ==> {
       new CompactHyperGraph(new VersionedHyperGraph(new VocabularyHyperGraph(es))).edges == es && CompactHyperGraph(es.toSeq: _*).edges == es
     }})
   }
@@ -114,8 +114,6 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
     val es = Set(HyperEdge(40, 88, Vector(), EmptyMetadata), HyperEdge(14, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(4, 12, Vector(17, 11, 29, 10, 33), EmptyMetadata), HyperEdge(14, 88, Vector(), EmptyMetadata))
     val graph = CompactHyperGraph(es.toSeq: _*)
-    val temp = VocabularyHyperGraph(es.toSeq: _*)
-    val temp1 = CompactHyperGraph(es.toSeq: _*)
 
     val subgraph = Set(HyperEdge(40, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(40, 88, Vector(), EmptyMetadata))
     val asHoles: Map[Int, Int] = {
@@ -149,7 +147,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   }
 
   property("test edges are found in their versions") {
-    check(forAll{ (g: CompactHyperGraph[Int, Int]) => g.nonEmpty ==> {
+    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
       val edges = g.edges
       edges.forall{edge =>
         val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
@@ -161,7 +159,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   }
 
   property("test edges are found in versions before them") {
-    check(forAll{ (g: CompactHyperGraph[Int, Int]) => g.nonEmpty ==> {
+    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
       val edges = g.edges
       edges.forall{edge =>
         val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
@@ -173,7 +171,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   }
 
   property("test edges are not found in versions after them") {
-    check(forAll{ (g: CompactHyperGraph[Int, Int]) => g.nonEmpty ==> {
+    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
       val edges = g.edges
       edges.forall{edge =>
         val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)

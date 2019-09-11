@@ -25,7 +25,7 @@ package object rewrites {
   val rewriteRuleGen: Gen[RewriteRule] = for {
     conditions <- hyperPatternGen
     destination <- hyperPatternGen
-  } yield new RewriteRule(conditions, destination, (a, b) => EmptyMetadata)
+  } yield new RewriteRule(conditions, destination, (_, _) => EmptyMetadata)
 
   val rewriteSearchStateGen: Gen[RewriteSearchState] = hyperGraphGen.map(new RewriteSearchState(_))
 }

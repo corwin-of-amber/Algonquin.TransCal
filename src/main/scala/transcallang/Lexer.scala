@@ -16,7 +16,7 @@ object Lexer extends RegexParsers {
   def apply(code: String): Either[WorkflowLexerError, Seq[WorkflowToken]] = {
     parse(tokens, code) match {
       case NoSuccess(msg, next) => Left(WorkflowLexerError(next.pos, msg))
-      case Success(result, next) => Right(result)
+      case Success(result, _) => Right(result)
     }
   }
 

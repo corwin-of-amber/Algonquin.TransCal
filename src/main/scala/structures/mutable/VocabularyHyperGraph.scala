@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures._
+import structures.generic.HyperGraphLikeGenericCompanion
 
 import scala.collection.mutable
 
@@ -65,7 +66,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
     def swap(n: Node) = if (n == change) keep else n
 
-    val keys = metadatas.keys.filter({case (target, edgeType, sources) => target == change || sources.contains(change)})
+    val keys = metadatas.keys.filter({case (target, _, sources) => target == change || sources.contains(change)})
     for ((target, edgeType, sources) <- keys) {
       val newKey = (swap(target), edgeType, sources.map(swap))
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
@@ -80,7 +81,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     logger.trace("Merge edge types")
     if (keep == change) return this
 
-    val keys = metadatas.keys.filter({case (target, edgeType, sources) => target == change || sources.contains(change)})
+    val keys = metadatas.keys.filter({case (target, _, sources) => target == change || sources.contains(change)})
     for ((target, edgeType, sources) <- keys) {
       val newKey = (target, keep, sources)
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))

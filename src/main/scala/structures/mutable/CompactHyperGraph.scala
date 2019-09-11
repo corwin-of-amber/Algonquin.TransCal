@@ -2,6 +2,7 @@ package structures.mutable
 
 import structures._
 import structures.generic.HyperGraph.HyperGraphPattern
+import structures.generic.HyperGraphLikeGenericCompanion
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 

@@ -57,7 +57,7 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
     newTerms.foldLeft(hyperPattern)((graph, kv) => {
       // From each map create new edges from the destination graph
       graph.mergeNodes(Explicit[Node, Id](kv._2), kv._1)
-    }).map(translateEdge(_)).toSet
+    }).map(translateEdge).toSet
   }
 
   def fillPattern[Node, EdgeType, Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], maps: (Map[Id, Node], Map[Id, EdgeType]), nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {

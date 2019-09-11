@@ -23,7 +23,7 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("removes") {
-    check(forAll { g: T => (g.edges.nonEmpty) ==>
+    check(forAll { g: T => g.edges.nonEmpty ==>
       checkRemoved(g, Random.nextInt(g.edges.size))
     })
   }
@@ -50,7 +50,7 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("edges finds all that were added") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] => (es.forall(e => es.forall(e1 => e == e1 || e1.sources != e.sources || e1.edgeType != e.edgeType))) ==> {
+    check(forAll { es: Set[HyperEdge[Node, EdgeType]] => es.forall(e => es.forall(e1 => e == e1 || e1.sources != e.sources || e1.edgeType != e.edgeType)) ==> {
       val g = grapher(es)
       es.toSeq.intersect(g.edges.toSeq).size == es.size
     }})
@@ -226,34 +226,34 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("test FindInSources works correctly vs naive implementation") {
-    check(forAll{ (g: T) => (g.nonEmpty && g.head.sources.nonEmpty) ==> {
+    check(forAll{ g: T => (g.nonEmpty && g.head.sources.nonEmpty) ==> {
       val s = g.head.sources.head
       g.edges.filter(_.sources.contains(s)) == g.findInSources(s)
     }})
   }
 
   property("test findByTarget works correctly vs naive implementation") {
-    check(forAll{ (g: T) => g.nonEmpty ==> {
+    check(forAll{ g: T => g.nonEmpty ==> {
       val s = g.head.target
       g.edges.filter(_.target == s) == g.findByTarget(s)
     }})
   }
 
   property("test FindByEdgeType works correctly vs naive implementation") {
-    check(forAll{ (g: T) => g.nonEmpty ==> {
+    check(forAll{ g: T => g.nonEmpty ==> {
       val s = g.head.edgeType
       g.edges.filter(_.edgeType == s) == g.findByEdgeType(s)
     }})
   }
 
   property("test nodes and edges agree on nodes in graph") {
-    check(forAll{ (g: T) => {
+    check(forAll{ g: T => {
       g.nodes == g.edges.flatMap(e => e.target +: e.sources)
     }})
   }
 
   property("test FindInNodes works correctly vs naive implementation") {
-    check(forAll{ (g: T) => g.nonEmpty ==> {
+    check(forAll{ g: T => g.nonEmpty ==> {
       val s = g.nodes.head
       g.edges.filter(e => e.target == s || e.sources.contains(s)) == g.findInNodes(s)
     }})

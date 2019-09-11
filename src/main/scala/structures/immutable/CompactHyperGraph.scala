@@ -1,6 +1,7 @@
 package structures.immutable
 
 import structures._
+import structures.generic.HyperGraphLikeGenericCompanion
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 

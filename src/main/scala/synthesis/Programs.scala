@@ -398,12 +398,6 @@ object Programs extends LazyLogging {
     results
   }
 
-  private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
-    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
-  }
-
   /** Iterator which combines sequence of iterators (return all combinations of their results).
     *
     * @param iterators All the iterators to combine.

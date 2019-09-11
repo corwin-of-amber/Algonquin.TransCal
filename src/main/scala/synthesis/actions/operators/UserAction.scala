@@ -83,7 +83,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             // A term to generalize - run generalize Action as is
             logger.info("RHS is a term running generalize.")
             new GeneralizeAction(anchor, t.subtrees, AnnotatedTree.identifierOnly(t.root), lim).apply(tempState)
-          case t: AnnotatedTree =>
+          case _: AnnotatedTree =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.info("RHS is a pattern running elaborate.")
             new ElaborateAction(anchor, rhs._1, rhs._2, lim).apply(tempState)
@@ -109,7 +109,6 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
          }
     }
 
-    val output: String = newState.toString
     logger.info(seperator)
     logger.info("")
     newState
@@ -118,5 +117,4 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   /* --- Privates --- */
 
-  private val lines: mutable.Buffer[(String, ActionSearchState)] = new mutable.ListBuffer[(String, ActionSearchState)]()
 }

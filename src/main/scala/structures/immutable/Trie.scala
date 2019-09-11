@@ -143,7 +143,7 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
             placeholdersMap.get(id)
               .map(specificValue(_, more, placeholdersMap))
               .getOrElse(
-                subtries.applyOrElse(skip, (a: Int) => Map.empty[Letter, Trie[Letter]])
+                subtries.applyOrElse(skip, (_: Int) => Map.empty[Letter, Trie[Letter]])
                   .flatMap {case (letter: Letter, subtrie: Trie[Letter]) => subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0)}
                   .toSet
               )
