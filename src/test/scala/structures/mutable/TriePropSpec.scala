@@ -112,7 +112,6 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
       val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
-      val equal = trie == newTrie
       beforeLettersSize == newTrie.letters.size + 1 && trie != newTrie && found.isEmpty
     }
     check(forAll { trie: Trie[Int] =>

@@ -18,8 +18,8 @@ object HyperEdgeTargetOrdering extends Ordering[HyperEdge[HyperTermId, HyperTerm
 object PatternEdgeTargetOrdering extends Ordering[HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]] {
   override def compare(x: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]], y: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]): Int =
     (x.target, y.target) match {
-      case (a: Hole[HyperTermId, Int], b: Explicit[HyperTermId, Int]) => -1
-      case (a: Explicit[HyperTermId, Int], b: Hole[HyperTermId, Int]) => 1
+      case (_: Hole[HyperTermId, Int], _: Explicit[HyperTermId, Int]) => -1
+      case (_: Explicit[HyperTermId, Int], _: Hole[HyperTermId, Int]) => 1
       case (a: Hole[HyperTermId, Int], b: Hole[HyperTermId, Int]) => a.id.compare(b.id)
       case (a: Explicit[HyperTermId, Int], b: Explicit[HyperTermId, Int]) => a.value.id.compare(b.value.id)
     }

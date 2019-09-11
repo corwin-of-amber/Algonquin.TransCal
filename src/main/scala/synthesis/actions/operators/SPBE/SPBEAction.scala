@@ -30,7 +30,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
   private val types: Set[AnnotatedTree] = constructors.flatMap(_.root.annotation.get match {
     case AnnotatedTree(Language.mapTypeId, trees, _) => trees
-    case t => throw new RuntimeException("All constructors should be function types")
+    case _ => throw new RuntimeException("All constructors should be function types")
   })
 
   // How to do this? for now given by user
@@ -236,7 +236,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val term2 = typedTerm2.map(_.copy(annotation = None))
     val relevantTypes = constructors.map(_.root.annotation.get match {
       case AnnotatedTree(Language.mapTypeId, trees, _) => trees.last
-    }).toSet.filter(t => typedTerm1.nodes.map(_.root.annotation).contains(Some(t))
+    }).filter(t => typedTerm1.nodes.map(_.root.annotation).contains(Some(t))
       || typedTerm2.nodes.map(_.root.annotation).contains(Some(t)))
 
     if (relevantTypes.isEmpty) return Set.empty
@@ -297,7 +297,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       // Replace inductionPh by inductionVar
       // Create base graph where inductionPh ||| c(existentials: _*)
       val constructedVal = AnnotatedTree.withoutAnnotations(c.root.copy(annotation = None),
-        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (t, i) =>
+        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (_, i) =>
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
       )

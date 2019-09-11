@@ -38,7 +38,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     if (tokens.isLeft) throw new RuntimeException(s"LEXER ERRoR: ${tokens.left.get}")
     val reader = new WorkflowTokenReader(tokens.right.get)
     program(reader) match {
-      case Success(matched, rt) => matched
+      case Success(matched, _) => matched
       case Failure(msg, rt) =>
         throw new RuntimeException(s"FAILURE: $msg in $rt")
       case Error(msg, rt) =>
@@ -78,8 +78,6 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   })
 
   private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree.identifierOnly(Identifier(x.toString, annotation = Some(AnnotatedTree.identifierOnly(Identifier("int"))))) })
-
-  private def literal: Parser[AnnotatedTree] = accept("string literal", { case LITERAL(name) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name)))) })
 
   def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> exprValuesAndParens).*)("getting map type def")) ^^ {
     case x ~ Nil => x
@@ -152,7 +150,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def splitted: Parser[List[AnnotatedTree]] = ((RBO ~> splitted <~ RBC)| (guarded ~ (BACKSLASH() ~> guarded).+)) ^^ {
     case x: List[AnnotatedTree] => x
-    case x: (AnnotatedTree ~ List[AnnotatedTree]) => x._1 +: x._2
+    case x: AnnotatedTree ~ List[AnnotatedTree] => x._1 +: x._2
   }
 
   def expression: Parser[AnnotatedTree] = (((exprInfixOperator <~ log(MATCH())("match")) ~! splitted) | exprInfixOperator) ^^ {
@@ -171,7 +169,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   def statementCommand: Parser[AnnotatedTree] = (expression ~ log(RIGHTARROW())("tactic statement") ~! expression ~ annotation.?) ^^ { x =>
     logger.trace(s"statement expr - $x")
     x match {
-      case left ~ dir ~ right ~ anno =>
+      case left ~ _ ~ right ~ anno =>
         val definitionTerm = AnnotatedTree.withoutAnnotations(Language.tacticId, List(left, right))
         anno.map(a => AnnotatedTree.withoutAnnotations(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
@@ -248,7 +246,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             else t.subtrees(0).root match {
               // TODO: if we have annotation changing values might change annotation?
               case Language.tupleId => t.copy(subtrees=toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) ++ t.subtrees(0).subtrees)
-              case i: Identifier => AnnotatedTree(Language.tupleId, toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) :+ t.subtrees(0), Seq.empty)
+              case _: Identifier => AnnotatedTree(Language.tupleId, toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) :+ t.subtrees(0), Seq.empty)
             }
           }
 
@@ -257,7 +255,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             val newMatchedTree = st.subtrees(0).root match {
               // TODO: if we have annotation changing values might change annotation?
               case Language.tupleId => st.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ st.subtrees(0).subtrees)
-              case i: Identifier =>
+              case _: Identifier =>
                 if (toAddParamsDefinitions.nonEmpty) AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ st.subtrees(0), Seq.empty)
                 else st.subtrees(0)
             }
@@ -285,7 +283,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
               case Language.tupleId => t.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ t.subtrees(0).subtrees)
-              case i: Identifier => AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ t.subtrees(0), Seq.empty)
+              case _: Identifier => AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ t.subtrees(0), Seq.empty)
             }
           }
 

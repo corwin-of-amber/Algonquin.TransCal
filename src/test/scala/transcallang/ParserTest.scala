@@ -305,7 +305,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser: TranscalParser = p.asInstanceOf[TranscalParser]
-  protected val symbols = Seq(
+  protected val symbols: Seq[String] = Seq(
     "var2 : string",
     "var3 : (list int)",
     "f1 : string :> (list real)"
@@ -314,13 +314,13 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
 
   test("Parse statement types and map types correctly simple") {
     parser("_ -> " + symbols.head).subtrees.last.root match {
-      case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+      case Identifier("var2", Some(ann), _) => ann.root.literal shouldEqual "string"
     }
   }
 
   test("Parse statement types and map types correctly apllied type") {
     parser("_ -> " + symbols(1)).subtrees.last.root match {
-      case Identifier("var3", Some(ann), ns) =>
+      case Identifier("var3", Some(ann), _) =>
         ann.root should be(Language.typeListId)
         ann.subtrees.head should be(Language.typeInt)
     }
@@ -328,7 +328,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
 
   test("Parse statement types and map types correctly function type") {
     parser("_ -> " + symbols.last).subtrees.last.root match {
-      case Identifier("f1", Some(ann), ns) =>
+      case Identifier("f1", Some(ann), _) =>
         ann.root should be(Language.mapTypeId)
         ann.subtrees.head.root.literal should be("string")
         ann.subtrees(1).root.literal should be("list")
@@ -337,13 +337,13 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
 
   test("Parse expression types and map types correctly simple") {
     parser.parseExpression(symbols.head).root match {
-      case Identifier("var2", Some(ann), ns) => ann.root.literal shouldEqual "string"
+      case Identifier("var2", Some(ann), _) => ann.root.literal shouldEqual "string"
     }
   }
 
   test("Parse expression types and map types correctly apllied type") {
     parser.parseExpression(symbols(1)).root match {
-      case Identifier("var3", Some(ann), ns) =>
+      case Identifier("var3", Some(ann), _) =>
         ann.root should be(Language.typeListId)
         ann.subtrees.head should be(Language.typeInt)
     }
@@ -351,7 +351,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
 
   test("Parse expression types and map types correctly function type") {
     parser.parseExpression(symbols.last).root match {
-      case Identifier("f1", Some(ann), ns) =>
+      case Identifier("f1", Some(ann), _) =>
         ann.root should be(Language.mapTypeId)
         ann.subtrees.head.root.literal should be("string")
         ann.subtrees(1).root.literal should be("list")
