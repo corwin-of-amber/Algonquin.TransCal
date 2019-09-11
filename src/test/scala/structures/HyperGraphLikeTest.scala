@@ -97,10 +97,9 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("merge nodes renames edges") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      ((es.size > 1) && (es.head.target != es.tail.head.target)) ==> {
-        val g = grapher(es)
-        es.toList match {
+    check(forAll { g: T =>
+      ((g.size > 1) && (g.edges.head.target != g.edges.tail.head.target)) ==> {
+        g.edges.toList match {
           case source :: toChange :: _ =>
             val gMerged = g.mergeNodes(source.target, toChange.target)
             val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
@@ -124,25 +123,23 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("find all empty should find all edges by sources length") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      (es.size > 1) ==> {
-        val g = grapher(es)
+    check(forAll { g: T =>
+      (g.size > 1) ==> {
         0 to 8 forall { i =>
           val pat = HyperEdge(Ignored(), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
-          g.findRegex(pat).size == es.count(_.sources.length == i)
+          g.findRegex(pat).size == g.count(_.sources.length == i)
         }
       }
     })
   }
 
   property("find all by target") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      (es.size > 1) ==> {
-        val g = grapher(es)
-        es.map(_.target) forall { t =>
+    check(forAll { g: T =>
+      (g.size > 1) ==> {
+        g.map(_.target) forall { t =>
           0 to 8 forall { i =>
             val pat = HyperEdge(Explicit(t), Ignored(), Seq.fill(i)(Ignored()), EmptyMetadata)
-            g.findRegex(pat).size == es.count(e => e.sources.length == i && e.target == t)
+            g.findRegex(pat).size == g.count(e => e.sources.length == i && e.target == t)
           }
         }
       }
@@ -150,20 +147,18 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("find graph finds itself") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      val g = grapher(es)
-      val pg = patterner(es map (e => HyperEdge(Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Node, Int]), EmptyMetadata)))
+    check(forAll { g: T =>
+      val pg = patterner(g.edges map (e => new HyperGraphLike.HyperEdgePattern(Explicit(e.target), Explicit(e.edgeType), e.sources.map(Explicit[Node, Int]), EmptyMetadata)))
       g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).size == 1
     })
   }
 
   property("find graph finds edges by type") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      es.nonEmpty ==> {
-        val g = grapher(es)
+    check(forAll { g: T =>
+      g.nonEmpty ==> {
         val pattern =
-          es.head.copy(target = Explicit(es.head.target), edgeType = Hole(0), sources = es.head.sources.map(Explicit[Node, Int]))
-        g.findRegexHyperEdges(pattern).contains(es.head)
+          g.head.copy(target = Explicit(g.head.target), edgeType = Hole(0), sources = g.head.sources.map(Explicit[Node, Int]))
+        g.findRegexHyperEdges(pattern).contains(g.head)
       }
     })
   }
@@ -179,11 +174,10 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("find by ignore regex finds all") {
-    check(forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      es.exists(_.sources.size == 1) ==> {
-        val g = grapher(es)
+    check(forAll { g: T =>
+      g.exists(_.sources.size == 1) ==> {
         val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
-        g.findRegexHyperEdges(pattern) == es
+        g.findRegexHyperEdges(pattern) == g.edges
       }
     })
   }
