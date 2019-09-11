@@ -156,8 +156,8 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
           case Ignored() =>
             recursiveFindRegex(more, placeholdersMap, length + 1, skip + 1)
           case Repetition(minR, maxR, repeated) =>
-            assert(repeated.take(math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
-            val results = (for (newPattern <- (minR to math.min(maxR, subtries.length)).map(i => repeated.take(i) ++ more)) yield {
+            assert(repeated.take(scala.math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
+            val results = (for (newPattern <- (minR to scala.math.min(maxR, subtries.length)).map(i => repeated.take(i) ++ more)) yield {
               recursiveFindRegex(newPattern, placeholdersMap, length, skip)
             }).flatten.toSet
             results
