@@ -20,6 +20,8 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
     compact(edges.toList, mutable.Map.empty[Node, Node])
   }
 
+  override def clone = new CompactHyperGraph(wrapped.clone)
+
   def version: Long = wrapped.version
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 

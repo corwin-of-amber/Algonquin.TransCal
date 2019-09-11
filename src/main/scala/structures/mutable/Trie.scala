@@ -14,6 +14,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
 
+  override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.clone)), mutable.Set.empty ++= mutableWords.clone)
   override def letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
 
   /** Inner constructor that translates mutable to immutable */
