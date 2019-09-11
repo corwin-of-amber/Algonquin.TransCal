@@ -85,7 +85,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   val rules: Set[RewriteRule] = rewrites
 
   def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
-    (m1: Map[Int, HyperTermId], m2: Map[Int, HyperTermIdentifier]) => LetMetadata(funcName)
+    (_: Map[Int, HyperTermId], _: Map[Int, HyperTermIdentifier]) => LetMetadata(funcName)
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {

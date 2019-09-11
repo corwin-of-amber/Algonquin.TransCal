@@ -47,7 +47,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
           (terms, ActionSearchState(progs, temp.rewriteRules))
         else {
           var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-          for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
+          for (_ <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
           val afterNaiveProgs = Programs(rewriteSearchState.graph)
           (getGeneralizedTerms(afterNaiveProgs), ActionSearchState(afterNaiveProgs, temp.rewriteRules))
         }

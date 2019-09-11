@@ -196,7 +196,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
     val expectedTree = parser.parseExpression("{x} ∪ (elems xs)")
     val lenContainer = ContainerComplexity(parser.parseExpression("len(xs)"))
     val expectedComplexity = AddComplexity(Seq(ConstantComplexity(4), lenContainer, lenContainer, lenContainer))
-    result.size shouldEqual 1
+    result should contain (expectedTree, expectedComplexity)
     result.head shouldEqual (expectedTree, expectedComplexity)
   }
 

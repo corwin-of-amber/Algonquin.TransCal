@@ -3,13 +3,13 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import math.PartialOrderingOps
 import structures._
-import structures.immutable.{CompactHyperGraph, HyperGraph}
+import structures.immutable.CompactHyperGraph
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
+import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.util.Try
@@ -49,7 +49,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
     maps.iterator.flatMap(m => {
-      val fullPattern = HyperGraph.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
+      val fullPattern = generic.HyperGraph.fillPattern(newPattern, m, () => throw new RuntimeException("Shouldn't need to create nodes"))
       recursiveReconstruct(CompactHyperGraph.empty ++ fullPattern, hyperTermId, Some(this.reconstruct))
     })
   }
@@ -444,12 +444,6 @@ object Programs extends LazyLogging {
       assert(graph.nodes.contains(target))
     }
     results
-  }
-
-  private val arityEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    val builtinToHyperTermId = Language.arity.keys.zip(Stream from 0 map HyperTermId).toMap
-    val builtinEdges = builtinToHyperTermId.map(kv => HyperEdge(kv._2, HyperTermIdentifier(Identifier(kv._1)), Seq.empty, EmptyMetadata))
-    builtinEdges.toSet ++ Language.arity.map(kv => HyperEdge(builtinToHyperTermId("⊤"), HyperTermIdentifier(Identifier(s"arity${kv._2}")), Seq(builtinToHyperTermId(kv._1)), EmptyMetadata))
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).

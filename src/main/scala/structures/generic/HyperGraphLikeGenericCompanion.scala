@@ -1,4 +1,4 @@
-package structures.immutable
+package structures.generic
 
 import structures.{HyperEdge, HyperGraphLike}
 
@@ -8,7 +8,7 @@ import scala.language.higherKinds
   * @author tomer
   * @since 1/14/19
   */
-abstract class HyperGraphLikeGenericCompanion[+G[N, E] <: HyperGraphLike[N, E, G[N, E]] with Set[HyperEdge[N ,E]]] {
+abstract class HyperGraphLikeGenericCompanion[+G[N, E] <: HyperGraphLike[N, E, G[N, E]] with collection.Set[HyperEdge[N ,E]]] {
 
 
   /** The underlying collection type with unknown element type */
