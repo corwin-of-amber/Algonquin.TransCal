@@ -178,6 +178,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     buildFunction("elem", Seq(true, false)),
+    buildOperator(Language.plusId.literal, isFirstConstant = true, isSecondConstant = true),
     buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
     buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
     buildUnaryFunction("elems", isConstant = false),
@@ -282,6 +283,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     f"{?x} |>> ${Language.spaceComplexId.literal} {x} 1 ||| ${Language.spaceComplexTrueId.literal}",
     buildUnaryFunction("elems", isConstant = false),
+    buildOperator(Language.plusId.literal, isFirstConstant = true, isSecondConstant = true),
     buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
     buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
     buildOperator(Language.consId.literal, isFirstConstant = true, isSecondConstant = false),
