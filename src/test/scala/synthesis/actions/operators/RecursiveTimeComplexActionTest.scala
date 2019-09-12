@@ -42,7 +42,7 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
   }
 
   test("sum example") {
-    val testedAction = new RecursiveTimeComplexAction(Identifier("sum"), 2)
+    val testedAction = new RecursiveTimeComplexAction(Identifier("sum"), 1)
     val parser = new TranscalParser()
     val terms = List(
       parser.apply("sum ?l = l match (⟨⟩ => 0) / ((?x :: ?xs) => 1 + (sum xs)) [++]"),
