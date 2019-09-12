@@ -5,7 +5,7 @@ import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge, Ignored, Metadata}
 import synthesis.actions.operators.LetAction
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.rewrites.{FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite, MatchTimeComplexRewrite, RewriteRule, RewriteSearchState, TupleTimeComplexRewrite}
+import synthesis.rewrites._
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
@@ -176,20 +176,20 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     buildFunction("elem", Seq(true, false)),
-    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
     buildUnaryFunction("elems", isConstant = false),
     buildUnaryFunction("len", isConstant = true),
     buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
-    "{?x} |||| (timecomplex x ?tcx) |>> timecomplex {x} (1 + tcx) ||| timecomplexTrue",
-    buildOperator("==", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∧", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∨", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("≠", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("::", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∈", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∉", isFirstConstant = true, isSecondConstant = true),
+    f"{?x} |||| (${Language.timeComplexId.literal} x ?tcx) |>> ${Language.timeComplexId.literal} {x} (1 $ADD_TIME_COMPLEX tcx) ||| ${Language.timeComplexTrueId.literal}",
+    buildOperator(Language.equalityId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.andId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.orId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.unequalityId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.consId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.setContainsId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.setNotContainsId.literal, isFirstConstant = true, isSecondConstant = true),
   ).map(t => parser.apply(t))
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
@@ -271,16 +271,16 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"${Language.spaceComplexId.literal} $call (${names.mkString(" + ")}) ||| ${Language.spaceComplexTrueId.literal}"
+    val conclusion = f"${Language.spaceComplexId.literal} $call (${names.mkString(f" $ADD_SPACE_COMPLEX ")}) ||| ${Language.spaceComplexTrueId.literal}"
     premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     f"{?x} |>> ${Language.spaceComplexId.literal} {x} 1 ||| ${Language.spaceComplexTrueId.literal}",
     buildUnaryFunction("elems", isConstant = false),
-    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("::", isFirstConstant = true, isSecondConstant = false),
+    buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.consId.literal, isFirstConstant = true, isSecondConstant = false),
   ).map(t => parser.apply(t))
 
 }
