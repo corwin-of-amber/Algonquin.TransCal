@@ -141,39 +141,39 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers  wi
     check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
 
-  property("test edges are found in their versions") {
-    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
-      val edges = g.edges
-      edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph = HyperGraph(regexEdge)
-        g.findSubgraphVersioned[Int](hyperGraph, version - 1).nonEmpty
-      }
-    }})
-  }
-
-  property("test edges are found in versions before them") {
-    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
-      val edges = g.edges
-      edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph = HyperGraph(regexEdge)
-        g.findSubgraphVersioned(hyperGraph, version).nonEmpty
-      }
-    }})
-  }
-
-  property("test edges are not found in versions after them") {
-    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
-      val edges = g.edges
-      edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph = HyperGraph(regexEdge)
-        g.findSubgraphVersioned(hyperGraph, version + 1).isEmpty
-      }
-    }})
-  }
+//  property("test edges are found in their versions") {
+//    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
+//      val edges = g.edges
+//      edges.forall{edge =>
+//        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+//        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
+//        val hyperGraph = HyperGraph(regexEdge)
+//        g.findSubgraphVersioned[Int](hyperGraph, version - 1).nonEmpty
+//      }
+//    }})
+//  }
+//
+//  property("test edges are found in versions before them") {
+//    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
+//      val edges = g.edges
+//      edges.forall{edge =>
+//        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+//        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
+//        val hyperGraph = HyperGraph(regexEdge)
+//        g.findSubgraphVersioned(hyperGraph, version).nonEmpty
+//      }
+//    }})
+//  }
+//
+//  property("test edges are not found in versions after them") {
+//    check(forAll{ g: CompactHyperGraph[Int, Int] => g.nonEmpty ==> {
+//      val edges = g.edges
+//      edges.forall{edge =>
+//        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+//        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
+//        val hyperGraph = HyperGraph(regexEdge)
+//        g.findSubgraphVersioned(hyperGraph, version + 1).isEmpty
+//      }
+//    }})
+//  }
 }

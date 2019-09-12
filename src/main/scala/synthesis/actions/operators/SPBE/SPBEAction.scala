@@ -1,7 +1,5 @@
 package synthesis.actions.operators.SPBE
 
-import structures.mutable.VersionedHyperGraph
-import structures.mutable.VersionedHyperGraph.VersionMetadata
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -123,7 +121,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
     val res = rules.map((r: Operator[RewriteSearchState]) => r(rewriteSearchState.deepCopy()))
     val newState = res.map(_.graph).foldLeft(rewriteSearchState)((state, es) => {
-      state.graph ++= shiftEdges(state.graph.map(_.target.id).max, es)
+      state.graph ++= shiftEdges(state.graph.map(_.target.id).max, es.edges)
       state
     })
     FunctionArgumentsAndReturnTypeRewrite(newState)
@@ -297,7 +295,6 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       // Replace inductionPh by inductionVar
       // Create base graph where inductionPh ||| c(existentials: _*)
       val constructedVal = AnnotatedTree.withoutAnnotations(c.root.copy(annotation = None),
-        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (t, i) =>
         c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (_, i) =>
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
