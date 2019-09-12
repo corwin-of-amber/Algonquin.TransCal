@@ -36,7 +36,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
   test("NoDup with TimeComplex") {
     val fileName = "src/main/resources/examples/NoDupWithTimeComplex.tc"
     val lastState = abstractTest(fileName)
-    val pattern = Programs.destructPattern(parser.apply("a1 -> timecomplex ({x'} ∪ elems(xs')) (1 + 1 + 1 + 1 + len(xs') + len(xs'))").subtrees(1))
+    val pattern = Programs.destructPattern(parser.apply("a1 -> timecomplex ({x'} ∪ elems(xs')) (1 +t 1 +t 1 +t 1 +t len(xs') +t len(xs'))").subtrees(1))
     val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
     result should not be empty
   }

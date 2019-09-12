@@ -9,7 +9,9 @@ import transcallang.{Identifier, Language}
 /** Creating match expression's time complex edge.
   *
   */
-object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
+object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState] {
+
+  val MAX_TIME_COMPLEX = "max"
 
   /* --- Private --- */
 
@@ -37,7 +39,7 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
         )).flatMap(timeComplexSources => {
           val matchTimeComplexId = nodeCreator.next()
           Set(
-            HyperEdge(matchTimeComplexId, HyperTermIdentifier(Identifier("max")), timeComplexSources, EmptyMetadata),
+            HyperEdge(matchTimeComplexId, HyperTermIdentifier(Identifier(MAX_TIME_COMPLEX)), timeComplexSources, EmptyMetadata),
             HyperEdge(timeComplexTrueId, HyperTermIdentifier(Language.timeComplexId), Seq(matchExpressionNodeId, matchTimeComplexId), EmptyMetadata)
           )
         })

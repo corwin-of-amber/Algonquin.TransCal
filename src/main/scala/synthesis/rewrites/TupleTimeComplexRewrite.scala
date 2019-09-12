@@ -3,8 +3,8 @@ package synthesis.rewrites
 import structures.{EmptyMetadata, HyperEdge, Ignored}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.VersionedOperator
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.Language
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs, TimeComplexRewriteRulesDB}
+import transcallang.{Identifier, Language}
 
 /** Creating tuple expression's time complex edge.
   *
@@ -39,7 +39,7 @@ object TupleTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
         Programs.combineSeq(sourcesTimeComplexes).flatMap(timeComplexSources => {
           val (timeComplexBaseId, timeComplexEdges) = timeComplexSources.tail.foldLeft((timeComplexSources.head, Set.empty[HyperEdge[HyperTermId, HyperTermIdentifier]])){case ((baseId, edges), newId) =>
             val tupleTimeComplexId = nodeCreator.next()
-            (tupleTimeComplexId, edges + HyperEdge[HyperTermId, HyperTermIdentifier](tupleTimeComplexId, HyperTermIdentifier(Language.plusId), Seq(baseId, newId), EmptyMetadata))
+            (tupleTimeComplexId, edges + HyperEdge[HyperTermId, HyperTermIdentifier](tupleTimeComplexId, HyperTermIdentifier(Identifier(TimeComplexRewriteRulesDB.ADD_TIME_COMPLEX)), Seq(baseId, newId), EmptyMetadata))
           }
           timeComplexEdges + HyperEdge(timeComplexTrueId, HyperTermIdentifier(Language.timeComplexId), Seq(tupleExpressionNodeId, timeComplexBaseId), EmptyMetadata)
         })

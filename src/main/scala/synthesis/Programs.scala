@@ -9,7 +9,7 @@ import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, Complexity, ComplexityPartialOrdering, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{MatchTimeComplexRewrite, RewriteRule, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.util.Try
@@ -103,9 +103,9 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
       } else {
         val leftHyperGraph = hyperGraph - edge
         edge.edgeType.identifier.literal match {
-          case "+" =>
+          case TimeComplexRewriteRulesDB.ADD_TIME_COMPLEX =>
             Programs.combineSeq(edge.sources.map(reconstructTimeComplex(_, leftHyperGraph, fallTo))).map(AddComplexity(_))
-          case "max" =>
+          case MatchTimeComplexRewrite.MAX_TIME_COMPLEX =>
             val a = edge.sources.flatMap(reconstructTimeComplex(_, leftHyperGraph, fallTo)).toList
             val maximums = PartialOrderingOps.max(a)(ComplexityPartialOrdering)
             maximums match {

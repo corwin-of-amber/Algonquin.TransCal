@@ -107,6 +107,8 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
+  val ADD_TIME_COMPLEX = "+t"
+
   override protected def metadata: Metadata = TimeComplexMetadata
 
   private case object TimeComplexMetadata extends Metadata {
@@ -170,7 +172,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
+    val conclusion = f"timecomplex $call (${("1" +: names).mkString(f" $ADD_TIME_COMPLEX ")}) ||| timecomplexTrue"
     premise + " |>> " + conclusion
   }
 
@@ -212,6 +214,8 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
 
 object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
+
+  val ADD_SPACE_COMPLEX = "+s"
 
   override protected def metadata: Metadata = SpaceComplexMetadata
 
