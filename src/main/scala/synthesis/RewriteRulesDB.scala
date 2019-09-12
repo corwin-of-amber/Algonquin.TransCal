@@ -3,7 +3,7 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, TranscalParser}
 
@@ -119,7 +119,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
-    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
+    build(operatorName, isFunction = false, Seq(isFirstConstant, isSecondConstant))
 
   /** Builds a time complex rule
     *
@@ -128,7 +128,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
-    build(functionName, true, whatIsConstant)
+    build(functionName, isFunction = true, whatIsConstant)
 
   /** Builds a time complex rule for an unary function.
     *
@@ -209,7 +209,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def buildOperator(operatorName: String, isFirstConstant: Boolean, isSecondConstant: Boolean): String =
-    build(operatorName, false, Seq(isFirstConstant, isSecondConstant))
+    build(operatorName, isFunction = false, Seq(isFirstConstant, isSecondConstant))
 
   /** Builds a time complex rule
     *
@@ -218,7 +218,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def buildFunction(functionName: String, whatIsConstant: Seq[Boolean]): String =
-    build(functionName, true, whatIsConstant)
+    build(functionName, isFunction = true, whatIsConstant)
 
   /** Builds a time complex rule for an unary function.
     *

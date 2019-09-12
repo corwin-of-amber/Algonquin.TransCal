@@ -1,6 +1,7 @@
 package structures.immutable
 
 import structures._
+import structures.generic.HyperGraphLikeGenericCompanion
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 
@@ -17,8 +18,8 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
   def this(edges: Set[HyperEdge[Node, EdgeType]]) =
     this(CompactHyperGraph.compact[Node, EdgeType](VersionedHyperGraph.empty[Node, EdgeType], edges.toList))
 
-  def version: Long = wrapped.version
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
+  lazy val version: Long = wrapped.version
+  def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -32,7 +33,7 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   /* --- Object Impl. --- */
 
-  override def toString: String = f"CompactHyperGraph($edges)"
+  override lazy val toString: String = f"CompactHyperGraph($edges)"
 
   /* --- IterableLike Impl. --- */
 

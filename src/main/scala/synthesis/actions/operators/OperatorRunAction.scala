@@ -17,7 +17,7 @@ class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearch
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, predicate)
-    logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as ${goalPredicate}")
+    logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as $goalPredicate")
     val (success, newState) = rewriteSearch.search(spaceSearch, maxSearchDepth)
     if (success) logger.debug("Found goal while running operator run")
     else logger.debug("Finished operator run to max depth")
@@ -30,6 +30,6 @@ object OperatorRunAction {
                             goal: HyperPattern,
                             goalRoot: TemplateTerm[HyperTermId]): RewriteSearchState => Boolean = {
     val updatedGoal = goal.+(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
-    (state: RewriteSearchState) => state.graph.findSubgraph[Int](updatedGoal).nonEmpty
+    state: RewriteSearchState => state.graph.findSubgraph[Int](updatedGoal).nonEmpty
   }
 }

@@ -131,7 +131,6 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("Destruct typed list with max hypertermid with correct root") {
     val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
     val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
-    val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
     val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
     val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
     val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))

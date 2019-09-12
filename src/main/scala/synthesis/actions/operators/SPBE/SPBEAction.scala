@@ -58,7 +58,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
   private val types: Set[AnnotatedTree] = constructors.flatMap(_.root.annotation.get match {
     case AnnotatedTree(Language.mapTypeId, trees, _) => trees
-    case t => throw new RuntimeException("All constructors should be function types")
+    case _ => throw new RuntimeException("All constructors should be function types")
   })
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
@@ -202,7 +202,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     for (targets <- toMerge;
          source = targets.head;
          target <- targets.tail) {
-      rewriteState.graph.mergeNodes(source, target)
+      rewriteState.graph.mergeNodesInPlace(source, target)
     }
     rewriteState
   }
@@ -298,6 +298,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       // Create base graph where inductionPh ||| c(existentials: _*)
       val constructedVal = AnnotatedTree.withoutAnnotations(c.root.copy(annotation = None),
         c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (t, i) =>
+        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (_, i) =>
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
       )

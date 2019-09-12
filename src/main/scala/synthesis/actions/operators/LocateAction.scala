@@ -51,7 +51,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = structures.generic.HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -69,7 +69,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       if (rewriteResult) {
         val tempProgs = Programs(newState.graph)
         val terms = tempProgs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
-        if (terms.hasNext) logger.debug(terms.next().toString())
+        if (terms.hasNext) logger.debug(terms.next().toString)
         else logger.debug("Found term not constructable (probably a symbol)")
         tempProgs
       } else {
