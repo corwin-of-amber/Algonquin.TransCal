@@ -134,14 +134,12 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     }
     if (rewriteRuleOption.nonEmpty) {
       val rewrite = rewriteRuleOption.get
-      val basicConclusion = {
-        val timeComplexEdge = rewrite.conclusion.find(e => e.edgeType == ExplicitTerm(HyperTermIdentifier(Language.timeComplexId))).get
-        rewrite.conclusion
-          .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
-          .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
-      }
-      RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
+      RewriteRule.fillPatterns(hyperGraph, Seq(rewrite.conclusion, rewrite.premise)).flatMap {
         case Seq(fullConclusion, fullPremise) =>
+          if (!fullConclusion.exists(edge => edge.edgeType == HyperTermIdentifier(Language.timeComplexId)
+            && edge.sources == Seq(termRoot, complexityRoot))) {
+            Seq.empty
+          } else {
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
           val leftHyperGraph = hyperGraph - bridgeEdge
 
@@ -171,6 +169,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
             for (tree <- annotationTrees ; complex <- timeComplexes) yield {
               (tree, complex)
             }
+          }
           }
       }
     } else {
