@@ -107,7 +107,7 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
-  val ADD_TIME_COMPLEX = "+t"
+  val ADD_TIME_COMPLEX = "addt"
 
   override protected def metadata: Metadata = TimeComplexMetadata
 
@@ -172,7 +172,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"timecomplex $call (${("1" +: names).mkString(f" $ADD_TIME_COMPLEX ")}) ||| timecomplexTrue"
+    val conclusion = f"timecomplex $call (${("1" +: names).reduce((a, b) => f"$ADD_TIME_COMPLEX($a, $b)")}) ||| timecomplexTrue"
     premise + " |>> " + conclusion
   }
 
@@ -185,7 +185,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     buildUnaryFunction("len", isConstant = true),
     buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
-    f"{?x} |||| (${Language.timeComplexId.literal} x ?tcx) |>> ${Language.timeComplexId.literal} {x} (1 $ADD_TIME_COMPLEX tcx) ||| ${Language.timeComplexTrueId.literal}",
+    f"{?x} |||| (${Language.timeComplexId.literal} x ?tcx) |>> ${Language.timeComplexId.literal} {x} ($ADD_TIME_COMPLEX(1, tcx)) ||| ${Language.timeComplexTrueId.literal}",
     buildOperator(Language.equalityId.literal, isFirstConstant = true, isSecondConstant = true),
     buildOperator(Language.andId.literal, isFirstConstant = true, isSecondConstant = true),
     buildOperator(Language.orId.literal, isFirstConstant = true, isSecondConstant = true),
@@ -216,7 +216,7 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
 object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
-  val ADD_SPACE_COMPLEX = "+s"
+  val ADD_SPACE_COMPLEX = "adds"
 
   override protected def metadata: Metadata = SpaceComplexMetadata
 
@@ -276,7 +276,7 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"${Language.spaceComplexId.literal} $call (${names.mkString(f" $ADD_SPACE_COMPLEX ")}) ||| ${Language.spaceComplexTrueId.literal}"
+    val conclusion = f"${Language.spaceComplexId.literal} $call (${names.reduce((a,b) => f"$ADD_SPACE_COMPLEX($a, $b)")}) ||| ${Language.spaceComplexTrueId.literal}"
     premise + " |>> " + conclusion
   }
 
