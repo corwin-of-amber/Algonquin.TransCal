@@ -24,8 +24,6 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} w (len w) [++]"),
-      parser.apply("timecomplexTrue-> a1 [only assoc]"),
-      parser.apply("a1 -> timecomplex (nodup' _ _) _"),
     )
     val lastState = new Interpreter(terms.iterator, System.out).start()
     val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, lastState.programs.hyperGraph)
@@ -53,8 +51,6 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} l (len l) [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
       parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
-      parser.apply("timecomplexTrue-> a1 [only assoc]"),
-      parser.apply("a1 -> timecomplex (sum _ _)"),
     )
     val lastState = new Interpreter(terms.iterator, System.out).start()
     val populated = RecursiveTimeComplexActionTest.populate(SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules, lastState.programs.hyperGraph)
