@@ -1,16 +1,7 @@
 nodup ?l = l match ((⟨⟩ => true) / ((?x :: ?xs) => ~(elem ?x ?xs) /\ nodup ?xs))   [++]
 
-/*
-nodup = ((⟨⟩ ↦ true) / (?x :: ?xs ↦ ~(elem ?x ?xs) /\ nodup ?xs))   [++]
-*/
-
-
-
 _ /\ _ -> a1                              [only assoc]
-/* ({x} ‖ elems xs) ∧ nodup xs */
 a1 -> ?nodup' {x} xs
-/*GeneralizeAction - Generalizing using the term ∧{¬{‖{{.}{x}, elems{xs}}}, nodup{xs}}
-  GeneralizeAction - Generalized to ={nodup'{?autovar0, ?autovar1}, ∧{¬{‖{?autovar0, elems{?autovar1}}}, nodup{?autovar1}}}*/
 
 xs = x' :: xs'
 
@@ -23,21 +14,8 @@ timecomplexTrue = timecomplex xs' 0 [++]
 timecomplexTrue = timecomplex x 0 [++]
 timecomplexTrue = timecomplex x' 0 [++]
 
-// (1) -> (_ ∉ {x'}) /\ (_ ‖ _) /\ nodup xs' [lim(2)]
-
-// (1) -> (_ ∉ {x}) /\ (_ ∉ _) /\ (_ ∉ _) /\ _
-
-// (1) -> (_ ∉ {x}) /\ (_ ‖ _) /\ (_ ‖ _) /\ _
-
 a1 -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 
-timecomplexTrue -> timecomplex ({x'} ∪ elems(xs')) (addt(1, addt(1, addt(1, addt(1, addt(len(xs'), len(xs')))))))
+timecomplexTrue -> timecomplex ({x'} ‖ elems(xs')) (addt(1, addt(addt(addt(1, 0), 0), len(xs'))))
 
 a1 -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
-
-/*
-x ∉ _ /\ x' ∉ _ -> 2
-
-2 -> _ ‖ _
-(_ ∪ _ ‖ _) /\ _ -> nodup' _ _
-*/
