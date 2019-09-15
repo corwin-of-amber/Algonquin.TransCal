@@ -31,7 +31,7 @@ timecomplexTrue = timecomplex x' 0 [++]
 
 a1 -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 
-timecomplexTrue -> timecomplex ({x'} ∪ elems(xs')) (1 + 1 + 1 + 1 + len(xs') + len(xs'))
+timecomplexTrue -> timecomplex ({x'} ∪ elems(xs')) (addt(1, addt(1, addt(1, addt(1, addt(len(xs'), len(xs')))))))
 
 a1 -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
 
