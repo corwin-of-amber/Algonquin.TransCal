@@ -1,10 +1,9 @@
-package synthesis.actions.operators.SPBE
+package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{DefAction, ElaborateAction, LetAction, LocateAction, SPBEAction}
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import synthesis.rewrites.Template.ReferenceTerm
+import synthesis._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers {

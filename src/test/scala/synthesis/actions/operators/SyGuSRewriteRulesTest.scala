@@ -1,10 +1,9 @@
-package synthesis.actions.operators.SPBE
+package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.Programs
-import synthesis.actions.operators.SyGuSRewriteRules
 import synthesis.rewrites.RewriteSearchState
-import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
+import transcallang.{AnnotatedTree, TranscalParser}
 
 class SyGuSRewriteRulesTest extends FunSuite with Matchers {
   private val parser = new TranscalParser()

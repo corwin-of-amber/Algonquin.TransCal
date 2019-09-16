@@ -1,7 +1,11 @@
 package synthesis.actions.operators
 
+import structures.{EmptyMetadata, HyperEdge}
+import structures.generic.HyperGraph.HyperGraphPattern
 import synthesis.actions.ActionSearchState
-import synthesis.{HyperTermIdentifier, Programs}
+import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.Identifier
 
 
@@ -12,19 +16,10 @@ import transcallang.Identifier
   * Input graph should contain an edge of type possibleSplit where the target is SplitTrue and the first source is the
   * variable to change and possible values are the rest of the sources.
   */
-class CaseSplitAction extends Action {
+class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) extends Action {
   val obvEquiv = new ObservationalEquivalence()
 
-  override def apply(state: ActionSearchState): ActionSearchState = {
-    val splitEdges = state.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
-    assert(splitEdges.nonEmpty)
-    val splitter = splitEdges.head
-    // Find the replacee
-    // remove all edges to prevent compaction? or verify no nonempty edges
-    // removing edges can cause huge problems because they can be recreated.
-    // We want to work on vars that we dont know stuff about so I am going on empty edges only
-    assert(state.programs.hyperGraph.findByTarget(splitter.sources.head).forall(e => e.sources.isEmpty))
-
+  def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
     val cleanedAndWithAnchors = (state.programs.hyperGraph ++ state.programs.hyperGraph.map(e => ObservationalEquivalence.createAnchor(e.target))).
       filterNot(_.target == splitter.sources.head)
     val equives = splitter.sources.tail.map(s => {
@@ -38,10 +33,24 @@ class CaseSplitAction extends Action {
         relevantSets.fold(hyperTermIds)((distjuinted, set) => distjuinted.intersect(set))
       }
     }).filter(_.size > 1)
+    toMerge
+  }
 
-    ActionSearchState(Programs(toMerge.foldLeft(state.programs.hyperGraph)((graph, set) => {
-      set.tail.foldLeft(graph)((g, newId) => g.mergeNodes(set.head, newId))
-    })), state.rewriteRules)
+  private def createAnchor(hyperTermId: HyperTermId, index: Int) =
+    HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"caseAnchor_$index")), Seq.empty, EmptyMetadata)
+
+  override def apply(state: ActionSearchState): ActionSearchState = {
+    val toMerge = getFoundConclusions(state).toSeq
+
+    val rState = new RewriteSearchState(state.programs.hyperGraph)
+    rState.graph ++= toMerge.zipWithIndex.flatMap({ case (ids, i) => ids.map(id => createAnchor(id, i)) })
+    for (index <- toMerge.indices) {
+      while (rState.graph.findByEdgeType(createAnchor(HyperTermId(0), index).edgeType).size > 1) {
+        val set = rState.graph.findByEdgeType(createAnchor(HyperTermId(0), index).edgeType)
+        rState.graph.mergeNodes(set.head.target, set.last.target)
+      }
+    }
+    ActionSearchState(Programs(rState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))), state.rewriteRules)
   }
 }
 

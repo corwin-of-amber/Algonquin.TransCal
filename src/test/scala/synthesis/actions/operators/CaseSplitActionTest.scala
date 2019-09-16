@@ -1,8 +1,8 @@
-package synthesis.actions
+package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers}
-import synthesis.actions.operators.{CaseSplitAction, ElaborateAction}
-import synthesis.{AssociativeRewriteRulesDB, HyperTermIdentifier, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.actions.ActionSearchState
+import synthesis._
 import transcallang.{Identifier, TranscalParser}
 
 class CaseSplitActionTest extends FunSuite with Matchers {
@@ -19,7 +19,7 @@ class CaseSplitActionTest extends FunSuite with Matchers {
       state.programs.addTerm(parser parseExpression s"${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}(x, true, false)"),
       state.rewriteRules
     )
-    new CaseSplitAction()(splitableState) should not be (splitableState)
+    new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head)(splitableState) should not be (splitableState)
   }
 
 }
