@@ -1,0 +1,32 @@
+map ?f ?l1 = l1 match ((⟨⟩ => ⟨⟩) / ((?x1 :: ?xs1) => f x1 :: map f xs1)) [++]
+
+sum ?l2 = l2 match ((⟨⟩ => ⟨⟩) / ((?x2 :: ?xs2) => x2 + (sum xs2))) [++]
+
+prefixSum ?l = map (?i ↦ sum(take l i)) range_include(0, len(l)) [++]
+
+timecomplexTrue = timecomplex l1 0 [++]
+timecomplexTrue = timecomplex l2 0 [++]
+timecomplexTrue = timecomplex l 0 [++]
+timecomplexTrue = timecomplex i 0 [++]
+timecomplexTrue = timecomplex x1 0 [++]
+timecomplexTrue = timecomplex xs1 0 [++]
+timecomplexTrue = timecomplex x2 0 [++]
+timecomplexTrue = timecomplex xs2 0 [++]
+
+spacecomplexTrue = spacecomplex l1 (len l1) [++]
+spacecomplexTrue = spacecomplex l2 (len l2) [++]
+spacecomplexTrue = spacecomplex l (len l) [++]
+spacecomplexTrue = spacecomplex i 1 [++]
+spacecomplexTrue = spacecomplex x1 1 [++]
+spacecomplexTrue = spacecomplex xs1 (len xs1) [++]
+spacecomplexTrue = spacecomplex x2 1 [++]
+spacecomplexTrue = spacecomplex xs2 (len xs2) [++]
+
+prefixSum l -> a1 [only assoc]
+
+prefixSumTag ?init ?l3 = l3 match ((⟨⟩ => init :: ⟨⟩) / ((?head :: ?tail) => init :: (prefixSumTag (init + head) tail)))
+a1 -> prefixSumTag 0 l
+
+timecomplexTrue -> timecomplex (map _ _) _
+timecomplexTrue -> timecomplex (sum _) _
+timecomplexTrue -> timecomplex (prefixSum _) _
