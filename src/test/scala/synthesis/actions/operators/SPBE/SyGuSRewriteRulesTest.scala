@@ -2,6 +2,7 @@ package synthesis.actions.operators.SPBE
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.Programs
+import synthesis.actions.operators.SyGuSRewriteRules
 import synthesis.rewrites.RewriteSearchState
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 

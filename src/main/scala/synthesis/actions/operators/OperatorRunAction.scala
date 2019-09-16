@@ -1,12 +1,12 @@
 package synthesis.actions.operators
 
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
+import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.NaiveSearch
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearchState => Boolean] = None) extends Action {
   /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */

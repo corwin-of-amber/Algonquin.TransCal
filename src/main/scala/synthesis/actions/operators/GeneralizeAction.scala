@@ -1,9 +1,7 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermIdentifier, Programs}
@@ -26,7 +24,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         logger.debug(s"Generalizing using the term $term")
 
         AnnotatedTree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))), Seq.empty)
-      }).take(NUM_ALTS_TO_SHOW)
+      }).take(GeneralizeAction.NUM_ALTS_TO_SHOW)
     }
   }
 

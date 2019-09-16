@@ -1,10 +1,9 @@
-package synthesis.actions.operators.SPBE
+package synthesis.actions.operators
 
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
-import synthesis.actions.operators.{Action, ElaborateAction, LetAction, ObservationalEquivalence, OperatorRunAction}
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -309,7 +308,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       equives.contains(cleanUpdatedTerms.toSet)
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
-      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2))).rules
+      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)), allowExistential = false).rules
     } else {
       logger.info(s"Proof Failed")
       Set.empty

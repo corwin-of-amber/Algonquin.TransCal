@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
-import transcallang.{AnnotatedTree, Language}
 import synthesis.actions.ActionSearchState
+import transcallang.{AnnotatedTree, Language}
 
 class DefAction(term: AnnotatedTree) extends Action {
   private val letAction: LetAction = new LetAction(term)

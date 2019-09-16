@@ -1,8 +1,7 @@
-package synthesis.actions.operators.SPBE
+package synthesis.actions.operators
 
 import structures.Metadata
 import synthesis.RewriteRulesDB
-import synthesis.actions.operators.LetAction
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Identifier, Language}
