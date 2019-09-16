@@ -35,7 +35,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
     val text = cleanMultilineComments(programText).split("\n").map(cleanLineComments).mkString("\n")
     val tokens = Lexer.apply(text)
-    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERRoR: ${tokens.left.get}")
+    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERROR: ${tokens.left.get}")
     val reader = new WorkflowTokenReader(tokens.right.get)
     program(reader) match {
       case Success(matched, _) => matched
