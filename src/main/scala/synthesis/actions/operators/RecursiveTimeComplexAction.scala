@@ -56,17 +56,17 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   }
 
   private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
-    var tempHyperGraph = hyperGraph
+    var searchState = RewriteSearchState(hyperGraph)
     var lastSize = 0
-    var size = tempHyperGraph.size
+    var size = searchState.graph.size
     do {
       for (rewriteRule <- SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules) {
-        tempHyperGraph = rewriteRule.apply(RewriteSearchState(tempHyperGraph)).graph
+        searchState = rewriteRule.apply(searchState)
       }
       lastSize = size
-      size = tempHyperGraph.size
-    } while (size !=lastSize)
-    tempHyperGraph
+      size = searchState.graph.size
+    } while (size != lastSize)
+    searchState.graph
   }
 
   private def findEquive(populated: RewriteSearchState.HyperGraph): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
