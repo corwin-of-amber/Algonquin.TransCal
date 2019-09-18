@@ -7,8 +7,6 @@ import org.scalatestplus.scalacheck.Checkers
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 
-import scala.util.Random
-
 
 class VersionedHyperGraphPropSpec extends PropSpec with Checkers with Matchers with HyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
@@ -39,7 +37,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Checkers with Matchers w
 
   property("find regex rep0 with 0 sources") {
     val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
-    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
     val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
     check(found == edges)

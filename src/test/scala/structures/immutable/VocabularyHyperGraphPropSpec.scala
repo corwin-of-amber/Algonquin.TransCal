@@ -1,13 +1,11 @@
 package structures.immutable
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
+import org.scalacheck.Prop.forAll
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.Checkers
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
-
-import scala.util.Random
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
@@ -40,7 +38,7 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
   property("find regex rep0 with 0 sources") {
     val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
-    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
     val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
     check(found == edges)

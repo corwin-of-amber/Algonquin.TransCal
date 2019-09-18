@@ -100,7 +100,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
         case Explicit(value) => Explicit(Left(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
-        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, rep.map(convertNode)).get
+        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, rep.map(convertNode))
       }
     }
 
@@ -109,7 +109,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
         case Explicit(value) => Explicit(Right(value))
         case Hole(id) => Hole(id)
         case Ignored() => Ignored()
-        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, rep.map(convertEdgeType)).get
+        case Repetition(minR, maxR, rep) => Repetition.rep(minR, maxR, rep.map(convertEdgeType))
       }
     }
 

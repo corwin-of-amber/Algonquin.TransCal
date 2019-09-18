@@ -403,7 +403,7 @@ object Programs extends LazyLogging {
         val edgeType = holeCreator.next()
         (target,
           Set(HyperEdge(target, ReferenceTerm[HyperTermIdentifier](edgeType.id),
-            Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get), EmptyMetadata))
+            Seq(RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]())), EmptyMetadata))
         )
       }
       else {

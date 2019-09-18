@@ -28,8 +28,8 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val functionReturnTypeHole = ReferenceTerm(4)
   private val functionApplicationHole = ReferenceTerm(5)
   private val LARGEST_STATIC_HOLE = 6
-  private val argumentTypesHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(ReferenceTerm(_))).get
-  private val argumentHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(ReferenceTerm(_))).get
+  private val argumentTypesHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 0).map(ReferenceTerm(_)))
+  private val argumentHoles = RepetitionTerm.rep1(Int.MaxValue, Stream.from(LARGEST_STATIC_HOLE).filter(_ % 2 == 1).map(ReferenceTerm(_)))
 
   // Used edges
   private val trueEdge = patternEdgeCreator(trueIdHole, Language.typeTrueId, Seq())

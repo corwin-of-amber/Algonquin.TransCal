@@ -102,8 +102,8 @@ trait HyperGraphLikeTest[Node,
         g.edges.toList match {
           case source :: toChange :: _ =>
             val gMerged = g.mergeNodes(source.target, toChange.target)
-            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata))
+            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata))
             !gMerged.edges.contains(toChange) && gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
               if (x == toChange.target) source.target
               else x
@@ -176,7 +176,7 @@ trait HyperGraphLikeTest[Node,
   property("find by ignore regex finds all") {
     check(forAll { g: T =>
       g.exists(_.sources.size == 1) ==> {
-        val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+        val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
         g.findRegexHyperEdges(pattern) == g.edges
       }
     })
@@ -189,7 +189,7 @@ trait HyperGraphLikeTest[Node,
         es.exists(e => {
           e.sources.indices exists { i =>
             val pg = patterner(Set(
-              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
+              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored()))), EmptyMetadata),
               HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
             ))
             val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).headOption.map(_._1)

@@ -55,14 +55,14 @@ class TriePropSpec extends PropSpec with Checkers {
 
   property("empty find prefix returns all") {
     check(forAll { trie: Trie[Int] =>
-      trie.words == trie.findRegexWords(Seq(Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get))
+      trie.words == trie.findRegexWords(Seq(Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored())))
     })
   }
 
   property("added should be findable as sparse") {
     check(forAll { trie: Trie[Int] =>
       trie.words.forall(word => {
-        val repetitionInf = Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored()).get
+        val repetitionInf = Repetition.rep0[Int, Nothing](Int.MaxValue, Ignored())
         val regex = word.flatMap(i => Seq(repetitionInf, Explicit(i))) :+ repetitionInf
         trie.findRegexWords(regex).contains(word)
       })
@@ -90,7 +90,7 @@ class TriePropSpec extends PropSpec with Checkers {
   property("Should find correct explicit in big graph") {
     check(forAll { trie: Trie[Int] => (trie.size > 100 && trie.words.exists(_.length > 3)) ==> {
       trie.words.filter(_.length > 3).forall(w =>
-        trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored()).get))
+        trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Int, Int](Int.MaxValue, Ignored())))
           .forall(_(3) == w(3)))
     }})
   }
@@ -111,7 +111,7 @@ class TriePropSpec extends PropSpec with Checkers {
     def validate(trie: Trie[Int], keepLetter: Int, changeLetter: Int) = {
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       beforeLettersSize == newTrie.letters.size + 1 && trie != newTrie && found.isEmpty
     }
     check(forAll { trie: Trie[Int] =>
@@ -124,7 +124,7 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie && found.isEmpty
     }
     check(forAll { trie: Trie[Int] =>
@@ -137,7 +137,7 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == newTrie.words.size && trie != newTrie && found.isEmpty
     }
     val trie = Trie[Int](Set(Vector(5, 10), Vector(6, 21, 3, 9, 10), Vector(9), Vector(20, 19, 8, 1, 8)))
@@ -149,7 +149,7 @@ class TriePropSpec extends PropSpec with Checkers {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceNotInPlace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       beforeLettersSize == newTrie.letters.size && beforeWordsSize == trie.words.size && found.isEmpty
     }
     check(forAll { (trie: Trie[Int], keepLetter: Int) =>
