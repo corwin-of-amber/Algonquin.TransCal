@@ -2,6 +2,7 @@ package synthesis.rewrites
 
 import structures._
 import structures.immutable.HyperGraph
+import synthesis.rewrites.Template.ExplicitTerm
 import synthesis.rewrites.rewrites._
 import synthesis.search.VersionedOperator
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -27,15 +28,14 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
     HyperGraph(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
-    // TODO: may need to do this for a few times so should find an efficient way
     // TODO: Don't use filter if it is O(n)
 
     // Change apply to function
     val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults;
-      outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.nonEmpty && e.sources.head == idMap(1));
-      inner <- state.graph.filter(e => e.target == idMap(1) && e.edgeType == identMap(2))) yield {
+      outer <- state.graph.findRegexHyperEdges(HyperEdge(ExplicitTerm(idMap(0)), Ignored(), Seq(ExplicitTerm(idMap(1)), Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata));
+      inner <- state.graph.findRegexHyperEdges(HyperEdge(ExplicitTerm(idMap(1)), ExplicitTerm(identMap(2)), Seq(Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata))) yield {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0), identMap(2), inner.sources ++ outer.sources.drop(1), FlattenMetadata)
     }
 
