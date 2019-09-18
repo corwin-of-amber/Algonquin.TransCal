@@ -6,7 +6,7 @@ import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.Identifier
+import transcallang.{Identifier, Language}
 
 
 /** Case split action splits a variable into options specified by the splitter edge. Variable should not have edges.
@@ -17,13 +17,16 @@ import transcallang.Identifier
   * variable to change and possible values are the rest of the sources.
   */
 class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) extends Action {
-  val obvEquiv = new ObservationalEquivalence()
+  val obvEquiv = new ObservationalEquivalence(maxDepth = 4)
 
   def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
     val cleanedAndWithAnchors = (state.programs.hyperGraph ++ state.programs.hyperGraph.map(e => ObservationalEquivalence.createAnchor(e.target))).
       filterNot(_.target == splitter.sources.head)
     val equives = splitter.sources.tail.map(s => {
-      val newGraph = cleanedAndWithAnchors.mergeNodes(s, splitter.sources.head)
+      val newGraph = {
+        val temp = cleanedAndWithAnchors.mergeNodes(s, splitter.sources.head)
+        temp -- temp.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+      }
       obvEquiv.getEquives(ActionSearchState(Programs(newGraph), state.rewriteRules))
     })
 
