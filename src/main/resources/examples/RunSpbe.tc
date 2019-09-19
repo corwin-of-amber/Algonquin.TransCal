@@ -1,9 +1,9 @@
 reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))
 
-(cons : int :> list int :> list int) ?x ?l = x :: l
-(snoc : list int :> int :> list int) ?x ?l = l :+ x
+cons ?x ?l = x :: l
+snoc ?l ?x = l :+ x
 
-SPBE ( ⟨⟩ , cons ) ((reverse : list int :> list int), snoc) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
 
 reverse(reverse(t)) = reverse(reverse(l)) [++]
 
