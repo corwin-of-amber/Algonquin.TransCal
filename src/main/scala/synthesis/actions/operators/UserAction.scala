@@ -33,7 +33,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
     else (baseTerm, None)
 
     val newState = term.root match {
-      case Language.letId | Language.directedLetId =>
+      case i if Language.builtinDefinitions.contains(i) =>
         // operator = in the main is Let (adding a new hyperterm)
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
         val cleanTypes = annotation.exists(a => a.root.literal.contains("typedlet"))
