@@ -28,7 +28,7 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
         AnnotatedTree.withoutAnnotations(Language.limitedDirectedLetId, Seq(premise, conclusion))
       }
 
-      new LetAction(term).rules
+      new LetAction(term, cleanTypes = false).rules
     })
   }
 

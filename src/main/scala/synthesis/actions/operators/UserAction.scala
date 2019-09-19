@@ -36,9 +36,10 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
       case Language.letId | Language.directedLetId =>
         // operator = in the main is Let (adding a new hyperterm)
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
+        val cleanTypes = annotation.exists(a => a.root.literal.contains("typedlet"))
         annotation match {
-          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term).apply(state)
-          case _ => new LetAction(term).apply(state)
+          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term, cleanTypes=cleanTypes).apply(state)
+          case _ => new LetAction(term, cleanTypes=cleanTypes).apply(state)
         }
       case Language.tacticId =>
         val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
@@ -107,6 +108,12 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
              logger.info("Popping state from stack")
              stateStack.pop()
          }
+      case Language.spbeId =>
+        // should be tuples
+        val typeBuilders = term.subtrees(0).subtrees.toSet
+        val grammar = term.subtrees(1).subtrees.toSet
+        val examples = term.subtrees(2).subtrees.map(t => t.subtrees(0) -> t.subtrees(1).subtrees).toMap
+        new SPBEAction(typeBuilders, grammar, examples)(state)
     }
 
     logger.info(seperator)

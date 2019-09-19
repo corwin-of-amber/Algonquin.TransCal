@@ -252,7 +252,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 
 
   test("Parse identifier type") {
-    val parsed = (new TranscalParser).apply("_: int -> x: int")
+    val parsed = (new TranscalParser).apply("(_: int) -> (x: int)")
     parsed.subtrees(0).root.literal shouldEqual Language.holeId.literal
     parsed.subtrees(0).root.annotation.get shouldEqual intTree
     parsed.subtrees(1).root.literal shouldEqual "x"
@@ -260,7 +260,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("Parse identifier polymorphic type") {
-    val parsed = (new TranscalParser).apply("_: (list int) -> x: (list int)")
+    val parsed = (new TranscalParser).apply("(_: list int) -> (x: list int)")
     parsed.subtrees(0).root.literal shouldEqual "_"
     parsed.subtrees(0).root.annotation.get shouldEqual listintTree
     parsed.subtrees(1).root.literal shouldEqual "x"
@@ -268,7 +268,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("Parse identifier polymorphic type of polymorphic") {
-    val parsed = (new TranscalParser).apply("_: (list(list int)) -> x")
+    val parsed = (new TranscalParser).apply("(_: list(list int)) -> x")
     parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listlistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
@@ -280,7 +280,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("Parse concat type") {
-    val parsed = (new TranscalParser).apply("(concat: (list(list 'a)) :> (list 'a)) ?l: (list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
+    val parsed = (new TranscalParser).apply("(concat: list(list 'a) :> (list 'a)) (?l: list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
     parsed.subtrees(0).root.literal shouldEqual "concat"
     parsed.subtrees(0).root.annotation shouldEqual Some(listlistgenericTolistgenericTree)
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?l"
@@ -295,7 +295,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   }
 
   test("Parse or cond builder") {
-    val parsed = (new TranscalParser).apply("x: int |||| int -> x")
+    val parsed = (new TranscalParser).apply("(x: int) |||| int -> x")
     parsed.subtrees(0).root shouldEqual Language.limitedAndCondBuilderId
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
@@ -306,9 +306,9 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
 class TranscalParserTest extends ParserTest(new TranscalParser) {
   protected val parser: TranscalParser = p.asInstanceOf[TranscalParser]
   protected val symbols: Seq[String] = Seq(
-    "var2 : string",
-    "var3 : (list int)",
-    "f1 : string :> (list real)"
+    "(var2 : string)",
+    "(var3 : list int)",
+    "(f1 : string :> (list real))"
   )
 
 

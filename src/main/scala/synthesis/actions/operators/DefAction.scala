@@ -3,8 +3,8 @@ package synthesis.actions.operators
 import synthesis.actions.ActionSearchState
 import transcallang.{AnnotatedTree, Language}
 
-class DefAction(term: AnnotatedTree) extends Action {
-  private val letAction: LetAction = new LetAction(term)
+class DefAction(term: AnnotatedTree, val allowExistential: Boolean = true, cleanTypes: Boolean = true) extends Action {
+  private val letAction: LetAction = new LetAction(term, allowExistential, cleanTypes)
   private val updatedTerm = {
     val toSwitch = term.leaves.filter(_.root.literal.toString.startsWith("?"))
     val switchTo = toSwitch.map(t => AnnotatedTree.identifierOnly(t.root.copy(literal=t.root.literal.drop(1))))
