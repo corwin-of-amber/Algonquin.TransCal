@@ -29,7 +29,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     case None => false
   }
 
-  private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
+  def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
     Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}", annotation = Some(placeholderType))
 
   private def anchorByIndex(anchor: HyperEdge[HyperTermId, HyperTermIdentifier], index: Int) =
@@ -53,10 +53,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules
 
-  private val types: Set[AnnotatedTree] = constructors.flatMap(_.root.annotation.get match {
-    case AnnotatedTree(Language.mapTypeId, trees, _) => trees
-    case _ => throw new RuntimeException("All constructors should be function types")
-  })
+  private val types: Set[AnnotatedTree] = (constructors ++ grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty)))
+    .flatMap(_.root.annotation.get match {
+      case AnnotatedTree(Language.mapTypeId, trees, _) => trees
+      case _ => throw new RuntimeException("All constructors should be function types")
+    })
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
     types.map(t => (t, 0 to 1 map (i => createPlaceholder(t, i)))).toMap

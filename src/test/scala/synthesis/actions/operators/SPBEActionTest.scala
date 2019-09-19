@@ -148,4 +148,19 @@ class SPBEActionTest extends FunSuite with Matchers {
     val anchorTarget = successfulState.programs.hyperGraph.findByEdgeType(lAnchor).head.target
     lTarget shouldEqual anchorTarget
   }
+
+  test("Induction step for filter p (filter p l) == filter p l using case splitting") {
+    val parser = new TranscalParser
+    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+    state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
+    state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
+    val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
+    val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
+    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4, termDepth = 2)
+    val predicate = spbeAction.createPlaceholder(predicateType, 0)
+    val list = spbeAction.createPlaceholder(listInt, 0)
+    val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
+    val filterfilter = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(AnnotatedTree.identifierOnly(predicate), filterOnPhs))
+    spbeAction.inductionStep(state, filterfilter, filterOnPhs) should not be empty
+  }
 }
