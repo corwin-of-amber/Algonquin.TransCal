@@ -8,7 +8,7 @@ import scala.collection.SetLike
   * @author tomer
   * @since 11/15/18
   */
-trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with Set[Word[Letter]]]
+trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with collection.Set[Word[Letter]]]
   extends SetLike[Word[Letter], This] {
 
   import VocabularyLike.WordRegex

@@ -1,9 +1,7 @@
 package structures.mutable
 
+import structures.HyperEdge
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
-import structures.{HyperEdge, HyperGraphLike}
-
-import scala.collection.{GenTraversableOnce, immutable}
 
 /** This hyper graph keeps it self compact - EdgeType with same Nodes must go to the same target.
   * @author tomer
@@ -17,25 +15,11 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def +(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.+(hyperEdge)).result()
-
-  override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): This = newBuilder.++=(wrapped.++(hyperEdges)).result()
-
-  override def -(hyperEdge: HyperEdge[Node, EdgeType]): This = newBuilder.++=(wrapped.-(hyperEdge)).result()
-
-  def +=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = wrapped.+=(hyperEdge)
-
-  def ++=(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): Unit = wrapped.++=(hyperEdges)
-
-  def -=(hyperEdge: HyperEdge[Node, EdgeType]): Unit = wrapped.-=(hyperEdge)
-
-  override def mergeNodes(keep: Node, change: Node): This = newBuilder.++=(wrapped.mergeNodes(keep, change)).result()
-
-  override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This = newBuilder.++=(wrapped.mergeEdgeTypes(keep, change)).result()
+  override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {wrapped -= elem; this }
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)
 
-  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with immutable.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
+  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
 

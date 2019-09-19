@@ -41,9 +41,9 @@ object Tokens {
   case class LIMITEDDIRECTEDLET() extends WorkflowToken {override val toIdentifier: Identifier = Language.limitedDirectedLetId} // |>>
   case class EQUALS() extends WorkflowToken {override val toIdentifier: Identifier = Language.equalityId} // ==
   case class COMMA() extends WorkflowToken {override val toIdentifier: Identifier = I(",")} // ,
-  case class TYPE() extends WorkflowToken{override val toIdentifier: Identifier = I("type")}
+  case class TYPE() extends WorkflowToken{override val toIdentifier: Identifier = Language.typeId}
 
-  case class MAPTYPE() extends WorkflowToken {override val toIdentifier: Identifier = I(":>")} // :>
+  case class MAPTYPE() extends WorkflowToken {override val toIdentifier: Identifier = Language.mapTypeId} // :>
   case class POLYMORPHIC() extends WorkflowToken {override val toIdentifier: Identifier = I("polymorphic")}
 
   case class BACKSLASH() extends WorkflowToken {override val toIdentifier: Identifier = Language.splitId} // /

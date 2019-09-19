@@ -1,12 +1,9 @@
-package synthesis.actions.operators.SPBE
+package synthesis.actions.operators
 
-import structures.mutable.VersionedHyperGraph
-import structures.mutable.VersionedHyperGraph.VersionMetadata
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
-import synthesis.actions.operators.{Action, ElaborateAction, LetAction, ObservationalEquivalence, OperatorRunAction}
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -32,7 +29,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     case None => false
   }
 
-  private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
+  def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
     Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}", annotation = Some(placeholderType))
 
   private def anchorByIndex(anchor: HyperEdge[HyperTermId, HyperTermIdentifier], index: Int) =
@@ -56,10 +53,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules
 
-  private val types: Set[AnnotatedTree] = constructors.flatMap(_.root.annotation.get match {
-    case AnnotatedTree(Language.mapTypeId, trees, _) => trees
-    case t => throw new RuntimeException("All constructors should be function types")
-  })
+  private val types: Set[AnnotatedTree] = (constructors ++ grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty)))
+    .flatMap(_.root.annotation.get match {
+      case AnnotatedTree(Language.mapTypeId, trees, _) => trees
+      case _ => throw new RuntimeException("All constructors should be function types")
+    })
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
     types.map(t => (t, 0 to 1 map (i => createPlaceholder(t, i)))).toMap
@@ -123,7 +121,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
     val res = rules.map((r: Operator[RewriteSearchState]) => r(rewriteSearchState.deepCopy()))
     val newState = res.map(_.graph).foldLeft(rewriteSearchState)((state, es) => {
-      state.graph ++= shiftEdges(state.graph.map(_.target.id).max, es)
+      state.graph ++= shiftEdges(state.graph.map(_.target.id).max, es.edges)
       state
     })
     FunctionArgumentsAndReturnTypeRewrite(newState)
@@ -140,7 +138,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val untypedPlaceholders = placeholders.values.flatMap(_.map(_.copy(annotation = None))).toSet
     val noPlaceholdersGraph = graph.filterNot(e => untypedPlaceholders.contains(e.edgeType.identifier))
     val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
-    val fullGraph = structures.mutable.VersionedHyperGraph(noPlaceholdersGraph.toSeq: _*)
+    val fullGraph = structures.mutable.CompactHyperGraph(noPlaceholdersGraph.toSeq: _*)
     for ((exampleKey, exampleValues) <- examples) {
       // We know the placeholder doesnt have subtrees as we created it.
       // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
@@ -192,7 +190,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
     fullGraph.++=(tupleEdges)
     logger.info("Running Observational Equivalence on symbolic examples")
-    new ObservationalEquivalence(equivDepth).getEquives(new ActionSearchState(Programs(fullGraph), rules.toSet)).filter(_.size > 1)
+    new ObservationalEquivalence(equivDepth).getEquivesFromRewriteState(RewriteSearchState(fullGraph), rules.toSet).filter(_.size > 1)
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
@@ -202,7 +200,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     for (targets <- toMerge;
          source = targets.head;
          target <- targets.tail) {
-      rewriteState.graph.mergeNodes(source, target)
+      rewriteState.graph.mergeNodesInPlace(source, target)
     }
     rewriteState
   }
@@ -297,7 +295,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       // Replace inductionPh by inductionVar
       // Create base graph where inductionPh ||| c(existentials: _*)
       val constructedVal = AnnotatedTree.withoutAnnotations(c.root.copy(annotation = None),
-        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (t, i) =>
+        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (_, i) =>
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
       )
@@ -307,11 +305,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       )))
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
-      val equives = new ObservationalEquivalence(equivDepth).fromTerms(cleanUpdatedTerms, ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-      equives.contains(cleanUpdatedTerms.toSet)
+      val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+      val nextState = new ObservationalEquivalenceWithCaseSplit(equivDepth)(actionState)
+      val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
+      nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
-      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2))).rules
+      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)), allowExistential = false).rules
     } else {
       logger.info(s"Proof Failed")
       Set.empty

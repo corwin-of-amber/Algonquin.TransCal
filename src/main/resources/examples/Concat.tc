@@ -3,5 +3,5 @@ concat (?xs :: ?xss) = xs ++ concat xss   [++]
 
 _ ++ _ ->  a1
 a1 -> ?concat' xs xss
-xs = x': 'a :: xs': list 'a
+xs = (x': 'a) :: (xs': list 'a)
 a1 -> _ :: _

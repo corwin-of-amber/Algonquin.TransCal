@@ -1,13 +1,12 @@
 package synthesis.actions.operators
 
-import transcallang.{AnnotatedTree, Identifier, Language}
 import structures._
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.LetAction.LetMetadata
 import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Let action adds a rewrite rule to show the equality between the two templates.
   * This action also adds all equalities
@@ -16,9 +15,10 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 11/18/18
   */
-class LetAction(val term: AnnotatedTree) extends Action {
+class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = true, cleanTypes: Boolean = true) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
+  private val term = if (cleanTypes) typedTerm.map(i => i.copy(annotation = None)) else typedTerm
 
   assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId :+ Language.limitedAndCondBuilderId) contains term.root)
 
@@ -70,7 +70,9 @@ class LetAction(val term: AnnotatedTree) extends Action {
             }
           val toUseConclusion = if (!conclusionIsSingle) conclusion
                                 else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
-          optionalRule + new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t))
+          optionalRule
+          val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
+          Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
         }
         if (newRules.exists(_.isExistential)) logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
 
@@ -97,7 +99,7 @@ class LetAction(val term: AnnotatedTree) extends Action {
   val rules: Set[RewriteRule] = rewrites
 
   def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
-    (m1: Map[Int, HyperTermId], m2: Map[Int, HyperTermIdentifier]) => LetMetadata(funcName)
+    (_: Map[Int, HyperTermId], _: Map[Int, HyperTermIdentifier]) => LetAction.LetMetadata(funcName)
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {

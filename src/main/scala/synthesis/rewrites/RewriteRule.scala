@@ -44,10 +44,10 @@ class RewriteRule (
       }
 
       val newEdges = premiseReferencesMaps.flatMap(m => {
-        val meta = metaCreator(m._1, m._2).merge(metadataCreator(immutable.HyperGraph.mergeMap(premise, m)))
-        val merged = immutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+        val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
+        val merged = generic.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
         if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-        else immutable.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
+        else generic.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
           e.copy(metadata = e.metadata.merge(meta)))
       })
 
@@ -81,10 +81,9 @@ class RewriteRule (
       }
 
       // TODO: change to Uid from Programs instead of global
-      val existentialEdges = existentialHoles.zipWithIndex.map({ case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
+      val existentialEdges = existentialHoles.zipWithIndex.map({ case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) =>
         HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
           Explicit(HyperTermIdentifier(Identifier(s"existential${existentialsMax + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
-      }
       })
       conclusion.++(existentialEdges)
     }
@@ -115,8 +114,8 @@ object RewriteRule {
       case pattern :: rest =>
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
-            val fullPattern = HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(HyperGraph.mergeMap(_, maps)))
+            val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMap(_, maps)))
               .map(a => fullPattern +: a)
         }
     }

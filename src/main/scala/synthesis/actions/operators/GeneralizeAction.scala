@@ -1,9 +1,7 @@
 package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
-import transcallang.AnnotatedTree
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.GeneralizeAction.NUM_ALTS_TO_SHOW
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermIdentifier, Programs}
@@ -26,7 +24,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         logger.debug(s"Generalizing using the term $term")
 
         AnnotatedTree(Language.letId, List(fun, term.replaceDescendants(leaves.zip(vars))), Seq.empty)
-      }).take(NUM_ALTS_TO_SHOW)
+      }).take(GeneralizeAction.NUM_ALTS_TO_SHOW)
     }
   }
 
@@ -47,7 +45,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
           (terms, ActionSearchState(progs, temp.rewriteRules))
         else {
           var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-          for (i <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
+          for (_ <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
           val afterNaiveProgs = Programs(rewriteSearchState.graph)
           (getGeneralizedTerms(afterNaiveProgs), ActionSearchState(afterNaiveProgs, temp.rewriteRules))
         }

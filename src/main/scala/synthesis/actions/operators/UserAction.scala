@@ -33,12 +33,13 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
     else (baseTerm, None)
 
     val newState = term.root match {
-      case Language.letId | Language.directedLetId =>
+      case i if Language.builtinDefinitions.contains(i) =>
         // operator = in the main is Let (adding a new hyperterm)
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
+        val cleanTypes = annotation.exists(a => a.root.literal.contains("typedlet"))
         annotation match {
-          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term).apply(state)
-          case _ => new LetAction(term).apply(state)
+          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term, cleanTypes=cleanTypes).apply(state)
+          case _ => new LetAction(term, cleanTypes=cleanTypes).apply(state)
         }
       case Language.tacticId =>
         val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
@@ -46,7 +47,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
         val (lhs, rhs) = {
-          val temp = Programs.destructPatternsWithRoots(term.subtrees)
+          val temp = Programs.destructPatternsWithRoots(Seq(term.subtrees.head.map(_.copy(annotation = None)), term.subtrees.last))
           (temp.head, temp.last)
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
@@ -83,7 +84,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             // A term to generalize - run generalize Action as is
             logger.info("RHS is a term running generalize.")
             new GeneralizeAction(anchor, t.subtrees, AnnotatedTree.identifierOnly(t.root), lim).apply(tempState)
-          case t: AnnotatedTree =>
+          case _: AnnotatedTree =>
             // Pattern - We want to elaborate what we found earlier into the new pattern.
             logger.info("RHS is a pattern running elaborate.")
             new ElaborateAction(anchor, rhs._1, rhs._2, lim).apply(tempState)
@@ -107,9 +108,14 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
              logger.info("Popping state from stack")
              stateStack.pop()
          }
+      case Language.spbeId =>
+        // should be tuples
+        val typeBuilders = term.subtrees(0).subtrees.toSet
+        val grammar = term.subtrees(1).subtrees.toSet
+        val examples = term.subtrees(2).subtrees.map(t => t.subtrees(0) -> t.subtrees(1).subtrees).toMap
+        new SPBEAction(typeBuilders, grammar, examples, termDepth = 2)(state)
     }
 
-    val output: String = newState.toString
     logger.info(seperator)
     logger.info("")
     newState
@@ -118,5 +124,4 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   /* --- Privates --- */
 
-  private val lines: mutable.Buffer[(String, ActionSearchState)] = new mutable.ListBuffer[(String, ActionSearchState)]()
 }

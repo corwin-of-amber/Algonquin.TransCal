@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.PropSpec
 import org.scalatestplus.scalacheck.Checkers
-import structures.immutable.VersionedHyperGraph
+import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
@@ -95,8 +95,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   }
 
   property("Reconstructs more then one possibility") {
-    val graph = VersionedHyperGraph(
-      Seq(
+    val graph = CompactHyperGraph(
         HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("x")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("xs")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(7), HyperTermIdentifier(Identifier("elem")), List(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
@@ -107,7 +106,7 @@ class ProgramsPropSpec extends PropSpec with Checkers {
         HyperEdge(HyperTermId(11), HyperTermIdentifier(Language.andId), List(HyperTermId(8), HyperTermId(10)), EmptyMetadata),
         HyperEdge(HyperTermId(12), HyperTermIdentifier(Identifier("elems")), List(HyperTermId(2)), EmptyMetadata),
         HyperEdge(HyperTermId(15), HyperTermIdentifier(Language.setId), List(HyperTermId(1)), EmptyMetadata)
-      ): _*)
+      )
     val terms = new Programs(graph).reconstruct(HyperTermId(11))
     check(terms.exists((t: AnnotatedTree) => t.nodes.map(_.root).contains(Language.setDisjointId)))
   }
@@ -132,7 +131,6 @@ class ProgramsPropSpec extends PropSpec with Checkers {
   property("Destruct typed list with max hypertermid with correct root") {
     val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
     val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
-    val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
     val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
     val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
     val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
