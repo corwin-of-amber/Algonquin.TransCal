@@ -1,10 +1,9 @@
 package synthesis.actions.operators
 
 import structures.{EmptyMetadata, HyperEdge}
-import structures.generic.HyperGraph.HyperGraphPattern
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
-import synthesis.rewrites.Template.ReferenceTerm
+import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language}
 
@@ -19,15 +18,16 @@ import transcallang.{Identifier, Language}
 class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) extends Action {
   val obvEquiv = new ObservationalEquivalence(maxDepth = 4)
 
-  def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
-    val cleanedAndWithAnchors = (state.programs.hyperGraph ++ state.programs.hyperGraph.map(e => ObservationalEquivalence.createAnchor(e.target))).
+  def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
+    val cleanedAndWithAnchors = (state.graph ++ state.graph.map(e => ObservationalEquivalence.createAnchor(e.target))).
       filterNot(_.target == splitter.sources.head)
     val equives = splitter.sources.tail.map(s => {
-      val newGraph = {
+      val newGraph: RewriteSearchState.HyperGraph = {
+        // merge nodes clones the graph
         val temp = cleanedAndWithAnchors.mergeNodes(s, splitter.sources.head)
-        temp -- temp.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+        temp --= temp.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
       }
-      obvEquiv.getEquives(ActionSearchState(Programs(newGraph), state.rewriteRules))
+      obvEquiv.getEquivesFromRewriteState(RewriteSearchState(newGraph), rules)
     })
 
     val toMerge = equives.head.filter(_.size > 1).flatMap(hyperTermIds => {
@@ -39,21 +39,15 @@ class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) ext
     toMerge
   }
 
-  private def createAnchor(hyperTermId: HyperTermId, index: Int) =
-    HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"caseAnchor_$index")), Seq.empty, EmptyMetadata)
+  def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
+    getFoundConclusionsFromRewriteState(new RewriteSearchState(state.programs.hyperGraph), state.rewriteRules)
+  }
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    val toMerge = getFoundConclusions(state).toSeq
-
     val rState = new RewriteSearchState(state.programs.hyperGraph)
-    rState.graph ++= toMerge.zipWithIndex.flatMap({ case (ids, i) => ids.map(id => createAnchor(id, i)) })
-    for (index <- toMerge.indices) {
-      while (rState.graph.findByEdgeType(createAnchor(HyperTermId(0), index).edgeType).size > 1) {
-        val set = rState.graph.findByEdgeType(createAnchor(HyperTermId(0), index).edgeType)
-        rState.graph.mergeNodes(set.head.target, set.last.target)
-      }
-    }
-    ActionSearchState(Programs(rState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))), state.rewriteRules)
+    val toMerge = getFoundConclusionsFromRewriteState(rState, state.rewriteRules).toSeq
+    val newState = ObservationalEquivalence.mergeConclusions(rState, toMerge)
+    ActionSearchState(Programs(newState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))), state.rewriteRules)
   }
 }
 

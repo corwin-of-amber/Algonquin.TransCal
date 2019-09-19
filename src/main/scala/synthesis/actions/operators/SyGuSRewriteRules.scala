@@ -7,9 +7,9 @@ import synthesis.search.Operator
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
-  assert(terms.forall(_.subtrees.isEmpty))
-  assert(terms.forall(_.root.annotation.nonEmpty))
-  assert(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
+  require(terms.forall(_.subtrees.isEmpty))
+  require(terms.forall(_.root.annotation.nonEmpty))
+  require(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
 
   override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = {
     terms.flatMap({ t =>

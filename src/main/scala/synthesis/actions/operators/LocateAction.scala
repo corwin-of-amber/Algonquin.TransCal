@@ -27,7 +27,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Anchor should not have a type as it will add a type annotation to the node we are marking
-    assert(anchor.identifier.annotation.isEmpty)
+    require(anchor.identifier.annotation.isEmpty)
     // We assume only one root as it is a pattern from user.
     logger.debug(s"Running Locate with $anchor")
     val roots = {
@@ -83,7 +83,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map(i =>
-      HyperTermIdentifier(Identifier(s"temp anchor $i"))
+      HyperTermIdentifier(Identifier(s"temp_anchor_$i"))
     ).iterator
     anchors.next
   }

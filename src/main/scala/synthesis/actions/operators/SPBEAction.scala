@@ -189,7 +189,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
     fullGraph.++=(tupleEdges)
     logger.info("Running Observational Equivalence on symbolic examples")
-    new ObservationalEquivalence(equivDepth).getEquives(new ActionSearchState(Programs(fullGraph), rules.toSet)).filter(_.size > 1)
+    new ObservationalEquivalence(equivDepth).getEquivesFromRewriteState(RewriteSearchState(fullGraph), rules.toSet).filter(_.size > 1)
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,

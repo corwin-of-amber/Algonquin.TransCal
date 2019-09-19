@@ -1,7 +1,6 @@
 package synthesis.actions.operators
-import structures.Metadata
+import structures.{IdMetadata, Uid}
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.ElaborateWithCaseSplit.{IdMetadata, Uid}
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -28,12 +27,5 @@ class ElaborateWithCaseSplit(anchor: HyperTermIdentifier,
     }
 
     newState
-  }
-}
-
-object ElaborateWithCaseSplit {
-  class Uid {}
-  case class IdMetadata(uid: Uid) extends Metadata {
-    override protected def toStr: String = s"IdMetadata($uid)"
   }
 }

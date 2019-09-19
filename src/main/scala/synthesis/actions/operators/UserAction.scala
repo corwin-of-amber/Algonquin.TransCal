@@ -47,7 +47,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
         val (lhs, rhs) = {
-          val temp = Programs.destructPatternsWithRoots(term.subtrees)
+          val temp = Programs.destructPatternsWithRoots(Seq(term.subtrees.head.map(_.copy(annotation = None)), term.subtrees.last))
           (temp.head, temp.last)
         }
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.

@@ -7,12 +7,12 @@ import transcallang.{AnnotatedTree, TranscalParser}
 
 class SyGuSRewriteRulesTest extends FunSuite with Matchers {
   private val parser = new TranscalParser()
-  private val basicGraph = Set("var1 : int",
-  "var2 : string",
-  "var3 : (list int)").map(parser.parseExpression).map(x => Programs.destruct(x)).reduce(_ ++ _)
+  private val basicGraph = Set("(var1 : int)",
+  "(var2 : string)",
+  "(var3 : list int)").map(parser.parseExpression).map(x => Programs.destruct(x)).reduce(_ ++ _)
   private val symbols: Set[AnnotatedTree] = Set(
-    "f1 : string :> (list real)",
-    "f2 : (list int) :> int")
+    "(f1 : string :> (list real))",
+    "(f2 : (list int) :> int)")
     .map(parser.parseExpression)
 
   test("test creating rewrite rule per symbol") {
