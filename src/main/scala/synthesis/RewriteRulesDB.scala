@@ -277,6 +277,7 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
+    "range_exclude(?x, ?z) = range_exclude(x, ?y) ++ range_exclude(y, z)",
     "?xs = ((xs take ?exist) ++ (xs drop exist))"
   ).map(t => parser.apply(t))
 }
