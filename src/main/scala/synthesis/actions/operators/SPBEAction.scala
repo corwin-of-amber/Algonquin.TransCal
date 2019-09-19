@@ -304,8 +304,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       )))
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
-      val equives = new ObservationalEquivalence(equivDepth).fromTerms(cleanUpdatedTerms, ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-      equives.contains(cleanUpdatedTerms.toSet)
+      val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+      val nextState = new ObservationalEquivalenceWithCaseSplit(equivDepth)(actionState)
+      val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
+      nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
       new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)), allowExistential = false).rules

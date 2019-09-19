@@ -1,5 +1,6 @@
 package synthesis.actions.operators
 
+import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -9,9 +10,15 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 
-class ObservationalEquivalence(maxDepth: Int = 4) extends Action {
+class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLogging {
   def getEquivesFromRewriteState(rewriteSearchState: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
-    val allAnchors = rewriteSearchState.graph.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+    var allAnchors = rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+    if (allAnchors.isEmpty) {
+      logger.warn("Adding anchors to all nodes in observational equivalence")
+      allAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
+      rewriteSearchState.graph ++= allAnchors
+    }
+
     val endPattern = Programs.destructPattern(AnnotatedTree(Language.andCondBuilderId, allAnchors.map(a => AnnotatedTree.identifierOnly(a.edgeType.identifier)).toSeq, Seq.empty))
     val opAction = new OperatorRunAction(maxDepth, Some((r: RewriteSearchState) => r.graph.findSubgraph[Int](endPattern).nonEmpty))
     val newState = opAction.fromRewriteState(rewriteSearchState, rewriteRules.toSeq)
@@ -20,6 +27,8 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action {
       .groupBy(_.target).values.toSet
       .map((set:  Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
         set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(ObservationalEquivalence.anchorStart.length).toInt)))
+
+    rewriteSearchState.graph --= allAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
     merged
   }
 
