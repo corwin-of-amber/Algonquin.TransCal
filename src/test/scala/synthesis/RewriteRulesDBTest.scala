@@ -213,8 +213,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers {
       val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
-      assume((graphAfter2 -- graphAfter1).nonEmpty)
+      val graphAfter2 = rewriteRules.foldLeft(new rewrites.RewriteSearchState(graphAfter1))((g, o) => o.apply(g)).graph
 
       Programs(graphAfter2)
     }
