@@ -7,6 +7,7 @@ import synthesis._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers {
+  val parser = new TranscalParser
 
   val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
   val listInttoListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, listInt))
@@ -130,7 +131,6 @@ class SPBEActionTest extends FunSuite with Matchers {
   }
 
   test("Full SPBE run depth 2 reverse and snoc can proove reverse reverse l after run") {
-    val parser = new TranscalParser
     var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))"))(state)
     state = new DefAction(parser("reverse(reverse(t)) = reverse(reverse(l))"))(state)
@@ -150,7 +150,6 @@ class SPBEActionTest extends FunSuite with Matchers {
   }
 
   test("Induction step for filter p (filter p l) == filter p l using case splitting") {
-    val parser = new TranscalParser
     var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
