@@ -19,15 +19,15 @@ class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) ext
   val obvEquiv = new ObservationalEquivalence(maxDepth = 4)
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
-    val cleanedAndWithAnchors = (state.graph ++ state.graph.map(e => ObservationalEquivalence.createAnchor(e.target))).
-      filterNot(_.target == splitter.sources.head)
+    val cleanedAndWithAnchors = (state.graph ++ state.graph.map(e => ObservationalEquivalence.createAnchor(e.target)))
     val equives = splitter.sources.tail.map(s => {
       val newGraph: RewriteSearchState.HyperGraph = {
         // merge nodes clones the graph
         val temp = cleanedAndWithAnchors.mergeNodes(s, splitter.sources.head)
         temp --= temp.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
       }
-      obvEquiv.getEquivesFromRewriteState(RewriteSearchState(newGraph), rules)
+      val (tempState, res) = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(newGraph), rules)
+      res
     })
 
     val toMerge = equives.head.filter(_.size > 1).flatMap(hyperTermIds => {

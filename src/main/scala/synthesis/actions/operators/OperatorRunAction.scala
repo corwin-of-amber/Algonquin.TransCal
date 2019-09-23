@@ -8,7 +8,7 @@ import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.search.{NaiveSearch, Operator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
-class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearchState => Boolean] = None) extends Action {
+class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearchState => Boolean] = None) extends SearchAction {
   private val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
   private val predicate = goalPredicate.getOrElse((_: RewriteSearchState) => false)
 
@@ -28,8 +28,8 @@ class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteSearch
     ActionSearchState(Programs(newState.graph), state.rewriteRules)
   }
 
-  def fromRewriteState(state: RewriteSearchState, rewriteRules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
-    val spaceSearch = new RewriteSearchSpace(rewriteRules, state, predicate)
+  def fromRewriteState(state: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): RewriteSearchState = {
+    val spaceSearch = new RewriteSearchSpace(rewriteRules.toSeq, state, predicate)
     run(spaceSearch)
   }
 }
