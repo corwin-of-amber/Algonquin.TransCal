@@ -1,0 +1,10 @@
+sum ?l1 = l1 match ((⟨⟩ => 0) / ((?x1 :: ?xs1) => x1 + (sum xs))) [++]
+prefixSum ?l = map (?i ↦ sum (take i l)) (range_include 0 (len l)) [++]
+
+l = xs :+ x
+
+range_include 0 (len l) = range_include 0 (len (xs)) ++ range_include (len l) (len l)
+
+map ?f (range_include 0 (len (xs)) ++ range_include (len l) (len l)) = map f (range_include 0 (len (xs))) ++ map f (range_include (len l) (len l))
+
+take ?ii ?li = (take (min ii (len li)) ?li) ++ (take (bounded_minus ii (len li)) ?li)

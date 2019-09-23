@@ -40,7 +40,7 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
     }
 
     // TODO: Add non existantial double directed rewrites for matches
-    val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName))
+    val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName), Programs.termToString(term))
     if (newRewrite.isExistential) logger.info(s"Created Existential rule: ${Programs.termToString(condTerm)} >> ${Programs.termToString(newTerm)}")
     (innerRewrites + newRewrite, AnnotatedTree.identifierOnly(funcName))
   }
@@ -66,11 +66,11 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
             else {
               val toUsePremise = if (!premiseIsSingle) premise
                                 else Programs.destructPatterns(Seq(AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(0)._2)), results(1)._2), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).head
-              Set(new RewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root)))
+              Set(new RewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root), Programs.termToString(t)))
             }
           val toUseConclusion = if (!conclusionIsSingle) conclusion
                                 else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
-          val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root)))
+          val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
           Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
         }
         if (newRules.exists(_.isExistential)) logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
