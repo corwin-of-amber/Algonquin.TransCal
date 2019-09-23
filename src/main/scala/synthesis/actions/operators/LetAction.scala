@@ -70,7 +70,6 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
             }
           val toUseConclusion = if (!conclusionIsSingle) conclusion
                                 else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
-          optionalRule
           val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root)))
           Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
         }
