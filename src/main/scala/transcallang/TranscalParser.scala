@@ -201,12 +201,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
-  def statementSpecialAction: Parser[AnnotatedTree] = log(IDENTIFIER(spbeId.literal) ~! tuple ~ tuple ~ tuple)("SPBE - Three tuples") ^^ { t =>
+  def spbeAction: Parser[AnnotatedTree] = log(IDENTIFIER(spbeId.literal) ~! tuple ~ tuple ~ tuple)("SPBE - Three tuples") ^^ { t =>
     logger.trace(s"statement SPBE - $t")
     t match {
       case id ~ typeBuilders ~ grammar ~ examples => AnnotatedTree.withoutAnnotations(spbeId, Seq(typeBuilders, grammar, examples))
     }
   }
+
+  def statementSpecialAction: Parser[AnnotatedTree] = spbeAction
 
   def statement: Parser[AnnotatedTree] = (statementSpecialAction | statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - ${Programs.termToString(t)} $t")
