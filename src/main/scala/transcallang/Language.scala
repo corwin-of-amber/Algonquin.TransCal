@@ -4,8 +4,6 @@ import scala.language.implicitConversions
 import scala.util.matching.Regex
 
 object Language {
-
-  // TODO: maybe use this
   object Annotations extends Enumeration {
     protected case class Val(anno: Regex) extends super.Val {}
 
