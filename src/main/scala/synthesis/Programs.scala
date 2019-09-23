@@ -336,13 +336,21 @@ object Programs extends LazyLogging {
     val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
       (t.root.copy(literal = t.root.literal.drop(1)), t.root)).toMap
 
+    def holeFuncToApply(tree: AnnotatedTree): AnnotatedTree = {
+      if (tree.subtrees.nonEmpty && vars.values.exists(_ == tree.root))
+        AnnotatedTree.withoutAnnotations(Language.applyId,
+          AnnotatedTree.identifierOnly(tree.root) +: tree.subtrees.map(holeFuncToApply))
+      else
+        tree.copy(subtrees = tree.subtrees.map(holeFuncToApply))
+    }
+
     val updatedTrees = {
       val holeIt = Stream.from(0).iterator.map(i => Identifier(s"?_autohole$i"))
       trees.map(t => t.map({
         case Language.holeId => holeIt.next()
         case i if vars.contains(i) => vars(i)
         case i => i
-      }))
+      })).map(holeFuncToApply)
     }
 
     val varHoles = (updatedTrees
