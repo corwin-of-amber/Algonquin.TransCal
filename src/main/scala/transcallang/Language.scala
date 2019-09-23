@@ -77,6 +77,7 @@ object Language {
   val timeComplexTrueId = Identifier("timecomplexTrue")
   val spaceComplexId = Identifier("spacecomplex")
   val spaceComplexTrueId = Identifier("spacecomplexTrue")
+  val recursiveTimeComplexId = Identifier("RTC")
   val typeTrueId = Identifier("typeTrue")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
