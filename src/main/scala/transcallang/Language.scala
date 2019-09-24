@@ -4,8 +4,6 @@ import scala.language.implicitConversions
 import scala.util.matching.Regex
 
 object Language {
-
-  // TODO: maybe use this
   object Annotations extends Enumeration {
     protected case class Val(anno: Regex) extends super.Val {}
 
@@ -25,19 +23,22 @@ object Language {
   val typeBoolean: AnnotatedTree = AnnotatedTree.identifierOnly(typeBooleanId)
   val typeInt: AnnotatedTree = AnnotatedTree.identifierOnly(typeIntId)
   val typeBooleanToBoolean: AnnotatedTree = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeBoolean, typeBoolean))
+  val typeListInt: AnnotatedTree = AnnotatedTree.withoutAnnotations(typeListId, Seq(typeInt))
+  val typeIntListIntToListInt: AnnotatedTree = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeInt, typeListInt, typeListInt))
+  val typeListIntIntToListInt: AnnotatedTree = AnnotatedTree.withoutAnnotations(mapTypeId, Seq(typeListInt, typeInt, typeListInt))
 
   val applyId: Identifier = Identifier("@")
   val innerTypeId: Identifier = Identifier("polymorphic")
   val lambdaId: Identifier = Identifier("↦")
   val splitId: Identifier = Identifier("/")
   val idId: Identifier = Identifier("id")
-  val trueId: Identifier = Identifier("⊤")
-//  val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))
-  val falseId: Identifier = Identifier("⊥")
-//  val falseId: Identifier = Identifier("⊥", annotation=Some(typeBoolean))
-  val nilId: Identifier = Identifier("⟨⟩")
-  val negId: Identifier = Identifier("¬")
-//  val negId: Identifier = Identifier("¬", annotation=Some(typeBooleanToBoolean))
+//  val trueId: Identifier = Identifier("⊤")
+  val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))
+//  val falseId: Identifier = Identifier("⊥")
+  val falseId: Identifier = Identifier("⊥", annotation=Some(typeBoolean))
+  val nilId: Identifier = Identifier("⟨⟩", annotation = Some(typeListInt))
+//  val negId: Identifier = Identifier("¬")
+  val negId: Identifier = Identifier("¬", annotation=Some(typeBooleanToBoolean))
   val holeId: Identifier = Identifier("_")
   val guardedId: Identifier = Identifier("⇒")
   val tacticId: Identifier = Identifier("->")
@@ -53,8 +54,8 @@ object Language {
   val trueCondBuilderId: Identifier = Identifier("||>")
   val andCondBuilderId: Identifier = Identifier("|||")
   val limitedAndCondBuilderId: Identifier = Identifier("||||")
-  val consId: Identifier = Identifier("::")
-  val snocId: Identifier = Identifier(":+")
+  val consId: Identifier = Identifier("::", annotation = Some(typeIntListIntToListInt))
+  val snocId: Identifier = Identifier(":+", annotation = Some(typeListIntIntToListInt))
   val setId: Identifier = Identifier("{.}")
   val stringLiteralId: Identifier = Identifier("\"")
   val matchId: Identifier = Identifier("match")
@@ -76,6 +77,7 @@ object Language {
   val timeComplexId = Identifier("timecomplex")
   val timeComplexTrueId = Identifier("timecomplexTrue")
   val typeTrueId = Identifier("typeTrue")
+  val spbeId = Identifier("SPBE")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 

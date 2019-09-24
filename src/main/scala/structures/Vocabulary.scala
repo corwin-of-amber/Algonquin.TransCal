@@ -8,7 +8,10 @@ import collection.immutable.Set
   * @author tomer
   * @since 11/15/18
   */
-trait Vocabulary[Letter] extends Set[Word[Letter]] with VocabularyLike[Letter, Vocabulary[Letter]] {
+trait Vocabulary[Letter]
+  extends collection.Set[Word[Letter]]
+    with VocabularyLike[Letter, Vocabulary[Letter]] {
+
   /** Needs to be overridden in subclasses. */
   override def empty: Vocabulary[Letter] = Vocabulary.empty
 }

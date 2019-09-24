@@ -22,6 +22,8 @@ package object immutable {
   }
 
   val integerGraphGen: Gen[VocabularyHyperGraph[Int, Int]] = HyperGraphGenFactory(integerEdgesGen)
+  val versionedIntegerGraphGen: Gen[VersionedHyperGraph[Int, Int]] = integerGraphGen.map(new VersionedHyperGraph(_))
+  val compactIntegerGraphGen: Gen[CompactHyperGraph[Int, Int]] = versionedIntegerGraphGen.map(new CompactHyperGraph(_))
 
   def WordGenFactory[Letter](letterSource: Gen[Letter]): Gen[Seq[Letter]] = choose( 1, 7).flatMap(containerOfN[Seq, Letter](_, letterSource))
 

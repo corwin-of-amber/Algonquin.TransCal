@@ -15,46 +15,46 @@ import transcallang.{Identifier, Namespace}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule(val premise: HyperPattern,
-                  val conclusion: HyperPattern,
-                  val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata)
+class RewriteRule (
+                    val premise: HyperPattern,
+                    val conclusion: HyperPattern,
+                    val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
+                    val termString: String=null
+                  )
   extends VersionedOperator[RewriteSearchState] with LazyLogging {
 
   /* --- Operator Impl. --- */
-  override def toString: String = s"RewriteRule($premise, $conclusion)"
+  override def toString: String = s"RewriteRule($termString, $premise, $conclusion)"
 
   override def hashCode(): Int = toString.hashCode
 
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
-    logger.trace(s"Running rewrite rule $this")
+    logger.trace(s"Running rewrite rule $this ")
     val compactGraph = state.graph
 
     // Fill conditions - maybe subgraph matching instead of current temple
 
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
-    val nextHyperId: () => HyperTermId = {
-      val creator = Stream.from(compactGraph.nodes.map(_.id).reduceLeftOption(_ max _).getOrElse(0) + 1).map(HyperTermId).iterator
-      () => creator.next
-    }
+    if (premiseReferencesMaps.nonEmpty) {
+      val nextHyperId: () => HyperTermId = {
+        val creator = Stream.from(if (compactGraph.isEmpty) 0 else compactGraph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
+        () => creator.next
+      }
 
-    val existentialsMax = {
-      val temp = state.graph.edgeTypes.filter(_.identifier.literal.toString.startsWith("existential")).map(_.identifier.literal.toString.drop("existential".length).toInt)
-      if (temp.isEmpty) -1 else temp.max
-    }
+      val newEdges = premiseReferencesMaps.flatMap(m => {
+        val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
+        val merged = generic.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+        if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
+        else generic.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
+          e.copy(metadata = e.metadata.merge(meta)))
+      })
 
-    val newEdges = premiseReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m._1, m._2).merge(metadataCreator(immutable.HyperGraph.mergeMap(premise, m)))
-      val merged = immutable.HyperGraph.mergeMap(subGraphConclusion(existentialsMax, meta), m)
-      if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-      else immutable.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
-        e.copy(metadata = e.metadata.merge(meta)))
-    })
-    // Should crash if we still have holes as its a bug
-    compactGraph ++= newEdges
-    if (newEdges.nonEmpty) {
-      logger.debug(s"Used RewriteRule $this")
+      compactGraph ++= newEdges
+      if (newEdges.nonEmpty) {
+        logger.debug(s"Used RewriteRule $this ")
+      }
     }
 
     (new RewriteSearchState(compactGraph), compactGraph.version)
@@ -67,17 +67,27 @@ class RewriteRule(val premise: HyperPattern,
   private val subGraphPremise: HyperPattern = premise
 
   // Existential cannot be a function
-  private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.edges.map(_.target))
+  private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.targets)
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
 
-  private def subGraphConclusion(maxExist: Int, metadata: Metadata): HyperPattern = {
-    // TODO: change to Uid from Programs instead of global
-    val existentialEdges = existentialHoles.zipWithIndex.map({case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) => {
-      HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
-        Explicit(HyperTermIdentifier(Identifier(s"existential${maxExist + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
-    }})
-    conclusion.++(existentialEdges)
+  def isExistential: Boolean = existentialHoles.nonEmpty
+
+  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata): HyperPattern = {
+    if (existentialHoles.nonEmpty) {
+      val existentialsMax = {
+        val temp = graph.edgeTypes.filter(_.identifier.literal.toString.startsWith("existential")).map(_.identifier.literal.toString.drop("existential".length).toInt)
+        if (temp.isEmpty) -1 else temp.max
+      }
+
+      // TODO: change to Uid from Programs instead of global
+      val existentialEdges = existentialHoles.zipWithIndex.map({ case (existentialHole: Template.TemplateTerm[HyperTermId], index: Int) =>
+        HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
+          Explicit(HyperTermIdentifier(Identifier(s"existential${existentialsMax + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
+      })
+      conclusion.++(existentialEdges)
+    }
+    else conclusion
   }
 }
 
@@ -104,8 +114,8 @@ object RewriteRule {
       case pattern :: rest =>
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
-            val fullPattern = HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(HyperGraph.mergeMap(_, maps)))
+            val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMap(_, maps)))
               .map(a => fullPattern +: a)
         }
     }

@@ -44,7 +44,7 @@ class NaiveSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[S, SS
         }
       }
       i += 1
-      logger.debug(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
+      logger.info(s"Done a round robin. Graph size is: ${state.asInstanceOf[RewriteSearchState].graph.size}")
     }
 
     (searchSpace.isGoal(state), state)

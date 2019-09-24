@@ -37,6 +37,12 @@ case object EmptyMetadata extends Metadata {
   override def toStr: String = "EmptyMetadata"
 }
 
+class Uid {}
+
+case class IdMetadata(uid: Uid) extends Metadata {
+  override protected def toStr: String = s"IdMetadata($uid)"
+}
+
 final class UnionMetadata private (datas: Set[Metadata]) extends Metadata {
   override def iterator: Iterator[Metadata] = datas.iterator
   override def toStr: String = iterator mkString ", "

@@ -11,7 +11,10 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
-  extends Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
+  extends Vocabulary[Letter]
+    with Set[Word[Letter]]
+    with VocabularyLike[Letter, Trie[Letter]]
+    with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
@@ -140,16 +143,16 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
             placeholdersMap.get(id)
               .map(specificValue(_, more, placeholdersMap))
               .getOrElse(
-                subtries.applyOrElse(skip, (a: Int) => Map.empty[Letter, Trie[Letter]])
+                subtries.applyOrElse(skip, (_: Int) => Map.empty[Letter, Trie[Letter]])
                   .flatMap {case (letter: Letter, subtrie: Trie[Letter]) => subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0)}
                   .toSet
               )
           case Ignored() =>
             recursiveFindRegex(more, placeholdersMap, length + 1, skip + 1)
           case Repetition(minR, maxR, repeated) =>
-            assert(repeated.take(math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
-            val results = (for (newPattern <- (minR to math.min(maxR, subtries.length)).map(i => repeated.take(i) ++ more)) yield {
-              recursiveFindRegex(newPattern, placeholdersMap, length, 0)
+            assert(repeated.take(scala.math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
+            val results = (for (newPattern <- (minR to scala.math.min(maxR, subtries.length)).map(i => repeated.take(i) ++ more)) yield {
+              recursiveFindRegex(newPattern, placeholdersMap, length, skip)
             }).flatten.toSet
             results
         }

@@ -27,14 +27,14 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Anchor should not have a type as it will add a type annotation to the node we are marking
-    assert(anchor.identifier.annotation.isEmpty)
+    require(anchor.identifier.annotation.isEmpty)
     // We assume only one root as it is a pattern from user.
     logger.debug(s"Running Locate with $anchor")
     val roots = {
-      val allTargets = goal.edges.map(_.target)
+      val allTargets = goal.targets
       val nonTypeSources = goal.edges.filter(_.edgeType != ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(_.sources)
       val tempRoots = allTargets.diff(nonTypeSources)
-      val typeRoots = goal.edges.filter(_.edgeType == ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
+      val typeRoots = goal.findByEdgeType[Int](ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
       tempRoots.diff(typeRoots)
     }
     assert(roots.size == 1)
@@ -51,7 +51,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = structures.generic.HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -69,7 +69,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       if (rewriteResult) {
         val tempProgs = Programs(newState.graph)
         val terms = tempProgs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
-        if (terms.hasNext) logger.debug(terms.next().toString())
+        if (terms.hasNext) logger.debug(terms.next().toString)
         else logger.debug("Found term not constructable (probably a symbol)")
         tempProgs
       } else {
@@ -83,7 +83,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 object LocateAction {
   val createTemporaryAnchor: () => HyperTermIdentifier = {
     val anchors = Stream.from(0).map(i =>
-      HyperTermIdentifier(Identifier(s"temp anchor $i"))
+      HyperTermIdentifier(Identifier(s"temp_anchor_$i"))
     ).iterator
     anchors.next
   }

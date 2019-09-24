@@ -29,7 +29,7 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 
     // Process result
     if (success) {
-      val root = newState.programs.hyperGraph.edges.find(_.edgeType == anchor).get.target
+      val root = newState.programs.hyperGraph.findByEdgeType(anchor).head.target
       val terms = newState.programs.reconstructWithPattern(root, goal, Some(goalRoot))
       if (terms.hasNext) logger.info(s"Elaborated term is '${Programs.termToString(terms.next())}'")
       else logger.info("Found term not constructable (probably a symbol)")

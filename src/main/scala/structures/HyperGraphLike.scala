@@ -9,7 +9,7 @@ import scala.collection.{GenTraversableOnce, SetLike}
   * @author tomer
   * @since 11/15/18
   */
-trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with Set[HyperEdge[Node, EdgeType]]]
+trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]
   extends SetLike[HyperEdge[Node, EdgeType], This] {
 
   /** Find a pattern of an edge in the graph.
@@ -25,6 +25,7 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
 
   def findInSources[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(n), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
   def findByTarget[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Explicit(n), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+  def findInNodes[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findByTarget(n) ++ findInSources(n)
   def findByEdgeType[Id](et: EdgeType): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Explicit(et), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
 
 
@@ -42,17 +43,23 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     * @tparam Pattern The type of the pattern subgraph
     * @return The matched references.
     */
-  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])]
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])]
 
   /**
     * @return all the nodes in the hyper graph.
     */
-  def nodes: Set[Node] = edges.flatMap(edge => edge.target +: edge.sources)
+//  def nodes: Set[Node] = edges.flatMap(edge => edge.target +: edge.sources)
+  def nodes: Set[Node] = findRegex[Int](HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Stream.from(1).map(Hole[Node, Int])).get), EmptyMetadata)).flatMap(_._2.values.toSet)
+
+  /**
+    * @return all the nodes that apear as a target in the hyper graph.
+    */
+  def targets: Set[Node] = findRegex[Int](HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata)).flatMap(_._2.values.toSet)
 
   /**
     * @return all the edge types in the hyper graph.
     */
-  def edgeTypes: Set[EdgeType] = edges.flatMap(edge => Set(edge.edgeType))
+  def edgeTypes: Set[EdgeType] = findRegex(HyperEdge(Ignored(), Hole(0), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata)).flatMap(_._3.values.toSet)
 
   /**
     * @return all the edges in the hyper graph.
@@ -120,5 +127,5 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
 object HyperGraphLike {
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
-  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphLike[Item[Node, Id], Item[EdgeType, Id], This]
+  type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphLike[Item[Node, Id], Item[EdgeType, Id], This]
 }
