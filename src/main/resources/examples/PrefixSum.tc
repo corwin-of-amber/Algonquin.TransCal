@@ -1,10 +1,62 @@
-sum ?l1 = l1 match ((⟨⟩ => 0) / ((?x1 :: ?xs1) => x1 + (sum xs))) [++]
 prefixSum ?l = map (?i ↦ sum (take i l)) (range_include 0 (len l)) [++]
 
 l = xs :+ x
+// prefixSum l = map (i => sum (take i l)) (range_include 0 (len (xs :+ x)))
 
-range_include 0 (len l) = range_include 0 (len (xs)) ++ range_include (len l) (len l)
+range_include 0 (len (xs :+ x)) -> range_include 0 (len xs) + range_include (len xs :+ x) (len xs :+ x)
+// prefixSum l = map (i => sum (take i l)) (range_include 0 (len xs) ++ range_include (len l) (len l))
 
-map ?f (range_include 0 (len (xs)) ++ range_include (len l) (len l)) = map f (range_include 0 (len (xs))) ++ map f (range_include (len l) (len l))
+range_include y y = [y]
+// prefixSum l = map (i => sum (take i l)) (range_include 0 (len xs) ++ [len l])
 
-take ?ii ?li = (take (min ii (len li)) ?li) ++ (take (bounded_minus ii (len li)) ?li)
+map f (xs ++ ys) -> (map f xs) ++ (map f ys)
+//prefixSum l = (map (i => sum (take i l)) (range_include 0 (len xs))) ++ (map (i => sum (take i l)) [len l])
+
+Specialize
+// prefixSum l = (map (i1 => sum (take i1 l)) (range_include 0 (len xs))) ++ (map (i => sum (take i l)) [len l])
+
+i >= len l >> take i l = l
+// prefixSum l = (map (i1 => sum (take i1 (xs :+ x))) (range_include 0 (len xs))) ++ (map (i => sum l) [len l])
+
+take i (xs ++ ys) = (take (min i (len xs)) xs) ++ (take (i -- (len xs)) ys)
+// prefixSum l = (map (i1 => sum ((take (min i1 (len xs)) xs) ++ (take (i1 -- (len xs)) [x]))) (range_include 0 (len xs))) ++ (map (i => sum l) [len l])
+
+i <= len xs >> min i (len xs) = i
+//prefixSum l = (map (i1 => sum ((take i xs) ++ (take (i1 -- (len xs)) [x]))) (range_include 0 (len xs))) ++ (map (i2 => sum l) [len l])
+
+i <= len xs >> i -- (len xs) = 0
+// prefixSum l = (map (i1 => sum ((take i1 xs) ++ (take 0 [x]))) (range_include 0 (len xs))) ++ (map (i2 => sum l) [len l])
+
+take 0 xs = []
+// prefixSum l = (map (i1 => sum ((take i1 xs) ++ []))) (range_include 0 (len xs))) ++ (map (i2 => sum l) [len l])
+
+xs ++ [] = xs
+// prefixSum l = (map (i1 => sum (take i1 xs))) (range_include 0 (len xs))) ++ (map (i2 => sum l) [len l])
+
+sum (xs :+ x) = (sum xs) + x
+//prefixSum l = (map (i1 => sum (take i1 xs))) (range_include 0 (len xs))) ++ (map (i2 => (sum xs) + x) [len l])
+
+map f [x] = (f x)
+// prefixSum l = (map (i1 => sum (take i1 xs))) (range_include 0 (len xs))) ++ [(i2 => (sum xs) + x) (len l)]
+
+Apply lambda
+// prefixSum l = (map (i1 => sum (take i1 xs))) (range_include 0 (len xs))) ++ [(sum xs) + x]
+
+map (i => sum (take i l)) (range_include 0 (len l)) -> prefixSum l
+// prefixSum l = (prefixSum xs) ++ [(sum xs) + x]
+
+prefixSumAux l = (prefixSum l, sum l) [++]
+
+prefixSum l -> (prefixSum xs) ++ [(sum xs) + x]
+// prefixSumAux l = ((prefixSum xs) ++ [(sum xs) + x], (sum xs) + x)
+
+prefixSum l = (prefixSumAux l) _1
+// prefixSumAux l = (((prefixSumAux xs) _1) ++ [(sum xs) + x], (sum xs) + x)
+
+sum l = (prefixSumAux l) _2
+// prefixSumAux l = (((prefixSumAux xs) _1) ++ [((prefixSumAux xs) _2) + x], ((prefixSumAux xs) _2) + x)
+
+Generalize
+// prefixSumAux l = (ps => ((ps _1) ++ [(ps _2) + x], (ps _2) + x)) (prefixSumAux xs)
+
+
