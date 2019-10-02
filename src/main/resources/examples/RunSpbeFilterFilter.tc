@@ -1,0 +1,11 @@
+filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))
+
+cons ?x ?l = x :: l
+
+filter ?p (?x::?xs) |>> splitTrue ||| possibleSplit((p x), true, false)
+
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : ((predicateT) :> (list int) :> (list int))),) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+
+filter pred (filter pred l1) = filter pred (filter pred l) [++]
+
+filter pred (filter pred l) -> filter pred l

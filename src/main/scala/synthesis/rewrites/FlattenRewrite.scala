@@ -18,25 +18,25 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
   }
 
   private val outerApply =
-    patternEdgeCreator(Hole(0), Language.applyId, Seq(Hole(1), Repetition.rep0(Int.MaxValue, Ignored()).get))
+    patternEdgeCreator(Hole(0), Language.applyId, Seq(Hole(1), Repetition.rep0(Int.MaxValue, Stream.from(3, 2).map(Hole.apply)).get))
 
   private val innerFunc: HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] =
-    patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get))
+    patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Stream.from(4, 2).map(Hole.apply)).get))
 
   private val applyFuncGraph: generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     HyperGraph(Seq(outerApply, innerFunc): _*)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
-    // TODO: may need to do this for a few times so should find an efficient way
-    // TODO: Don't use filter if it is O(n)
-
     // Change apply to function
+    // TODO: Test this
     val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (
-      (idMap, identMap) <- funcResults;
-      outer <- state.graph.filter(e => e.target == idMap(0) && e.sources.nonEmpty && e.sources.head == idMap(1));
-      inner <- state.graph.filter(e => e.target == idMap(1) && e.edgeType == identMap(2))) yield {
-      HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0), identMap(2), inner.sources ++ outer.sources.drop(1), FlattenMetadata)
+      (idMap, identMap) <- funcResults) yield {
+      HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0),
+        identMap(2),
+        Stream.from(4, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply) ++
+          Stream.from(5, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply),
+        FlattenMetadata)
     }
 
     val newGraph = state.graph.++(newFuncEdges)

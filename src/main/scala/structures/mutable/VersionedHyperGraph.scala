@@ -23,7 +23,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
 
   /* --- Public Methods --- */
 
-  override def clone = new VersionedHyperGraph(wrapped.clone, version, mutable.Map.empty ++= mapByVersion.mapValues(_.clone))
+  override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mutable.Map.empty)
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
     wrapped.findSubgraph[Id](hyperPattern)
