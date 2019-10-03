@@ -1,8 +1,9 @@
-filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => x :: (filter p xs)) / false => filter p xs) ))
+filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))
 
 cons ?x ?l = x :: l
 
 filter ?p (?x::?xs) |>> splitTrue ||| possibleSplit((p x), true, false)
+
 SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
 
 filter pred (filter pred (t)) = filter pred (filter pred (l)) [++]

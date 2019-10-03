@@ -1,5 +1,6 @@
 package synthesis.actions.operators
 
+import structures.mutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
@@ -23,7 +24,8 @@ class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) ext
     val equives = splitter.sources.tail.map(s => {
       val newGraph: RewriteSearchState.HyperGraph = {
         // merge nodes clones the graph
-        val temp = cleanedAndWithAnchors.mergeNodes(s, splitter.sources.head)
+        val temp = (CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier] ++= cleanedAndWithAnchors.edges)
+          .mergeNodesInPlace(s, splitter.sources.head)
         temp --= temp.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
       }
       val (tempState, res) = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(newGraph), rules)

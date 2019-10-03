@@ -122,12 +122,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   }
 
   def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
-    val res = rules.map((r: Operator[RewriteSearchState]) => r(rewriteSearchState.deepCopy()))
-    val newState = res.map(_.graph).foldLeft(rewriteSearchState)((state, es) => {
-      state.graph ++= shiftEdges(state.graph.map(_.target.id).max, es.edges)
-      state
-    })
-    FunctionArgumentsAndReturnTypeRewrite(newState)
+    val res = rules.foldLeft(rewriteSearchState)((state, r) => r(state))
+    FunctionArgumentsAndReturnTypeRewrite(res)
   }
 
 
@@ -173,6 +169,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     val roots = getRoots(rewriteState)
     val fullGraph: RewriteSearchState.HyperGraph =
       switchPlaceholders(rewriteState.graph.++(roots.map(r => createAnchor(r))))
+        .filterNot(_.edgeType.identifier == Language.typeId)
 
     // ******** Observational equivalence ********
     // Use the anchors to create tuples for merging
@@ -193,7 +190,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
     fullGraph.++=(tupleEdges)
     logger.info("Running Observational Equivalence on symbolic examples")
-    new ObservationalEquivalenceWithCaseSplit(equivDepth).getEquivesFromRewriteState(RewriteSearchState(fullGraph), rules.toSet)._2.filter(_.size > 1)
+    new ObservationalEquivalenceWithCaseSplit(equivDepth)
+      .getEquivesFromRewriteState(RewriteSearchState(fullGraph), rules.toSet)._2
+      .filter(_.size > 1)
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
