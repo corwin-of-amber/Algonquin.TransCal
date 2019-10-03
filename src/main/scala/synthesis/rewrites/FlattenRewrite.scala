@@ -35,7 +35,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0),
         identMap(2),
         Stream.from(4, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply) ++
-          Stream.from(5, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply),
+          Stream.from(3, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply),
         FlattenMetadata)
     }
 
