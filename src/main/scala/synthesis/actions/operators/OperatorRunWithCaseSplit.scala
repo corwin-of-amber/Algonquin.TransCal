@@ -1,6 +1,6 @@
 package synthesis.actions.operators
 
-import structures.{IdMetadata, Uid}
+import structures.{IdMetadata, Uid, UnionMetadata}
 import synthesis.{HyperTermIdentifier, Programs}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
@@ -18,17 +18,21 @@ class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[Rewrit
   override def fromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): RewriteSearchState = {
     var rState = state
     var newState = opRun.fromRewriteState(rState, rules)
-    var caseEdges = newState.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+    val caseEdges = newState.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+    // We want to prevent too many split steps so we will freeze case edges by using metadata
+    var markedEdges = caseEdges.map(_.copy(metadata = caseEdges.head.metadata.merge(idMetadata)))
+    newState.graph --= markedEdges
+    newState.graph ++= markedEdges
 
-    while ((goalPredicate.isEmpty || !goalPredicate.get(rState)) && caseEdges.nonEmpty) {
-      val e = caseEdges.head.copy(metadata = caseEdges.head.metadata.merge(idMetadata))
+    while ((goalPredicate.isEmpty || !goalPredicate.get(rState)) && markedEdges.nonEmpty) {
+      val e = markedEdges.head.copy(metadata = UnionMetadata(markedEdges.head.metadata.filterNot(_ == idMetadata).toSet))
       newState.graph -= e
       newState.graph += e
       val toMerge = new CaseSplitAction(e).getFoundConclusionsFromRewriteState(newState, rules)
       newState = ObservationalEquivalence.mergeConclusions(newState, toMerge.toSeq)
       newState = opRun.fromRewriteState(newState, rules)
-      caseEdges = newState.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
-        .filterNot(_.metadata.exists(_ == idMetadata))
+      markedEdges = newState.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+        .filter(_.metadata.exists(_ == idMetadata))
     }
 
     newState

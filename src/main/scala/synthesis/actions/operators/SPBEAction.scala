@@ -83,12 +83,15 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     var state = initialState
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
 
+    logger.info("Running SPBE")
     for (i <- 1 to termDepth) {
+      logger.info(s"Creating terms of depth $i")
       // ******** SPBE ********
       foundRules += mutable.Buffer.empty
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
+      logger.info(s"Trying to merge terms")
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
       val roots = getRoots(rewriteState)
