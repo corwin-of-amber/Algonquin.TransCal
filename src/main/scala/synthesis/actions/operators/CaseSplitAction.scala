@@ -1,12 +1,12 @@
 package synthesis.actions.operators
 
+import structures.HyperEdge
 import structures.mutable.CompactHyperGraph
-import structures.{EmptyMetadata, HyperEdge}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{Identifier, Language}
+import transcallang.Identifier
 
 
 /** Case split action splits a variable into options specified by the splitter edge. Variable should not have edges.
@@ -19,7 +19,8 @@ import transcallang.{Identifier, Language}
 class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) extends Action {
   val obvEquiv = new ObservationalEquivalence(maxDepth = 4)
 
-  def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
+  def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
+  : Set[Set[HyperTermId]] = {
     val cleanedAndWithAnchors = (state.graph ++ state.graph.map(e => ObservationalEquivalence.createAnchor(e.target)))
     val equives = splitter.sources.tail.map(s => {
       val newGraph: RewriteSearchState.HyperGraph = {
@@ -49,7 +50,8 @@ class CaseSplitAction(splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) ext
     val rState = new RewriteSearchState(state.programs.hyperGraph)
     val toMerge = getFoundConclusionsFromRewriteState(rState, state.rewriteRules).toSeq
     val newState = ObservationalEquivalence.mergeConclusions(rState, toMerge)
-    ActionSearchState(Programs(newState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))), state.rewriteRules)
+    ActionSearchState(Programs(newState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))),
+      state.rewriteRules)
   }
 }
 

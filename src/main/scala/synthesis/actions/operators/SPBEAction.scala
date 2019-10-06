@@ -64,11 +64,15 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
   private def createBaseGraph(typed: Boolean): HyperGraph = {
     val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ constants
-    val symbolsToUse = if(typed) symbols else symbols.map(_.map(_.copy(annotation = None)))
-    if (symbols.size > 1)
-      Programs.destruct(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse))
-    else
-      Programs.destruct(symbolsToUse.head)
+    val addSplits = examples.map({ case (typ, exs) =>
+      AnnotatedTree.withoutAnnotations(CaseSplitAction.possibleSplitId,
+        AnnotatedTree.identifierOnly(placeholders(typ).head) +: exs)
+    })
+    val symbolsToUse = symbols
+    val tree = if (symbols.size > 1) AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
+                else symbolsToUse.head
+    if (typed) Programs.destruct(tree)
+    else Programs.destruct(tree.map(_.copy(annotation = None)))
   }
 
   val baseGraph: ActionSearchState.HyperGraph = createBaseGraph(true)
@@ -115,7 +119,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
         }
       }
       logger.info(s"Found new lemmas in depth $i:")
-      for((t1, t2) <- foundRules.last)
+      for ((t1, t2) <- foundRules.last)
         logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     }
     state
@@ -126,72 +130,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     FunctionArgumentsAndReturnTypeRewrite(res)
   }
 
-
-  /** Each placeholder will be switched to the appropriate terminals and anchors will be added appropriately.
-    *
-    * @param graph - basic graph with placeholders and anchors on roots
-    * @return A graph duplicated so all placeholders were switched to the changing terms
-    */
-  private def switchPlaceholders(graph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
-    // We will duplicate the graph for each symbolic input and change the placeholder to correct representation.
-    val untypedPlaceholders = placeholders.values.flatMap(_.map(_.copy(annotation = None))).toSet
-    val noPlaceholdersGraph = graph.filterNot(e => untypedPlaceholders.contains(e.edgeType.identifier))
-    val roots = getRoots(new RewriteSearchState(noPlaceholdersGraph))
-    val fullGraph = structures.mutable.CompactHyperGraph(noPlaceholdersGraph.toSeq: _*)
-    for ((exampleKey, exampleValues) <- examples) {
-      // We know the placeholder doesnt have subtrees as we created it.
-      // We want to create new anchors to find the relevant hypertermid later when searching equives in tuples
-      for ((terminal, index) <- exampleValues.zipWithIndex;
-           placeholder = placeholders(exampleKey).head;
-           target = graph.findEdges(HyperTermIdentifier(placeholder.copy(annotation = None))).head.target) {
-        val newAnchors = roots.map(root => anchorByIndex(createAnchor(root), index))
-
-        val termGraph = {
-          val (tempGraph, root) = Programs.destructWithRoot(terminal, maxId = HyperTermId(noPlaceholdersGraph.nodes.map(_.id).max))
-          tempGraph.mergeNodes(target, root)
-        }
-
-        val afterAddingTerm = noPlaceholdersGraph.edges ++ newAnchors ++ termGraph.edges
-        val maxId = fullGraph.nodes.map(_.id).max
-        val afterShift = shiftEdges(maxId, afterAddingTerm).filterNot(e => {
-          val literal = e.edgeType.identifier.literal
-          literal.startsWith(idAnchorStart) && !literal.contains("iter:")
-        })
-        fullGraph ++= afterShift
-      }
-    }
-    fullGraph
-  }
-
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
-    // Use observational equivalence
-    val roots = getRoots(rewriteState)
-    val fullGraph: RewriteSearchState.HyperGraph =
-      switchPlaceholders(rewriteState.graph.++(roots.map(r => createAnchor(r))))
-        .filterNot(_.edgeType.identifier == Language.typeId)
-
-    // ******** Observational equivalence ********
-    // Use the anchors to create tuples for merging
-    val idCreator: () => HyperTermId = {
-      var last = fullGraph.nodes.map(_.id).max
-      () => {last += 1; HyperTermId(last)}
-    }
-
-    // Using tuples to compare all equivalent terms over the different inputs  simultaneously
-    val tupleEdges = (for (r <- roots) yield {
-      val anchorsByIndex = examples.head._2.indices map (i => anchorByIndex(createAnchor(r), i))
-      val targets = anchorsByIndex.map(a => fullGraph.findEdges(a.edgeType).head.target)
-      val newTarget = idCreator()
-      val anchor = ObservationalEquivalence.createAnchor(r)
-      Seq(HyperEdge(newTarget, HyperTermIdentifier(Language.tupleId), targets.toList, EmptyMetadata),
-        anchor.copy(target = newTarget))
-    }).flatten
-
-    fullGraph.++=(tupleEdges)
-    logger.info("Running Observational Equivalence on symbolic examples")
     new ObservationalEquivalenceWithCaseSplit(equivDepth)
-      .getEquivesFromRewriteState(RewriteSearchState(fullGraph), rules.toSet)._2
+      .getEquivesFromRewriteState(rewriteState, rules.toSet)._2
       .filter(_.size > 1)
   }
 
@@ -252,10 +194,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       Seq(Identifier("?SomeVar"), cleanVars(identMapper(inductionPh, inductionPh))).map(AnnotatedTree.identifierOnly))
 
     // Precondition on each direction of the hypothesis
-    Seq((cleanTerm1, cleanTerm2), (cleanTerm2, cleanTerm1)).flatMap({case (t1, t2) =>
+    Seq((cleanTerm1, cleanTerm2), (cleanTerm2, cleanTerm1)).flatMap({ case (t1, t2) =>
       new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(
         AnnotatedTree.withoutAnnotations(Language.trueCondBuilderId, Seq(precondition, t1)), t2
-      ))).rules})
+      ))).rules
+    })
   }
 
   def inductionStep(state: ActionSearchState, typedTerm1: AnnotatedTree, typedTerm2: AnnotatedTree): Set[RewriteRule] = {
@@ -297,7 +240,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       // Replace inductionPh by inductionVar
       // Create base graph where inductionPh ||| c(existentials: _*)
       val constructedVal = AnnotatedTree.withoutAnnotations(c.root.copy(annotation = None),
-        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({case (_, i) =>
+        c.root.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (_, i) =>
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
       )
