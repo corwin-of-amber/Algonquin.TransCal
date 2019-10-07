@@ -21,7 +21,7 @@ class CaseSplitActionTest extends FunSuite with Matchers {
       state.rewriteRules
     )
     val res2 = new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head).getFoundConclusions(splitableState)
-    res2 should not be empty
+    res2.exists(_.size > 1) shouldBe true
   }
 
 }

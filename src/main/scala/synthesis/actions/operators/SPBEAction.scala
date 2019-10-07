@@ -32,17 +32,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
     Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}", annotation = Some(placeholderType))
 
-  private def anchorByIndex(anchor: HyperEdge[HyperTermId, HyperTermIdentifier], index: Int) =
-    anchor.copy(edgeType = HyperTermIdentifier(anchor.edgeType.identifier.copy(literal = anchor.edgeType.identifier.literal + s" iter: $index")))
-
-  private def createAnchor(id: HyperTermId) =
-    HyperEdge(id, HyperTermIdentifier(Identifier(s"$idAnchorStart$id")), Seq.empty, NonConstructableMetadata)
-
-  private def getRoots(rewriteState: RewriteSearchState) =
+  private def getRoots(rewriteState: RewriteSearchState): Set[HyperTermId] =
     rewriteState.graph.findEdges(HyperTermIdentifier(Language.typeId)).map(_.sources.head)
-
-  private def shiftEdges(startId: Int, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =
-    edges.map(e => e.copy(target = e.target.copy(e.target.id + startId), sources = e.sources.map(hid => hid.copy(id = hid.id + startId))))
 
   private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
 
@@ -79,9 +70,6 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
 
   val untypedBaseGraph: ActionSearchState.HyperGraph = createBaseGraph(false)
 
-  private val idAnchorStart = "anchor for "
-  private val tupleAnchorStart = "anchor tuple for "
-
   override def apply(initialState: ActionSearchState): ActionSearchState = {
     var rewriteState = new RewriteSearchState(baseGraph)
     var state = initialState
@@ -98,6 +86,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       logger.info(s"Trying to merge terms")
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
+      logger.info(s"Working on equivalences")
       val roots = getRoots(rewriteState)
       val programs = Programs(rewriteState.graph)
       for (r <- roots) {

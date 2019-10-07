@@ -21,6 +21,8 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
     compact(edges.toList, mutable.Map.empty[Node, Node])
   }
 
+  def this() = this(Set.empty[HyperEdge[Node, EdgeType]])
+
   override def clone = new CompactHyperGraph(wrapped.clone)
 
   def version: Long = wrapped.version
