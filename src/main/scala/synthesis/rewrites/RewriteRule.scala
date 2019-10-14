@@ -20,7 +20,7 @@ class RewriteRule (val premise: HyperPattern,
                     val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
                     val termString: String=null) extends VersionedOperator[RewriteSearchState] with LazyLogging {
   /* --- Operator Impl. --- */
-  override def toString: String = s"RewriteRule($termString, $premise, $conclusion)"
+  override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
   override def hashCode(): Int = toString.hashCode
 

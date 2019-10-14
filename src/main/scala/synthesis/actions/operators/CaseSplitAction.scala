@@ -73,11 +73,14 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         val newIds = Stream.from(CaseSplitAction.edgesMax(shiftedEdgesWithShiftSize.last._1)).map(HyperTermId)
         val tuplesAndAnchors = withAnchors.filter(_.edgeType.identifier.literal.startsWith(anchorStart))
           .zip(newIds).flatMap({ case (e, newId) =>
+          // Move anchor to a new id from the id stream and then create a tuple of values from each replacer
           Set(e.copy(target = newId),
             HyperEdge(newId,
               HyperTermIdentifier(Language.tupleId),
-              shiftedEdgesWithShiftSize.map({ case (_, shift) =>
-                HyperTermId(e.target.id + shift)
+              shiftedEdgesWithShiftSize.zipWithIndex.map({ case ((_, shift), i) =>
+                // TODO: fix it so splitted will point to sons
+                if (e.target == splitter.sources.head) HyperTermId(splitter.sources.tail(i).id + shift)
+                else HyperTermId(e.target.id + shift)
               }),
               NonConstructableMetadata)
           )
