@@ -10,6 +10,8 @@ import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
+import scala.collection.mutable
+
 
 class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLogging {
   protected def createSearchAction(oPattern: Option[HyperPattern]): SearchAction = {
@@ -80,6 +82,7 @@ object ObservationalEquivalence extends LazyLogging {
       .map((set:  Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
         set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(ObservationalEquivalence.anchorStart.length).toInt)))
   }
+
   def mergeConclusions(rState: RewriteSearchState, equives: Seq[Set[HyperTermId]]): RewriteSearchState = {
     def createAnchor(hyperTermId: HyperTermId, index: Int) =
       HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"caseAnchor_$index")), Seq.empty, EmptyMetadata)
@@ -91,6 +94,15 @@ object ObservationalEquivalence extends LazyLogging {
         rState.graph.mergeNodesInPlace(set.head.target, set.last.target)
       }
     }
+    rState.graph --= rState.graph.edges.filter(_.edgeType.identifier.literal.startsWith("caseAnchor_"))
     rState
+  }
+
+  def flattenConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
+    val unionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
+    for (eqGroups <- equives; eqGroup <- eqGroups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
+      unionFind.union(a, b)
+    }
+    unionFind.sets
   }
 }

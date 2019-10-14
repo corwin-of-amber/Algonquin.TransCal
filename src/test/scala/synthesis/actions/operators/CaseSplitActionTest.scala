@@ -3,6 +3,7 @@ package synthesis.actions.operators
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.actions.ActionSearchState
 import synthesis._
+import synthesis.rewrites.RewriteSearchState
 import transcallang.{Identifier, TranscalParser}
 
 class CaseSplitActionTest extends FunSuite with Matchers {
@@ -21,7 +22,8 @@ class CaseSplitActionTest extends FunSuite with Matchers {
       state.rewriteRules
     )
     val res2 = new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head).getFoundConclusions(splitableState)
-    res2.exists(_.size > 1) shouldBe true
+    val newState = ObservationalEquivalence.mergeConclusions(new RewriteSearchState(splitableState.programs.hyperGraph), res2.toSeq)
+    newState.graph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" map (_.copy(annotation = None)))).nonEmpty shouldBe true
   }
 
   test("test splitting filter p filter q") {

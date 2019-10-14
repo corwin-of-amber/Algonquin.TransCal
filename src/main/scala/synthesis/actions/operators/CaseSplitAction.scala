@@ -35,69 +35,51 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     this(Seq(splitter), maxDepthOption)
 
   val obvEquiv = new ObservationalEquivalence(maxDepth = maxDepth)
+  val opRun = new OperatorRunAction(maxDepth)
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
-  : Set[Set[HyperTermId]] = {
-    val equives = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
-    val toMerge = equives.head.filter(_.size > 1).flatMap(hyperTermIds => {
-      val restEquives = equives.tail
-      for (i <- hyperTermIds; relevantSets = restEquives.map(_.find(_.contains(i)).get)) yield {
-        relevantSets.fold(hyperTermIds)((distjuinted, set) => distjuinted.intersect(set))
-      }
-    }).filter(_.size > 1)
-    toMerge
-  }
+  : Set[Set[HyperTermId]] = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
 
   private def innerGetFoundConclusionsFromRewriteState(state: RewriteSearchState,
                                                        rules: Set[Operator[RewriteSearchState]],
                                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]])
-  : Set[Set[Set[HyperTermId]]] = {
+  : Set[Set[HyperTermId]] = {
     val chooser = splitterChooser.getOrElse(randomChooser())
     val withAnchors =
       if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph
       else state.graph ++ state.graph.map(e => createAnchor(e.target))
     val splitters = chooser(state, chosen).toSeq
-    splitters.zipWithIndex.flatMap({ case (splitter, i) =>
-      val tupledGraph = {
-        // Need to shift all edges on graph because we want to prevent one changed value from affecting parts of other
-        // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
-        val initialEdges = withAnchors.edges.filter(e => (!e.edgeType.identifier.literal.startsWith(anchorStart))
-          && e.target != splitter.sources.head && !splitters.take(i + 1).contains(e))
-        val shiftedEdgesWithShiftSize = splitter.sources.tail.tail
-          .foldLeft(Seq((CaseSplitAction.mergeNodes(initialEdges, splitter.sources(1), splitter.sources.head), 0)))(
-            (all, id) => {
-              val updatedEdges = CaseSplitAction.mergeNodes(initialEdges, id, splitter.sources.head)
-              val shiftSize = all.last._2 + CaseSplitAction.edgesMax(all.last._1) + 1
-              all :+ (CaseSplitAction.shiftEdges(shiftSize, updatedEdges), shiftSize)
-            })
-        val newIds = Stream.from(CaseSplitAction.edgesMax(shiftedEdgesWithShiftSize.last._1)).map(HyperTermId)
-        val tuplesAndAnchors = withAnchors.filter(_.edgeType.identifier.literal.startsWith(anchorStart))
-          .zip(newIds).flatMap({ case (e, newId) =>
-          // Move anchor to a new id from the id stream and then create a tuple of values from each replacer
-          Set(e.copy(target = newId),
-            HyperEdge(newId,
-              HyperTermIdentifier(Language.tupleId),
-              shiftedEdgesWithShiftSize.zipWithIndex.map({ case ((_, shift), i) =>
-                // TODO: fix it so splitted will point to sons
-                if (e.target == splitter.sources.head) HyperTermId(splitter.sources.tail(i).id + shift)
-                else HyperTermId(e.target.id + shift)
-              }),
-              NonConstructableMetadata)
-          )
+    if (chosen.length >= splitDepth || splitters.isEmpty) {
+      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors), rules)
+      res._2
+    } else {
+      // For each splitter edge:
+      // 1. build new graphs
+      // TODO: 2. pre run ops
+      // 3. enter recursively
+      // TODO: 3a. early merge results into graph to help next steps
+      // 3b. merge recursive results
+      // 4. merge all the results
+      // Note: Don't keep the graphs after your finished, but don't mess up previous graph
+      val equives = splitters.zipWithIndex.map({ case (splitter, i) =>
+        // 1. build new graph - for each possible value copy graph and merge the needed value
+        val source = splitter.sources.head
+        val targets = splitter.sources.tail
+        val results = targets.map(target => {
+          // TODO: improve clone so that it doesnt need to rerun all the merge checking
+          // 1 + 2. pre run ops
+          val tempState = RewriteSearchState(withAnchors.mergeNodes(source, target))
+//          val state = opRun.fromRewriteState(RewriteSearchState(withAnchors.mergeNodes(source, target)), rules)
+          // 3. Recursion
+          innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
         })
-        val res = new RewriteSearchState.HyperGraph(shiftedEdgesWithShiftSize.flatMap(_._1).toSet ++ tuplesAndAnchors)
-        res
-      }
-
-      // Observational Equivalence will use anchors in graph and calculate hyper term id from their identifiers.
-      if (chosen.length + 1 < splitDepth)
-        innerGetFoundConclusionsFromRewriteState(RewriteSearchState(tupledGraph), rules, chosen :+ splitter)
-      else {
-        val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(tupledGraph), rules)
-        Set(res._2)
-      }
-    })
-    }.toSet
+        // 3b. Merge recursion results
+        ObservationalEquivalence.flattenConclusions(results)
+      })
+      // 4. Merge different split results
+      ObservationalEquivalence.flattenConclusions(equives)
+    }
+  }
 
   def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
     getFoundConclusionsFromRewriteState(new RewriteSearchState(state.programs.hyperGraph), state.rewriteRules)
@@ -107,8 +89,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     val rState = new RewriteSearchState(state.programs.hyperGraph)
     val toMerge = getFoundConclusionsFromRewriteState(rState, state.rewriteRules).toSeq
     val newState = ObservationalEquivalence.mergeConclusions(rState, toMerge)
-    ActionSearchState(Programs(newState.graph.filterNot(_.edgeType.identifier.literal.startsWith("caseAnchor"))),
-      state.rewriteRules)
+    ActionSearchState(Programs(newState.graph), state.rewriteRules)
   }
 
   def randomChooser(depth: Int = maxDepth): CaseSplitAction.SplitChooser = {
