@@ -4,6 +4,7 @@ import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
+import synthesis.actions.operators.SPBEAction.Edge
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -13,7 +14,12 @@ import scala.collection.mutable
 
 // Constructors than split by datatype
 // Grammar use this during graph expansion
-class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], examples: Map[AnnotatedTree, Seq[AnnotatedTree]], termDepth: Int = 3, equivDepth: Int = 4) extends Action {
+class SPBEAction(typeBuilders: Set[AnnotatedTree],
+                 grammar: Set[AnnotatedTree],
+                 examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
+                 termDepth: Int = 3,
+                 equivDepth: Int = 4,
+                 splitDepth: Int = 1) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
 
   // How to do this? for now given by user
@@ -35,11 +41,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   private def getRoots(rewriteState: RewriteSearchState): Set[HyperTermId] =
     rewriteState.graph.findEdges(HyperTermIdentifier(Language.typeId)).map(_.sources.head)
 
+  private val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
+
   private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
 
   private val constructors = typeBuilders.filter(isFunctionType)
 
-  private val rules = SyGuSRewriteRules(
+  private val sygusRules = SyGuSRewriteRules(
     constructors ++
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules
@@ -61,7 +69,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
     })
     val symbolsToUse = symbols
     val tree = if (symbols.size > 1) AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
-                else symbolsToUse.head
+    else symbolsToUse.head
     if (typed) Programs.destruct(tree)
     else Programs.destruct(tree.map(_.copy(annotation = None)))
   }
@@ -115,13 +123,17 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
   }
 
   def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
-    val res = rules.foldLeft(rewriteSearchState)((state, r) => r(state))
-    FunctionArgumentsAndReturnTypeRewrite(res)
+    val res = sygusRules.map((r: Operator[RewriteSearchState]) => r(rewriteSearchState.deepCopy()))
+    val newState = res.map(_.graph).foldLeft(rewriteSearchState)((state, es) => {
+      state.graph ++= CaseSplitAction.shiftEdges(state.graph.map(_.target.id).max, es.edges)
+      state
+    })
+    FunctionArgumentsAndReturnTypeRewrite(newState)
   }
 
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
-    new ObservationalEquivalenceWithCaseSplit(equivDepth)
+    new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
       .getEquivesFromRewriteState(rewriteState, rules.toSet)._2
       .filter(_.size > 1)
   }
@@ -251,4 +263,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree], grammar: Set[AnnotatedTree], 
       Set.empty
     }
   }
+}
+
+object SPBEAction {
+  type Edge = HyperEdge[HyperTermIdentifier, HyperTermId]
+  def Edge(hyperTermId: HyperTermId, hyperTermIdentifier: HyperTermIdentifier, sources: Seq[HyperTermId])
+  : HyperEdge[HyperTermId, HyperTermIdentifier] = HyperEdge(hyperTermId, hyperTermIdentifier, sources, EmptyMetadata)
 }

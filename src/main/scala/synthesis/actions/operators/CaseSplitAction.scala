@@ -44,7 +44,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
                                                        rules: Set[Operator[RewriteSearchState]],
                                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]])
   : Set[Set[HyperTermId]] = {
-    val chooser = splitterChooser.getOrElse(randomChooser())
+    val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
     val withAnchors =
       if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph
       else state.graph ++ state.graph.map(e => createAnchor(e.target))
@@ -91,23 +91,6 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     val newState = ObservationalEquivalence.mergeConclusions(rState, toMerge)
     ActionSearchState(Programs(newState.graph), state.rewriteRules)
   }
-
-  def randomChooser(depth: Int = maxDepth): CaseSplitAction.SplitChooser = {
-    val depthUids = (0 to splitDepth).map(_ => IdMetadata(new Uid))
-    (state: RewriteSearchState, chose: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]) => {
-      //      val uidsAbove = depthUids.take(chose.length)
-      //      chose.zip(uidsAbove).foreach({case (e, m) =>
-      //          val updated = e.copy(metadata = e.metadata.merge(m))
-      //          state.graph -= updated
-      //          state.graph += updated
-      //      })
-      // TODO: Fix API so we can save have the chosen
-      state.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
-      //      state.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).filterNot(e =>
-      ////        chose.contains(e) || e.metadata.exists(m => uidsAbove.contains(m)))
-      //        chose.contains(e))
-    }
-  }
 }
 
 object CaseSplitAction {
@@ -140,5 +123,23 @@ object CaseSplitAction {
         e.copy(target = switch(e.target), sources = e.sources.map(switch))
       else e
     )
+  }
+
+  def randomChooser(depth: Int, splitDepth: Int): SplitChooser = {
+    val depthUids = (0 to splitDepth).map(_ => IdMetadata(new Uid))
+    (state: RewriteSearchState, chose: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]) => {
+      //      val uidsAbove = depthUids.take(chose.length)
+      //      chose.zip(uidsAbove).foreach({case (e, m) =>
+      //          val updated = e.copy(metadata = e.metadata.merge(m))
+      //          state.graph -= updated
+      //          state.graph += updated
+      //      })
+      // TODO: Fix API so we can save have the chosen
+      if (chose.length == splitDepth) Set.empty
+      else state.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+      //      state.graph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).filterNot(e =>
+      ////        chose.contains(e) || e.metadata.exists(m => uidsAbove.contains(m)))
+      //        chose.contains(e))
+    }
   }
 }
