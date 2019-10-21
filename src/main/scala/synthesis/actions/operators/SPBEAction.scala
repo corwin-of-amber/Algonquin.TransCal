@@ -4,7 +4,6 @@ import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
-import synthesis.actions.operators.SPBEAction.Edge
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -36,7 +35,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
 
   def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
-    Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}", annotation = Some(placeholderType))
+    Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}",
+      annotation = Some(placeholderType))
 
   private def getRoots(rewriteState: RewriteSearchState): Set[HyperTermId] =
     rewriteState.graph.findEdges(HyperTermIdentifier(Language.typeId)).map(_.sources.head)
@@ -52,7 +52,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules
 
-  private val types: Set[AnnotatedTree] = (constructors ++ grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty)))
+  private val types: Set[AnnotatedTree] =
+    (constructors ++ grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty)))
     .flatMap(_.root.annotation.get match {
       case AnnotatedTree(Language.mapTypeId, trees, _) => trees
       case _ => throw new RuntimeException("All constructors should be function types")
@@ -68,8 +69,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         AnnotatedTree.identifierOnly(placeholders(typ).head) +: exs)
     })
     val symbolsToUse = symbols
-    val tree = if (symbols.size > 1) AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
-    else symbolsToUse.head
+    val tree = if (symbols.size > 1)
+        AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
+      else
+        symbolsToUse.head
     if (typed) Programs.destruct(tree)
     else Programs.destruct(tree.map(_.copy(annotation = None)))
   }
@@ -179,17 +182,23 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
   private val ltfwRules = ltwfTransivity ++ ltwfByConstructor
 
-  private def cleanVars(i: Identifier): Identifier = if (i.literal.startsWith("?")) i.copy(literal = i.literal.drop(1)) else i
+  private def cleanVars(i: Identifier): Identifier =
+    if (i.literal.startsWith("?")) i.copy(literal = i.literal.drop(1)) else i
 
-  private def identMapper(i: Identifier, inductionPh: Identifier, inductionVarName: String = "?inductionVar") = i match {
+  private def identMapper(i: Identifier, inductionPh: Identifier, inductionVarName: String = "?inductionVar")
+  : Identifier = i match {
     case i if i == inductionPh => i.copy(literal = inductionVarName)
     case i if i.literal.startsWith("Placeholder") => i.copy(literal = "?" + i.literal)
     case i => i
   }
 
-  private def createHypothesis(term1: AnnotatedTree, term2: AnnotatedTree, inductionPh: Identifier, replacementVarLiteral: String = "?SomeVar") = {
+  private def createHypothesis(term1: AnnotatedTree,
+                               term2: AnnotatedTree,
+                               inductionPh: Identifier,
+                               replacementVarLiteral: String = "?SomeVar"): Seq[RewriteRule] = {
     val hypothIndcVar = "?SomeVar"
-    val (cleanTerm1, cleanTerm2) = (term1.map(identMapper(_, inductionPh, hypothIndcVar)), term2.map(identMapper(_, inductionPh, hypothIndcVar)))
+    val (cleanTerm1, cleanTerm2) = (term1.map(identMapper(_, inductionPh, hypothIndcVar)),
+      term2.map(identMapper(_, inductionPh, hypothIndcVar)))
 
     val precondition = AnnotatedTree.withoutAnnotations(ltwfId,
       Seq(Identifier("?SomeVar"), cleanVars(identMapper(inductionPh, inductionPh))).map(AnnotatedTree.identifierOnly))
@@ -251,22 +260,18 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       )))
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
-      val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+      val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last),
+        ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
       val nextState = new ObservationalEquivalenceWithCaseSplit(equivDepth)(actionState)
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
-      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)), allowExistential = false).rules
+      new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)),
+        allowExistential = false).rules
     } else {
       logger.info(s"Proof Failed")
       Set.empty
     }
   }
-}
-
-object SPBEAction {
-  type Edge = HyperEdge[HyperTermIdentifier, HyperTermId]
-  def Edge(hyperTermId: HyperTermId, hyperTermIdentifier: HyperTermIdentifier, sources: Seq[HyperTermId])
-  : HyperEdge[HyperTermId, HyperTermIdentifier] = HyperEdge(hyperTermId, hyperTermIdentifier, sources, EmptyMetadata)
 }

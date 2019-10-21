@@ -44,14 +44,14 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
     var maxId = -1
-    val termToGraph = (for (t <- terms) yield {
+    val termToEdges = (for (t <- terms) yield {
       val (graph, root) = Programs.destructWithRoot(t, HyperTermId(maxId + 1))
       maxId = graph.nodes.map(_.id).max
-      (t, (graph + ObservationalEquivalence.createAnchor(root), root))
+      (t, (graph.edges + ObservationalEquivalence.createAnchor(root), root))
     }).toMap
-    val idToTerm = termToGraph.map({case (term, (_, id)) => (id, term)})
-    val fullGraph = termToGraph.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
-    getEquives(ActionSearchState(Programs(fullGraph), rewriteRules))
+    val idToTerm = termToEdges.map({case (term, (_, id)) => (id, term)})
+    val allEdges = termToEdges.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
+    getEquivesFromRewriteState(new RewriteSearchState(new RewriteSearchState.HyperGraph(allEdges)), rewriteRules)._2
       .map(s => s.map(id => idToTerm(id)))
   }
 }
