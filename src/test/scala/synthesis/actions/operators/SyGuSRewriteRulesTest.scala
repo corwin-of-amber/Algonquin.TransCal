@@ -7,9 +7,14 @@ import transcallang.{AnnotatedTree, TranscalParser}
 
 class SyGuSRewriteRulesTest extends FunSuite with Matchers {
   private val parser = new TranscalParser()
-  private val basicGraph = Set("(var1 : int)",
-  "(var2 : string)",
-  "(var3 : list int)").map(parser.parseExpression).map(x => Programs.destruct(x)).reduce(_ ++ _)
+  private val basicGraph = Set("true ||| sygusCreated (var1 : int)",
+  s"true ||| ${SyGuSRewriteRules.sygusCreatedId.literal} (var2 : string)",
+  s"true |||  ${SyGuSRewriteRules.sygusCreatedId.literal} (var3 : list int)")
+    .map(parser.parseExpression)
+    .map(x => Programs.destruct(x)).reduce(_ ++ _)
+  private val badBasicGraph = Set("(var1 : int)",
+    "(var2 : string)",
+    "(var3 : list int)").map(parser.parseExpression).map(x => Programs.destruct(x)).reduce(_ ++ _)
   private val symbols: Set[AnnotatedTree] = Set(
     "(f1 : string :> (list real))",
     "(f2 : (list int) :> int)")
@@ -28,13 +33,31 @@ class SyGuSRewriteRulesTest extends FunSuite with Matchers {
     ex should be (true)
   }
 
-  test("test rewrite variable and const correctly") {
-//    val g = Programs(parser("f >> Expression : string [++]")).hyperGraph ++ basicGraph
+//  test("test rewrite variable and const correctly") {
+////    val g = Programs(parser("f >> Expression : string [++]")).hyperGraph ++ basicGraph
+//    val rewriteRules = new SyGuSRewriteRules(symbols).rewriteRules
+//    val searchState = new RewriteSearchState(basicGraph)
+//    searchState.graph.edgeTypes.map(_.identifier.literal).contains("var2") should be (false)
+//    val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("var2"))
+//    ex should be (true)
+//  }
+
+  test("test rewrite function doesnt work without sygusCreated anchor") {
+    //    val g = Programs(parser("f >> Expression : (list real) [++]")).hyperGraph ++ basicGraph
     val rewriteRules = new SyGuSRewriteRules(symbols).rewriteRules
-    val searchState = new RewriteSearchState(basicGraph)
-    val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("var2"))
-    ex should be (true)
+    val searchState = new RewriteSearchState(badBasicGraph)
+    val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("f1"))
+    ex should be (false)
   }
+
+//  test("test rewrite variable and const doesnt work without sygusCreated anchor") {
+//    //    val g = Programs(parser("f >> Expression : string [++]")).hyperGraph ++ basicGraph
+//    val rewriteRules = new SyGuSRewriteRules(symbols).rewriteRules
+//    val searchState = new RewriteSearchState(badBasicGraph)
+//    searchState.graph.edgeTypes.map(_.identifier.literal).contains("var2") should be (false)
+//    val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("var2"))
+//    ex should be (false)
+//  }
 
 //  test("test rewrite tuple correctly") {
 //    // var1 f2 var2

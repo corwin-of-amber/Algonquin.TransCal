@@ -38,9 +38,6 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     Identifier(literal = s"Placeholder_${i}_type_{${Programs.termToString(placeholderType)}}",
       annotation = Some(placeholderType))
 
-  private def getRoots(rewriteState: RewriteSearchState): Set[HyperTermId] =
-    rewriteState.graph.findEdges(HyperTermIdentifier(Language.typeId)).map(_.sources.head)
-
   private val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
 
   private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
@@ -68,7 +65,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       AnnotatedTree.withoutAnnotations(CaseSplitAction.possibleSplitId,
         AnnotatedTree.identifierOnly(placeholders(typ).head) +: exs)
     })
-    val symbolsToUse = symbols
+    val symbolsToUse = symbols.map(t => AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
+      AnnotatedTree.identifierOnly(Language.trueId),
+      AnnotatedTree.withoutAnnotations(SyGuSRewriteRules.sygusCreatedId, Seq(t))
+    )))
     val tree = if (symbols.size > 1)
         AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
       else
@@ -94,11 +94,12 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
+      // TODO: Find out how possible split is screwing things up so badly
       logger.info(s"Trying to merge terms")
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
-      val roots = getRoots(rewriteState)
+      val roots = SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph)
       val programs = Programs(rewriteState.graph)
       for (r <- roots) {
         val terms = programs.reconstruct(r).toList
@@ -106,7 +107,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         // To do that I will run an observational equivalence step and insert temporary rules.
         // Because we might need these temporary rules to help with future induction rules.
         logger.info("Filtering terms that don't need induction using observational equivalence")
-        val equives = new ObservationalEquivalence(equivDepth).fromTerms(terms, state.rewriteRules)
+        val equives = new ObservationalEquivalence(equivDepth).fromTerms(terms, state.rewriteRules).filter(_.size <= 1)
         // Take smallest of each set as heuristic to have no unneeded subterms
         val filteredTerms = equives.map(_.minBy(_.size)).toSeq
         // Do the induction step for each couple of terms

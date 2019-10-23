@@ -2,8 +2,9 @@ package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.actions.ActionSearchState
-import synthesis.rewrites.Template.ReferenceTerm
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis._
+import synthesis.rewrites.RewriteSearchState
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers {
@@ -26,6 +27,25 @@ class SPBEActionTest extends FunSuite with Matchers {
   val listPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{list(int)}", annotation = Some(listInt)))
   val intPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{int}", annotation = Some(Language.typeInt)))
 
+  test("sygus step doesnt create terms deeper then needed") {
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)),
+      grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)),
+      examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val baseProgs = Programs(action.baseGraph)
+    val relevantNodes = SyGuSRewriteRules.getSygusCreatedNodes(baseProgs.hyperGraph)
+    for (n <- relevantNodes;
+         t <- baseProgs.reconstruct(n) if t.root != Language.typeId) {
+      t.depth should be < 2
+    }
+    val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
+    val progs = Programs(state1.graph)
+    val relevantNodes2 = SyGuSRewriteRules.getSygusCreatedNodes(progs.hyperGraph)
+    for (n <- relevantNodes2;
+         t <- progs.reconstruct(n) if t.root != Language.typeId) {
+      t.depth should be < 3
+    }
+  }
+
 //  test("testSygusStep can find reverse l") {
 //    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
 //    val state = action.sygusStep(new RewriteSearchState(action.baseGraph))
@@ -33,20 +53,20 @@ class SPBEActionTest extends FunSuite with Matchers {
 //    state.graph.findSubgraph[Int](pattern) should not be empty
 //  }
 //
-//  test("testSygusStep can find reverse reverse l") {
-//    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
-//    val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
-//    val state2 = action.sygusStep(state1)
-//    val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
-//    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse (reverse _)"))).head
-//    val results1 = state2.graph.findSubgraph[Int](pattern1)
-//    val results2 = state2.graph.findSubgraph[Int](pattern2)
-//    results1 should not be empty
-//    results2 should not be empty
-//    val results2Roots = results2.map(_._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)).map(_.id)
-//    val results1Roots = results1.map(_._1(root1.asInstanceOf[ReferenceTerm[HyperTermId]].id)).map(_.id)
-//    results1Roots.diff(results2Roots) should not be empty
-//  }
+  test("testSygusStep can find reverse reverse l") {
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
+    val state2 = action.sygusStep(state1)
+    val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse (reverse _)"))).head
+    val results1 = state2.graph.findSubgraph[Int](pattern1)
+    val results2 = state2.graph.findSubgraph[Int](pattern2)
+    results1 should not be empty
+    results2 should not be empty
+    val results2Roots = results2.map(_._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)).map(_.id)
+    val results1Roots = results1.map(_._1(root1.asInstanceOf[ReferenceTerm[HyperTermId]].id)).map(_.id)
+    results1Roots.diff(results2Roots) should not be empty
+  }
 //
 //  test("test find that l == reverse reverse l") {
 //    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 8)
