@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
+import synthesis.actions.operators.ObservationalEquivalence.logger
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
@@ -19,7 +20,14 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
   }
 
   def getEquivesFromRewriteState(rewriteSearchState: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): (RewriteSearchState, Set[Set[HyperTermId]]) = {
-    val allAnchors = ObservationalEquivalence.ifNeededAddAnchors(rewriteSearchState)
+    var addedAnchors = Set.empty[HyperEdge[HyperTermId, HyperTermIdentifier]]
+    if (ObservationalEquivalence.getAnchors(rewriteSearchState).isEmpty) {
+      logger.warn("Adding anchors to all nodes in observational equivalence")
+      addedAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
+      rewriteSearchState.graph ++= addedAnchors
+    }
+
+    val allAnchors = addedAnchors ++ ObservationalEquivalence.getAnchors(rewriteSearchState)
     val endPattern = ObservationalEquivalence.createEndPattern(allAnchors)
 
     val opAction = createSearchAction(Some(endPattern))
@@ -27,7 +35,8 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
     val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(newState.graph.edges)
 
-    rewriteSearchState.graph --= allAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
+    rewriteSearchState.graph --= addedAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
+    newState.graph --= addedAnchors.flatMap(e => newState.graph.findByEdgeType(e.edgeType))
     (newState, merged)
   }
 
@@ -62,14 +71,8 @@ object ObservationalEquivalence extends LazyLogging {
   def createAnchor(hyperTermId: HyperTermId): HyperEdge[HyperTermId, HyperTermIdentifier] =
     HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"$anchorStart${hyperTermId.id}")), Seq(), NonConstructableMetadata)
 
-  def ifNeededAddAnchors(rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    var allAnchors = rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
-    if (allAnchors.isEmpty) {
-      logger.warn("Adding anchors to all nodes in observational equivalence")
-      allAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
-      rewriteSearchState.graph ++= allAnchors
-    }
-    allAnchors
+  def getAnchors(rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+    rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
   }
 
   def createEndPattern(anchors: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): HyperPattern = {

@@ -53,7 +53,7 @@ trait HyperGraphLikeTest[Node,
     check(forAll { es: Set[HyperEdge[Node, EdgeType]] => es.forall(e => es.forall(e1 => e == e1 || e1.sources != e.sources || e1.edgeType != e.edgeType)) ==> {
       val g = grapher(es)
       es.toSeq.intersect(g.edges.toSeq).size == es.size
-    }})
+    }}, maxDiscardedFactor(500.0))
   }
 
   property("add than remove than add") {
