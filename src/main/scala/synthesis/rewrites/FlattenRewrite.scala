@@ -34,8 +34,8 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
       (idMap, identMap) <- funcResults) yield {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0),
         identMap(2),
-        Stream.from(4, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply) ++
-          Stream.from(3, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply),
+        (Stream.from(4, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply) ++
+          Stream.from(3, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply)).toList,
         FlattenMetadata)
     }
 
