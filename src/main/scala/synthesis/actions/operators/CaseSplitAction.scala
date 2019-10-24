@@ -68,16 +68,18 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         val results = targets.map(target => {
           // TODO: improve clone so that it doesnt need to rerun all the merge checking
           // 1 + 2. pre run ops
-          val tempState = RewriteSearchState(withAnchors.mergeNodes(source, target))
+          // Clean translations of source
+          val tempState = RewriteSearchState(withAnchors -- withAnchors.findByTarget(source).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor")))
+          tempState.graph.mergeNodesInPlace(source, target)
 //          val state = opRun.fromRewriteState(RewriteSearchState(withAnchors.mergeNodes(source, target)), rules)
           // 3. Recursion
           innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
         })
         // 3b. Merge recursion results
-        ObservationalEquivalence.flattenConclusions(results)
+        ObservationalEquivalence.flattenIntersectConclusions(results)
       })
       // 4. Merge different split results
-      ObservationalEquivalence.flattenConclusions(equives)
+      ObservationalEquivalence.flattenUnionConclusions(equives)
     }
   }
 

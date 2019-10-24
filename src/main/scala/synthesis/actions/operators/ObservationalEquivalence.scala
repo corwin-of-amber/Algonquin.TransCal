@@ -101,11 +101,26 @@ object ObservationalEquivalence extends LazyLogging {
     rState
   }
 
-  def flattenConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
+  def flattenUnionConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
     val unionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
     for (eqGroups <- equives; eqGroup <- eqGroups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
       unionFind.union(a, b)
     }
     unionFind.sets
+  }
+
+  def flattenIntersectConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
+    val resultUnionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
+    val unionFindsPerGroup = equives.tail.map(groups => {
+      val unionFind = new mutable.UnionFind(groups.flatten.toSeq)
+      for(eqGroup <- groups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail)
+        unionFind.union(a, b)
+      unionFind
+    })
+    for (eqGroup <- equives.head if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
+      if (unionFindsPerGroup.forall(uf => uf.find(a) == uf.find(b)))
+        resultUnionFind.union(a, b)
+    }
+    resultUnionFind.sets
   }
 }
