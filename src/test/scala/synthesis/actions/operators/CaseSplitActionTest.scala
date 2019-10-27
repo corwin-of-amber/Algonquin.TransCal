@@ -8,10 +8,20 @@ import transcallang.{Identifier, TranscalParser}
 
 class CaseSplitActionTest extends FunSuite with Matchers {
   val parser = new TranscalParser
+  val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
+
+  test("test splitting in depth returns only known ids") {
+    val tree = parser parseExpression "(splitTrue ||| possibleSplit(x, 2, 2) ||| possibleSplit(y, ⟨⟩, ⟨⟩)) |||| x :: y |||| 2 :: ⟨⟩"
+    val progs = Programs(tree)
+    val res = new CaseSplitAction(None, Some(2), None).getFoundConclusions(ActionSearchState(progs, normalRules))
+    res.flatten shouldEqual progs.hyperGraph.nodes
+    val mutableRes = new CaseSplitAction(None, Some(2), None).getFoundConclusionsFromRewriteState(new RewriteSearchState(progs.hyperGraph), normalRules)
+    mutableRes.flatten shouldEqual progs.hyperGraph.nodes
+  }
 
   test("test splitting to true and false finds it is the same") {
     val state1 = new DefAction(parser apply "whatever ?x = (x match ((true => 5) / (false => 5)))")(ActionSearchState(Programs.empty,
-      SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
+      normalRules))
     val state = state1.copy(programs = state1.programs.addTerm(parser parseExpression "whatever z"))
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("5"))).head
 
