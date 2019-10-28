@@ -50,12 +50,12 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
       else state.graph ++ state.graph.map(e => createAnchor(e.target))
     val splitters = chooser(state, chosen).toSeq
     if (chosen.length >= splitDepth || splitters.isEmpty) {
-      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors), rules)
+      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors).deepCopy(), rules)
       res._2
     } else {
       // For each splitter edge:
       // 1. build new graphs
-      // TODO: 2. pre run ops
+      // TODO: 2. pre run ops when we will have versioning
       // 3. enter recursively
       // TODO: 3a. early merge results into graph to help next steps
       // 3b. merge recursive results
@@ -76,6 +76,10 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
           innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
         })
         // 3b. Merge recursion results
+        val progs = Programs(withAnchors)
+        val a = withAnchors.nodes.map(n => (n, progs.reconstruct(n)))
+          .map({case (n, i) => (n, i.toList)})
+          .map({case (n, i) => (n, i.map(Programs.termToString))}).toMap
         ObservationalEquivalence.flattenIntersectConclusions(results)
       })
       // 4. Merge different split results

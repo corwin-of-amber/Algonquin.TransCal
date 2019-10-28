@@ -21,10 +21,10 @@ class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[Rewrit
 
   override def fromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): RewriteSearchState = {
     var rState = state
-    rState = opRun.fromRewriteState(rState, rules)
     val conclusions = splitter.getFoundConclusionsFromRewriteState(rState, rules)
     rState = ObservationalEquivalence.mergeConclusions(rState, conclusions.toSeq)
-    rState = opRun.fromRewriteState(rState, rules)
+    if (conclusions.exists(_.size > 1))
+      rState = opRun.fromRewriteState(rState, rules)
     rState
   }
 }

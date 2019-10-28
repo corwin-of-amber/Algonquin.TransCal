@@ -138,7 +138,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
-      .getEquivesFromRewriteState(rewriteState, rules.toSet)._2
+      .getEquivesFromRewriteState(rewriteState.deepCopy(), rules.toSet)._2
       .filter(_.size > 1)
   }
 
