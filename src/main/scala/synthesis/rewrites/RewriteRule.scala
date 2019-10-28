@@ -47,6 +47,7 @@ class RewriteRule (val premise: HyperPattern,
 
       val newEdges = premiseReferencesMaps.flatMap(m => {
         val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
+        // TODO: merge map should work with mutable graphs
         val merged = generic.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
         if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
         else generic.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
