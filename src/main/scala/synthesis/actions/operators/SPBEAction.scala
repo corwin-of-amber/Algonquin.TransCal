@@ -101,13 +101,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       logger.info(s"Working on equivalences")
       val roots = SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph)
       val programs = Programs(rewriteState.graph)
-      for (r <- roots) {
-        val terms = programs.reconstruct(r).toList
+      for (r <- roots; terms = programs.reconstruct(r).toList if terms.size > 1) {
         // Before running induction steps, should filter out some of the terms.
         // To do that I will run an observational equivalence step and insert temporary rules.
         // Because we might need these temporary rules to help with future induction rules.
         logger.info("Filtering terms that don't need induction using observational equivalence")
-        val equives = new ObservationalEquivalence(equivDepth).fromTerms(terms, state.rewriteRules).filter(_.size <= 1)
+        val equives = new ObservationalEquivalence(equivDepth)
+            .fromTerms(terms, state.rewriteRules)
         // Take smallest of each set as heuristic to have no unneeded subterms
         val filteredTerms = equives.map(_.minBy(_.size)).toSeq
         // Do the induction step for each couple of terms
