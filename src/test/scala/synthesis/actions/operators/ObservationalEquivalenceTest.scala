@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
@@ -9,7 +9,7 @@ import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
-class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyChecks with Matchers {
+class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyChecks with Matchers with ParallelTestExecution {
   val parser = new TranscalParser
   val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
 

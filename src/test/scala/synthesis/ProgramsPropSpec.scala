@@ -2,7 +2,7 @@ package synthesis
 
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.PropSpec
+import org.scalatest.{ParallelTestExecution, PropSpec}
 import org.scalatestplus.scalacheck.Checkers
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
@@ -10,7 +10,7 @@ import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-class ProgramsPropSpec extends PropSpec with Checkers {
+class ProgramsPropSpec extends PropSpec with Checkers with ParallelTestExecution  {
 
   private implicit val identifierCreator: Arbitrary[Identifier] = Arbitrary(identifierGen)
   private implicit val termsCreator: Arbitrary[AnnotatedTree] = Arbitrary(identifierTreesGen)

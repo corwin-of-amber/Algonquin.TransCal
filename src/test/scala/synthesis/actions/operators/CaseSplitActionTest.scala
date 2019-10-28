@@ -1,12 +1,12 @@
 package synthesis.actions.operators
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import synthesis.actions.ActionSearchState
 import synthesis._
 import synthesis.rewrites.RewriteSearchState
 import transcallang.{Identifier, TranscalParser}
 
-class CaseSplitActionTest extends FunSuite with Matchers {
+class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution  {
   val parser = new TranscalParser
   val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
 
