@@ -76,10 +76,6 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
           innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
         })
         // 3b. Merge recursion results
-        val progs = Programs(withAnchors)
-        val a = withAnchors.nodes.map(n => (n, progs.reconstruct(n)))
-          .map({case (n, i) => (n, i.toList)})
-          .map({case (n, i) => (n, i.map(Programs.termToString))}).toMap
         ObservationalEquivalence.flattenIntersectConclusions(results)
       })
       // 4. Merge different split results

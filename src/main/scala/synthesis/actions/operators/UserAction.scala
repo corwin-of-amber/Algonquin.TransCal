@@ -58,12 +58,12 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val terms = {
           if (foundId.nonEmpty) {
             val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1, Some(lhs._2))
-            if (res.hasNext) res
+            if (res.nonEmpty) res
             else tempState.programs.reconstruct(foundId.get)
           }
-          else Iterator.empty
+          else Stream.empty
         }
-        logger.info(s"Found: ${if (terms.hasNext) Programs.termToString(terms.next()) else "failed"}")
+        logger.info(s"Found: ${if (terms.nonEmpty) Programs.termToString(terms.head) else "failed"}")
 
         //   The right is:
         //   1) a symbol

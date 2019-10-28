@@ -69,7 +69,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       if (rewriteResult) {
         val tempProgs = Programs(newState.graph)
         val terms = tempProgs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
-        if (terms.hasNext) logger.debug(terms.next().toString)
+        if (terms.nonEmpty) logger.debug(terms.head.toString)
         else logger.debug("Found term not constructable (probably a symbol)")
         tempProgs
       } else {
