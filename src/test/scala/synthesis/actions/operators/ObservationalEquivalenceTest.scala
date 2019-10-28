@@ -1,13 +1,14 @@
 package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import synthesis.{AssociativeRewriteRulesDB, HyperTermId, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
-class ObservationalEquivalenceTest extends FunSuite with Matchers {
+class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyChecks with Matchers {
   val parser = new TranscalParser
   val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
 
@@ -33,6 +34,41 @@ class ObservationalEquivalenceTest extends FunSuite with Matchers {
     }).toSeq
     val res = new ObservationalEquivalence(3).getEquives(ActionSearchState(Programs(programs.hyperGraph ++ ids.map(ObservationalEquivalence.createAnchor)), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
     Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res
+  }
+
+  test("test flatten union doesn't miss sets") {
+    forAll { (nums: Set[Int], splitAt: Set[Set[Int]]) =>
+      whenever(nums.nonEmpty && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
+        val splitters = splitAt.map(s => (s.map(math.abs(_) % nums.size) + 0 + (nums.size - 1)).toSeq.sorted)
+        val equives = splitters.toSeq.map(s => s.sliding(2).toSeq.map({ case x => nums.slice(x(0), x(1))}).toSet)
+        val flattened = ObservationalEquivalence.flattenUnionConclusions(equives)
+        val allNums = equives.flatten.flatten
+        val flattenedMap = flattened.flatMap(s => s.map(x => x -> s)).toMap
+        allNums foreach (x => {
+          val fromEquives = equives.map(s => s.find(_ contains x).getOrElse(Set.empty))
+          flattenedMap(x) foreach (y => fromEquives.exists(_.contains(y)) shouldEqual true)
+          fromEquives foreach (s => flattenedMap(x) should contain allElementsOf s)
+        })
+      }
+    }
+  }
+
+  test("test flatten intersection doesn't miss sets") {
+    forAll { (nums: Set[Int], splitAt: Set[Set[Int]]) =>
+      whenever(nums.nonEmpty && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
+        val splitters = splitAt.map(s => (s.map(math.abs(_) % nums.size) + 0 + (nums.size - 1)).toSeq.sorted)
+        val equives = splitters.toSeq.map(s => s.sliding(2).map(x =>
+          nums.slice(x(0), x(1))
+        ).toSet)
+        val flattened = ObservationalEquivalence.flattenIntersectConclusions(equives)
+        val allNums = equives.flatten.flatten
+        val flattenedMap = flattened.flatMap(s => s.map(x => x -> s)).toMap
+        allNums foreach (x => {
+          val fromEquives = equives.map(_.find(_.contains(x)).get).reduce((s1, s2) => s1.intersect(s2))
+          fromEquives shouldEqual flattenedMap(x)
+        })
+      }
+    }
   }
 
   test("test all nodes are present in original anchors") {
