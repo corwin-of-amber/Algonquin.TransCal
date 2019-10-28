@@ -9,8 +9,8 @@ class SpecializeActionSpec extends FunSuite with Matchers {
 
   test("simple test") {
     val parser = new TranscalParser
-    val searchTerm = parser.parseExpression("map f l")
-    val functionOp = parser.parseExpression("f i")
+    val searchTerm = parser.parseExpression("map f ?l")
+    val functionOp = parser.parseExpression("f ?i")
     val newPreds = parser.parseExpression("i < l")
     val action = new SpecializeAction(searchTerm, functionOp, newPreds)
 
