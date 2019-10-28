@@ -15,26 +15,28 @@ import transcallang.{Identifier, Namespace}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule (
-                    val premise: HyperPattern,
+class RewriteRule (val premise: HyperPattern,
                     val conclusion: HyperPattern,
                     val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
-                    val termString: String=null
-                  )
-  extends VersionedOperator[RewriteSearchState] with LazyLogging {
-
+                    val termString: String=null) extends VersionedOperator[RewriteSearchState] with LazyLogging {
   /* --- Operator Impl. --- */
-  override def toString: String = s"RewriteRule($termString, $premise, $conclusion)"
+  override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
   override def hashCode(): Int = toString.hashCode
 
+  require(conclusion.nodes.forall({
+    case Ignored() => false
+    case _ => true
+  }))
+
+  private val conclusionExpansionNeeded = conclusion.nodes.exists(_.isInstanceOf[Repetition[HyperTermId, Int]])
+
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
-    logger.trace(s"Running rewrite rule $this ")
+    logger.trace(s"Running rewrite rule $this")
     val compactGraph = state.graph
 
     // Fill conditions - maybe subgraph matching instead of current temple
-
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
 
     if (premiseReferencesMaps.nonEmpty) {

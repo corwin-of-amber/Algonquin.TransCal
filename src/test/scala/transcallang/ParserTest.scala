@@ -357,4 +357,23 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
         ann.subtrees(1).root.literal should be("list")
     }
   }
+
+  test("Parse map type allows flattened multiple args") {
+    parser.parseExpression("(i : b :> b :> b)").root match {
+      case Identifier(_, Some(anno), _) =>
+        anno.root should be(Language.mapTypeId)
+        anno.subtrees.forall(_.root.literal == "b") shouldEqual true
+    }
+  }
+
+  test("Parse map type allows to pass functions as arguments") {
+    parser.parseExpression("(i : (b :> b) :> (b :> b) :> b)").root match {
+      case Identifier(_, Some(anno), _) =>
+        anno.root should be(Language.mapTypeId)
+        anno.subtrees.head.root should be(Language.mapTypeId)
+        anno.subtrees(1).root should be(Language.mapTypeId)
+        anno.subtrees(2).root should not be(Language.mapTypeId)
+        anno.leaves.forall(_.root.literal == "b") shouldEqual true
+    }
+  }
 }

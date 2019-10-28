@@ -101,6 +101,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
     this
   }
 
+
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
     logger.trace("Replace local words")
 

@@ -8,7 +8,9 @@ class DefAction(term: AnnotatedTree, val allowExistential: Boolean = true, clean
   private val updatedTerm = {
     val toSwitch = term.leaves.filter(_.root.literal.toString.startsWith("?"))
     val switchTo = toSwitch.map(t => AnnotatedTree.identifierOnly(t.root.copy(literal=t.root.literal.drop(1))))
-    term.replaceDescendants(toSwitch zip switchTo)
+    val res = term.replaceDescendants(toSwitch zip switchTo)
+    if (cleanTypes) res.map(_.copy(annotation = None))
+    else res
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {

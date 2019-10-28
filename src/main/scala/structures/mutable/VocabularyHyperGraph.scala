@@ -27,7 +27,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def clone = new VocabularyHyperGraph(vocabulary.clone, metadatas.clone)
+  override def clone: VocabularyHyperGraph[Node, EdgeType] = empty ++= edges
   override def edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
   override def nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
 

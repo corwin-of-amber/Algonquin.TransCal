@@ -4,11 +4,14 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
+import synthesis.actions.operators.ObservationalEquivalence.logger
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
+
+import scala.collection.mutable
 
 
 class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLogging {
@@ -17,7 +20,14 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
   }
 
   def getEquivesFromRewriteState(rewriteSearchState: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): (RewriteSearchState, Set[Set[HyperTermId]]) = {
-    val allAnchors = ObservationalEquivalence.ifNeededAddAnchors(rewriteSearchState)
+    var addedAnchors = Set.empty[HyperEdge[HyperTermId, HyperTermIdentifier]]
+    if (ObservationalEquivalence.getAnchors(rewriteSearchState).isEmpty) {
+      logger.warn("Adding anchors to all nodes in observational equivalence")
+      addedAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
+      rewriteSearchState.graph ++= addedAnchors
+    }
+
+    val allAnchors = addedAnchors ++ ObservationalEquivalence.getAnchors(rewriteSearchState)
     val endPattern = ObservationalEquivalence.createEndPattern(allAnchors)
 
     val opAction = createSearchAction(Some(endPattern))
@@ -25,7 +35,8 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
     val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(newState.graph.edges)
 
-    rewriteSearchState.graph --= allAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
+    rewriteSearchState.graph --= addedAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
+    newState.graph --= addedAnchors.flatMap(e => newState.graph.findByEdgeType(e.edgeType))
     (newState, merged)
   }
 
@@ -42,14 +53,14 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
     var maxId = -1
-    val termToGraph = (for (t <- terms) yield {
+    val termToEdges = (for (t <- terms) yield {
       val (graph, root) = Programs.destructWithRoot(t, HyperTermId(maxId + 1))
       maxId = graph.nodes.map(_.id).max
-      (t, (graph + ObservationalEquivalence.createAnchor(root), root))
+      (t, (graph.edges + ObservationalEquivalence.createAnchor(root), root))
     }).toMap
-    val idToTerm = termToGraph.map({case (term, (_, id)) => (id, term)})
-    val fullGraph = termToGraph.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
-    getEquives(ActionSearchState(Programs(fullGraph), rewriteRules))
+    val idToTerm = termToEdges.map({case (term, (_, id)) => (id, term)})
+    val allEdges = termToEdges.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
+    getEquivesFromRewriteState(new RewriteSearchState(new RewriteSearchState.HyperGraph(allEdges)), rewriteRules)._2
       .map(s => s.map(id => idToTerm(id)))
   }
 }
@@ -60,14 +71,8 @@ object ObservationalEquivalence extends LazyLogging {
   def createAnchor(hyperTermId: HyperTermId): HyperEdge[HyperTermId, HyperTermIdentifier] =
     HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"$anchorStart${hyperTermId.id}")), Seq(), NonConstructableMetadata)
 
-  def ifNeededAddAnchors(rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    var allAnchors = rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
-    if (allAnchors.isEmpty) {
-      logger.warn("Adding anchors to all nodes in observational equivalence")
-      allAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
-      rewriteSearchState.graph ++= allAnchors
-    }
-    allAnchors
+  def getAnchors(rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+    rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
   }
 
   def createEndPattern(anchors: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): HyperPattern = {
@@ -80,6 +85,7 @@ object ObservationalEquivalence extends LazyLogging {
       .map((set:  Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
         set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(ObservationalEquivalence.anchorStart.length).toInt)))
   }
+
   def mergeConclusions(rState: RewriteSearchState, equives: Seq[Set[HyperTermId]]): RewriteSearchState = {
     def createAnchor(hyperTermId: HyperTermId, index: Int) =
       HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"caseAnchor_$index")), Seq.empty, EmptyMetadata)
@@ -91,6 +97,33 @@ object ObservationalEquivalence extends LazyLogging {
         rState.graph.mergeNodesInPlace(set.head.target, set.last.target)
       }
     }
+    rState.graph --= rState.graph.edges.filter(_.edgeType.identifier.literal.startsWith("caseAnchor_"))
     rState
+  }
+
+  def flattenUnionConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
+    if (equives isEmpty) Set.empty
+    else {
+      val unionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
+      for (eqGroups <- equives; eqGroup <- eqGroups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
+        unionFind.union(a, b)
+      }
+      unionFind.sets
+    }
+  }
+
+  def flattenIntersectConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
+    val resultUnionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
+    val unionFindsPerGroup = equives.tail.map(groups => {
+      val unionFind = new mutable.UnionFind(groups.flatten.toSeq)
+      for(eqGroup <- groups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail)
+        unionFind.union(a, b)
+      unionFind
+    })
+    for (eqGroup <- equives.head if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
+      if (unionFindsPerGroup.forall(uf => uf.find(a) == uf.find(b)))
+        resultUnionFind.union(a, b)
+    }
+    resultUnionFind.sets
   }
 }

@@ -59,13 +59,13 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
     result should not be empty
   }
 
-  test("PrefixSum") {
-    val fileName = "src/main/resources/examples/PrefixSum.tc"
-    val lastState = abstractTest(fileName)
-    val pattern = Programs.destructPattern(parser.apply("a1 -> timecomplex (prefixSum _) _").subtrees(1))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
-    result should not be empty
-  }
+//  test("PrefixSum") {
+//    val fileName = "src/main/resources/examples/PrefixSum.tc"
+//    val lastState = abstractTest(fileName)
+//    val pattern = Programs.destructPattern(parser.apply("a1 -> timecomplex (prefixSum _) _").subtrees(1))
+//    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+//    result should not be empty
+//  }
 
   test("ReverseReverse") {
     val fileName = "src/main/resources/examples/ReverseReverse.tc"

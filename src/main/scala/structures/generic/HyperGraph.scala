@@ -32,6 +32,7 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
 
   def mergeMap[Node, EdgeType, Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id]]
   (hyperPattern: Pattern, maps: (Map[Id, Node], Map[Id, EdgeType])): Pattern = {
+    // TODO: shouldn't all patterns be mutable? especially if we are merging stuff
     val (nodeMap, edgeMap) = maps
     val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
       // From each map create new edges from the destination graph

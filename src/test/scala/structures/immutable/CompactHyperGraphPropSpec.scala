@@ -23,7 +23,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
   property("all constructor") {
     check(forAll { es: Set[HyperEdge[Int, Int]] => es.forall(e1 => es.forall(e2 => e1.target == e2.target || e1.sources != e2.sources || e1.edgeType != e2.edgeType)) ==> {
       new CompactHyperGraph(new VersionedHyperGraph(new VocabularyHyperGraph(es))).edges == es && CompactHyperGraph(es.toSeq: _*).edges == es
-    }})
+    }}, maxDiscardedFactor(500.0))
   }
 
   property("find graph finds nothing") {

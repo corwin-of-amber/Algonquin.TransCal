@@ -28,6 +28,7 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
   def terminals: Stream[Identifier] = leaves map (_.root)
 
   def size: Int = 1 + (subtrees map (_.size)).sum
+  lazy val depth: Int = if (subtrees.isEmpty) 0 else subtrees.map(_.depth).max + 1
 
   def map[S](rootOp: Identifier => Identifier) : AnnotatedTree =
     copy(root=rootOp(root), subtrees=subtrees.map (_.map(rootOp)))

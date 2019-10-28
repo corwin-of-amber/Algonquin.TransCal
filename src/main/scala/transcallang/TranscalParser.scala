@@ -81,16 +81,15 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree.identifierOnly(Identifier(x.toString, annotation = Some(AnnotatedTree.identifierOnly(Identifier("int"))))) })
 
-  def types: Parser[AnnotatedTree] = (exprValuesAndParens ~ log((MAPTYPE() ~> exprValuesAndParens).*)("getting map type def")) ^^ {
-    case x ~ Nil => x
-    case x ~ list => AnnotatedTree.withoutAnnotations(Language.mapTypeId, x +: list)
-  }
-
   def identifier: Parser[AnnotatedTree] = identifierLiteral | (RBO ~> identifierLiteral ~ log((COLON() ~> expression).?)("type def") <~ RBC) ^^ {
     case (x: AnnotatedTree) ~ None => x
     case (x: AnnotatedTree) ~ Some(z) =>
-      def flattenMapType(t: AnnotatedTree): AnnotatedTree = t.copy(subtrees=t.subtrees.map(flattenMapType).flatMap(st => if(st.root == Language.mapTypeId) st.subtrees else Seq(st)))
-      x.copy(root = x.root.copy(annotation = Some(flattenMapType(z))))
+      def flattenRightSide(t: AnnotatedTree): AnnotatedTree = {
+        val updated = t.copy(subtrees = t.subtrees.map(flattenRightSide))
+        if(t.root == Language.mapTypeId && t.subtrees(1).root == Language.mapTypeId) updated.copy(subtrees = t.subtrees.head +: t.subtrees(1).subtrees)
+        else updated
+      }
+      x.copy(root = x.root.copy(annotation = Some(flattenRightSide(z))))
   }
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
@@ -340,12 +339,13 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     (Infixer.MIDDLE + 2, Set(AND())),
     (Infixer.MIDDLE + 3, Set(OR())),
     //    (Infixer.MIDDLE + 4, builtinIFFOps.toSet),
-    (Infixer.MIDDLE + 5, Set(LIMITEDANDCONDBUILDER(), ANDCONDBUILDER(), LAMBDA(), MAPTYPE()))
+    (Infixer.MIDDLE + 5, Set(LIMITEDANDCONDBUILDER(), ANDCONDBUILDER(), LAMBDA()))
   )
 
   /** The known right operators at the moment */
   override def righters: Map[Int, Set[WorkflowToken]] = Map(
-    (Infixer.MIDDLE, Set(DOUBLECOLON()))
+    (Infixer.MIDDLE, Set(DOUBLECOLON())),
+    (Infixer.MIDDLE + 5, Set(MAPTYPE()))
   )
 
   /** A way to rebuild the the class */
