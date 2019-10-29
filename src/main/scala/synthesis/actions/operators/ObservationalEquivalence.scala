@@ -11,6 +11,7 @@ import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 
@@ -112,18 +113,14 @@ object ObservationalEquivalence extends LazyLogging {
     }
   }
 
+  @tailrec
   def flattenIntersectConclusions[T](equives: Seq[Set[Set[T]]]): Set[Set[T]] = {
-    val resultUnionFind = new mutable.UnionFind(equives.head.flatten.toSeq)
-    val unionFindsPerGroup = equives.tail.map(groups => {
-      val unionFind = new mutable.UnionFind(groups.flatten.toSeq)
-      for(eqGroup <- groups if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail)
-        unionFind.union(a, b)
-      unionFind
-    })
-    for (eqGroup <- equives.head if eqGroup.size > 1; a = eqGroup.head; b <- eqGroup.tail) {
-      if (unionFindsPerGroup.forall(uf => uf.find(a) == uf.find(b)))
-        resultUnionFind.union(a, b)
+    equives match {
+      case Seq() => Set.empty
+      case Seq(x) => x
+      case s =>
+        val tempRes = s(0).flatMap(s1 => s(1).map(s2 => s1.intersect(s2)))
+        flattenIntersectConclusions(tempRes +: s.drop(2))
     }
-    resultUnionFind.sets
   }
 }

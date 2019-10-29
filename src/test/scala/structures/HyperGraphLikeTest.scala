@@ -2,7 +2,7 @@ package structures
 
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
 import org.scalatestplus.scalacheck.Checkers
 
 import scala.util.Random
@@ -11,7 +11,7 @@ trait HyperGraphLikeTest[Node,
                         EdgeType,
                         T <: HyperGraphLike[Node, EdgeType, T] with collection.Set[HyperEdge[Node, EdgeType]],
                         Pattern <: HyperGraphLike.HyperGraphPattern[Node, EdgeType, Int, Pattern] with collection.Set[HyperGraphLike.HyperEdgePattern[Node,EdgeType,Int]]]
-    extends PropSpec with Checkers with Matchers {
+    extends PropSpec with Checkers with Matchers with ParallelTestExecution  {
   implicit def edgeCreator: Arbitrary[HyperEdge[Node, EdgeType]]
   implicit def graphCreator: Arbitrary[T]
   def grapher(es: Set[HyperEdge[Node, EdgeType]]): T

@@ -30,12 +30,12 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @param hyperTermId The root to get its types' annotation trees.
     * @return All the constructed annotation trees.
     */
-  private def findTypes(hyperTermId: HyperTermId): Iterator[AnnotatedTree] = {
+  private def findTypes(hyperTermId: HyperTermId): Stream[AnnotatedTree] = {
     val searchGraph: HyperPattern = CompactHyperGraph(HyperEdge(ReferenceTerm(0),
         ExplicitTerm(HyperTermIdentifier(Language.typeId)),
         Seq(ExplicitTerm(hyperTermId), Hole(1)),
         NonConstructableMetadata))
-    hyperGraph.findSubgraph[Int](searchGraph).iterator.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
+    hyperGraph.findSubgraph[Int](searchGraph).toStream.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
   }
 
   /* --- Public --- */
@@ -48,10 +48,10 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   def reconstructWithPattern(hyperTermId: HyperTermId,
                              pattern: HyperPattern,
-                             patternRoot: Option[TemplateTerm[HyperTermId]] = None): Iterator[AnnotatedTree] = {
+                             patternRoot: Option[TemplateTerm[HyperTermId]] = None): Stream[AnnotatedTree] = {
     val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
     val maps = hyperGraph.findSubgraph[Int](newPattern)
-    maps.iterator.flatMap(m => {
+    maps.toStream.flatMap(m => {
       val fullPattern = generic.HyperGraph.fillPattern(newPattern, m, () =>
         throw new RuntimeException("Shouldn't need to create nodes")
       )
@@ -68,19 +68,19 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def recursiveReconstruct(hyperGraph: ActionSearchState.HyperGraph,
                                    root: HyperTermId,
-                                   fallTo: Option[HyperTermId => Iterator[AnnotatedTree]]): Iterator[AnnotatedTree] = {
+                                   fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
     val hyperTermToEdge = hyperGraph.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(root, CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
-    else edges.toIterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+    else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target)
       if (edge.sources.isEmpty) {
-        Iterator(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.nextOption), Seq(), typ.nextOption.toSeq))
+        Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), typ.headOption.toSeq))
       }
       else {
         val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
         Programs.combineSeq(recRes).map(subtrees =>
-          AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.nextOption.toSeq))
+          AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.headOption.toSeq))
       }
     })
   }
@@ -93,8 +93,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def innerReconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
                                                             hyperGraph: ActionSearchState.HyperGraph)
-  : Iterator[(AnnotatedTree, HyperTermId, Complexity)] = {
-    hyperGraph.iterator
+  : Stream[(AnnotatedTree, HyperTermId, Complexity)] = {
+    hyperGraph.toStream
       .filter(e => e.edgeType.identifier == Language.timeComplexId && e.sources.head == termRoot)
       .flatMap(edge => {
         reconstructAnnotationTreeWithTimeComplex(termRoot, edge.sources(1), hyperGraph).map{case (tree, complex) =>
@@ -105,14 +105,14 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId,
                                      hyperGraph: ActionSearchState.HyperGraph,
-                                     fallTo: Option[HyperTermId => Iterator[Complexity]]): Iterator[Complexity] = {
+                                     fallTo: Option[HyperTermId => Stream[Complexity]]): Stream[Complexity] = {
     val hyperTermToEdge = hyperGraph.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(complexityRoot, CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(complexityRoot)
-    else edges.iterator.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+    else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       if (edge.sources.isEmpty) {
         edge.edgeType.identifier.literal match {
-          case number if Try(number.toInt).isSuccess => Iterator(ConstantComplexity(number.toInt))
+          case number if Try(number.toInt).isSuccess => Stream(ConstantComplexity(number.toInt))
           case _ =>
             reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
         }
@@ -139,7 +139,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
                                                        complexityRoot: HyperTermId,
                                                        hyperGraph: ActionSearchState.HyperGraph)
-  : Iterator[(AnnotatedTree, Complexity)] = {
+  : Stream[(AnnotatedTree, Complexity)] = {
     val bridgeEdge = hyperGraph.find(e =>
       e.edgeType.identifier == Language.timeComplexId && e.sources == Seq(termRoot, complexityRoot)).get
     val rewriteRuleOption = bridgeEdge.metadata.collectFirst {
@@ -155,7 +155,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
           .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
           .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
       }
-      RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).flatMap {
+      RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).toStream.flatMap {
         case Seq(fullConclusion, fullPremise) =>
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
           val leftHyperGraph = hyperGraph - bridgeEdge
@@ -169,15 +169,15 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
             })).flatMap{combination =>
             val annotationTrees = {
               val rootsToTrees = combination.map(t => t._1).toMap
-              def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Iterator[AnnotatedTree] = {
-                Iterator(rootsToTrees(rootAnnotatedTree))
+              def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Stream[AnnotatedTree] = {
+                Stream(rootsToTrees(rootAnnotatedTree))
               }
               recursiveReconstruct(CompactHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
             }
 
             val timeComplexes = {
-              val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Iterator(_))
-              def timeComplexLinker(rootTimeComplex: HyperTermId): Iterator[Complexity] = {
+              val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Stream(_))
+              def timeComplexLinker(rootTimeComplex: HyperTermId): Stream[Complexity] = {
                 if (rootsToComplexities.contains(rootTimeComplex)) {
                   rootsToComplexities(rootTimeComplex)
                 } else {
@@ -204,12 +204,12 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return All the constructed annotation trees.
     */
   private def reconstructAnnotationTree(root: HyperTermId, hyperGraph: ActionSearchState.HyperGraph)
-  : Iterator[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
+  : Stream[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: ActionSearchState.HyperGraph)
-  : Iterator[Complexity] = reconstructTimeComplex(complexityRoot, hyperGraph, None)
+  : Stream[Complexity] = reconstructTimeComplex(complexityRoot, hyperGraph, None)
 
-  def reconstructWithTimeComplex(termRoot: HyperTermId): Iterator[(AnnotatedTree, Complexity)] = {
+  def reconstructWithTimeComplex(termRoot: HyperTermId): Stream[(AnnotatedTree, Complexity)] = {
     innerReconstructAnnotationTreeWithTimeComplex(termRoot, hyperGraph).map{case (tree, _, complex) => (tree, complex)}
   }
 
@@ -219,12 +219,12 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @param hyperTermId The hyper term to build.
     * @return All the trees.
     */
-  def reconstruct(hyperTermId: HyperTermId): Iterator[AnnotatedTree] = {
+  def reconstruct(hyperTermId: HyperTermId): Stream[AnnotatedTree] = {
     logger.trace("Reconstruct programs")
 
     if (!hyperGraph.nodes.contains(hyperTermId)) {
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
-      Iterator.empty
+      Stream.empty
     } else {
       recursiveReconstruct(hyperGraph, hyperTermId, None)
     }
@@ -450,16 +450,14 @@ object Programs extends LazyLogging {
     * @param iterators All the iterators to combine.
     * @tparam T The return type.
     */
-  def combineSeq[T](iterators: Seq[Iterator[T]]): Iterator[Seq[T]] = {
+  def combineSeq[T](iterators: Seq[Stream[T]]): Stream[Seq[T]] = {
     iterators match {
-      case Nil => Iterator.empty
+      case Nil => Stream.empty
       case head +: Nil => head.map(Seq(_))
       case head +: tail =>
         var recRes = combineSeq(tail)
         for (t1 <- head;
-             (newRecRes, iseqt) = recRes.duplicate;
-             seqt <- iseqt) yield {
-          recRes = newRecRes
+             seqt <- recRes) yield {
           t1 +: seqt
         }
     }
