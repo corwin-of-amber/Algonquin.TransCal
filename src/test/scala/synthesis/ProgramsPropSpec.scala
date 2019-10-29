@@ -152,4 +152,10 @@ class ProgramsPropSpec extends PropSpec with Checkers with ParallelTestExecution
     val innerEdge = res.last._1.findByTarget[Int](rootEdge.sources.head).head
     check(res.last._2 == innerEdge.sources.head)
   }
+
+  property("a few reconstruct in a row returns same results (using mutable state now)") {
+    check(forAll { programs: Programs => programs.hyperGraph.nonEmpty ==> {
+      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet.size == 1
+    }})
+  }
 }

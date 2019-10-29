@@ -111,7 +111,7 @@ object RewriteRule {
     override protected def toStr: String = this.getClass.getName
   }
 
-  def fillPatterns(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[HyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
+  def fillPatterns(hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[HyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
     patterns match {
       case Nil => Iterator(Seq.empty)
       case pattern :: rest =>

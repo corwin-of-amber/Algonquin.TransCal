@@ -1,6 +1,6 @@
 package synthesis
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
@@ -8,7 +8,7 @@ import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
-class RewriteRulesDBTest extends FunSuite with Matchers {
+class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecution {
 
   test("rewriteRules manage to rewrite a + b + c to (a + b) + c") {
     val term = new TranscalParser().apply("1 -> a + (b + c)").subtrees(1)
