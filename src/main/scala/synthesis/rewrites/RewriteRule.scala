@@ -30,6 +30,7 @@ class RewriteRule (val premise: HyperPattern,
   }))
 
   private val conclusionExpansionNeeded = conclusion.nodes.exists(_.isInstanceOf[Repetition[HyperTermId, Int]])
+  private val conclusionMutable = mutable.CompactHyperGraph(conclusion.toSeq: _*).asInstanceOf[RewriteRule.MutableHyperPattern]
 
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
@@ -47,10 +48,9 @@ class RewriteRule (val premise: HyperPattern,
 
       val newEdges = premiseReferencesMaps.flatMap(m => {
         val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
-        // TODO: merge map should work with mutable graphs
-        val merged = generic.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+        val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
         if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-        else generic.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
+        else mutable.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
           e.copy(metadata = e.metadata.merge(meta)))
       })
 
@@ -76,7 +76,7 @@ class RewriteRule (val premise: HyperPattern,
 
   def isExistential: Boolean = existentialHoles.nonEmpty
 
-  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata): HyperPattern = {
+  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata): MutableHyperPattern = {
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {
         val temp = graph.edgeTypes.filter(_.identifier.literal.toString.startsWith("existential")).map(_.identifier.literal.toString.drop("existential".length).toInt)
@@ -88,17 +88,17 @@ class RewriteRule (val premise: HyperPattern,
         HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
           Explicit(HyperTermIdentifier(Identifier(s"existential${existentialsMax + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
       })
-      conclusion.++(existentialEdges)
+      mutable.CompactHyperGraph(conclusionMutable.toSeq: _*).++=(existentialEdges)
     }
-    else conclusion
+    else mutable.CompactHyperGraph(conclusionMutable.toSeq: _*)
   }
 }
 
 object RewriteRule {
 
   /* --- Public --- */
-
-  type HyperPattern = immutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
+  type HyperPattern = immutable.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
+  private type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
   case class RewriteRuleMetadata(origin: RewriteRule, originalEdges: RewriteRule.HyperPattern) extends Metadata {
