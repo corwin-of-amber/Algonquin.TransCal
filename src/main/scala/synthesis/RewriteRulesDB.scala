@@ -147,11 +147,11 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    require(isFunction || whatIsConstant.size == 2)
     val parameters = whatIsConstant.indices.map("x" + "x"*_)
     val (firstCall, call) = if (isFunction) {
       (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
     } else {
-      assert(whatIsConstant.size == 2)
       (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
     }
 
@@ -237,11 +237,11 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    require(isFunction || whatIsConstant.size == 2)
     val parameters = whatIsConstant.indices.map("x" + "x"*_)
     val (firstCall, call) = if (isFunction) {
       (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
     } else {
-      assert(whatIsConstant.size == 2)
       (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
     }
 
