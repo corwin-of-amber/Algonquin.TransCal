@@ -147,11 +147,11 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    require(isFunction || whatIsConstant.size == 2)
     val parameters = whatIsConstant.indices.map("x" + "x"*_)
     val (firstCall, call) = if (isFunction) {
       (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
     } else {
-      assert(whatIsConstant.size == 2)
       (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
     }
 
@@ -237,11 +237,11 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     * @return
     */
   private def build(functionName: String, isFunction: Boolean, whatIsConstant: Seq[Boolean]): String = {
+    require(isFunction || whatIsConstant.size == 2)
     val parameters = whatIsConstant.indices.map("x" + "x"*_)
     val (firstCall, call) = if (isFunction) {
       (f"($functionName ${parameters.map("?"+_).mkString(" ")})", f"($functionName ${parameters.mkString(" ")})")
     } else {
-      assert(whatIsConstant.size == 2)
       (f"(?${parameters.head} $functionName ?${parameters(1)})", f"(${parameters.head} $functionName ${parameters(1)})")
     }
 
@@ -278,6 +278,8 @@ object ExistentialRewriteRulesDB extends RewriteRulesDB {
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     "range_exclude(?x, ?z) = range_exclude(x, ?y) ++ range_exclude(y, z)",
+    "range_include(?x, len(?ys :+ ?y)) = range_include(x, len(ys)) ++ range_include(len(ys :+ y), len(ys :+ y))",
+    "map ?f (?xs ++ ?ys) = (map f xs) ++ (map f ys)",
     "?xs = ((xs take ?exist) ++ (xs drop exist))"
   ).map(t => parser.apply(t))
 }

@@ -18,7 +18,10 @@ class SpecializeActionSpec extends FunSuite with Matchers {
     val state = ActionSearchState(programs, Set.empty)
 
     val newState = action.apply(state)
-    newState.programs.hyperGraph.size should be > programs.hyperGraph.size;
-    newState.rewriteRules.nonEmpty should be (true)
+
+    newState.rewriteRules should have size 3
+
+    val result = new OperatorRunAction(3)(newState)
+    result.programs.hyperGraph.size should be > programs.hyperGraph.size
   }
 }
