@@ -83,10 +83,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     val diff = findByEdgeType(change).map(swap).map(updateVersion)
 //     Handle mapByVersion
     for (value <- mapByVersion.values) {
-      value.mergeEdgeTypesInPlace(keep, change)
       value.mergeEdgeTypesInPlace(keep, change) --= diff
     }
-    mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
+    mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++= diff)
     // Handle wrapped
     wrapped.mergeEdgeTypesInPlace(keep, change)
     for(e <- diff) {
@@ -105,18 +104,17 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     val diff = findInNodes(change).map(swap).map(updateVersion)
     // Handle mapByVersion
     for (value <- mapByVersion.values) {
-      value.mergeNodesInPlace(keep, change)
       value.mergeNodesInPlace(keep, change) --= diff
     }
-    mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
+    mapByVersion.update(version, mapByVersion.getOrElse(version, HyperGraph.empty) ++= diff)
     // Handle wrapped
     wrapped.mergeNodesInPlace(keep, change)
-    for(e <- diff.map(swap)) {
+    for(e <- diff) {
       wrapped.updateMetadataInPlace(e)
     }
+
     // Handle version
     version += 1
-    wrapped.mergeNodesInPlace(keep, change)
     this
   }
 

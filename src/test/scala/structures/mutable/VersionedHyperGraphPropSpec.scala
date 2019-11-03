@@ -5,6 +5,11 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import synthesis.Programs
+import synthesis.actions.ActionSearchState
+import synthesis.actions.operators.{DefAction, LetAction, OperatorRunAction}
+import synthesis.rewrites.RewriteRule
+import transcallang.TranscalParser
 
 import scala.util.Random
 
@@ -106,5 +111,22 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
         g.findSubgraphVersioned(hyperGraph, version + 1) shouldBe empty
       }
     }}
+  }
+
+  property("test versions using existential rule to verify only new edges are ran and all of them are ran") {
+    val parser = new TranscalParser
+    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
+    val newState = new OperatorRunAction(maxSearchDepth = 3)(stateWithExistentialRule)
+    newState.programs.hyperGraph.size shouldEqual 8
+  }
+
+  property("test versions using existential rule while rebuilding graph") {
+    val parser = new TranscalParser
+    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
+    val opAction = new OperatorRunAction(maxSearchDepth = 1)
+    val state1 = opAction(stateWithExistentialRule)
+    val state2 = opAction(ActionSearchState(Programs(CompactHyperGraph(state1.programs.hyperGraph.edges.toSeq: _*)), state1.rewriteRules))
+    val state3 = opAction(ActionSearchState(Programs(CompactHyperGraph(state2.programs.hyperGraph.edges.toSeq: _*)), state2.rewriteRules))
+    state3.programs.hyperGraph.size shouldEqual 8
   }
 }
