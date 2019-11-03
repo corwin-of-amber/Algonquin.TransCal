@@ -53,7 +53,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
   }
 
   test("test flatten union doesn't miss sets") {
-    forAll { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
+    forAll (maxDiscardedFactor(500.0)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
       whenever(numsLen > 0 && numsLen < 200 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
         checkUnionFlatten(numsLen, splitAt)
       }
