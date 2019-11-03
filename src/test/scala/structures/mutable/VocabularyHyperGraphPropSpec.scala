@@ -1,16 +1,14 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.{Matchers, PropSpec}
-import org.scalatestplus.scalacheck.Checkers
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 
 import scala.util.Random
 
 
-class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
+class VocabularyHyperGraphPropSpec extends PropSpec with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
   implicit def graphCreator: Arbitrary[VocabularyHyperGraph[Int, Int]] = Arbitrary(integerGraphGen)
 
@@ -20,23 +18,23 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
 
 
   property("all constructor") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      new VocabularyHyperGraph(es).edges == es && VocabularyHyperGraph(es.toSeq: _*).edges == es
-    })
+    forAll { es: Set[HyperEdge[Int, Int]] =>
+      new VocabularyHyperGraph(es).edges shouldEqual es
+      VocabularyHyperGraph(es.toSeq: _*).edges shouldEqual es
+    }
   }
 
   property("find graph finds nothing") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+    forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
       val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
         HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
         HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
-      edges.forall(e => {
+      edges.foreach(e => {
         val pg = patterner(e)
-        g.findSubgraph[Int](pg).isEmpty
-      }
-      )
-    })
+        g.findSubgraph[Int](pg) should be (empty)
+      })
+    }
   }
 
   property("find regex rep0 with 0 sources") {
@@ -44,6 +42,6 @@ class VocabularyHyperGraphPropSpec extends PropSpec with Checkers with Matchers 
     val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
     val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
-    check(found == edges)
+    found shouldEqual edges
   }
 }

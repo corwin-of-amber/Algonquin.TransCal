@@ -1,7 +1,6 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.Checkers
 import structures.HyperGraphLike.HyperEdgePattern
@@ -22,17 +21,17 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers  wi
 
 
   property("find graph finds nothing") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] =>
+    forAll { es: Set[HyperEdge[Int, Int]] =>
       val g = grapher(es)
       val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
         HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
         HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
-      edges.forall(e => {
+      edges.foreach(e => {
         val pg = patterner(e)
-        g.findSubgraph[Int](pg).isEmpty
+        g.findSubgraph[Int](pg) should be (empty)
       }
       )
-    })
+    }
   }
 
   property("find regex rep0 with 0 sources") {
@@ -78,12 +77,12 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers  wi
 
   property("If graphs are equal then hash is equal") {
     // Not necessarily true because of compaction
-    check(forAll { es: Set[HyperEdge[Int, Int]] => HyperGraph(es.toSeq: _*).hashCode == HyperGraph(es.toSeq: _*).hashCode() })
+    forAll { es: Set[HyperEdge[Int, Int]] => HyperGraph(es.toSeq: _*).hashCode shouldEqual  HyperGraph(es.toSeq: _*).hashCode() }
   }
 
   property("Find Compact subgraph with and without merge returns same maps") {
-    check(forAll { es: Set[HyperEdge[Int, Int]] =>
-      es.nonEmpty ==> {
+    forAll { es: Set[HyperEdge[Int, Int]] =>
+      whenever(es.nonEmpty) {
         val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
         val asHoles: Map[Int, Int] = {
           val creator = Stream.from(0).iterator
@@ -101,9 +100,9 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers  wi
             val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
             updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
           })
-        })
+        }) shouldEqual true
       }
-    })
+    }
   }
 
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
