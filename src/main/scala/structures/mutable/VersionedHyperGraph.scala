@@ -15,6 +15,9 @@ import scala.collection.mutable
 class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], var version: Long, mapByVersion: mutable.Map[Long, HyperGraph[Node, EdgeType]])
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
 
+  private var locked: Boolean = false
+  private var versionRaised: Boolean = false
+
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
@@ -25,7 +28,25 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
 
   override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mutable.Map.empty)
 
+  def lockVersion(): Unit = {
+    locked = true
+  }
+  def unlockVersion(): Unit = {
+    locked = false
+    versionRaised = false
+  }
+
+  def incSelfVersion(): Unit = {
+    if (!locked)
+      version += 1
+    else if (!versionRaised) {
+      versionRaised = true
+      version += 1
+    }
+  }
+
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+    if (locked) throw new RuntimeException("Can't use find versioned while versions are locked")
     if (version == 0) wrapped.findSubgraph[Id](hyperPattern)
     else (for (
         relevantVersionGraph <- mapByVersion.filterKeys(_ >= version).values;
@@ -51,10 +72,10 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     */
   override def +=(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
     if (!contains(hyperEdge)) {
+      incSelfVersion()
       val newEdge = hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))
       wrapped += newEdge
       mapByVersion.getOrElseUpdate(version, HyperGraph.empty) += newEdge
-      this.version += 1
     }
     this
   }
@@ -68,9 +89,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   override def ++=(hyperEdges: TraversableOnce[HyperEdge[Node, EdgeType]]): this.type = {
     val newEdges = hyperEdges.toSeq.filter(contains).map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
     if (newEdges.nonEmpty) {
+      incSelfVersion()
       wrapped ++= newEdges
       mapByVersion.getOrElseUpdate(version, HyperGraph.empty) ++= newEdges
-      this.version += 1
     }
     this
   }
@@ -80,6 +101,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
       hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
     def updateVersion(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
       hyperEdge.copy(metadata = UnionMetadata(hyperEdge.metadata.filterNot(_.isInstanceOf[VersionMetadata]).toSet).merge(VersionMetadata(version)))
+    incSelfVersion()
     val diff = findByEdgeType(change).map(swap).map(updateVersion)
 //     Handle mapByVersion
     for (value <- mapByVersion.values) {
@@ -92,7 +114,6 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
       wrapped.updateMetadataInPlace(e)
     }
     // Handle version
-    version += 1
     this
   }
 
@@ -101,6 +122,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
       hyperEdge.copy(target = if (hyperEdge.target == change) keep else hyperEdge.target, sources = hyperEdge.sources.map(s => if (s == change) keep else s))
     def updateVersion(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
       hyperEdge.copy(metadata = UnionMetadata(hyperEdge.metadata.filterNot(_.isInstanceOf[VersionMetadata]).toSet).merge(VersionMetadata(version)))
+    incSelfVersion()
     val diff = findInNodes(change).map(swap).map(updateVersion)
     // Handle mapByVersion
     for (value <- mapByVersion.values) {
@@ -114,7 +136,6 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     }
 
     // Handle version
-    version += 1
     this
   }
 

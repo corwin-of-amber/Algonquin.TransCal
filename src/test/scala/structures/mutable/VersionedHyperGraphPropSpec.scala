@@ -8,7 +8,7 @@ import structures._
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{DefAction, LetAction, OperatorRunAction}
-import synthesis.rewrites.RewriteRule
+import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.TranscalParser
 
 import scala.util.Random
@@ -123,10 +123,15 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
   property("test versions using existential rule while rebuilding graph") {
     val parser = new TranscalParser
     val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
-    val opAction = new OperatorRunAction(maxSearchDepth = 1)
-    val state1 = opAction(stateWithExistentialRule)
-    val state2 = opAction(ActionSearchState(Programs(CompactHyperGraph(state1.programs.hyperGraph.edges.toSeq: _*)), state1.rewriteRules))
-    val state3 = opAction(ActionSearchState(Programs(CompactHyperGraph(state2.programs.hyperGraph.edges.toSeq: _*)), state2.rewriteRules))
-    state3.programs.hyperGraph.size shouldEqual 8
+    val rules = stateWithExistentialRule.rewriteRules
+    rules.size shouldEqual 1
+    val r = rules.head.asInstanceOf[RewriteRule]
+    var curVer = stateWithExistentialRule.programs.hyperGraph.version
+    val rewriteState = new RewriteSearchState(stateWithExistentialRule.programs.hyperGraph)
+    val (state1, version1) = r(rewriteState, 0)
+    val (state2, version2) = r(new RewriteSearchState(CompactHyperGraph(state1.graph.edges.toSeq: _*)), version1)
+    val (state3, version3) = r(new RewriteSearchState(CompactHyperGraph(state2.graph.edges.toSeq: _*)), version2)
+    version2 shouldEqual version1 + 1
+    state3.graph.size shouldEqual 8
   }
 }
