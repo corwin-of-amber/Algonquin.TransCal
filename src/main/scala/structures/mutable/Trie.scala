@@ -1,21 +1,21 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.{Explicit, Hole, Ignored, Repetition}
-import structures.VocabularyLike.{Word, WordRegex}
+import structures.VocabularyLike.Word
+import structures.generic
 
-import scala.collection.mutable
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 
 class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Letter]]], private val mutableWords: mutable.Set[Word[Letter]])
-  extends Vocabulary[Letter]
-    with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
+  extends structures.generic.TrieLike[Letter, Trie[Letter]] with Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
 
   override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.clone)), mutable.Set.empty ++= mutableWords.clone)
   override def letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
+
+  override protected def getSubtries: Seq[collection.Map[Letter, Trie[Letter]]] = subtries
 
   /** Inner constructor that translates mutable to immutable */
   private def this(subtries: Seq[Map[Letter, Trie[Letter]]], wordsFull: immutable.Set[Word[Letter]]) =
@@ -49,20 +49,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   def -=(word: Word[Letter]): this.type = if (!words.contains(word)) this else removeRecursive(word, word)
 
-  override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])] = {
-    logger.trace("find pattern prefix")
-    if (isEmpty) {
-      Set.empty
-    } else {
-      recursiveFindRegex[Id](pattern, Map.empty, 0, 0)
-    }
-  }
-
-  override def toString: String = f"Trie (${mutableWords.mkString(", ")})"
-
   /* --- IterableLike Impl. --- */
 
-  override def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
+  override protected[this] def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
     new mutable.ListBuffer[Word[Letter]].mapResult {
       parts => {
         new Trie(parts.toSet)
@@ -132,38 +121,6 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
     logger.trace("addAll")
     otherTrie.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
-  }
-
-  private def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter], length: Int, skip: Int): Set[(Word[Letter], Map[Id, Letter])] = {
-    def specificValue(value: Letter, more: WordRegex[Letter, Id], placeholdersMap: Map[Id, Letter]): Set[(Word[Letter], Map[Id, Letter])] =
-      if (subtries.length > skip)
-        subtries(skip).get(value).map(_.recursiveFindRegex(more, placeholdersMap, length + 1, 0)).getOrElse(Set.empty)
-      else Set.empty
-
-    pattern match {
-      case Nil => words.filter(_.length == length).zip(Stream.continually(placeholdersMap))
-      case item +: more =>
-        item match {
-          case Explicit(value) =>
-            specificValue(value, more, placeholdersMap)
-          case Hole(id) =>
-            placeholdersMap.get(id)
-              .map(specificValue(_, more, placeholdersMap))
-              .getOrElse(
-                subtries.applyOrElse(skip, (_: Int) => Map.empty[Letter, Trie[Letter]])
-                  .flatMap { case (letter: Letter, subtrie: Trie[Letter]) => subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0) }
-                  .toSet
-              )
-          case Ignored() =>
-            recursiveFindRegex(more, placeholdersMap, length + 1, skip + 1)
-          case Repetition(minR, maxR, repeated) =>
-            assert(repeated.take(scala.math.min(maxR, subtries.length - more.length)).forall(!_.isInstanceOf[Repetition[Letter, Id]]))
-            val results = (for (newPattern <- (minR to scala.math.min(maxR, subtries.length)).map(i => repeated.take(i) ++ more)) yield {
-              recursiveFindRegex(newPattern, placeholdersMap, length, skip)
-            }).flatten.toSet
-            results
-        }
-    }
   }
 }
 

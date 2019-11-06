@@ -21,6 +21,6 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
     * @tparam A the type of the ${coll}'s elements
     */
   override def newBuilder[A, B]: collection.mutable.Builder[HyperEdge[A, B], HyperGraph[A, B]] =
-    VocabularyHyperGraph.newBuilder
+    VocabularyHyperGraph.newBuilder[A, B]
 
 }

@@ -9,6 +9,5 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with mutable.Set[Word[Letter]]]
-  extends structures.VocabularyLike[Letter, This]
-    with mutable.SetLike[Word[Letter], This] {
+  extends structures.VocabularyLike[Letter, This] with mutable.SetLike[Word[Letter], This] {
 }
