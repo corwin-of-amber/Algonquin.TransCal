@@ -5,8 +5,10 @@ import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
 
-trait VocabularyHyperGraph[Node, EdgeType] extends HyperGraph[Node, EdgeType]
-    with HyperGraphLike[Node, EdgeType, HyperGraph[Node, EdgeType]] with LazyLogging {
+trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]
+  extends HyperGraph[Node, EdgeType] with HyperGraphLike[Node, EdgeType, This] with LazyLogging {
+
+  override def empty: This = ???
 
   protected def getVocabulary: Vocabulary[Either[Node, EdgeType]]
   protected def getMetadatas: collection.Map[(Node, EdgeType, Seq[Node]), Metadata]
@@ -26,7 +28,7 @@ trait VocabularyHyperGraph[Node, EdgeType] extends HyperGraph[Node, EdgeType]
     HyperEdge(target, edgeType, sources, getMetadatas((target, edgeType, sources)))
   }
 
-  protected def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] = VocabularyHyperGraph.hyperEdgeToWord(hyperEdge)
+  protected def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] = VocabularyHyperGraphLike.hyperEdgeToWord(hyperEdge)
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = {
     logger.trace("Find prefix")
@@ -110,7 +112,7 @@ trait VocabularyHyperGraph[Node, EdgeType] extends HyperGraph[Node, EdgeType]
   }
 }
 
-object VocabularyHyperGraph {
+object VocabularyHyperGraphLike {
   def hyperEdgeToWord[Node, EdgeType](hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] =
     Right(hyperEdge.edgeType) +: (hyperEdge.target +: hyperEdge.sources).map(Left(_))
 }

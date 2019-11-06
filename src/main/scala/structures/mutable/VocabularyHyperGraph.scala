@@ -12,7 +12,7 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]], metadatas: mutable.Map[(Node, EdgeType, Seq[Node]), Metadata])
-  extends generic.VocabularyHyperGraph[Node, EdgeType] with HyperGraph[Node, EdgeType]
+  extends generic.VocabularyHyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with HyperGraph[Node, EdgeType]
     with HyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]]
     with LazyLogging {
 
@@ -24,7 +24,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   def this(edges: Set[HyperEdge[Node, EdgeType]] = Set.empty[HyperEdge[Node, EdgeType]]) =
     this(
-      Trie(edges.map(generic.VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType])),
+      Trie(edges.map(generic.VocabularyHyperGraphLike.hyperEdgeToWord[Node, EdgeType])),
       mutable.Map(edges.map(edge => ((edge.target, edge.edgeType, edge.sources), edge.metadata)).toSeq: _*)
     )
 

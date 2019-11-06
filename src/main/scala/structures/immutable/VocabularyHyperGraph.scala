@@ -11,7 +11,7 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @since 11/15/18
   */
 class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]], metadatas: Map[(Node, EdgeType, Seq[Node]), Metadata])
-  extends generic.VocabularyHyperGraph[Node, EdgeType] with collection.Set[HyperEdge[Node, EdgeType]] with immutable.HyperGraph[Node, EdgeType] with LazyLogging {
+  extends generic.VocabularyHyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with collection.Set[HyperEdge[Node, EdgeType]] with immutable.HyperGraph[Node, EdgeType] with LazyLogging {
 
   override protected def getVocabulary: Vocabulary[Either[Node, EdgeType]] = vocabulary
 
@@ -21,7 +21,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   def this(edges: Set[HyperEdge[Node, EdgeType]] = Set.empty[HyperEdge[Node, EdgeType]]) =
     this(
-      Trie(edges.map(generic.VocabularyHyperGraph.hyperEdgeToWord[Node, EdgeType])),
+      Trie(edges.map(generic.VocabularyHyperGraphLike.hyperEdgeToWord[Node, EdgeType])),
       edges.map(edge => ((edge.target, edge.edgeType, edge.sources), edge.metadata)).toMap
     )
 
