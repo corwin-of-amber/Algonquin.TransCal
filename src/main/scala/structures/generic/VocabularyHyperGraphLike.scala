@@ -5,10 +5,12 @@ import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
 
+import scala.collection.mutable
+
 trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]
   extends HyperGraph[Node, EdgeType] with HyperGraphLike[Node, EdgeType, This] with LazyLogging {
 
-  override def empty: This = ???
+  override def empty: This = newBuilder.result()
 
   protected def getVocabulary: Vocabulary[Either[Node, EdgeType]]
   protected def getMetadatas: collection.Map[(Node, EdgeType, Seq[Node]), Metadata]
@@ -109,6 +111,18 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
     val countNodes = hyperPattern.nodes.foldLeft(Map.empty[Item[Node, Id], Int])((map, node) => map.+((node, map.getOrElse(node, 0))))
     val countEdgeTypes = hyperPattern.edgeTypes.foldLeft(Map.empty[Item[EdgeType, Id], Int])((map, node) => map.+((node, map.getOrElse(node, 0))))
     getReferencesMap(hyperPattern.toList.sorted(new RegexOrdering(countNodes, countEdgeTypes).reverse), Map.empty, Map.empty)
+  }
+
+  /** Create a new builder from current data. When adding an edge to builder it should update the metadatastructure and
+    * update the future vocabulary result.
+    *
+    * @return new builder for current state of graph.
+    */
+  def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], This]
+
+  def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): This = {
+    if (!this.contains(hyperEdge)) copyBuilder.result()
+    else copyBuilder.+=(hyperEdge).result()
   }
 }
 
