@@ -77,9 +77,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
         Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), typ.headOption.toSeq))
       }
       else {
-        hyperGraph -= edge
-        val recRes = edge.sources.map(recursiveReconstruct(hyperGraph, _, fallTo))
-        hyperGraph += edge
+        val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
         Programs.combineSeq(recRes).map(subtrees =>
           AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.headOption.toSeq))
       }
