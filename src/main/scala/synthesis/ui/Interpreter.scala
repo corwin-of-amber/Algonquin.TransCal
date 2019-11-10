@@ -16,7 +16,7 @@ class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
 
   def start(): ActionSearchState = {
     var oldState: ActionSearchState = null
-    var newState = ActionSearchState(Programs.empty, Interpreter.InterpreterRewriteRulesDB)
+    var newState = ActionSearchState(Programs.empty, Interpreter.rewriteRules)
     do {
       oldState = newState
       for(action <- actions) {
@@ -27,5 +27,5 @@ class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   }
 }
 object Interpreter {
-  val InterpreterRewriteRulesDB = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
+  val rewriteRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
 }

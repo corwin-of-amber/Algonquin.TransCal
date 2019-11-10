@@ -1,11 +1,13 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.{EmptyMetadata, Metadata}
+import structures.immutable.HyperGraph
+import structures.{EmptyMetadata, HyperEdge, Ignored, Metadata}
 import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
+import synthesis.rewrites._
 import synthesis.search.Operator
-import transcallang.{AnnotatedTree, TranscalParser}
+import transcallang.{AnnotatedTree, Language, TranscalParser}
 
 /**
   * @author tomer
@@ -105,6 +107,8 @@ object AssociativeRewriteRulesDB extends RewriteRulesDB {
 object TimeComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
 
+  val ADD_TIME_COMPLEX = "addt"
+
   override protected def metadata: Metadata = TimeComplexMetadata
 
   private case object TimeComplexMetadata extends Metadata {
@@ -162,38 +166,57 @@ object TimeComplexRewriteRulesDB extends RewriteRulesDB {
           (tcParameter, f"(timecomplex $parameterName ?$tcParameter)")
         }) ++ (if (isConstant) None else Some({
           val scParameter = "sc" + parameterName
-          (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+          (scParameter, f"(${Language.spaceComplexId.literal} $parameterName ?$scParameter)")
         }))
     })
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"timecomplex $call (${("1" +: names).mkString(" + ")}) ||| timecomplexTrue"
+    val conclusion = f"timecomplex $call (${("1" +: names).reduce((a, b) => f"$ADD_TIME_COMPLEX($a, $b)")}) ||| timecomplexTrue"
     premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
     buildFunction("elem", Seq(true, false)),
-    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.plusId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
     buildUnaryFunction("elems", isConstant = false),
     buildUnaryFunction("len", isConstant = true),
     buildUnaryFunction("~", isConstant = true),
 //    "(timecomplex (~(?x)) ?u) |>> timecomplex (x) (u + 1) ||| timecomplexTrue",
-    "{?x} |||| (timecomplex x ?tcx) |>> timecomplex {x} (1 + tcx) ||| timecomplexTrue",
-    buildOperator("==", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∧", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∨", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("≠", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("::", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∈", isFirstConstant = true, isSecondConstant = true),
-    buildOperator("∉", isFirstConstant = true, isSecondConstant = true),
+    f"{?x} |||| (${Language.timeComplexId.literal} x ?tcx) |>> ${Language.timeComplexId.literal} {x} ($ADD_TIME_COMPLEX(1, tcx)) ||| ${Language.timeComplexTrueId.literal}",
+    buildOperator(Language.equalityId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.andId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.orId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.unequalityId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.consId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.setContainsId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.setNotContainsId.literal, isFirstConstant = true, isSecondConstant = true),
   ).map(t => parser.apply(t))
+
+  private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
+  private val guardedTimeComplexRewriteRule = new RewriteRule(
+    HyperGraph(
+      HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.guardedId)), Seq(Ignored(), ReferenceTerm(1)), EmptyMetadata),
+      HyperEdge(ReferenceTerm(2), ExplicitTerm(HyperTermIdentifier(Language.timeComplexId)), Seq(ReferenceTerm(1), ReferenceTerm(3)), EmptyMetadata),
+      HyperEdge(ReferenceTerm(2), ExplicitTerm(HyperTermIdentifier(Language.timeComplexTrueId)), Seq.empty, EmptyMetadata)
+    ),
+    HyperGraph(
+      HyperEdge(ReferenceTerm(2), ExplicitTerm(HyperTermIdentifier(Language.timeComplexId)), Seq(ReferenceTerm(0), ReferenceTerm(3)), EmptyMetadata)
+    ),
+    (_, _) => TimeComplexMetadata
+  )
+  override lazy val rewriteRules = ruleTemplates.flatMap(ruleTemplatesToRewriteRules) ++ Seq(
+    guardedTimeComplexRewriteRule, MatchTimeComplexRewrite, TupleTimeComplexRewrite
+  )
 
 }
 
 object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
   private val parser = new TranscalParser
+
+  val ADD_SPACE_COMPLEX = "adds"
 
   override protected def metadata: Metadata = SpaceComplexMetadata
 
@@ -248,21 +271,22 @@ object SpaceComplexRewriteRulesDB extends RewriteRulesDB {
     val complexitiesWithNames = whatIsConstant.zip(parameters).map({
       case (isConstant, parameterName) =>
         val scParameter = if (isConstant) "1" else "sc" + parameterName
-        (scParameter, f"(spacecomplex $parameterName ?$scParameter)")
+        (scParameter, f"(${Language.spaceComplexId.literal} $parameterName ?$scParameter)")
     })
     val complexities = complexitiesWithNames.map(_._2)
     val names = complexitiesWithNames.map(_._1)
     val premise = (firstCall +: complexities).mkString(" |||| ")
-    val conclusion = f"spacecomplex $call (${names.mkString(" + ")}) ||| spacecomplexTrue"
+    val conclusion = f"${Language.spaceComplexId.literal} $call (${names.reduce((a,b) => f"$ADD_SPACE_COMPLEX($a, $b)")}) ||| ${Language.spaceComplexTrueId.literal}"
     premise + " |>> " + conclusion
   }
 
   override protected val ruleTemplates: Set[AnnotatedTree] = Set(
-    "{?x} |>> spacecomplex {x} 1 ||| spacecomplexTrue",
+    f"{?x} |>> ${Language.spaceComplexId.literal} {x} 1 ||| ${Language.spaceComplexTrueId.literal}",
     buildUnaryFunction("elems", isConstant = false),
-    buildOperator("∪", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("‖", isFirstConstant = false, isSecondConstant = false),
-    buildOperator("::", isFirstConstant = true, isSecondConstant = false),
+    buildOperator(Language.plusId.literal, isFirstConstant = true, isSecondConstant = true),
+    buildOperator(Language.unionId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.setDisjointId.literal, isFirstConstant = false, isSecondConstant = false),
+    buildOperator(Language.consId.literal, isFirstConstant = true, isSecondConstant = false),
   ).map(t => parser.apply(t))
 
 }

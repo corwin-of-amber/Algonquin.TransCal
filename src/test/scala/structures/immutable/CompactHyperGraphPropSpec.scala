@@ -45,7 +45,7 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
 
   property("find regex rep0 with 0 sources") {
     val graph = new CompactHyperGraph(grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata))))
-    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
     val found = graph.findRegexHyperEdges(pattern)
     val edges = graph.edges
     check(found == edges)

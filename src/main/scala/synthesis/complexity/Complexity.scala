@@ -1,5 +1,8 @@
 package synthesis.complexity
 
+import synthesis.Programs
+import transcallang.AnnotatedTree
+
 /**
   * @author tomer
   * @since 2/11/19
@@ -7,13 +10,10 @@ package synthesis.complexity
 sealed trait Complexity
 object Complexity {
   implicit class ComplexityOp(complexity: Complexity) {
-    def log: Complexity = LogComplexity(complexity)
-    def ^(that: Complexity): PolynomialComplexity = PolynomialComplexity(complexity, that)
     def +(that: Complexity): AddComplexity = AddComplexity(Seq(complexity, that))
     def *(that: Complexity): MultipleComplexity = MultipleComplexity(Seq(complexity, that))
   }
   implicit class ConstantComplexityOp(complexity: ConstantComplexity) {
-    def ^(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(math.pow(complexity.constant, that.constant).toInt)
     def +(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(complexity.constant + that.constant)
     def *(that: ConstantComplexity): ConstantComplexity = ConstantComplexity(complexity.constant * that.constant)
   }
@@ -21,26 +21,9 @@ object Complexity {
 case class ConstantComplexity(constant: Int) extends Complexity {
   override def toString: String = constant.toString
 }
-case class ContainerComplexity(contained: Any) extends Complexity {
-  override def toString: String = contained.toString
+case class ContainerComplexity(contained: AnnotatedTree) extends Complexity {
+  override def toString: String = Programs.termToString(contained)
 }
-class LogComplexity private (val inner: Complexity) extends Complexity {
-  override def toString: String = f"log($inner)"
-
-  override def equals(obj: Any): Boolean = obj match {
-    case LogComplexity(other) => inner.equals(other)
-    case _ => super.equals(obj)
-  }
-}
-object LogComplexity {
-  def apply(inner: Complexity): Complexity = inner match {
-    case PolynomialComplexity(_, exponent) => exponent
-    case _ => new LogComplexity(inner)
-  }
-
-  def unapply(arg: LogComplexity): Option[Complexity] = Some(arg.inner)
-}
-case class PolynomialComplexity private (base: Complexity, exponent: Complexity) extends Complexity
 class AddComplexity private (complexitiesBasic: Seq[Complexity]) extends Complexity {
   val complexities: Seq[Complexity] = {
     val flatted = complexitiesBasic.flatMap({ case AddComplexity(inner) => inner ; case x => Some(x)})

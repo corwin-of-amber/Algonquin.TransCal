@@ -35,7 +35,7 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
 
     val premise: HyperPattern = {
       val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
-      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
+      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()))
       pattern.+(newRootEdge).-(rootEdge)
     }
 

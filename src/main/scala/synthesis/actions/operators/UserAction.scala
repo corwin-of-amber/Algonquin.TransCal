@@ -93,6 +93,11 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
           logger.warn("Didn't find left hand side pattern")
           state
         }
+      case Language.recursiveTimeComplexId =>
+        val functionToCheck = term.subtrees(0)
+        val numberOfArguments = term.subtrees(1)
+        val action = new RecursiveTimeComplexAction(functionToCheck.root, numberOfArguments.root.literal.toInt)
+        action.apply(state)
       case Language.commandId =>
         logger.info(s"Received command $term")
          term.subtrees(0).root.literal match {

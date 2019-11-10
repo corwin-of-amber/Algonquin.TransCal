@@ -76,6 +76,9 @@ object Language {
   val orId: Identifier = Identifier("∨")
   val timeComplexId = Identifier("timecomplex")
   val timeComplexTrueId = Identifier("timecomplexTrue")
+  val spaceComplexId = Identifier("spacecomplex")
+  val spaceComplexTrueId = Identifier("spacecomplexTrue")
+  val recursiveTimeComplexId = Identifier("RTC")
   val typeTrueId = Identifier("typeTrue")
   val spbeId = Identifier("SPBE")
 

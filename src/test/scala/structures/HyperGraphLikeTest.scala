@@ -200,7 +200,7 @@ trait HyperGraphLikeTest[Node,
         es.exists(e => {
           e.sources.indices exists { i =>
             val pg = patterner(Set(
-              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
+              HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored()))), EmptyMetadata),
               HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
             ))
             val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).headOption.map(_._1)

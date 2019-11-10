@@ -35,7 +35,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
     val text = cleanMultilineComments(programText).split("\n").map(cleanLineComments).mkString("\n")
     val tokens = Lexer.apply(text)
-    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERRoR: ${tokens.left.get}")
+    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERROR: ${tokens.left.get}")
     val reader = new WorkflowTokenReader(tokens.right.get)
     program(reader) match {
       case Success(matched, _) => matched
@@ -315,6 +315,13 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
 
     applyClojure(Seq.empty, t)
+  }
+
+  def recursiveTimeComplexAction: Parser[AnnotatedTree] = log(IDENTIFIER(recursiveTimeComplexId.literal) ~! identifier ~ number)("Recursive time complex") ^^ { t =>
+    logger.trace(s"statement Recursive time complex - $t")
+    t match {
+      case id ~ functionToCalculate ~ numberOfArguments => AnnotatedTree.withoutAnnotations(recursiveTimeComplexId, Seq(functionToCalculate, numberOfArguments))
+    }
   }
 
   def commands: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ {
