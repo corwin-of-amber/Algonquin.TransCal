@@ -1,4 +1,4 @@
-package math
+package mymath
 
 object PartialOrderingOps {
   def max[T](seq: Seq[T])(implicit partialOrdering: PartialOrdering[T]): Seq[T] = {

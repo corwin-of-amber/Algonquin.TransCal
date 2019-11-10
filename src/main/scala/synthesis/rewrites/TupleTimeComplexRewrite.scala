@@ -36,7 +36,7 @@ object TupleTimeComplexRewrite extends VersionedOperator[RewriteSearchState]{
           val idRegex = createTimeComplexRegex(id)
           state.graph.findRegexHyperEdges(idRegex).map(_.sources(1)).iterator
         }
-        Programs.combineSeq(sourcesTimeComplexes).flatMap(timeComplexSources => {
+        Programs.combineSeq(sourcesTimeComplexes.map(_.toStream)).flatMap(timeComplexSources => {
           val (timeComplexBaseId, timeComplexEdges) = timeComplexSources.tail.foldLeft((timeComplexSources.head, Set.empty[HyperEdge[HyperTermId, HyperTermIdentifier]])){case ((baseId, edges), newId) =>
             val tupleTimeComplexId = nodeCreator.next()
             (tupleTimeComplexId, edges + HyperEdge[HyperTermId, HyperTermIdentifier](tupleTimeComplexId, HyperTermIdentifier(Identifier(TimeComplexRewriteRulesDB.ADD_TIME_COMPLEX)), Seq(baseId, newId), EmptyMetadata))

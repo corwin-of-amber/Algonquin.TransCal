@@ -35,7 +35,7 @@ object MatchTimeComplexRewrite extends VersionedOperator[RewriteSearchState] {
       edge => {
         val matchExpressionNodeId = edge.target
         Programs.combineSeq(edge.sources.map(id =>
-          state.graph.findRegexHyperEdges(createTimeComplexRegex(id)).map(_.sources(1)).iterator
+          state.graph.findRegexHyperEdges(createTimeComplexRegex(id)).map(_.sources(1)).toStream
         )).flatMap(timeComplexSources => {
           val matchTimeComplexId = nodeCreator.next()
           Set(

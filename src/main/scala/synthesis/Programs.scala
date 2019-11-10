@@ -1,14 +1,14 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
-import structures._
-import structures.immutable.CompactHyperGraph
+import mymath.PartialOrderingOps
+import structures.{mutable, _}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
+import synthesis.complexity._
 import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
+import synthesis.rewrites.{MatchTimeComplexRewrite, RewriteRule, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.util.Try
@@ -222,8 +222,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: RewriteSearchState.HyperGraph)
   : Stream[Complexity] = reconstructTimeComplex(complexityRoot, hyperGraph, None)
 
-  def reconstructTimeComplex(complexityRoot: HyperTermId): Iterator[Complexity] = {
-    reconstructTimeComplex(complexityRoot, hyperGraph)
+  def reconstructTimeComplex(complexityRoot: HyperTermId): Stream[Complexity] = {
+    reconstructTimeComplex(complexityRoot, mutable.CompactHyperGraph[HyperTermId, HyperTermIdentifier](hyperGraph.toSeq:_*))
   }
 
   def reconstructWithTimeComplex(termRoot: HyperTermId): Stream[(AnnotatedTree, Complexity)] = {

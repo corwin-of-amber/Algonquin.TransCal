@@ -2,7 +2,7 @@ package structures
 
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
-import org.scalatestplus.scalacheck.{Checkers, ScalaCheckPropertyChecks}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import scala.util.Random
 
@@ -109,8 +109,8 @@ trait HyperGraphLikeTest[Node,
         g.edges.toList match {
           case source :: toChange :: _ =>
             val gMerged = g.mergeNodes(source.target, toChange.target)
-            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+            val found1 = gMerged.findRegex(HyperEdge(Explicit(toChange.target), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata))
+            val found2 = gMerged.findRegex(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(toChange.target), Repetition.rep0(Int.MaxValue, Ignored())), EmptyMetadata))
             gMerged.edges should not contain (toChange)
             gMerged.edges.exists(x => x.target == source.target && x.sources == toChange.sources.map({ x =>
               if (x == toChange.target) source.target
@@ -187,7 +187,7 @@ trait HyperGraphLikeTest[Node,
   property("find by ignore regex finds all") {
     forAll { g: T =>
       whenever(g.exists(_.sources.size == 1)) {
-        val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+        val pattern = HyperEdge(Hole(0), Hole(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
         g.findRegexHyperEdges(pattern) shouldEqual g.edges
       }
     }
