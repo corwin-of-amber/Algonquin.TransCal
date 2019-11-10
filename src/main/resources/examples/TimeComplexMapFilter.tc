@@ -1,0 +1,18 @@
+mapFilter ?p ?f ?l = map f (filter p l)    [++]
+mapFilter2 ?p ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => f x :: (filter p xs)) / false => filter p xs) )) [++]
+
+/*
+map ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => f x :: map f xs))
+filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => x :: (filter p xs)) / false => filter p xs) ))
+*/
+
+timecomplexTime = timecomplex l 0
+spacecomplexTime = spacecomplex l (len l)
+
+((?z ||| filter p ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (tcl + sc1 + sc1)))
+((?z ||| map    p ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (tcl + sc1 + sc1)))
+
+(filter p l) -> timecomplex (filter p l) _
+(map f l) -> timecomplex (map f l) _
+(mapFilter p f l) -> timecomplex (mapFilter p f l) _
+(mapFilter2 p f l) -> timecomplex (mapFilter2 p f l) _
