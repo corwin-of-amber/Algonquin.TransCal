@@ -5,18 +5,19 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{DefAction, LetAction, OperatorRunAction}
+import synthesis.actions.operators.{DefAction, OperatorRunAction}
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.TranscalParser
 
-import scala.util.Random
 
-
-class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChecks with HyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
+class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
   implicit def graphCreator: Arbitrary[VersionedHyperGraph[Int, Int]] = Arbitrary(versionedIntegerGraphGen)
+  override implicit def nodeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
+  override implicit def edgeTypeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
 
   override def grapher(es: Set[HyperEdge[Int, Int]]): VersionedHyperGraph[Int, Int] = VersionedHyperGraph(es.toSeq: _*)
   override def patterner(es: Set[HyperEdgePattern[Int, Int, Int]]): VersionedHyperGraph[Item[Int, Int], Item[Int, Int]] = VersionedHyperGraph(es.toSeq: _*)
@@ -24,33 +25,6 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
   property("all constructor") {
     forAll { es: Set[HyperEdge[Int, Int]] =>
       new VersionedHyperGraph(new VocabularyHyperGraph(es)).edges == es && VersionedHyperGraph(es.toSeq: _*).edges == es shouldEqual true
-    }
-  }
-
-  property("find graph finds nothing") {
-    forAll { es: Set[HyperEdge[Int, Int]] =>
-      val g = grapher(es)
-      val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
-        HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
-        HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
-      edges.foreach(e => {
-        val pg = patterner(e)
-        g.findSubgraph[Int](pg) shouldBe empty})
-    }
-  }
-
-  property("find regex rep0 with 0 sources") {
-    val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
-    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
-    val found = graph.findRegexHyperEdges(pattern)
-    val edges = graph.edges
-    found shouldEqual edges
-  }
-
-  property("If graphs are equal then hash is equal") {
-    // Not necessarily true because of compaction
-    forAll { es: Set[HyperEdge[Int, Int]] =>
-      VersionedHyperGraph(es.toSeq: _*).hashCode shouldEqual VersionedHyperGraph(es.toSeq: _*).hashCode()
     }
   }
 
@@ -81,7 +55,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
     forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
       val edges = g.edges
       edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+        val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
         val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
         val hyperGraph =  structures.immutable.HyperGraph(regexEdge)
         g.findSubgraphVersioned[Int](hyperGraph, version - 1).nonEmpty
@@ -93,7 +67,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
     forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
       val edges = g.edges
       edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+        val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
         val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
         val hyperGraph =  structures.immutable.HyperGraph(regexEdge)
         g.findSubgraphVersioned(hyperGraph, version).nonEmpty
@@ -105,7 +79,7 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
     forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
       val edges = g.edges
       edges.foreach{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
+        val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
         val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
         val hyperGraph = structures.immutable.HyperGraph(regexEdge)
         g.findSubgraphVersioned(hyperGraph, version + 1) shouldBe empty

@@ -84,7 +84,8 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
           g = wrapped.+(hyperEdge)
           foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         }
-        assert(foundTarget.size <= 1)
+        // Recursive will change might create a multiple target merge
+//        assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>
             val willChange = g.findInSources[Int](hyperEdge.target).map(translateEdge)

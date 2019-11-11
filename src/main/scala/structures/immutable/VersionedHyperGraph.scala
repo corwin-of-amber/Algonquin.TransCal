@@ -2,8 +2,8 @@ package structures.immutable
 
 import structures._
 import structures.generic.HyperGraph.HyperGraphPattern
-import structures.generic.HyperGraphLikeGenericCompanion
-import structures.generic.VersionedHyperGraph.VersionMetadata
+import structures.generic.{HyperGraphLikeGenericCompanion, VersionedHyperGraphLike}
+import structures.generic.VersionedHyperGraphLike.VersionMetadata
 
 import scala.collection.{GenTraversableOnce, mutable}
 
@@ -13,29 +13,13 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @since 11/15/18
   */
 class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], val version: Long, mapByVersion: Map[Long, HyperGraph[Node, EdgeType]])
-  extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped) {
+  extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped)
+    with VersionedHyperGraphLike[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]] {
 
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), VersionedHyperGraph.createMapOfVersions(wrapped))
-  }
-
-  /* --- Public Methods --- */
-
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-      (for (
-        relevantVersionGraph <- mapByVersion.filterKeys(_ >= version).values;
-        edgePattern <- hyperPattern;
-        edge <- relevantVersionGraph.findRegexHyperEdges(edgePattern)
-      ) yield {
-        val nodes = (edgePattern.target +: edgePattern.sources).zip(edge.target +: edge.sources)
-        val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
-        val nodesMap = Item.itemsValueToMap(nodes)
-        val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-        val g = structures.generic.HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-        wrapped.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
-      }).flatten.toSet
+    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), Map.empty)
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -66,7 +50,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     * @return The new hyper graph with the edge.
     */
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
-    val newEdges = hyperEdges.toSeq.filter(contains).map(hyperEdge => hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version))))
+    val newEdges = hyperEdges.toSeq.filterNot(contains).map(updateVersion)
     if (newEdges.isEmpty) this
     else {
       val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ newEdges))
@@ -79,11 +63,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   }
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VersionedHyperGraph[Node, EdgeType] = {
-    def swap(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
-      hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
-    def updateVersion(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
-      hyperEdge.copy(metadata = UnionMetadata(hyperEdge.metadata.filterNot(_.isInstanceOf[VersionMetadata]).toSet).merge(VersionMetadata(version)))
-    val diff = findByEdgeType(change).map(swap).map(updateVersion)
+    val diff = findByEdgeType(change).map(e => swapEdgeType(e, keep, change)).map(updateVersion)
     // Handle mapByVersion
     val newMapByVersion = {
       val tempNewMapByVersion = mapByVersion.mapValues(_.mergeEdgeTypes(keep, change) -- diff)
@@ -102,11 +82,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   }
 
   override def mergeNodes(keep: Node, change: Node): VersionedHyperGraph[Node, EdgeType] = {
-    def swap(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
-      hyperEdge.copy(target = if (hyperEdge.target == change) keep else hyperEdge.target, sources = hyperEdge.sources.map(s => if (s == change) keep else s))
-    def updateVersion(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
-      hyperEdge.copy(metadata = UnionMetadata(hyperEdge.metadata.filterNot(_.isInstanceOf[VersionMetadata]).toSet).merge(VersionMetadata(version)))
-    val diff = findInNodes(change).map(swap).map(updateVersion)
+    val diff = findInNodes(change).map(e => swapNode(e, keep, change)).map(updateVersion)
     // Handle mapByVersion
     val newMapByVersion = {
       val tempNewMapByVersion = mapByVersion.mapValues(_.mergeNodes(keep, change) -- diff)
@@ -133,11 +109,17 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VersionedHyperGraph[Node, EdgeType]] =
     new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
       parts => {
-        val innerHyperGraph = VocabularyHyperGraph(parts:_*)
+        val innerHyperGraph = VocabularyHyperGraph(parts: _*)
         val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ innerHyperGraph))
         new VersionedHyperGraph(innerHyperGraph, version + 1, newMapByVersion)
       }
     }
+
+  override protected def getHyperGraph: generic.HyperGraph[Node, EdgeType] = wrapped
+
+  override protected def getVersions: Map[Long, generic.HyperGraph[Node, EdgeType]] = mapByVersion
+
+  override def currentVersion: Long = version
 }
 
 object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {
@@ -151,7 +133,4 @@ object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyper
       new VersionedHyperGraph(VocabularyHyperGraph(parts: _*))
     }
   }
-
-  private def createMapOfVersions[Node, EdgeType](edges: HyperGraph[Node, EdgeType]): Map[Long, HyperGraph[Node, EdgeType]] =
-    edges.groupBy(edge => VersionMetadata.getEdgeVersion(edge)).mapValues(g => HyperGraph(g.toSeq:_*))
 }
