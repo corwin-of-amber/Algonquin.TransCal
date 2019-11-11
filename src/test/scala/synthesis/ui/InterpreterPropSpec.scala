@@ -4,7 +4,7 @@ import java.io.{ByteArrayOutputStream, PrintStream, File => JFile}
 
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{Minutes, Span}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteRule
 import synthesis.rewrites.Template.ExplicitTerm
@@ -71,6 +71,22 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
     val fileName = "src/main/resources/examples/ReverseReverse.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩"))
+    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
+  test("SPBEFilterFilter") {
+    val fileName = "src/main/resources/examples/RunSpbeFilterFilter.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("filter pred (filter pred (l)) ||| filter pred l"))
+    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
+  test("SPBEReverseReverse") {
+    val fileName = "src/main/resources/examples/RunSpbeReverseReverse.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(t)) ||| t"))
     val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
