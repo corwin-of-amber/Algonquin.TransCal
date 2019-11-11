@@ -5,6 +5,7 @@ import structures.VocabularyLike.Word
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
 
+import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 /**
@@ -99,20 +100,23 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
     VocabularyHyperGraph.newBuilder
 
-  override def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-  new mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
-    val graph = new VocabularyHyperGraph(vocabulary.clone(), metadatas.clone())
+  override def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+  new mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+    var graph = new VocabularyHyperGraph(vocabulary.clone(), metadatas.clone())
 
     override def +=(elem: HyperEdge[Node, EdgeType]): this.type = {
       graph += elem
       this
     }
 
-    /** Clear should not be used on copy as expected result ambiguous
-      */
-    override def clear(): Unit = ???
-
     override def result(): VocabularyHyperGraph[Node, EdgeType] = graph
+
+    override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {
+      graph -= elem
+      this
+    }
+
+    override def clear(): Unit = graph = VocabularyHyperGraph.empty
   }
 }
 

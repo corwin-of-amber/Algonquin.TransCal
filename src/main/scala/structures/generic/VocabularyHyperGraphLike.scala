@@ -5,6 +5,7 @@ import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
 
+import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]
@@ -118,11 +119,16 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
     *
     * @return new builder for current state of graph.
     */
-  def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], This]
+  def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], This]
 
   def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): This = {
     if (!this.contains(hyperEdge)) copyBuilder.result()
-    else copyBuilder.+=(hyperEdge).result()
+    else {
+      val builder = copyBuilder
+      builder -= hyperEdge
+      builder += hyperEdge
+      builder.result()
+    }
   }
 }
 
