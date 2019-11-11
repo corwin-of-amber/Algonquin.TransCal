@@ -301,7 +301,7 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("find graph finds nothing") {
-    forAll (SizeRange(20)) { (g: T, et: EdgeType, n: Node) =>
+    forAll (maxDiscardedFactor(100.0), SizeRange(20)) { (g: T, et: EdgeType, n: Node) =>
       whenever((!g.nodes.contains(n)) && (!g.edgeTypes.contains(et))) {
         val edges = Seq(HyperEdge(Ignored(), Explicit(et), Seq(Ignored(), Ignored()), EmptyMetadata),
           HyperEdge[Item[Node, Int], Item[EdgeType, Int]](Explicit(n), Ignored(), Seq(), EmptyMetadata),

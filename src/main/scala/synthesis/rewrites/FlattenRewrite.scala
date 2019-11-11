@@ -29,6 +29,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     // Change apply to function
     // TODO: Test this
+    val currentVersion = state.graph.version
     val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (
       (idMap, identMap) <- funcResults) yield {
@@ -40,6 +41,6 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
     }
 
     val newGraph = state.graph.++(newFuncEdges)
-    (new RewriteSearchState(newGraph), newGraph.version)
+    (new RewriteSearchState(newGraph), currentVersion)
   }
 }

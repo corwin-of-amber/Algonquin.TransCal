@@ -1,16 +1,12 @@
 package structures.generic
 
 import structures.generic.HyperGraph.HyperGraphPattern
-import structures.generic.VersionedHyperGraphLike.VersionMetadata
-import structures.{HyperEdge, HyperGraphLike, Item, SpecificMergeMetadata, UnionMetadata}
+import structures.{HyperEdge, HyperGraphLike, Item, UnionMetadata}
 
 trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[Node, EdgeType, This] with scala.collection.Set[structures.HyperEdge[Node,EdgeType]]] extends HyperGraphLike[Node, EdgeType, This]{
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
   protected def getVersions: collection.Map[Long, HyperGraph[Node, EdgeType]]
   def currentVersion: Long
-
-  protected def updateVersion(hyperEdge: HyperEdge[Node, EdgeType]): HyperEdge[Node, EdgeType] =
-    hyperEdge.copy(metadata = UnionMetadata(hyperEdge.metadata.filterNot(_.isInstanceOf[VersionMetadata]).toSet).merge(VersionMetadata(currentVersion)))
 
   protected def swapNode(hyperEdge: HyperEdge[Node, EdgeType], keep: Node, change: Node): HyperEdge[Node, EdgeType] =
     hyperEdge.copy(target = if (hyperEdge.target == change) keep else hyperEdge.target, sources = hyperEdge.sources.map(s => if (s == change) keep else s))
@@ -37,36 +33,4 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
 
 object VersionedHyperGraphLike {
   val STATIC_VERSION = 0L
-
-  case class VersionMetadata(version: Long) extends SpecificMergeMetadata {
-    override protected def toStr: String = s"VersionMetadata($version)"
-
-    override def mergeSpecific(other: SpecificMergeMetadata): SpecificMergeMetadata = other match {
-      case metadata: VersionMetadata => if (metadata.version < version) other else this
-    }
-  }
-
-  object VersionMetadata {
-    /**
-      *
-      * @param edges To check with
-      * @tparam Node     node type
-      * @tparam EdgeType edge type
-      * @return
-      */
-    def latestVersion[Node, EdgeType](edges: Set[HyperEdge[Node, EdgeType]]): Long = (edges.map(getEdgeVersion) + 0L).min
-
-    /**
-      * Getting the edge version
-      *
-      * @param edge Edge to check with
-      * @tparam Node     node type
-      * @tparam EdgeType edge type
-      * @return
-      */
-    def getEdgeVersion[Node, EdgeType](edge: HyperEdge[Node, EdgeType]): Long = {
-      edge.metadata.collectFirst { case v: VersionedHyperGraphLike.VersionMetadata => v.version }.getOrElse(0L)
-    }
-  }
-
 }

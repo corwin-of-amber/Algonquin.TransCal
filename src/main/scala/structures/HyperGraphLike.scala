@@ -2,6 +2,7 @@ package structures
 
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 
+import scala.collection.generic.Shrinkable
 import scala.collection.{GenTraversableOnce, SetLike}
 
 /** A hyper graph from many to one.
@@ -108,6 +109,13 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     */
   def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This
 
+//  /** Create a new builder from current data. When adding an edge to builder it should update the metadatastructure and
+//    * update the future vocabulary result.
+//    *
+//    * @return new builder for current state of graph.
+//    */
+//  def copyBuilder: collection.mutable.Builder[HyperEdge[Node, EdgeType], This] with Shrinkable[HyperEdge[Node, EdgeType]]
+
   /* --- IterableLike Impl. --- */
 
   override def iterator: Iterator[HyperEdge[Node, EdgeType]] = edges.iterator
@@ -120,7 +128,6 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     case x: HyperGraphLike[Node, EdgeType, This] => x.edges == edges
     case _ => false
   }
-
 }
 
 

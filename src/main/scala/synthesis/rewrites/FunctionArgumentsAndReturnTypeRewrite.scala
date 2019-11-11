@@ -41,6 +41,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   private val funcTypeGraph = HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
+    val currentVersion = state.graph.version
     val newFuncEdges = state.graph.findSubgraphVersioned[Int](funcTypeGraph, version)
       .flatMap { case (idMap, _) =>
         val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
@@ -53,6 +54,6 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
       }
 
     val newGraph = state.graph.++(newFuncEdges)
-    (new RewriteSearchState(newGraph), newGraph.version)
+    (new RewriteSearchState(newGraph), currentVersion)
   }
 }

@@ -123,46 +123,4 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
     check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
   }
-
-  property("test edges are found in their versions") {
-    forAll { g: CompactHyperGraph[Int, Int] =>
-      whenever(g.nonEmpty) {
-        val edges = g.edges
-        edges.foreach { edge =>
-          val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
-          val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-          val hyperGraph = HyperGraph(regexEdge)
-          g.findSubgraphVersioned[Int](hyperGraph, version - 1) should not be empty
-        }
-      }
-    }
-  }
-
-  property("test edges are found in versions before them") {
-    forAll { g: CompactHyperGraph[Int, Int] =>
-      whenever(g.nonEmpty) {
-        val edges = g.edges
-        edges.foreach { edge =>
-          val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
-          val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-          val hyperGraph = HyperGraph(regexEdge)
-          g.findSubgraphVersioned(hyperGraph, version) should not be empty
-        }
-      }
-    }
-  }
-
-  property("test edges are not found in versions after them") {
-    forAll { g: CompactHyperGraph[Int, Int] =>
-      whenever(g.nonEmpty) {
-        val edges = g.edges
-        edges.foreach { edge =>
-          val version = structures.generic.VersionedHyperGraphLike.VersionMetadata.getEdgeVersion(edge)
-          val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-          val hyperGraph = HyperGraph(regexEdge)
-          g.findSubgraphVersioned(hyperGraph, version + 1) should be (empty)
-        }
-      }
-    }
-  }
 }

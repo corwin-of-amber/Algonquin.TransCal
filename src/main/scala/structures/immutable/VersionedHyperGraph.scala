@@ -3,7 +3,6 @@ package structures.immutable
 import structures._
 import structures.generic.HyperGraph.HyperGraphPattern
 import structures.generic.{HyperGraphLikeGenericCompanion, VersionedHyperGraphLike}
-import structures.generic.VersionedHyperGraphLike.VersionMetadata
 
 import scala.collection.{GenTraversableOnce, mutable}
 
@@ -19,7 +18,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionMetadata.latestVersion(wrapped.edges), Map.empty)
+    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped))
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -33,10 +32,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] = {
     if (contains(hyperEdge)) this
     else {
-      val newHyperEdge = hyperEdge.copy(metadata = hyperEdge.metadata.merge(VersionMetadata(version)))
-      val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) + newHyperEdge))
+      val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) + hyperEdge))
       new VersionedHyperGraph(
-        wrapped.+(newHyperEdge),
+        wrapped.+(hyperEdge),
         version + 1,
         newMapByVersion
       )
@@ -50,7 +48,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     * @return The new hyper graph with the edge.
     */
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VersionedHyperGraph[Node, EdgeType] = {
-    val newEdges = hyperEdges.toSeq.filterNot(contains).map(updateVersion)
+    val newEdges = hyperEdges.toSeq.filterNot(contains)
     if (newEdges.isEmpty) this
     else {
       val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ newEdges))
@@ -63,39 +61,35 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   }
 
   override def mergeEdgeTypes(keep: EdgeType, change: EdgeType): VersionedHyperGraph[Node, EdgeType] = {
-    val diff = findByEdgeType(change).map(e => swapEdgeType(e, keep, change)).map(updateVersion)
+    val diff = findByEdgeType(change).map(e => swapEdgeType(e, keep, change))
     // Handle mapByVersion
     val newMapByVersion = {
       val tempNewMapByVersion = mapByVersion.mapValues(_.mergeEdgeTypes(keep, change) -- diff)
       tempNewMapByVersion.updated(version, tempNewMapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
     }
     // Handle wrapped
-    val newWrapped = diff.foldLeft(wrapped.mergeEdgeTypes(keep, change))((g, e) =>
-      g.updateMetadata(e))
+    val newWrapped = wrapped.mergeEdgeTypes(keep, change)
     // Handle version
-    val newVersion = version + 1
     new VersionedHyperGraph(
       newWrapped,
-      newVersion,
+      version + 1,
       newMapByVersion
     )
   }
 
   override def mergeNodes(keep: Node, change: Node): VersionedHyperGraph[Node, EdgeType] = {
-    val diff = findInNodes(change).map(e => swapNode(e, keep, change)).map(updateVersion)
+    val diff = findInNodes(change).map(e => swapNode(e, keep, change))
     // Handle mapByVersion
     val newMapByVersion = {
       val tempNewMapByVersion = mapByVersion.mapValues(_.mergeNodes(keep, change) -- diff)
       tempNewMapByVersion.updated(version, tempNewMapByVersion.getOrElse(version, HyperGraph.empty) ++ diff)
     }
     // Handle wrapped
-    val newWrapped = diff.foldLeft(wrapped.mergeNodes(keep, change))((g, e) =>
-      g.updateMetadata(e))
+    val newWrapped = wrapped.mergeNodes(keep, change)
     // Handle version
-    val newVersion = version + 1
     new VersionedHyperGraph(
       newWrapped,
-      newVersion,
+      version + 1,
       newMapByVersion
     )
   }
