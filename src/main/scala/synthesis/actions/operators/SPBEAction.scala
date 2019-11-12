@@ -81,10 +81,34 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   val untypedBaseGraph: ActionSearchState.HyperGraph = createBaseGraph(false)
 
+  private def findNewRules(actionState: ActionSearchState, roots: Set[HyperTermId], rewriteStateProgs: Programs, depth: Int)
+  : (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
+    var state = actionState
+    ((for (r <- roots; terms = rewriteStateProgs.reconstruct(r).filter(_.depth <= depth).toList if terms.size > 1) yield {
+      // Before running induction steps, should filter out some of the terms.
+      // To do that I will run an observational equivalence step and insert temporary rules.
+      // Because we might need these temporary rules to help with future induction rules.
+      logger.info("Filtering terms that don't need induction using observational equivalence")
+      val equives = new ObservationalEquivalence(equivDepth)
+        .fromTerms(terms, state.rewriteRules)
+      // Take smallest of each set as heuristic to have no unneeded subterms
+      val filteredTerms = equives.map(_.minBy(_.size)).toSeq
+      // Do the induction step for each couple of terms
+      (for ((term1, term2) <- filteredTerms.combinations(2).toSeq.map(it => (it(0), it(1)))) yield {
+        val res = inductionStep(state, term1, term2).collect({ case rr => rr })
+        if (res.nonEmpty) {
+          state = ActionSearchState(state.programs, state.rewriteRules ++ res)
+          Some((term1, term2))
+        } else None
+      }).collect({case Some(x) => x})
+    }).flatten, state)
+  }
+
   override def apply(initialState: ActionSearchState): ActionSearchState = {
     var rewriteState = new RewriteSearchState(baseGraph)
     var state = initialState
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
+    var newRules = Set.empty[(AnnotatedTree, AnnotatedTree)]
 
     logger.info("Running SPBE")
     for (i <- 1 to termDepth) {
@@ -94,35 +118,29 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
-      // TODO: Find out how possible split is screwing things up so badly
       logger.info(s"Trying to merge terms")
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
       val roots = SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph)
-      val programs = Programs(rewriteState.graph)
-      for (r <- roots; terms = programs.reconstruct(r).toList if terms.size > 1) {
-        // Before running induction steps, should filter out some of the terms.
-        // To do that I will run an observational equivalence step and insert temporary rules.
-        // Because we might need these temporary rules to help with future induction rules.
-        logger.info("Filtering terms that don't need induction using observational equivalence")
-        val equives = new ObservationalEquivalence(equivDepth)
-            .fromTerms(terms, state.rewriteRules)
-        // Take smallest of each set as heuristic to have no unneeded subterms
-        val filteredTerms = equives.map(_.minBy(_.size)).toSeq
-        // Do the induction step for each couple of terms
-        for ((term1, term2) <- filteredTerms.combinations(2).toSeq.map(it => (it(0), it(1)))) {
-          val res = inductionStep(state, term1, term2).collect({ case rr => rr })
-          if (res.nonEmpty) {
-            state = ActionSearchState(state.programs, state.rewriteRules ++ res)
-            foundRules.last.+=((term1, term2))
-          }
-        }
-      }
+      // Different context for temp names
+      findNewRules(state, roots, Programs(rewriteState.graph), i) match {case (rules, newstate) => newRules = rules; state = newstate}
+      foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for ((t1, t2) <- foundRules.last)
         logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     }
+
+    val progs = Programs(rewriteState.graph)
+    logger.info(s"Searching for rules that became proovable:")
+    while (newRules.nonEmpty) {
+      findNewRules(state, SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph), progs, termDepth) match {
+        case (rules, newstate) => newRules = rules; state = newstate
+      }
+      for ((t1, t2) <- newRules)
+        logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
+    }
+
     state
   }
 
