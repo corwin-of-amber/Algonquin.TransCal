@@ -14,7 +14,7 @@ import transcallang.{AnnotatedTree, TranscalParser}
 
 import scala.language.higherKinds
 
-class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests {
+class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests with ParallelTestExecution {
 
   private val parser = new TranscalParser()
 

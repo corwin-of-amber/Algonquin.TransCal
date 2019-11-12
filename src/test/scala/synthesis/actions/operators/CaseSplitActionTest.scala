@@ -1,12 +1,13 @@
 package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
+import structures.HyperEdge
 import synthesis.actions.ActionSearchState
 import synthesis._
 import synthesis.rewrites.RewriteSearchState
 import transcallang.{Identifier, TranscalParser}
 
-class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution  {
+class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution {
   val parser = new TranscalParser
   val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
 
@@ -46,5 +47,26 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = None)
       .getFoundConclusions(state)
     res.exists(_.size > 1) shouldBe true
+  }
+
+  test("test can't split on same edge twice") {
+    class Chooser() {
+      var called: Int = 0
+      val chooser = CaseSplitAction.randomChooser(2, 2)
+      def choose(state: RewriteSearchState, chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]):
+        Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+        val res = chooser(state, chosen)
+        if (res.nonEmpty) {
+          called += 1
+        }
+        res
+      }
+    }
+    val chooser = new Chooser()
+    val caseSplitAction = new CaseSplitAction(Some(chooser.choose), Some(2), Some(1))
+    val state = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "possibleSplit(true, true, false)"),
+      SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
+    caseSplitAction(state)
+    chooser.called shouldEqual 1
   }
 }

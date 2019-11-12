@@ -18,7 +18,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
                  termDepth: Int = 3,
                  equivDepth: Int = 4,
-                 splitDepth: Int = 1) extends Action {
+                 splitDepth: Int = 2) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
 
   // How to do this? for now given by user
