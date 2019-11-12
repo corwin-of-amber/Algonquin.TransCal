@@ -12,7 +12,7 @@ spacecomplexTime = spacecomplex l (len l)  [++]
 ((?z ||| filter p ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (tcl + sc1 + sc1)))
 ((?z ||| map    p ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (tcl + sc1 + sc1)))
 
-(filter p l) -> timecomplex (filter p l) _
-(map f l) -> timecomplex (map f l) _
-(mapFilter p f l) -> timecomplex (mapFilter p f l) _
-(mapFilter2 p f l) -> timecomplex (mapFilter2 p f l) _
+timecomplexTime -> timecomplex (filter p l) _
+timecomplexTime -> timecomplex (map f l) _
+timecomplexTime -> timecomplex (mapFilter p f l) _
+timecomplexTime -> timecomplex (mapFilter2 p f l) _
