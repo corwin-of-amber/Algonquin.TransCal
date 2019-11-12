@@ -36,6 +36,7 @@ class RewriteRule (val premise: HyperPattern,
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
     logger.trace(s"Running rewrite rule $this")
     val compactGraph = state.graph
+    val currentVersion = compactGraph.version
 
     // Fill conditions - maybe subgraph matching instead of current temple
     val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
@@ -60,7 +61,7 @@ class RewriteRule (val premise: HyperPattern,
       }
     }
 
-    (new RewriteSearchState(compactGraph), compactGraph.version)
+    (new RewriteSearchState(compactGraph), currentVersion)
   }
 
   /* --- Privates --- */

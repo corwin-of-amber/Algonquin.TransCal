@@ -5,6 +5,7 @@ import structures.VocabularyLike.Word
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
 
+import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 /**
@@ -48,14 +49,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     this
   }
 
-  def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
-    if (!this.contains(hyperEdge)) this
-    else {
-      val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
-      new VocabularyHyperGraph(vocabulary, newMetadatas)
-    }
-  }
-
   def updateMetadataInPlace(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
     if (this.contains(hyperEdge))
       metadatas((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)) = hyperEdge.metadata
@@ -84,7 +77,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     logger.trace("Merge edge types")
     if (keep == change) return this
 
-    val keys = metadatas.keys.filter({case (target, _, sources) => target == change || sources.contains(change)})
+    val keys = metadatas.keys.filter({case (_ , et, _) => et == change})
     for ((target, edgeType, sources) <- keys) {
       val newKey = (target, keep, sources)
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
@@ -105,11 +98,26 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
-      parts => {
-        new VocabularyHyperGraph(parts.toSet)
-      }
+    VocabularyHyperGraph.newBuilder
+
+  override def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+  new mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+    var graph = new VocabularyHyperGraph(vocabulary.clone(), metadatas.clone())
+
+    override def +=(elem: HyperEdge[Node, EdgeType]): this.type = {
+      graph += elem
+      this
     }
+
+    override def result(): VocabularyHyperGraph[Node, EdgeType] = graph
+
+    override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {
+      graph -= elem
+      this
+    }
+
+    override def clear(): Unit = graph = VocabularyHyperGraph.empty
+  }
 }
 
 object VocabularyHyperGraph extends HyperGraphLikeGenericCompanion[VocabularyHyperGraph] {

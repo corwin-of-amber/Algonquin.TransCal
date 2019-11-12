@@ -20,7 +20,7 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   def this() = this(Set.empty[HyperEdge[Node, EdgeType]])
 
-  lazy val version: Long = wrapped.version
+  lazy val version: Long = wrapped.currentVersion
   def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -84,7 +84,8 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
           g = wrapped.+(hyperEdge)
           foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         }
-        assert(foundTarget.size <= 1)
+        // Recursive will change might create a multiple target merge
+//        assert(foundTarget.size <= 1)
         foundTarget.headOption match {
           case Some(existsTarget) =>
             val willChange = g.findInSources[Int](hyperEdge.target).map(translateEdge)

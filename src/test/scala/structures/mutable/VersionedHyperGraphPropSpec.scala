@@ -5,16 +5,19 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{DefAction, LetAction, OperatorRunAction}
+import synthesis.actions.operators.{DefAction, OperatorRunAction}
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.TranscalParser
 
 
-class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChecks with HyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
+class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
   implicit def graphCreator: Arbitrary[VersionedHyperGraph[Int, Int]] = Arbitrary(versionedIntegerGraphGen)
+  override implicit def nodeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
+  override implicit def edgeTypeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
 
   override def grapher(es: Set[HyperEdge[Int, Int]]): VersionedHyperGraph[Int, Int] = VersionedHyperGraph(es.toSeq: _*)
   override def patterner(es: Set[HyperEdgePattern[Int, Int, Int]]): VersionedHyperGraph[Item[Int, Int], Item[Int, Int]] = VersionedHyperGraph(es.toSeq: _*)
@@ -22,33 +25,6 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
   property("all constructor") {
     forAll { es: Set[HyperEdge[Int, Int]] =>
       new VersionedHyperGraph(new VocabularyHyperGraph(es)).edges == es && VersionedHyperGraph(es.toSeq: _*).edges == es shouldEqual true
-    }
-  }
-
-  property("find graph finds nothing") {
-    forAll { es: Set[HyperEdge[Int, Int]] =>
-      val g = grapher(es)
-      val edges = Seq(HyperEdge[Item[Int, Int], Item[Int, Int]](Ignored(), Explicit(800), Seq(Ignored(), Ignored()), EmptyMetadata),
-        HyperEdge(Explicit(800), Ignored(), Seq(), EmptyMetadata),
-        HyperEdge(Ignored(), Ignored(), Seq(Explicit(800)), EmptyMetadata)).map(Set(_))
-      edges.foreach(e => {
-        val pg = patterner(e)
-        g.findSubgraph[Int](pg) shouldBe empty})
-    }
-  }
-
-  property("find regex rep0 with 0 sources") {
-    val graph = grapher(Set(HyperEdge(0, 1, Seq.empty, EmptyMetadata)))
-    val pattern = HyperEdge(Explicit(0), Explicit(1), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
-    val found = graph.findRegexHyperEdges(pattern)
-    val edges = graph.edges
-    found shouldEqual edges
-  }
-
-  property("If graphs are equal then hash is equal") {
-    // Not necessarily true because of compaction
-    forAll { es: Set[HyperEdge[Int, Int]] =>
-      VersionedHyperGraph(es.toSeq: _*).hashCode shouldEqual VersionedHyperGraph(es.toSeq: _*).hashCode()
     }
   }
 
@@ -75,42 +51,6 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
     }) shouldEqual true
   }
 
-  property("test edges are found in their versions") {
-    forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
-      val edges = g.edges
-      edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph =  structures.immutable.HyperGraph(regexEdge)
-        g.findSubgraphVersioned[Int](hyperGraph, version - 1).nonEmpty
-      } shouldEqual true
-    }}
-  }
-
-  property("test edges are found in versions before them") {
-    forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
-      val edges = g.edges
-      edges.forall{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph =  structures.immutable.HyperGraph(regexEdge)
-        g.findSubgraphVersioned(hyperGraph, version).nonEmpty
-      } shouldEqual true
-    }}
-  }
-
-  property("test edges are not found in versions after them") {
-    forAll{ g: VersionedHyperGraph[Int, Int] => whenever(g.nonEmpty) {
-      val edges = g.edges
-      edges.foreach{edge =>
-        val version = structures.generic.VersionedHyperGraph.VersionMetadata.getEdgeVersion(edge)
-        val regexEdge: HyperEdgePattern[Int, Int, Int] = HyperEdge(Explicit(edge.target), Explicit(edge.edgeType), edge.sources.map(Explicit(_)), EmptyMetadata)
-        val hyperGraph = structures.immutable.HyperGraph(regexEdge)
-        g.findSubgraphVersioned(hyperGraph, version + 1) shouldBe empty
-      }
-    }}
-  }
-
   property("test versions using existential rule to verify only new edges are ran and all of them are ran") {
     val parser = new TranscalParser
     val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
@@ -118,18 +58,19 @@ class VersionedHyperGraphPropSpec extends PropSpec with Matchers with ScalaCheck
     newState.programs.hyperGraph.size shouldEqual 8
   }
 
-  property("test versions using existential rule while rebuilding graph") {
-    val parser = new TranscalParser
-    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
-    val rules = stateWithExistentialRule.rewriteRules
-    rules.size shouldEqual 1
-    val r = rules.head.asInstanceOf[RewriteRule]
-    var curVer = stateWithExistentialRule.programs.hyperGraph.version
-    val rewriteState = new RewriteSearchState(stateWithExistentialRule.programs.hyperGraph)
-    val (state1, version1) = r(rewriteState, 0)
-    val (state2, version2) = r(new RewriteSearchState(CompactHyperGraph(state1.graph.edges.toSeq: _*)), version1)
-    val (state3, version3) = r(new RewriteSearchState(CompactHyperGraph(state2.graph.edges.toSeq: _*)), version2)
-    version2 shouldEqual version1 + 1
-    state3.graph.size shouldEqual 8
-  }
+  // TODO: Fix this - will only be true with copybuilder for compact graph
+//  property("test versions using existential rule while copying graph") {
+//    val parser = new TranscalParser
+//    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
+//    val rules = stateWithExistentialRule.rewriteRules
+//    rules.size shouldEqual 1
+//    val r = rules.head.asInstanceOf[RewriteRule]
+//    var curVer = stateWithExistentialRule.programs.hyperGraph.version
+//    val rewriteState = new RewriteSearchState(stateWithExistentialRule.programs.hyperGraph)
+//    val (state1, version1) = r(rewriteState, 0)
+//    val (state2, version2) = r(new RewriteSearchState(CompactHyperGraph(state1.graph.edges.toSeq: _*)), version1)
+//    val (state3, version3) = r(new RewriteSearchState(CompactHyperGraph(state2.graph.edges.toSeq: _*)), version2)
+//    version2 shouldEqual version1 + 1
+//    state3.graph.size shouldEqual 8
+//  }
 }

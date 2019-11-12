@@ -25,7 +25,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
 
   override def clone = new CompactHyperGraph(wrapped.clone)
 
-  def version: Long = wrapped.version
+  def version: Long = wrapped.currentVersion
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -39,18 +39,14 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   }
 
   override def mergeNodesInPlace(keep: Node, change: Node): CompactHyperGraph[Node, EdgeType] = {
-    wrapped.lockVersion()
     wrapped.mergeNodesInPlace(keep, change)
     compact((findByTarget(keep) ++ findInSources(keep)).toList, mutable.Map.empty[Node, Node])
-    wrapped.unlockVersion()
     this
   }
 
   override def mergeEdgeTypesInPlace(keep: EdgeType, change: EdgeType): CompactHyperGraph[Node, EdgeType] = {
-    wrapped.lockVersion()
     wrapped.mergeEdgeTypes(keep, change)
     compact(findEdges(keep).toList, mutable.Map.empty[Node, Node])
-    wrapped.unlockVersion()
     this
   }
 
@@ -70,9 +66,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   /* --- Private Methods --- */
   private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]],
                       changedToKept: mutable.Map[Node, Node]): this.type = {
-    wrapped.lockVersion()
     innerCompact(hyperEdges, changedToKept)
-    wrapped.unlockVersion()
     this
   }
 
@@ -92,6 +86,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
         wrapped.+=(hyperEdge)
       }
       // Commented out as it is not always true anymore
+      // Recursive will change might create a multiple target merge
 //      assert(foundTarget.size <= 1)
       if (foundTarget.nonEmpty) {
         val existsTarget = foundTarget.head
@@ -105,7 +100,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
       }
     }
     this
-    // If you changed compact please runn all tests with breakpoint condition on this:
+    // If you changed compact please run all tests with breakpoint condition on this:
     // edges.exists(e => edges.exists(e1 => e.edgeType == e1.edgeType && e.sources == e1.sources && e.target != e1.target))
   }
 }

@@ -32,27 +32,18 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edge")
-    val newMetadata = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
-    new VocabularyHyperGraph(vocabulary + hyperEdgeToWord(hyperEdge), newMetadata)
+    copyBuilder.+=(hyperEdge).result()
   }
 
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Add edges")
-    hyperEdges.foldLeft(this)(_ + _)
+    hyperEdges.foldLeft(copyBuilder)(_ += _) result()
   }
 
   override def -(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Remove edge")
     val newMetadata = metadatas.filter(t => t._1 != (hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources))
     new VocabularyHyperGraph(vocabulary - hyperEdgeToWord(hyperEdge), newMetadata)
-  }
-
-  def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): VocabularyHyperGraph[Node, EdgeType] = {
-    if (!this.contains(hyperEdge)) this
-    else {
-      val newMetadatas = metadatas.updated((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources), hyperEdge.metadata)
-      new VocabularyHyperGraph(vocabulary, newMetadatas)
-    }
   }
 
   override def mergeNodes(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
@@ -89,9 +80,46 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   /* --- IterableLike Impl. --- */
 
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-    new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
-      parts => {
-        new VocabularyHyperGraph(parts.toSet)
+    VocabularyHyperGraph.newBuilder
+
+  /** Create a new builder from current data. When adding an edge to builder it should update the metadatastructure and
+    * update the future vocabulary result.
+    *
+    * @return new builder for current state of graph.
+    */
+  override def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+    new mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+      val metas = new mutable.HashMap() ++= metadatas.toSeq
+      val newEdges = mutable.Set[HyperEdge[Node, EdgeType]]()
+      val toRemove = mutable.Set[HyperEdge[Node, EdgeType]]()
+      var vocab = vocabulary
+
+      override def +=(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
+        metas((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)) = hyperEdge.metadata
+        if (toRemove.contains(hyperEdge))
+          toRemove -= hyperEdge
+        newEdges += hyperEdge
+        this
+      }
+
+      override def clear(): Unit = {
+        metas.clear()
+        newEdges.clear()
+        toRemove.clear()
+        vocab = Vocabulary.empty
+      }
+
+      override def result(): VocabularyHyperGraph[Node, EdgeType] = {
+        val newVoc = vocab ++ newEdges.map(hyperEdgeToWord) -- toRemove.map(hyperEdgeToWord)
+        new VocabularyHyperGraph[Node, EdgeType](newVoc, metas.toMap)
+      }
+
+      override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {
+        if (newEdges.contains(elem))
+          newEdges -= elem
+        toRemove += elem
+        metas.remove((elem.target, elem.edgeType, elem.sources))
+        this
       }
     }
 }

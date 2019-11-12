@@ -13,12 +13,21 @@ trait HyperGraphLikeTest[Node,
     extends PropSpec with Matchers with ScalaCheckPropertyChecks with ParallelTestExecution  {
   implicit def edgeCreator: Arbitrary[HyperEdge[Node, EdgeType]]
   implicit def graphCreator: Arbitrary[T]
+  implicit def nodeCreator: Arbitrary[Node]
+  implicit def edgeTypeCreator: Arbitrary[EdgeType]
   def grapher(es: Set[HyperEdge[Node, EdgeType]]): T
   def patterner(es: Set[HyperGraphLike.HyperEdgePattern[Node, EdgeType, Int]]): Pattern
 
   def checkRemoved(g: T, i: Int): Boolean = {
     val e = g.edges.toList(i)
     !(g - e).edges.contains(e)
+  }
+
+  property("If graphs are equal then hash is equal") {
+    // Not necessarily true because of compaction
+    forAll { g: T =>
+      g.hashCode shouldEqual grapher(g.edges).hashCode()
+    }
   }
 
   property("removes") {
@@ -39,6 +48,28 @@ trait HyperGraphLikeTest[Node,
     forAll { (g: T, e: HyperEdge[Node, EdgeType]) =>
       whenever(!g.edges.contains(e) && g.edges.forall(e1 => e1.sources != e.sources || e1.edgeType != e.edgeType)) {
         (g + e).edges should contain(e)
+      }
+    }
+  }
+
+  property("remove many non existant") {
+    forAll (SizeRange(20), maxDiscardedFactor(500.0)) { (g: T, s: Set[HyperEdge[Node, EdgeType]]) =>
+      whenever(s.diff(g.edges) == s) {
+        (((g -- s) != null) && ((g -- s).edges == g.edges)) shouldEqual true
+      }
+    }
+  }
+
+  property("add many non existant works") {
+    forAll (SizeRange(20)) { (g: T, s: Set[HyperEdge[Node, EdgeType]]) =>
+      whenever(s.diff(g.edges).size > 1 && s.map(e => e.edgeType +: e.sources).size == s.size &&
+        s.forall(e =>
+          g.findRegex(HyperEdge(Ignored(), Explicit[EdgeType, Int](e.edgeType), e.sources.map(n => Explicit[Node, Int](n)), EmptyMetadata)).isEmpty)
+      ) {
+        val allEs = (g ++ s).edges
+        s.foreach(e => {
+          allEs.contains(e) shouldEqual true
+        })
       }
     }
   }
@@ -212,18 +243,17 @@ trait HyperGraphLikeTest[Node,
   }
 
   property("Find subgraph with and without merge returns same maps") {
-    forAll { es: Set[HyperEdge[Node, EdgeType]] =>
-      whenever(es.nonEmpty) {
-        val subgraph = Random.shuffle(es).take(Random.nextInt(es.size))
+    forAll (SizeRange(40)) { graph: T =>
+      whenever(graph.nonEmpty) {
+        val subgraph = graph.take(Random.nextInt(graph.size))
         val asHoles: Map[Node, Int] = {
           val creator = Stream.from(0).iterator
-          subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
+          subgraph.nodes.map((_, creator.next())).toMap
         }
         val pattern: Pattern = {
           val pEdges = subgraph.map(e => HyperEdge[Item[Node, Int], Item[EdgeType, Int]](Hole[Node, Int](asHoles(e.target)), Explicit[EdgeType,Int](e.edgeType), e.sources.map(x => Hole[Node, Int](asHoles(x))), e.metadata))
-          patterner(pEdges)
+          patterner(pEdges.toSet)
         }
-        val graph = grapher(es)
         val maps = graph.findSubgraph[Int, Pattern](pattern)
         val holes = pattern.nodes.collect({case e: Hole[Node, Int] => e})
         holes.forall(h => {
@@ -268,5 +298,29 @@ trait HyperGraphLikeTest[Node,
       val s = g.nodes.head
       g.edges.filter(e => e.target == s || e.sources.contains(s)) shouldEqual g.findInNodes(s)
     }}
+  }
+
+  property("find graph finds nothing") {
+    forAll (maxDiscardedFactor(100.0), SizeRange(20)) { (g: T, et: EdgeType, n: Node) =>
+      whenever((!g.nodes.contains(n)) && (!g.edgeTypes.contains(et))) {
+        val edges = Seq(HyperEdge(Ignored(), Explicit(et), Seq(Ignored(), Ignored()), EmptyMetadata),
+          HyperEdge[Item[Node, Int], Item[EdgeType, Int]](Explicit(n), Ignored(), Seq(), EmptyMetadata),
+          HyperEdge[Item[Node, Int], Item[EdgeType, Int]](Ignored(), Ignored(), Seq(Explicit(n)), EmptyMetadata)).map(Set(_))
+        edges.foreach(e => {
+          val pg = patterner(e)
+          g.findSubgraph[Int, Pattern](pg) shouldBe empty
+        })
+      }
+    }
+  }
+
+  property("find regex rep0 with 0 sources") {
+    forAll { (g: T, et: EdgeType, n: Node) =>
+      val graph = grapher(Set(HyperEdge(n, et, Seq.empty, EmptyMetadata)))
+      val pattern = HyperEdge(Explicit(n), Explicit(et), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+      val found = graph.findRegexHyperEdges(pattern)
+      val edges = graph.edges
+      found shouldEqual edges
+    }
   }
 }

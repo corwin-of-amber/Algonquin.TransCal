@@ -154,24 +154,25 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
     newRules shouldBe empty
   }
 
-  test("Full SPBE run depth 2 reverse and snoc can proove reverse reverse l after run") {
-    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
-    state = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))"))(state)
-    state = new DefAction(parser("reverse(reverse(t)) = reverse(reverse(l))"))(state)
-    val (aPattern, aRoot) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("l"))).head
-    val lAnchor = HyperTermIdentifier(Identifier("a1"))
-    state = new LocateAction(lAnchor, aPattern, Some(aRoot))(state)
-    val (goal, root) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("reverse(reverse(l))"))).head
-    val failedElaborateState = new ElaborateAction(lAnchor, goal, root, maxSearchDepth = Some(4))(state)
-    failedElaborateState shouldEqual state
-    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6, termDepth = 2)
-    state = spbeAction(state)
-    val successfulState = new ElaborateAction(lAnchor, goal, root, maxSearchDepth = Some(4))(state)
-    successfulState should not be (state)
-    val lTarget = successfulState.programs.hyperGraph.findSubgraph[Int](goal).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
-    val anchorTarget = successfulState.programs.hyperGraph.findByEdgeType(lAnchor).head.target
-    lTarget shouldEqual anchorTarget
-  }
+  // This test exists in interperter tests
+//  test("Full SPBE run depth 2 reverse and snoc can proove reverse reverse l after run") {
+//    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+//    state = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))"))(state)
+//    state = new DefAction(parser("reverse(reverse(t)) = reverse(reverse(l))"))(state)
+//    val (aPattern, aRoot) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("l"))).head
+//    val lAnchor = HyperTermIdentifier(Identifier("a1"))
+//    state = new LocateAction(lAnchor, aPattern, Some(aRoot))(state)
+//    val (goal, root) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("reverse(reverse(l))"))).head
+//    val failedElaborateState = new ElaborateAction(lAnchor, goal, root, maxSearchDepth = Some(4))(state)
+//    failedElaborateState shouldEqual state
+//    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6, termDepth = 2)
+//    state = spbeAction(state)
+//    val successfulState = new ElaborateAction(lAnchor, goal, root, maxSearchDepth = Some(4))(state)
+//    successfulState should not be (state)
+//    val lTarget = successfulState.programs.hyperGraph.findSubgraph[Int](goal).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+//    val anchorTarget = successfulState.programs.hyperGraph.findByEdgeType(lAnchor).head.target
+//    lTarget shouldEqual anchorTarget
+//  }
 
   test("Induction step for filter p (filter p l) == filter p l using case splitting") {
     var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
