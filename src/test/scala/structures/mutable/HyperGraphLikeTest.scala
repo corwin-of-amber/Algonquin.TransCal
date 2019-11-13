@@ -1,7 +1,7 @@
 package structures.mutable
 
-import structures.{HyperEdge, IdMetadata, Metadata, Uid}
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
+import structures.{HyperEdge, IdMetadata, Uid}
 
 import scala.collection.mutable
 
@@ -11,20 +11,19 @@ trait HyperGraphLikeTest[Node,
   Pattern <: HyperGraphPattern[Node, EdgeType, Int, Pattern] with collection.Set[HyperEdgePattern[Node,EdgeType,Int]]]
   extends structures.HyperGraphLikeTest[Node, EdgeType, T, Pattern] {
 
-  def getMetadatas(t: T): Map[(Node, EdgeType, Seq[Node]), Metadata] = {
-    t.edges.map(e => ((e.target, e.edgeType, e.sources), e.metadata)).toMap
-  }
-
   property("clone keeps metadata safe") {
     forAll { g: T =>
       whenever(g.nonEmpty) {
-        val metas = getMetadatas(g)
         val uid = IdMetadata(new Uid)
-        val newEdge = g.head.copy(metadata = uid)
-        g -= newEdge
+        val oldEdge = g.head
+        val newEdge = oldEdge.copy(metadata = uid)
+        val cloned = g.clone()
+
         g += newEdge
-        metas should not equal getMetadatas(g)
-        metas.values should not contain uid
+
+        val optNew = g.find(e => e == newEdge)
+        val optOld = cloned.find(e => e == newEdge)
+        optNew.get.metadata should not equal(optOld.get.metadata)
       }
     }
   }
