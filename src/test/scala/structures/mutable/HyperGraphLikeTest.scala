@@ -29,6 +29,16 @@ trait HyperGraphLikeTest[Node,
     }
   }
 
+  property("clone returns new") {
+    forAll { g: T =>
+      whenever(g.nonEmpty) {
+        val cloned = g.clone()
+        cloned shouldEqual g
+        cloned should not be g
+      }
+    }
+  }
+
   property("mergeEdgeTypesInPlace property") {
 
   }
