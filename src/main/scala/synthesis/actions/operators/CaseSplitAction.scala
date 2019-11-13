@@ -65,18 +65,21 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         // 1. build new graph - for each possible value copy graph and merge the needed value
         val source = splitter.sources.head
         val targets = splitter.sources.tail
-        val results = targets.map(target => {
+        val results = targets.par.map(target => {
           // TODO: improve clone so that it doesnt need to rerun all the merge checking
           // 1 + 2. pre run ops
           // Clean translations of source
+          withAnchors -= splitter
           val tempState = RewriteSearchState(withAnchors -- withAnchors.findByTarget(source).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor")))
           tempState.graph.mergeNodesInPlace(source, target)
 //          val state = opRun.fromRewriteState(RewriteSearchState(withAnchors.mergeNodes(source, target)), rules)
           // 3. Recursion
-          innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
+          val res = innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
+          withAnchors += splitter
+          res
         })
         // 3b. Merge recursion results
-        ObservationalEquivalence.flattenIntersectConclusions(results)
+        ObservationalEquivalence.flattenIntersectConclusions(results.seq)
       })
       // 4. Merge different split results
       ObservationalEquivalence.flattenUnionConclusions(equives)

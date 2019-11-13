@@ -5,6 +5,6 @@ snoc ?l ?x = l :+ x
 
 SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
 
-reverse(reverse(t)) = reverse(reverse(l)) [++]
+reverse(reverse(f(t))) = reverse(reverse(l)) [++]
 
-reverse(reverse(t)) -> t
+reverse(reverse(f(t))) -> f(t)
