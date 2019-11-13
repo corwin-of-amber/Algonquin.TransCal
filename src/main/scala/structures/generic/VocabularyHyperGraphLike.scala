@@ -14,7 +14,7 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
   override def empty: This = newBuilder.result()
 
   protected def getVocabulary: Vocabulary[Either[Node, EdgeType]]
-  protected def getMetadatas: collection.Map[(Node, EdgeType, Seq[Node]), Metadata]
+  protected def getMetadatas: collection.immutable.Map[(Node, EdgeType, Seq[Node]), Metadata]
 
   protected def wordToHyperEdge(word: Seq[Either[Node, EdgeType]]): HyperEdge[Node, EdgeType] = {
     def toNode(either: Either[Node, EdgeType]): Node = either match {
@@ -119,17 +119,7 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
     *
     * @return new builder for current state of graph.
     */
-  def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], This]
-
-  def updateMetadata(hyperEdge: HyperEdge[Node, EdgeType]): This = {
-    if (!this.contains(hyperEdge)) copyBuilder.result()
-    else {
-      val builder = copyBuilder
-      builder -= hyperEdge
-      builder += hyperEdge
-      builder.result()
-    }
-  }
+  def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], This]
 }
 
 object VocabularyHyperGraphLike {
