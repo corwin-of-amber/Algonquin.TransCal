@@ -65,9 +65,15 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
   }
 
   /* --- Private Methods --- */
+  private def compact[Node, EdgeType](wrapped: VersionedHyperGraph[Node, EdgeType],
+                                      hyperEdges: List[HyperEdge[Node, EdgeType]],
+                                      changedToKept: Map[Node, Node] = Map.empty[Node, Node])
+  : VersionedHyperGraph[Node, EdgeType] = {
+    innerCompact(wrapped.lockVersions(), hyperEdges, changedToKept).unlockVersions()
+  }
 
   @tailrec
-  private def compact[Node, EdgeType](wrapped: VersionedHyperGraph[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): VersionedHyperGraph[Node, EdgeType] = {
+  private def innerCompact[Node, EdgeType](wrapped: VersionedHyperGraph[Node, EdgeType], hyperEdges: List[HyperEdge[Node, EdgeType]], changedToKept: Map[Node, Node] = Map.empty[Node, Node]): VersionedHyperGraph[Node, EdgeType] = {
     hyperEdges match {
       case Nil => wrapped
       case beforeChangeHyperEdge +: otherHyperEdges =>
@@ -94,8 +100,8 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
               case (change, hyperEdge.target) => (change, existsTarget)
               case t => t
             }.updated(hyperEdge.target, existsTarget)
-            compact(merged, willChange.toList ++ otherHyperEdges, updatedChangedToKept)
-          case _ => compact(g, otherHyperEdges, changedToKept)
+            innerCompact(merged, willChange.toList ++ otherHyperEdges, updatedChangedToKept)
+          case _ => innerCompact(g, otherHyperEdges, changedToKept)
         }
     }
   }
