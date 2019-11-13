@@ -34,7 +34,7 @@ trait HyperGraphLikeTest[Node,
         val edge = g.edges.filterNot(e=>e.target == keep && e.sources.forall(_ == keep)).head
         val cloned = g.clone()
         val change = (g.nodes - keep).head
-        g.mergeNodesInPlace(change, keep)
+        g.mergeNodesInPlace(keep, change)
 
         noException should be thrownBy cloned.find(e => e == edge)
       }
