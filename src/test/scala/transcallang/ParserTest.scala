@@ -3,13 +3,12 @@ package transcallang
 import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
-import org.scalatestplus.scalacheck.Checkers
-import org.scalatest.{FunSuite, Inspectors, Matchers}
+import org.scalatest.{Matchers, PropSpec}
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSuite with Matchers with Inspectors with Checkers with LazyLogging {
-  test("testApply") {
+abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends PropSpec with Matchers with LazyLogging {
+  property("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
     for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
       logger.info(s"Working on $f")
@@ -24,7 +23,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     }
   }
 
-  test("Apply alot of abcd") {
+  property("Apply alot of abcd") {
     val parsed = p("_ -> c a b d").subtrees(1)
     parsed.nodes.map(_.root).count(_ == Language.applyId) shouldEqual 0
     parsed.root.literal shouldEqual "c"
@@ -33,7 +32,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(2).root.literal shouldEqual "d"
   }
 
-  test("Able to catch parentheses") {
+  property("Able to catch parentheses") {
     val parsed = p("f = c (a b) d").subtrees(1)
     parsed.nodes.map(_.root).count(_ == Language.applyId) shouldEqual 0
     parsed.root.literal shouldEqual "c"
@@ -42,28 +41,28 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "b"
   }
 
-  test("Can have annotations") {
+  property("Can have annotations") {
     val parsed = p("f = _ [Anno]")
     parsed.root shouldEqual Language.annotationId
     parsed.subtrees(1).root.literal shouldEqual "Anno"
     parsed.subtrees(0).subtrees(1).root.literal shouldEqual "_"
   }
 
-  test("Can have two statements") {
+  property("Can have two statements") {
     val parsed = p("f = _ ;g = _")
     parsed.root shouldEqual Language.semicolonId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "f"
     parsed.subtrees(1).subtrees(0).root.literal shouldEqual "g"
   }
 
-  test("Can have two statements with newline") {
+  property("Can have two statements with newline") {
     val parsed = p("f = _ \ng = _")
     parsed.root shouldEqual Language.semicolonId
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "f"
     parsed.subtrees(1).subtrees(0).root.literal shouldEqual "g"
   }
 
-  test("Parse alot of booleans") {
+  property("Parse alot of booleans") {
     val parsed = p("(a == b) /\\ (c < b) -> d ∈ e")
     parsed.root shouldEqual Language.tacticId
     // Next function is and and has 2 params so 2 applys
@@ -83,33 +82,33 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(1).subtrees(1).root.literal shouldEqual "e"
   }
 
-  test("Parse tuples and parenthesised expressions") {
+  property("Parse tuples and parenthesised expressions") {
     val parsed = p("(a,) 0 -> (a)")
     parsed.root shouldEqual Language.tacticId
     parsed.subtrees(0).root shouldEqual Language.tupleId
     parsed.subtrees(0).subtrees(0) shouldEqual parsed.subtrees(1)
   }
 
-  test("Syntax sugar for function definition should create lhs apply") {
+  property("Syntax sugar for function definition should create lhs apply") {
     val parsed = p("f = ?x ↦ x + 1")
     parsed.root.literal shouldEqual "="
     parsed.subtrees(0).root.literal shouldEqual "f"
     parsed.subtrees(0).subtrees(0).root.literal shouldEqual "?x"
   }
 
-  test("can parse different types of let") {
+  property("can parse different types of let") {
     val parsed = Seq("f ?x = x + 1", "f ?x >> x + 1", "f ?x |>> x + 1", "f ?x |= x + 1").map(p(_))
     val allLets = parsed.map(_.root)
     allLets.toSet shouldEqual Set(Language.letId, Language.directedLetId, Language.limitedLetId, Language.limitedDirectedLetId)
   }
 
-  test("apply of f translated correctly") {
+  property("apply of f translated correctly") {
     val parsed = p("f ?x = x + 1")
     parsed.root.literal shouldEqual "="
     parsed.subtrees(0).root.literal shouldEqual "f"
   }
 
-  test("apply on tuple becomes flattened apply") {
+  property("apply on tuple becomes flattened apply") {
     val parsed = p("f(?x, ?y) = f x y")
     parsed.root.literal shouldEqual "="
     parsed.subtrees(0).root.literal shouldEqual "f"
@@ -117,7 +116,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(1).subtrees(0).root.literal shouldEqual "x"
   }
 
-  test("use the condition builders") {
+  property("use the condition builders") {
     val t1 = p("min(x, y) -> (x ≤ y)")
     val t2 = p("_ -> id(x)")
     val parsed = p("(x ≤ y) ||> min(x, y) >> id(x)")
@@ -127,7 +126,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(1) shouldEqual t2.subtrees(1)
   }
 
-  test("split lambdas with params works correctly") {
+  property("split lambdas with params works correctly") {
     val anno = (new TranscalParser).apply("concat ?l = l match ((⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss)   [++]")
     anno.root shouldEqual Language.annotationId
     anno.subtrees(1).root.literal shouldEqual "++"
@@ -152,7 +151,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rhs2.subtrees(1).root.literal shouldEqual "++"
   }
 
-  test("Parser adds clojure when needed") {
+  property("Parser adds clojure when needed") {
     val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ x + y")
     parsed.root shouldEqual Language.tacticId
     parsed.subtrees(0).root.literal shouldEqual "_"
@@ -163,7 +162,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rhs.subtrees(1).subtrees(1).root.literal shouldEqual "x"
   }
 
-  test("Adding clojure renames variables") {
+  property("Adding clojure renames variables") {
     val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ x + y")
     val rhs = parsed.subtrees(1)
     rhs.subtrees(1).root shouldEqual Language.applyId
@@ -172,7 +171,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rhs.subtrees(1).subtrees(0).subtrees(1).leaves.map(_.root.literal) should not contain "x"
   }
 
-  test("Parser doesnt add unneeded clojures") {
+  property("Parser doesnt add unneeded clojures") {
     val parsed = (new TranscalParser).apply("_ -> ?x ↦ ?y ↦ y")
     parsed.root shouldEqual Language.tacticId
     parsed.subtrees(0).root.literal shouldEqual "_"
@@ -183,7 +182,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     rhs.subtrees(1).root shouldEqual Language.lambdaId
   }
 
-  test("Parse match statement") {
+  property("Parse match statement") {
     val parsed = (new TranscalParser).apply("?x -> x match (1 => 1) / (_ => 0)").subtrees(1)
     parsed.root shouldEqual Language.matchId
     parsed.subtrees(0).root.literal shouldEqual "x"
@@ -193,7 +192,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(2).subtrees(1).root.literal shouldEqual "0"
   }
 
-  test("Parse simple rewrite rules") {
+  property("Parse simple rewrite rules") {
     val rules = Seq("~true = false",
       "~false = true",
       "id (?x) >> x",
@@ -251,7 +250,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
   private val listintTolistintTree = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listintTree, listintTree))
 
 
-  test("Parse identifier type") {
+  property("Parse identifier type") {
     val parsed = (new TranscalParser).apply("(_: int) -> (x: int)")
     parsed.subtrees(0).root.literal shouldEqual Language.holeId.literal
     parsed.subtrees(0).root.annotation.get shouldEqual intTree
@@ -259,7 +258,7 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(1).root.annotation.get shouldEqual intTree
   }
 
-  test("Parse identifier polymorphic type") {
+  property("Parse identifier polymorphic type") {
     val parsed = (new TranscalParser).apply("(_: list int) -> (x: list int)")
     parsed.subtrees(0).root.literal shouldEqual "_"
     parsed.subtrees(0).root.annotation.get shouldEqual listintTree
@@ -267,19 +266,19 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(1).root.annotation.get shouldEqual listintTree
   }
 
-  test("Parse identifier polymorphic type of polymorphic") {
+  property("Parse identifier polymorphic type of polymorphic") {
     val parsed = (new TranscalParser).apply("(_: list(list int)) -> x")
     parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listlistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
-  test("Parse identifier map type") {
+  property("Parse identifier map type") {
     val parsed = (new TranscalParser).apply("(_: int :> int) -> x")
     parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(intToIntTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
-  test("Parse concat type") {
+  property("Parse concat type") {
     val parsed = (new TranscalParser).apply("(concat: list(list 'a) :> (list 'a)) (?l: list(list 'a)) = l match (⟨⟩ => ⟨⟩) / (?xs :: ?xss) => xs ++ concat xss")
     parsed.subtrees(0).root.literal shouldEqual "concat"
     parsed.subtrees(0).root.annotation shouldEqual Some(listlistgenericTolistgenericTree)
@@ -288,13 +287,13 @@ abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends FunSui
     parsed.subtrees(0).subtrees.size shouldEqual 1
   }
 
-  test("Parse identifier polymorphic map type") {
+  property("Parse identifier polymorphic map type") {
     val parsed = (new TranscalParser).apply("(_: (list int) :> (list int)) -> x")
     parsed.subtrees(0).root shouldEqual Language.holeId.copy(annotation = Some(listintTolistintTree))
     parsed.subtrees(1).root.literal shouldEqual "x"
   }
 
-  test("Parse or cond builder") {
+  property("Parse or cond builder") {
     val parsed = (new TranscalParser).apply("(x: int) |||| int -> x")
     parsed.subtrees(0).root shouldEqual Language.limitedAndCondBuilderId
     parsed.subtrees(1).root.literal shouldEqual "x"
@@ -312,13 +311,13 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
   )
 
 
-  test("Parse statement types and map types correctly simple") {
+  property("Parse statement types and map types correctly simple") {
     parser("_ -> " + symbols.head).subtrees.last.root match {
       case Identifier("var2", Some(ann), _) => ann.root.literal shouldEqual "string"
     }
   }
 
-  test("Parse statement types and map types correctly apllied type") {
+  property("Parse statement types and map types correctly apllied type") {
     parser("_ -> " + symbols(1)).subtrees.last.root match {
       case Identifier("var3", Some(ann), _) =>
         ann.root should be(Language.typeListId)
@@ -326,7 +325,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
     }
   }
 
-  test("Parse statement types and map types correctly function type") {
+  property("Parse statement types and map types correctly function type") {
     parser("_ -> " + symbols.last).subtrees.last.root match {
       case Identifier("f1", Some(ann), _) =>
         ann.root should be(Language.mapTypeId)
@@ -335,13 +334,13 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
     }
   }
 
-  test("Parse expression types and map types correctly simple") {
+  property("Parse expression types and map types correctly simple") {
     parser.parseExpression(symbols.head).root match {
       case Identifier("var2", Some(ann), _) => ann.root.literal shouldEqual "string"
     }
   }
 
-  test("Parse expression types and map types correctly apllied type") {
+  property("Parse expression types and map types correctly apllied type") {
     parser.parseExpression(symbols(1)).root match {
       case Identifier("var3", Some(ann), _) =>
         ann.root should be(Language.typeListId)
@@ -349,7 +348,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
     }
   }
 
-  test("Parse expression types and map types correctly function type") {
+  property("Parse expression types and map types correctly function type") {
     parser.parseExpression(symbols.last).root match {
       case Identifier("f1", Some(ann), _) =>
         ann.root should be(Language.mapTypeId)
@@ -358,7 +357,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
     }
   }
 
-  test("Parse map type allows flattened multiple args") {
+  property("Parse map type allows flattened multiple args") {
     parser.parseExpression("(i : b :> b :> b)").root match {
       case Identifier(_, Some(anno), _) =>
         anno.root should be(Language.mapTypeId)
@@ -366,7 +365,7 @@ class TranscalParserTest extends ParserTest(new TranscalParser) {
     }
   }
 
-  test("Parse map type allows to pass functions as arguments") {
+  property("Parse map type allows to pass functions as arguments") {
     parser.parseExpression("(i : (b :> b) :> (b :> b) :> b)").root match {
       case Identifier(_, Some(anno), _) =>
         anno.root should be(Language.mapTypeId)
