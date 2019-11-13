@@ -34,7 +34,7 @@ trait HyperGraphLikeTest[Node,
       whenever(g.nonEmpty) {
         val cloned = g.clone()
         cloned shouldEqual g
-        cloned should not be g
+        cloned should not (be theSameInstanceAs g)
       }
     }
   }
