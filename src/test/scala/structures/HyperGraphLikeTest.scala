@@ -317,7 +317,7 @@ trait HyperGraphLikeTest[Node,
   property("find regex rep0 with 0 sources") {
     forAll { (g: T, et: EdgeType, n: Node) =>
       val graph = grapher(Set(HyperEdge(n, et, Seq.empty, EmptyMetadata)))
-      val pattern = HyperEdge(Explicit(n), Explicit(et), List(Repetition.rep0(500, Ignored()).get), EmptyMetadata)
+      val pattern = HyperEdge(Explicit(n), Explicit(et), List(Repetition.rep0(500, Ignored())), EmptyMetadata)
       val found = graph.findRegexHyperEdges(pattern)
       val edges = graph.edges
       found shouldEqual edges
