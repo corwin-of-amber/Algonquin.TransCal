@@ -25,6 +25,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
                       maxDepthOption: Option[Int]) extends Action {
   private val splitDepth = splitDepthOption.getOrElse(1)
   private val maxDepth = maxDepthOption.getOrElse(4)
+  private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
 
   def this(splitters: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
            maxDepthOption: Option[Int]) =
@@ -44,13 +45,12 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
                                                        rules: Set[Operator[RewriteSearchState]],
                                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]])
   : Set[Set[HyperTermId]] = {
-    val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
     val withAnchors =
-      if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph
-      else state.graph ++ state.graph.map(e => createAnchor(e.target))
+      if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph.clone
+      else state.graph.clone ++ state.graph.map(e => createAnchor(e.target))
     val splitters = chooser(state, chosen).toSeq
     if (chosen.length >= splitDepth || splitters.isEmpty) {
-      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors).deepCopy(), rules)
+      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors.clone), rules)
       res._2
     } else {
       // For each splitter edge:
@@ -65,21 +65,18 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         // 1. build new graph - for each possible value copy graph and merge the needed value
         val source = splitter.sources.head
         val targets = splitter.sources.tail
-        val results = targets.par.map(target => {
-          // TODO: improve clone so that it doesnt need to rerun all the merge checking
+        val tempGraph = withAnchors.clone
+        tempGraph -= splitter
+        tempGraph --= tempGraph.findByTarget(source).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor"))
+        val results = targets.par.map(t => {
           // 1 + 2. pre run ops
           // Clean translations of source
-          withAnchors -= splitter
-          val tempState = RewriteSearchState(withAnchors -- withAnchors.findByTarget(source).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor")))
-          tempState.graph.mergeNodesInPlace(source, target)
 //          val state = opRun.fromRewriteState(RewriteSearchState(withAnchors.mergeNodes(source, target)), rules)
           // 3. Recursion
-          val res = innerGetFoundConclusionsFromRewriteState(tempState, rules, chosen :+ splitter)
-          withAnchors += splitter
-          res
-        })
+          innerGetFoundConclusionsFromRewriteState(RewriteSearchState(tempGraph.mergeNodes(source, t)), rules, chosen :+ splitter)
+        }).seq
         // 3b. Merge recursion results
-        ObservationalEquivalence.flattenIntersectConclusions(results.seq)
+        ObservationalEquivalence.flattenIntersectConclusions(results)
       })
       // 4. Merge different split results
       ObservationalEquivalence.flattenUnionConclusions(equives)
