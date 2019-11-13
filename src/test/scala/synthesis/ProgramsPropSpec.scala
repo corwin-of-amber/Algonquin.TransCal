@@ -1,51 +1,51 @@
 package synthesis
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.{ParallelTestExecution, PropSpec}
-import org.scalatestplus.scalacheck.Checkers
+import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
+import org.scalatestplus.scalacheck.{Checkers, ScalaCheckPropertyChecks}
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-class ProgramsPropSpec extends PropSpec with Checkers with ParallelTestExecution  {
+class ProgramsPropSpec extends PropSpec with Matchers with Checkers with ScalaCheckPropertyChecks with ParallelTestExecution  {
 
   private implicit val identifierCreator: Arbitrary[Identifier] = Arbitrary(identifierGen)
   private implicit val termsCreator: Arbitrary[AnnotatedTree] = Arbitrary(identifierTreesGen)
   private implicit val programsCreator: Arbitrary[Programs] = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    check(forAll { term: AnnotatedTree => {
+    forAll (SizeRange(10)) { term: AnnotatedTree => {
       val (graph, root) = Programs.destructWithRoot(term)
       val programs = Programs(graph)
-      programs.reconstruct(root).contains(term) :| programs.toString
+      programs.reconstruct(root).contains(term) shouldEqual true
     }
-    })
+    }
   }
 
   property("10 first nodes are constructable") {
-    check(forAll { programs: Programs =>
-      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty)
-    })
+    forAll (SizeRange(10)) { programs: Programs =>
+      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty) shouldEqual true
+    }
   }
 
   property("be able to handle a tree of one and return it") {
-    check(forAll { (root: Identifier, son: Identifier) => {
+    forAll { (root: Identifier, son: Identifier) => {
       val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son)), Seq.empty)
       val programs = Programs(tree)
 
       val results = programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
 
-      results.size == 1 && results.contains(tree)
+      results.size shouldEqual 1
+      results should contain (tree)
     }
-    })
+    }
   }
 
   property("be able to handle a tree with 1 depth and return it") {
-    check(forAll { (root: Identifier, son1: Identifier, son2: Identifier) =>
-      (root != son1 && root != son2) ==> {
+    forAll { (root: Identifier, son1: Identifier, son2: Identifier) =>
+      whenever(root != son1 && root != son2) {
         val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son1), AnnotatedTree.identifierOnly(son2)), Seq.empty)
         val programs = Programs(tree)
 
@@ -54,25 +54,26 @@ class ProgramsPropSpec extends PropSpec with Checkers with ParallelTestExecution
           programs.reconstruct(mainHyperTermId.head.target).toList
         }
 
-        results.size == 1 && results.contains(tree)
+        results.size shouldEqual  1
+        results should contain (tree)
       }
-    })
+    }
   }
 
   property("unknown term returns empty iterator") {
-    check(forAll { programs: Programs =>
-      programs.reconstruct(HyperTermId(-1)).isEmpty
-    })
+    forAll { programs: Programs =>
+      programs.reconstruct(HyperTermId(-1)) should be (empty)
+    }
   }
 
   property("destruct splitted term and find using pattern") {
-    check(forAll { (term1: AnnotatedTree, term2: AnnotatedTree) =>
-      (term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty ==> {
+    forAll { (term1: AnnotatedTree, term2: AnnotatedTree) =>
+      whenever((term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty) {
         val progs = Programs(new AnnotatedTree(splitId, List(term1, term2), Seq.empty))
         val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Language.idId))
-        edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
+        edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty) shouldEqual true
       }
-    })
+    }
   }
 
   property("destruct pattern has right amount of references") {
@@ -154,8 +155,8 @@ class ProgramsPropSpec extends PropSpec with Checkers with ParallelTestExecution
   }
 
   property("a few reconstruct in a row returns same results (using mutable state now)") {
-    check(forAll { programs: Programs => programs.hyperGraph.nonEmpty ==> {
-      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet.size == 1
-    }})
+    forAll { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
+      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet.size shouldEqual  1
+    }}
   }
 }
