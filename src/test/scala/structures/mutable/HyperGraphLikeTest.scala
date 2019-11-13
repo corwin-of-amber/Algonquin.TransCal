@@ -19,6 +19,7 @@ trait HyperGraphLikeTest[Node,
         val newEdge = oldEdge.copy(metadata = uid)
         val cloned = g.clone()
 
+        g -= newEdge
         g += newEdge
 
         val optNew = g.find(e => e == newEdge)
