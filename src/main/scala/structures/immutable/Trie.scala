@@ -1,8 +1,8 @@
 package structures.immutable
 
 import com.typesafe.scalalogging.LazyLogging
+import structures.VocabularyLike.Word
 import structures._
-import structures.VocabularyLike.{Word, WordRegex}
 
 import scala.collection.mutable
 
@@ -11,7 +11,7 @@ import scala.collection.mutable
   * @since 11/15/18
   */
 class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
-  extends generic.TrieLike[Letter, Trie[Letter]] with LazyLogging {
+  extends generic.TrieLike[Letter, Trie[Letter]] with Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   override def getSubtries: Seq[collection.Map[Letter, Trie[Letter]]] = subtries
 
