@@ -29,6 +29,19 @@ trait HyperGraphLikeTest[Node,
     }
   }
 
+  property("clone with merge keeps metadata safe") {
+    forAll { (g: T, keep: Node) =>
+      whenever(g.nonEmpty && g.nodes.exists(n => n != keep)) {
+        val edge = g.edges.filterNot(e=>e.target == keep && e.sources.forall(_ == keep)).head
+        val cloned = g.clone()
+        val change = (g.nodes - keep).head
+        g.mergeNodesInPlace(change, keep)
+
+        noException should be thrownBy cloned.find(e => e == edge)
+      }
+    }
+  }
+
   property("clone returns new") {
     forAll { g: T =>
       whenever(g.nonEmpty) {
