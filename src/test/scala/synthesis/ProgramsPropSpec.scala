@@ -16,7 +16,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   private implicit val programsCreator: Arbitrary[Programs] = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    forAll { term: AnnotatedTree => {
+    forAll { term: AnnotatedTree =>
       val (graph, root) = Programs.destructWithRoot(term)
       val programs = Programs(graph)
       programs.reconstruct(root) should contain (term)
@@ -30,7 +30,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   }
 
   property("be able to handle a tree of one and return it") {
-    forAll { (root: Identifier, son: Identifier) => {
+    forAll { (root: Identifier, son: Identifier) =>
       val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son)), Seq.empty)
       val programs = Programs(tree)
 
