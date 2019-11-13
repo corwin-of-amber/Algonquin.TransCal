@@ -39,11 +39,11 @@ trait HyperGraphLikeTest[Node,
     }
   }
 
-  property("mergeEdgeTypesInPlace property") {
+  ignore("mergeEdgeTypesInPlace property") {
 
   }
 
-  property("mergeNodesInPlace property") {
+  ignore("mergeNodesInPlace property") {
 
   }
 
