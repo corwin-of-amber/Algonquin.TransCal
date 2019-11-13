@@ -317,11 +317,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     applyClojure(Seq.empty, t)
   }
 
-  def recursiveTimeComplexAction: Parser[AnnotatedTree] = log(IDENTIFIER(recursiveTimeComplexId.literal) ~! identifier ~ number)("Recursive time complex") ^^ { t =>
-    logger.trace(s"statement Recursive time complex - $t")
-    t match {
-      case id ~ functionToCalculate ~ numberOfArguments => AnnotatedTree.withoutAnnotations(recursiveTimeComplexId, Seq(functionToCalculate, numberOfArguments))
-    }
+  def recursiveTimeComplexAction: Parser[AnnotatedTree] = IDENTIFIER(recursiveTimeComplexId.literal) ~! identifier ~ number ^^ {
+    case id ~ functionToCalculate ~ numberOfArguments => AnnotatedTree.withoutAnnotations(id.toIdentifier, Seq(functionToCalculate, numberOfArguments))
   }
 
   def commands: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ {
