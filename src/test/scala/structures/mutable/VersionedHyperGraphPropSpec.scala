@@ -25,6 +25,24 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
     }
   }
 
+  property ("cloned inner versioned grpahs") {
+    forAll (minSize(2)) { es: Set[HyperEdge[Int, Int]] =>
+      whenever(es.size > 1) {
+        val g = VersionedHyperGraph.empty[Int, Int]
+        var lastVer = -1L
+        for (e <- es) {
+          lastVer = g.currentVersion
+          g += e
+        }
+        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = HyperGraph(HyperEdge(Explicit(g.last.target), Explicit(g.last.edgeType), g.last.sources.map(s => Explicit(s)), EmptyMetadata))
+        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
+        val newG = g.clone
+        newG.mergeNodesInPlace(10000, g.last.target)
+        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
+      }
+    }
+  }
+
   property("Specific - Find Versioned subgraph with and without merge returns same maps") {
     val es = Set(HyperEdge(40, 88, Vector(), EmptyMetadata), HyperEdge(14, 88, Vector(39, 48, 13, 46, 7), EmptyMetadata), HyperEdge(4, 12, Vector(17, 11, 29, 10, 33), EmptyMetadata), HyperEdge(14, 88, Vector(), EmptyMetadata))
     val graph = VersionedHyperGraph(es.toSeq: _*)

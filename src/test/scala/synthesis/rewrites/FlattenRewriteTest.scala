@@ -1,14 +1,13 @@
 package synthesis.rewrites
 
-import transcallang.{Identifier, Language}
-import org.scalatest.PropSpec
-import org.scalatestplus.scalacheck.Checkers
+import org.scalatest.{Matchers, PropSpec}
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.{Identifier, Language}
 
 
-class FlattenRewriteTest extends PropSpec with Checkers  {
+class FlattenRewriteTest extends PropSpec with Matchers  {
 
   property("flatten works") {
     val edges = Set(HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
@@ -21,12 +20,12 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
     val state = new RewriteSearchState(CompactHyperGraph(progs.hyperGraph.toSeq: _*))
     val newEdges = FlattenRewrite(state).graph.edges -- progs.hyperGraph.edges
     val newEdge = newEdges.filter(_.sources.size == 4)
-    check(newEdges.size == 2)
-    check(newEdge.head.sources.size == 4)
-    check(newEdge.head.edgeType.identifier.literal == "@")
-    check(newEdge.head.sources.head.id == 3)
-    check(newEdge.head.sources(1).id == 4)
-    check(newEdge.head.sources.last.id == 2)
+    newEdges should have size 2
+    newEdge.head.sources should have size 4
+    newEdge.head.edgeType.identifier.literal shouldEqual "@"
+    newEdge.head.sources.head.id shouldEqual 3
+    newEdge.head.sources(1).id shouldEqual 4
+    newEdge.head.sources.last.id shouldEqual 2
   }
 
 //  property("flatten works on multiple depths") {
@@ -39,7 +38,7 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
 //      HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("y")), Seq(), EmptyMetadata))
 //    val state = new RewriteSearchState(VocabularyHyperGraph(edges.toSeq: _*))
 //    val newEdges = FlattenRewrite(state).graph.edges -- state.graph.edges
-//    check(newEdges.exists(e => e.sources.size == 5))
+//    newEdges.exists(e => e.sources.size shouldEqual 5)
 //  }
 
   property("flatten works on funcs") {
@@ -52,9 +51,9 @@ class FlattenRewriteTest extends PropSpec with Checkers  {
     val state = new RewriteSearchState(CompactHyperGraph(progs.hyperGraph.toSeq: _*))
     val flattened = FlattenRewrite(state)
     val newEdge = (flattened.graph.edges -- progs.hyperGraph.edges).filter(e => e.edgeType.identifier.literal == "f")
-    check(newEdge.size == 1)
-    check(newEdge.head.sources.size == 2)
-    check(newEdge.head.sources.head.id == 4)
-    check(newEdge.head.sources.last.id == 5)
+    newEdge should have size 1
+    newEdge.head.sources should have size 2
+    newEdge.head.sources.head.id shouldEqual 4
+    newEdge.head.sources.last.id shouldEqual 5
   }
 }
