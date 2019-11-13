@@ -15,7 +15,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override protected def getVocabulary: Vocabulary[Either[Node, EdgeType]] = vocabulary
 
-  override protected def getMetadatas: collection.Map[(Node, EdgeType, Seq[Node]), Metadata] = metadatas
+  override protected def getMetadatas: collection.immutable.Map[(Node, EdgeType, Seq[Node]), Metadata] = metadatas
 
   override def empty: VocabularyHyperGraph[Node, EdgeType] = VocabularyHyperGraph.empty
 
@@ -87,17 +87,14 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     *
     * @return new builder for current state of graph.
     */
-  override def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-    new mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
-      val metas = new mutable.HashMap() ++= metadatas.toSeq
+  override def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+    new mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+      val metas = mutable.HashMap(metadatas.toSeq: _*)
       val newEdges = mutable.Set[HyperEdge[Node, EdgeType]]()
-      val toRemove = mutable.Set[HyperEdge[Node, EdgeType]]()
       var vocab = vocabulary
 
       override def +=(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
         metas((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)) = hyperEdge.metadata
-        if (toRemove.contains(hyperEdge))
-          toRemove -= hyperEdge
         newEdges += hyperEdge
         this
       }
@@ -105,21 +102,12 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       override def clear(): Unit = {
         metas.clear()
         newEdges.clear()
-        toRemove.clear()
         vocab = Vocabulary.empty
       }
 
       override def result(): VocabularyHyperGraph[Node, EdgeType] = {
-        val newVoc = vocab ++ newEdges.map(hyperEdgeToWord) -- toRemove.map(hyperEdgeToWord)
+        val newVoc = vocab ++ newEdges.map(hyperEdgeToWord)
         new VocabularyHyperGraph[Node, EdgeType](newVoc, metas.toMap)
-      }
-
-      override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {
-        if (newEdges.contains(elem))
-          newEdges -= elem
-        toRemove += elem
-        metas.remove((elem.target, elem.edgeType, elem.sources))
-        this
       }
     }
 }

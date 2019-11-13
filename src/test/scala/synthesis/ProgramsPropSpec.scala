@@ -2,42 +2,44 @@ package synthesis
 
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatestplus.scalacheck.{Checkers, ScalaCheckPropertyChecks}
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChecks with ParallelTestExecution  {
+class ProgramsPropSpec extends PropSpec with Matchers with Checkers with ScalaCheckPropertyChecks with ParallelTestExecution  {
 
   private implicit val identifierCreator: Arbitrary[Identifier] = Arbitrary(identifierGen)
   private implicit val termsCreator: Arbitrary[AnnotatedTree] = Arbitrary(identifierTreesGen)
   private implicit val programsCreator: Arbitrary[Programs] = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    forAll { term: AnnotatedTree =>
+    forAll (SizeRange(10)) { term: AnnotatedTree => {
       val (graph, root) = Programs.destructWithRoot(term)
       val programs = Programs(graph)
-      programs.reconstruct(root) should contain (term)
+      programs.reconstruct(root).contains(term) shouldEqual true
+    }
     }
   }
 
   property("10 first nodes are constructable") {
-    forAll { programs: Programs =>
-      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty) shouldBe true
+    forAll (SizeRange(10)) { programs: Programs =>
+      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty) shouldEqual true
     }
   }
 
   property("be able to handle a tree of one and return it") {
-    forAll { (root: Identifier, son: Identifier) =>
+    forAll { (root: Identifier, son: Identifier) => {
       val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son)), Seq.empty)
       val programs = Programs(tree)
 
       val results = programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
 
-      results should have size 1
+      results.size shouldEqual 1
       results should contain (tree)
+    }
     }
   }
 
@@ -52,14 +54,15 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
           programs.reconstruct(mainHyperTermId.head.target).toList
         }
 
-        results.size == 1 && results.contains(tree)
+        results.size shouldEqual  1
+        results should contain (tree)
       }
     }
   }
 
   property("unknown term returns empty iterator") {
     forAll { programs: Programs =>
-      programs.reconstruct(HyperTermId(-1)) shouldBe empty
+      programs.reconstruct(HyperTermId(-1)) should be (empty)
     }
   }
 
@@ -68,7 +71,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
       whenever((term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty) {
         val progs = Programs(new AnnotatedTree(splitId, List(term1, term2), Seq.empty))
         val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Language.idId))
-        edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty)
+        edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty) shouldEqual true
       }
     }
   }
@@ -76,20 +79,20 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   property("destruct pattern has right amount of references") {
     val parser = new TranscalParser
     val pattern1 = Programs.destructPattern(parser("_ -> _ + _").subtrees(1))
-    pattern1.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) shouldBe 3
+    check(pattern1.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 3)
     val pattern2 = Programs.destructPattern(parser("_ -> _ + _ - _").subtrees(1))
-    pattern2.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) shouldBe 5
+    check(pattern2.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
     val pattern3 = Programs.destructPattern(parser("?x ?y -> _ + x + y").subtrees(1))
-    pattern3.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) shouldBe 5
+    check(pattern3.nodes.count(_.isInstanceOf[ReferenceTerm[HyperTermId]]) == 5)
   }
 
   property("destruct apply and reconstruct should work correctly") {
     val parser = new TranscalParser
     val term = parser("_ -> (a b) c d")
     val graph = Programs.destruct(term)
-    graph.edgeTypes.count(_.identifier.literal == "a") shouldBe 1
-    graph.edgeTypes.count(_.identifier.literal == "b") shouldBe 1
-    graph.edges.filter(_.edgeType.identifier.literal == "a").head.sources should have size 3
+    check(graph.edgeTypes.count(_.identifier.literal == "a") == 1)
+    check(graph.edgeTypes.count(_.identifier.literal == "b") == 1)
+    check(graph.edges.filter(_.edgeType.identifier.literal == "a").head.sources.size == 3)
   }
 
   property("Reconstructs more then one possibility") {
@@ -106,14 +109,14 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
         HyperEdge(HyperTermId(15), HyperTermIdentifier(Language.setId), List(HyperTermId(1)), EmptyMetadata)
       )
     val terms = new Programs(graph).reconstruct(HyperTermId(11))
-    terms.exists((t: AnnotatedTree) => t.nodes.map(_.root).contains(Language.setDisjointId)) shouldBe true
+    check(terms.exists((t: AnnotatedTree) => t.nodes.map(_.root).contains(Language.setDisjointId)))
   }
 
   property("when deconstructing any hole create a special edge to match all nodes") {
     val parser = new TranscalParser
     val term = parser("?x -> x")
     val graphs = Programs.destructPatterns(Seq(term.subtrees(0), term.subtrees(1)))
-    graphs.forall(_.edgeTypes.exists(_.isInstanceOf[ReferenceTerm[HyperTermIdentifier]])) shouldBe true
+    check(graphs.forall(_.edgeTypes.exists(_.isInstanceOf[ReferenceTerm[HyperTermIdentifier]])))
   }
 
   property("when deconstructing orcondbuilder get a graph with 2 roots") {
@@ -122,8 +125,8 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
     val pattern2 = parser.parseExpression("x ||| int")
     val graph = Programs.destructPattern(pattern)
     val graph2 = Programs.destructPattern(pattern2)
-    graph.nodes.size should be > 1
-    graph.nodes.size should be > graph2.nodes.size
+    check(graph.nodes.size > 1)
+    check(graph.nodes.size > graph2.nodes.size)
   }
 
   property("Destruct typed list with max hypertermid with correct root") {
@@ -139,22 +142,21 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
     val (tempGraph, root) = Programs.destructWithRoot(xynil,
       maxId = HyperTermId(558))
 
-    tempGraph.map(_.target) should contain (root)
+    check(tempGraph.map(_.target).contains(root))
   }
 
   property("Destruct ?x >> reverse(reverse(?x)) is correct regarding target and source") {
     val tree = new TranscalParser()("?x >> reverse(reverse(?x))")
     val res = Programs.destructPatternsWithRoots(tree.subtrees)
-    res.head._2 shouldEqual res.last._2
+    check(res.head._2 == res.last._2)
     val rootEdge = res.last._1.findByTarget[Int](res.last._2).head
     val innerEdge = res.last._1.findByTarget[Int](rootEdge.sources.head).head
-    res.last._2 shouldEqual innerEdge.sources.head
+    check(res.last._2 == innerEdge.sources.head)
   }
 
   property("a few reconstruct in a row returns same results (using mutable state now)") {
     forAll { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
-      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet.size == 1
-    }
-    }
+      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet.size shouldEqual  1
+    }}
   }
 }

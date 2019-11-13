@@ -1,11 +1,9 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.VocabularyLike.Word
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
 
-import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 /**
@@ -19,7 +17,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override protected def getVocabulary: structures.Vocabulary[Either[Node, EdgeType]] = vocabulary
 
-  override protected def getMetadatas: collection.Map[(Node, EdgeType, Seq[Node]), Metadata] = metadatas
+  override protected def getMetadatas: collection.immutable.Map[(Node, EdgeType, Seq[Node]), Metadata] = metadatas.toMap
 
   override def empty: VocabularyHyperGraph[Node, EdgeType] = VocabularyHyperGraph.empty
 
@@ -31,7 +29,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def clone: VocabularyHyperGraph[Node, EdgeType] = empty ++= edges
+  override def clone: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(vocabulary.clone, mutable.Map(metadatas.toList: _*))
   override def edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
   override def nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
 
@@ -49,13 +47,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     this
   }
 
-  def updateMetadataInPlace(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
-    if (this.contains(hyperEdge))
-      metadatas((hyperEdge.target, hyperEdge.edgeType, hyperEdge.sources)) = hyperEdge.metadata
-
-    this
-  }
-
   override def mergeNodesInPlace(keep: Node, change: Node): VocabularyHyperGraph[Node, EdgeType] = {
     logger.trace("Merge nodes")
     if (keep == change) return this
@@ -68,7 +59,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
       metadatas.remove((target, edgeType, sources))
     }
-
     vocabulary replace (Left(keep), Left(change))
     this
   }
@@ -100,20 +90,19 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
     VocabularyHyperGraph.newBuilder
 
-  override def copyBuilder: mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-  new mutable.ShrinkableBuilder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
-    var graph = new VocabularyHyperGraph(vocabulary.clone(), metadatas.clone())
+  override def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
+  new mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
+    var graph = VocabularyHyperGraph.this.clone
 
     override def +=(elem: HyperEdge[Node, EdgeType]): this.type = {
       graph += elem
       this
     }
 
-    override def result(): VocabularyHyperGraph[Node, EdgeType] = graph
-
-    override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {
-      graph -= elem
-      this
+    override def result(): VocabularyHyperGraph[Node, EdgeType] = {
+      val res = graph
+      graph = graph.clone
+      graph
     }
 
     override def clear(): Unit = graph = VocabularyHyperGraph.empty
