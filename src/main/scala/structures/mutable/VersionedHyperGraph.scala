@@ -18,12 +18,12 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped.copyBuilder.result()))
+    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped.clone))
   }
 
   /* --- Public Methods --- */
 
-  override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mapByVersion)
+  override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mapByVersion.mapValues(g => g.clone))
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 

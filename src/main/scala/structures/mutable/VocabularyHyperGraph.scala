@@ -1,11 +1,9 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.VocabularyLike.Word
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
 
-import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 /**
@@ -31,7 +29,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def clone: VocabularyHyperGraph[Node, EdgeType] = empty ++= edges
+  override def clone: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(vocabulary.clone, mutable.Map(metadatas.toList: _*))
   override def edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
   override def nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
 
