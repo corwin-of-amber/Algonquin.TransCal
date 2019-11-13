@@ -3,7 +3,7 @@ package structures.mutable
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, PropSpec}
 import structures.HyperGraphLike.HyperEdgePattern
-import structures._
+import structures.{HyperEdge, Item}
 
 import scala.util.Random
 

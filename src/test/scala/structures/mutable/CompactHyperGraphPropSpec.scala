@@ -3,8 +3,8 @@ package structures.mutable
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.Checkers
+import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.HyperGraphLike.HyperEdgePattern
-import structures._
 import synthesis.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language, TranscalParser}

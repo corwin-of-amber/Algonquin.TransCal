@@ -1,15 +1,12 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, PropSpec}
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.HyperGraphLike.HyperEdgePattern
-import structures._
+import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{DefAction, OperatorRunAction}
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.TranscalParser
 
 
