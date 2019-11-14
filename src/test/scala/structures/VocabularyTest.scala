@@ -92,7 +92,7 @@ trait VocabularyTest[
 
   property("edges finds all that were added") {
     forAll { words: Set[Word[Letter]] =>
-//      words.intersect(words.foldLeft(builder(Set.empty))(_ + _)) should have size words.size
+      words.intersect(words.foldLeft(builder(Set.empty))(_ + _)) should have size words.size
     }
   }
 
