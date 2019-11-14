@@ -5,6 +5,7 @@ import structures.HyperEdge
 import synthesis.actions.ActionSearchState
 import synthesis._
 import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.{Identifier, TranscalParser}
 
 class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution {
@@ -37,16 +38,44 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     newState.graph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" map (_.copy(annotation = None)))).nonEmpty shouldBe true
   }
 
+  test("test splitting filter p filter p l") {
+    var state = new DefAction(parser apply "filter p (filter p (x :: y :: ⟨⟩)) = filter p (filter p l)")(ActionSearchState(Programs.empty,
+      SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
+    state = new DefAction(parser apply "filter p (x :: y :: ⟨⟩) = filter p l")(state)
+    state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
+    state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
+    state = new OperatorRunAction(maxSearchDepth = 2)(state)
+    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = Some(10))
+      .getFoundConclusions(state)
+    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter p (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
+    patternResults should not be empty
+    val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctSet = res.find(_.contains(correctId))
+    correctSet should not be empty
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (x :: y :: ⟨⟩)" map (_.copy(annotation = None)))).head
+    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    correctSet.get should contain (correctId2)
+  }
+
   test("test splitting filter p filter q") {
     var state = new DefAction(parser apply "filter q (filter p (x :: y :: ⟨⟩)) = filter q (filter p l)")(ActionSearchState(Programs.empty,
       SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
     state = new DefAction(parser apply "filter p (filter q (x :: y :: ⟨⟩)) = filter p (filter q l)")(state)
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
-    state = new OperatorRunAction(maxSearchDepth = 6)(state)
-    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = Some(6))
+    state = new OperatorRunAction(maxSearchDepth = 2)(state)
+    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = Some(10))
       .getFoundConclusions(state)
-    res.exists(_.size > 1) shouldBe true
+    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter q (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
+    patternResults should not be empty
+    val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctSet = res.find(_.contains(correctId))
+    correctSet should not be empty
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter q (filter p (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    correctSet.get should contain (correctId2)
   }
 
   test("test can't split on same edge twice") {
