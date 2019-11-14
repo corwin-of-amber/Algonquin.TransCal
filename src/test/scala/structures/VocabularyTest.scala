@@ -117,4 +117,77 @@ trait VocabularyTest[
       }
     }
   }
+
+  property("changed letter to exists letter") {
+    def validate(trie: V, keepLetter: Letter, changeLetter: Letter): Assertion = {
+      val beforeLettersSize = trie.letters.size
+      val newTrie = trie.replace(keepLetter, changeLetter)
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      newTrie.letters should have size beforeLettersSize - 1
+      trie should not equal newTrie
+      found shouldBe empty
+    }
+
+    forAll { trie: V =>
+      whenever(trie.letters.size > 1) {
+        validate(trie, trie.letters.head, trie.letters.last)
+      }
+    }
+  }
+
+  property("changed exist letter to non exist letter") {
+    def validate(trie: V, keepLetter: Letter, changeLetter: Letter): Assertion = {
+      val beforeWordsSize = trie.words.size
+      val beforeLettersSize = trie.letters.size
+      val newTrie = trie.replace(keepLetter, changeLetter)
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      newTrie.letters should have size beforeLettersSize
+      newTrie.words should have size beforeWordsSize
+      trie should not equal newTrie
+      found shouldBe empty
+    }
+
+    forAll(SizeRange(15), maxDiscardedFactor(100.0)) { (trie: V, nonExists: Letter) =>
+      whenever(trie.letters.nonEmpty && !trie.letters.contains(nonExists)) {
+        validate(trie, nonExists, trie.letters.head)
+      }
+    }
+  }
+
+  property("changed non exist letter keeps the trie the same") {
+    def validate(trie: V, keepLetter: Letter, changeLetter: Letter): Assertion = {
+      val beforeWordsSize = trie.words.size
+      val beforeLettersSize = trie.letters.size
+      val newTrie = trie.replace(keepLetter, changeLetter)
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      newTrie.letters should have size beforeLettersSize
+      trie.words should have size beforeWordsSize
+      newTrie shouldBe trie
+      found shouldBe empty
+    }
+
+    forAll(SizeRange(15), maxDiscardedFactor(100.0)) { (trie: V, nonExists: Letter) =>
+      whenever(!trie.letters.contains(nonExists)) {
+        validate(trie, trie.letters.headOption.getOrElse(nonExists), nonExists)
+      }
+    }
+  }
+
+  property("Should find same explicit words in all graphs") {
+    forAll(minSize(1)) { trie: V =>
+      whenever(trie.nonEmpty) {
+        val byLength = trie.words.groupBy(_.length)
+        for ((key, words) <- byLength) {
+          val regex = 0 until key map Hole[Letter, Int]
+          trie.findRegexWords(regex) shouldEqual words
+          for (i <- 0 until key) {
+            val byValue = words.groupBy(_ (i))
+            for ((v, vWords) <- byValue) {
+              trie.findRegexWords(regex.updated(i, Explicit(v))) shouldEqual vWords
+            }
+          }
+        }
+      }
+    }
+  }
 }

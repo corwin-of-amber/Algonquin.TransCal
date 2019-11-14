@@ -59,7 +59,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       metadatas(newKey) = metadatas.getOrElse(newKey, EmptyMetadata).merge(metadatas((target, edgeType, sources)))
       metadatas.remove((target, edgeType, sources))
     }
-    vocabulary replace (Left(keep), Left(change))
+    vocabulary replaceInPlace (Left(keep), Left(change))
     this
   }
 
@@ -74,7 +74,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
       metadatas.remove((target, edgeType, sources))
     }
 
-    vocabulary replace(Right(keep), Right(change))
+    vocabulary replaceInPlace (Right(keep), Right(change))
     this
   }
 
