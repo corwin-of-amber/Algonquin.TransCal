@@ -39,7 +39,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
         FlattenMetadata)
     }
 
-    val newGraph = state.graph.++(newFuncEdges)
+    val newGraph = state.graph.++(newFuncEdges.filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor")))
     (new RewriteSearchState(newGraph), currentVersion)
   }
 }
