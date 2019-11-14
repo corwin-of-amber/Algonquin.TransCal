@@ -2,7 +2,6 @@ package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.VocabularyLike.Word
-import structures.generic
 
 import scala.collection.{immutable, mutable}
 
@@ -41,9 +40,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   def +=(word: Word[Letter]): this.type = if (words.contains(word)) this else addRecursive(word, word)
 
-  override def replace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
+  override def replace(keep: Letter, change: Letter): Trie[Letter] = clone.replaceInPlace(keep, change)
 
-  def replaceNotInPlace(keep: Letter, change: Letter): Trie[Letter] = Trie(this.words).replace(keep, change)
+  override def replaceInPlace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
 
   override def -(word: Word[Letter]): Trie[Letter] = if (!words.contains(word)) this else Trie[Letter](this.words) -= word
 

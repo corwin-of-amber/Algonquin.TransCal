@@ -1,7 +1,5 @@
 package transcallang
 
-import synthesis.Programs
-
 trait Namespace {
 
 }

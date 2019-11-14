@@ -4,7 +4,6 @@ import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.ObservationalEquivalence.logger
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator

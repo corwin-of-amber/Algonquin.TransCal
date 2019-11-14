@@ -1,12 +1,10 @@
 package synthesis.actions.operators
 
-import structures.{EmptyMetadata, HyperEdge}
-import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
 import synthesis.search.Operator
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.{HyperTermId, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 import scala.collection.mutable

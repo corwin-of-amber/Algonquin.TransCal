@@ -3,7 +3,6 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
-import structures.immutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.Template.TemplateTerm
 import synthesis.search.VersionedOperator
