@@ -62,14 +62,14 @@ trait VocabularyTest[
 
   property("empty find prefix returns all") {
     forAll { trie: V =>
-      trie.words shouldEqual trie.findRegexWords(Seq(Repetition.rep0[Letter, Int](Int.MaxValue, Ignored()).get))
+      trie.words shouldEqual trie.findRegexWords(Seq(Repetition.rep0[Letter, Int](Int.MaxValue, Ignored())))
     }
   }
 
   property("added should be findable as sparse") {
     forAll { trie: V =>
       for (word <- trie.words) {
-        val repetitionInf = Repetition.rep0[Letter, Int](Int.MaxValue, Ignored()).get
+        val repetitionInf = Repetition.rep0[Letter, Int](Int.MaxValue, Ignored())
         val regex = word.flatMap(i => Seq(repetitionInf, Explicit(i))) :+ repetitionInf
         trie.findRegexWords(regex) should contain (word)
       }
@@ -100,7 +100,7 @@ trait VocabularyTest[
     forAll { trie: V =>
       whenever(trie.size > 100 && trie.words.exists(_.length > 3)) {
         trie.words.filter(_.length > 3).forall(w =>
-          trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Letter, Int](Int.MaxValue, Ignored()).get))
+          trie.findRegexWords(Seq(Hole(0), Hole(1), Hole(2), Explicit(w(3)), Repetition.rep0[Letter, Int](Int.MaxValue, Ignored())))
             .forall(_(3) == w(3))) shouldBe true
       }
     }
@@ -122,7 +122,7 @@ trait VocabularyTest[
     def validate(trie: V, keepLetter: Letter, changeLetter: Letter): Assertion = {
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       newTrie.letters should have size beforeLettersSize - 1
       trie should not equal newTrie
       found shouldBe empty
@@ -140,7 +140,7 @@ trait VocabularyTest[
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       newTrie.letters should have size beforeLettersSize
       newTrie.words should have size beforeWordsSize
       trie should not equal newTrie
@@ -159,7 +159,7 @@ trait VocabularyTest[
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       newTrie.letters should have size beforeLettersSize
       trie.words should have size beforeWordsSize
       newTrie shouldBe trie

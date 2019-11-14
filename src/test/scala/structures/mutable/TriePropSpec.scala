@@ -16,7 +16,7 @@ class TriePropSpec extends VocabularyTest[Int, Trie[Int]] {
       val beforeWordsSize = trie.words.size
       val beforeLettersSize = trie.letters.size
       val newTrie = trie.replaceInPlace(keepLetter, changeLetter)
-      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored()).get))
+      val found = newTrie.findRegex(Seq(Repetition.rep0(Int.MaxValue, Ignored()), Explicit(changeLetter), Repetition.rep0(Int.MaxValue, Ignored())))
       newTrie.letters should have size beforeLettersSize
       newTrie.words should have size beforeWordsSize
       trie shouldBe newTrie
