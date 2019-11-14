@@ -1,13 +1,13 @@
 package synthesis.actions.operators
 
+import structures.Metadata
 import structures.generic.HyperGraph
-import structures.{HyperGraphLike, Metadata}
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs, RewriteRulesDB}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.Operator
-import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs, RewriteRulesDB}
 import transcallang.AnnotatedTree._
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   require(terms.forall(_.subtrees.isEmpty))

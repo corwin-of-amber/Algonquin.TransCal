@@ -10,4 +10,6 @@ import scala.collection.mutable
   */
 trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with mutable.Set[Word[Letter]]]
   extends structures.VocabularyLike[Letter, This] with mutable.SetLike[Word[Letter], This] {
+
+  def replaceInPlace(keep: Letter, change: Letter): Trie[Letter]
 }

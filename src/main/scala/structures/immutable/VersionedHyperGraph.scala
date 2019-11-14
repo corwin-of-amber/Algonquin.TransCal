@@ -1,7 +1,6 @@
 package structures.immutable
 
 import structures._
-import structures.generic.HyperGraph.HyperGraphPattern
 import structures.generic.{HyperGraphLikeGenericCompanion, VersionedHyperGraphLike}
 
 import scala.collection.{GenTraversableOnce, mutable}
@@ -11,14 +10,14 @@ import scala.collection.{GenTraversableOnce, mutable}
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], val version: Long, mapByVersion: Map[Long, HyperGraph[Node, EdgeType]])
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], val version: Long, mapByVersion: Map[Long, HyperGraph[Node, EdgeType]], locked: Boolean)
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped)
     with VersionedHyperGraphLike[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]] {
 
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped))
+    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped), false)
   }
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
@@ -35,8 +34,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
       val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) + hyperEdge))
       new VersionedHyperGraph(
         wrapped.+(hyperEdge),
-        version + 1,
-        newMapByVersion
+        if (!isLocked) version + 1 else version,
+        newMapByVersion,
+        isLocked
       )
     }
   }
@@ -54,8 +54,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
       val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ newEdges))
       new VersionedHyperGraph(
         wrapped.++(newEdges),
-        version + 1,
-        newMapByVersion
+        if (!isLocked) version + 1 else version,
+        newMapByVersion,
+        isLocked
       )
     }
   }
@@ -72,8 +73,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     // Handle version
     new VersionedHyperGraph(
       newWrapped,
-      version + 1,
-      newMapByVersion
+      if (!isLocked) version + 1 else version,
+      newMapByVersion,
+      isLocked
     )
   }
 
@@ -89,8 +91,9 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     // Handle version
     new VersionedHyperGraph(
       newWrapped,
-      version + 1,
-      newMapByVersion
+      if (!isLocked) version + 1 else version,
+      newMapByVersion,
+      isLocked
     )
   }
 
@@ -104,8 +107,7 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     new mutable.ListBuffer[HyperEdge[Node, EdgeType]].mapResult {
       parts => {
         val innerHyperGraph = VocabularyHyperGraph(parts: _*)
-        val newMapByVersion = mapByVersion + ((version, mapByVersion.getOrElse(version, HyperGraph.empty) ++ innerHyperGraph))
-        new VersionedHyperGraph(innerHyperGraph, version + 1, newMapByVersion)
+        new VersionedHyperGraph(innerHyperGraph, 1, Map(0L -> innerHyperGraph), false)
       }
     }
 
@@ -114,6 +116,16 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   override protected def getVersions: Map[Long, generic.HyperGraph[Node, EdgeType]] = mapByVersion
 
   override def currentVersion: Long = version
+
+  override def isLocked: Boolean = locked
+
+  override def lockVersions(): VersionedHyperGraph[Node, EdgeType] = {
+    new VersionedHyperGraph(wrapped, version, mapByVersion, true)
+  }
+
+  override def unlockVersions(): VersionedHyperGraph[Node, EdgeType] = {
+    new VersionedHyperGraph(wrapped, if (mapByVersion.contains(version)) version + 1 else version, mapByVersion, false)
+  }
 }
 
 object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {

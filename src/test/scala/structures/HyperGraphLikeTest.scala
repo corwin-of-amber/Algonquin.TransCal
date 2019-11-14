@@ -224,7 +224,7 @@ trait HyperGraphLikeTest[Node,
     }
   }
 
-  property("find graph finds edge and replacer") {
+  property("find graph finds function edge and param edge") {
     forAll { es: Set[HyperEdge[Node, EdgeType]] =>
       whenever(es.exists(usedEdge => es.exists(usingEdge => usingEdge.sources.contains(usedEdge.target)))) {
         val g = grapher(es)
@@ -234,8 +234,8 @@ trait HyperGraphLikeTest[Node,
               HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored()))), EmptyMetadata),
               HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
             ))
-            val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).headOption.map(_._1)
-            results.nonEmpty && results.get(0) == e.sources(i)
+            val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).map(_._1)
+            results.nonEmpty && results.exists(m => m(0) == e.sources(i))
           }
         }) shouldEqual true
       }

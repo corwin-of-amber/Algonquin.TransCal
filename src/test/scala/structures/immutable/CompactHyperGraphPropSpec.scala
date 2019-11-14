@@ -1,8 +1,6 @@
 package structures.immutable
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, PropSpec}
-import org.scalatestplus.scalacheck.Checkers
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 import synthesis.rewrites.Template.ExplicitTerm
@@ -12,7 +10,7 @@ import transcallang.{Identifier, Language, TranscalParser}
 import scala.util.Random
 
 
-class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers with HyperGraphLikeTest[Int, Int, CompactHyperGraph[Int, Int], CompactHyperGraph[Item[Int, Int], Item[Int, Int]]] {
+class CompactHyperGraphPropSpec extends HyperGraphLikeTest[Int, Int, CompactHyperGraph[Int, Int], CompactHyperGraph[Item[Int, Int], Item[Int, Int]]] {
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
   implicit def graphCreator: Arbitrary[CompactHyperGraph[Int, Int]] = Arbitrary(compactIntegerGraphGen)
   override implicit def nodeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
@@ -33,8 +31,8 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
 
   property("Compactions works correctly on mutliple swithces of same var") {
     val graphs = Programs.destructPatterns(new TranscalParser().apply("(?x ≤ ?y) ||> min(x, y) >> id x").subtrees)
-    check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head)
-    check(graphs(1).edges.head.sources.head == graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head)
+    graphs(1).edges.head.sources.head shouldEqual graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "≤").get.sources.head
+    graphs(1).edges.head.sources.head shouldEqual graphs.head.edges.find(_.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value.identifier.literal == "min").get.sources.head
   }
 
   property("Compation works correctly when adding precondition after creation") {
@@ -104,8 +102,8 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
     }
 
     val maps = graph.findSubgraph[Int](pattern)
-    check(asHoles.forall(vh => {
-      maps.groupBy(_._1(vh._2)).forall(vAndMaps => {
+    for (vh <- asHoles) {
+      for (vAndMaps <- maps.groupBy(_._1(vh._2))) {
         val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
         if (!updatedMaps.subsetOf(graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))))) {
           println(s"working on $vh with $vAndMaps")
@@ -114,13 +112,13 @@ class CompactHyperGraphPropSpec extends PropSpec with Checkers with Matchers wit
           println(s"new maps: $updatedMaps")
           println(s"subgraph results ${graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))}")
         }
-        updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
-      })
-    }))
+        (updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))) shouldBe true
+      }
+    }
   }
 
   property("Compaction works for edges with changed sources") {
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
-    check(graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)).size == 2)
+    graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)) should have size 2
   }
 }

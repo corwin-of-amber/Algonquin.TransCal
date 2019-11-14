@@ -2,7 +2,6 @@ package structures
 
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 
-import scala.collection.generic.Shrinkable
 import scala.collection.{GenTraversableOnce, SetLike}
 
 /** A hyper graph from many to one.

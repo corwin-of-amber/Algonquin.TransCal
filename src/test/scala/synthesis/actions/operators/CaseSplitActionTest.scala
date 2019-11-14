@@ -43,8 +43,8 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     state = new DefAction(parser apply "filter p (filter q (x :: y :: ⟨⟩)) = filter p (filter q l)")(state)
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
-    state = new OperatorRunAction(maxSearchDepth = 4)(state)
-    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = None)
+    state = new OperatorRunAction(maxSearchDepth = 6)(state)
+    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(2), maxDepthOption = Some(6))
       .getFoundConclusions(state)
     res.exists(_.size > 1) shouldBe true
   }

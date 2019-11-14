@@ -3,9 +3,7 @@ package structures.mutable
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, PropSpec}
 import structures.HyperGraphLike.HyperEdgePattern
-import structures._
-
-import scala.util.Random
+import structures.{HyperEdge, Item}
 
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{

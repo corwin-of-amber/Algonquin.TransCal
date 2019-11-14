@@ -1,7 +1,5 @@
 package scala.collection.mutable
 
-import java.util
-
 import scala.collection.mutable
 
 class UnionFind[T](all: collection.Seq[T]) {

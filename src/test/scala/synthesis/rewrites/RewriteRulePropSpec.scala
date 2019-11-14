@@ -1,9 +1,8 @@
 package synthesis.rewrites
 
 import org.scalacheck.Arbitrary
-import org.scalacheck.Prop.{BooleanOperators, forAll}
-import org.scalatest.PropSpec
-import org.scalatestplus.scalacheck.Checkers
+import org.scalatest.{Matchers, PropSpec}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures._
 import structures.immutable.{CompactHyperGraph, HyperGraph}
 import synthesis.rewrites.RewriteRule.HyperPattern
@@ -14,7 +13,7 @@ import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 12/18/18
   */
-class RewriteRulePropSpec extends PropSpec with Checkers {
+class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
   private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
   private implicit val hyperPatternCreator: Arbitrary[RewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
   private implicit val rewriteRuleCreator: Arbitrary[RewriteRule] = Arbitrary(rewriteRuleGen)
@@ -22,11 +21,10 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
 
   property("Every state keep old edges") {
     // Not necessarily true because of compaction
-    check(forAll { (rewriteRule: RewriteRule, state: RewriteSearchState) => {
+    forAll { (rewriteRule: RewriteRule, state: RewriteSearchState) =>
       val newState = rewriteRule.apply(state)
       (state.graph.edges -- newState.graph.edges).isEmpty
     }
-    })
   }
 
 //  property("If rewrites are equal then hash is equal") {
@@ -70,10 +68,10 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
   //  }
 
   property("Every state adds an edge") {
-    check(forAll { (conditions: HyperPattern, destinationEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =>
+    forAll { (conditions: HyperPattern, destinationEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =>
       // Cant have illegal conditions or conditions containing destination
-      (conditions.edges.forall(e1 => (conditions.edges.toSeq :+ destinationEdge).forall(e2 => e1 == e2 || (e1.edgeType != e2.edgeType || e1.sources != e2.sources))) &&
-        !generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1)).contains(destinationEdge)) ==> {
+      whenever(conditions.edges.forall(e1 => (conditions.edges.toSeq :+ destinationEdge).forall(e2 => e1 == e2 || (e1.edgeType != e2.edgeType || e1.sources != e2.sources))) &&
+        !generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1)).contains(destinationEdge)) {
         val destination = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(destinationEdge.target), ExplicitTerm(destinationEdge.edgeType), destinationEdge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)
         // At most one
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
@@ -87,7 +85,7 @@ class RewriteRulePropSpec extends PropSpec with Checkers {
         if (willMerge.isEmpty) (newState.graph.edges -- tempProgs.hyperGraph.edges).size == 1
         else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
       }
-    })
+    }
   }
 }
 

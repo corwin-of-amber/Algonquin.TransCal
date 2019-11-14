@@ -66,11 +66,13 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   /* --- Private Methods --- */
   private def compact(hyperEdges: List[HyperEdge[Node, EdgeType]],
                       changedToKept: mutable.Map[Node, Node]): this.type = {
+    wrapped.lockVersionsInPlace()
     innerCompact(hyperEdges, changedToKept)
+    wrapped.unlockVersionsInPlace()
     this
   }
 
-  private def innerCompact(hyperEdges: List[HyperEdge[Node, EdgeType]],
+  protected def innerCompact(hyperEdges: List[HyperEdge[Node, EdgeType]],
                       changedToKept: mutable.Map[Node, Node]): this.type = {
     def translateEdge(e: HyperEdge[Node, EdgeType], changedToKept: mutable.Map[Node, Node]): HyperEdge[Node, EdgeType] =
       e.copy(target = changedToKept.getOrElse(e.target, e.target), sources = e.sources.map(x => changedToKept.getOrElse(x, x)))

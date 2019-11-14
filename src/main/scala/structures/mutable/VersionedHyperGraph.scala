@@ -1,7 +1,6 @@
 package structures.mutable
 
 import structures._
-import structures.generic.HyperGraph.HyperGraphPattern
 import structures.generic.{HyperGraphLikeGenericCompanion, VersionedHyperGraphLike}
 
 import scala.collection.mutable
@@ -11,19 +10,19 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], var version: Long, var mapByVersion: Map[Long, HyperGraph[Node, EdgeType]])
+class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[Node, EdgeType], var version: Long, var mapByVersion: Map[Long, HyperGraph[Node, EdgeType]], var locked: Boolean)
   extends WrapperHyperGraph[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]](wrapped)
     with VersionedHyperGraphLike[Node, EdgeType, VersionedHyperGraph[Node, EdgeType]] {
 
   /* --- Constructors --- */
 
   def this(wrapped: VocabularyHyperGraph[Node, EdgeType]) = {
-    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped.copyBuilder.result()))
+    this(wrapped, VersionedHyperGraphLike.STATIC_VERSION + 1, Map(VersionedHyperGraphLike.STATIC_VERSION -> wrapped.clone), false)
   }
 
   /* --- Public Methods --- */
 
-  override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mapByVersion)
+  override def clone = new VersionedHyperGraph[Node, EdgeType](wrapped.clone, version, mapByVersion.mapValues(g => g.clone), isLocked)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -37,7 +36,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     if (!contains(hyperEdge)) {
       wrapped += hyperEdge
       mapByVersion = mapByVersion updated (version, mapByVersion.getOrElse(version, HyperGraph.empty) += hyperEdge)
-      version += 1
+      if (!isLocked)
+        version += 1
     }
     this
   }
@@ -53,7 +53,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     if (newEdges.nonEmpty) {
       wrapped ++= newEdges
       mapByVersion = mapByVersion updated (version, mapByVersion.getOrElse(version, HyperGraph.empty) ++= newEdges)
-      version += 1
+      if (!isLocked)
+        version += 1
     }
     this
   }
@@ -68,7 +69,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     // Handle wrapped
     wrapped.mergeEdgeTypesInPlace(keep, change)
     // Handle version
-    version += 1
+    if (!isLocked)
+      version += 1
     this
   }
 
@@ -83,7 +85,8 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
     wrapped.mergeNodesInPlace(keep, change)
 
     // Handle version
-    version += 1
+    if (!isLocked)
+      version += 1
     this
   }
 
@@ -105,6 +108,24 @@ class VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph[
   override protected def getVersions: Map[Long, generic.HyperGraph[Node, EdgeType]] = mapByVersion
 
   override def currentVersion: Long = version
+
+  override def isLocked: Boolean = locked
+
+  override def lockVersions(): VersionedHyperGraph[Node, EdgeType] = clone.lockVersionsInPlace()
+
+  override def unlockVersions(): VersionedHyperGraph[Node, EdgeType] = clone.unlockVersionsInPlace()
+
+  def lockVersionsInPlace(): VersionedHyperGraph[Node, EdgeType] = {
+    locked = true;
+    this
+  }
+
+  def unlockVersionsInPlace(): VersionedHyperGraph[Node, EdgeType] = {
+    locked = false;
+    if (mapByVersion.contains(version))
+      version += 1
+    this
+  }
 }
 
 object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {

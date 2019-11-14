@@ -32,7 +32,6 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
     // TODO: Don't use filter if it is O(n)
 
     // Change apply to function
-    // TODO: Test this
     val currentVersion = state.graph.version
     val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (

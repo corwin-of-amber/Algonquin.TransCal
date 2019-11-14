@@ -1,7 +1,7 @@
 package structures.generic
 
 import structures.generic.HyperGraph.HyperGraphPattern
-import structures.{HyperEdge, HyperGraphLike, Item, UnionMetadata}
+import structures.{HyperEdge, HyperGraphLike, Item}
 
 trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[Node, EdgeType, This] with scala.collection.Set[structures.HyperEdge[Node,EdgeType]]] extends HyperGraphLike[Node, EdgeType, This]{
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
@@ -15,6 +15,7 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
     hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+    if (isLocked) throw new RuntimeException("Can't use find versioned while versions are locked")
     if (version == 0) getHyperGraph.findSubgraph[Id](hyperPattern)
     (for (
       relevantVersionGraph <- getVersions.filterKeys(_ >= version).values;
@@ -29,6 +30,10 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
       getHyperGraph.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
     }).flatten.toSet
   }
+
+  def isLocked: Boolean
+  def lockVersions(): This
+  def unlockVersions(): This
 }
 
 object VersionedHyperGraphLike {

@@ -1,9 +1,8 @@
 package synthesis.complexity
 
-import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{Matchers, PropSpec}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.complexity.Complexity._
 
 /**
@@ -11,7 +10,7 @@ import synthesis.complexity.Complexity._
   * @author Tomer
   * @since 20/05/19
   */
-class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
+class ComplexityOpPropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
   val containerComplexityGen: Gen[ContainerComplexity] = synthesis.identifierTreesGen.map(ContainerComplexity)
   private implicit val containerComplexityCreator: Arbitrary[ContainerComplexity] = Arbitrary(containerComplexityGen)
 
@@ -22,14 +21,14 @@ class ComplexityOpPropSpec extends PropSpec with Checkers with Matchers {
   private implicit val multipleComplexityCreator: Arbitrary[MultipleComplexity] = Arbitrary(multipleComplexityGen)
 
   property("add of add is flatten") {
-    check(forAll { addComplexity: AddComplexity =>
+    forAll { addComplexity: AddComplexity =>
       (addComplexity + addComplexity).complexities.forall(!_.isInstanceOf[AddComplexity])
-    })
+    }
   }
 
   property("mul of mul is flatten") {
-    check(forAll { multipleComplexity: MultipleComplexity =>
+    forAll { multipleComplexity: MultipleComplexity =>
       (multipleComplexity * multipleComplexity).complexities.forall(!_.isInstanceOf[MultipleComplexity])
-    })
+    }
   }
 }
