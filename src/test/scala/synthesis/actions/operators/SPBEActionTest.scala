@@ -10,18 +10,21 @@ import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
   val parser = new TranscalParser
 
+  val predicate = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
+  val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
+  val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
   val listInt = AnnotatedTree.withoutAnnotations(Language.typeListId, Seq(Language.typeInt))
   val listInttoListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, listInt))
   val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
   val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
-  val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
-  val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
+  val predicateToListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicate, listInt, listInt))
   val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
   val typedSnoc = Language.snocId.copy(annotation = Some(listIntToIntToListInt))
   val nil = AnnotatedTree.identifierOnly(Language.nilId.copy(annotation = Some(listInt)))
   val xnil = AnnotatedTree.withoutAnnotations(typedCons, Seq(x, nil))
   val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
   val reverse = AnnotatedTree.identifierOnly(Identifier("reverse", annotation = Some(listInttoListInt)))
+  val filter =  AnnotatedTree.identifierOnly(Identifier("filter", annotation = Some(predicateToListIntToListInt)))
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
   val listPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{list(int)}", annotation = Some(listInt)))
@@ -86,8 +89,58 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
     reversePlaceholderTwice shouldEqual true
   }
 
+  test("testSygusStep can find filter p (filter p l)") {
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
+    val state2 = action.sygusStep(state1)
+    val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("filter ?p (filter ?p ?l)"))).head
+    val results1 = state2.graph.findSubgraph[Int](pattern1)
+    results1 should not be empty
+  }
+
+  test("test find that filter p (filter p l) == filter p l") {
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(ActionSearchState(Programs.empty, Set.empty))
+    aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
+    var state = action.sygusStep(new RewriteSearchState(action.baseGraph))
+    state = action.sygusStep(state)
+    val equives = action.findEquives(state, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules)
+    equives should not be empty
+    equives.forall({ s => s.forall(state.graph.nodes.contains) }) should be(true)
+    val programs = Programs(state.graph)
+    val terms = equives.map(s => s.map(id => programs.reconstruct(id)))
+    val correctSet = terms.map(_.map(_.toList)).find(s =>
+      s.exists(l =>
+        l.exists(t =>
+          t.root.literal == filter.root.literal
+            && t.subtrees.size == 2
+            && t.subtrees(1).root.literal == filter.root.literal
+            && t.subtrees(1).subtrees.size == 2
+            && t.subtrees(1).subtrees(1).root.copy(annotation = None) == listPh.root.copy(annotation = None))))
+    correctSet should not be empty
+    println("Found correct set of equives")
+    print(correctSet.get)
+    val filterOnce = correctSet.get.exists(_.exists(t => t.root.literal == filter.root.literal
+      && t.subtrees(1).root.copy(annotation = None) == listPh.root.copy(annotation = None)))
+    filterOnce shouldEqual true
+  }
+
+  test("Induction step for filter p (filter p l) == filter p l using case splitting") {
+    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+    state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
+    state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
+    val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
+    val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
+    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4, termDepth = 2)
+    val predicate = spbeAction.createPlaceholder(predicateType, 0)
+    val list = spbeAction.createPlaceholder(listInt, 0)
+    val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
+    val filterfilter = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(AnnotatedTree.identifierOnly(predicate), filterOnPhs))
+    spbeAction.inductionStep(state, filterfilter, filterOnPhs) should not be empty
+  }
+
   test("testSygusStep can find reverse(l :+ x) and (x :: reverse(l))") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse(_ :+ _)"))).head
@@ -173,18 +226,4 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
 //    val anchorTarget = successfulState.programs.hyperGraph.findByEdgeType(lAnchor).head.target
 //    lTarget shouldEqual anchorTarget
 //  }
-
-  test("Induction step for filter p (filter p l) == filter p l using case splitting") {
-    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
-    state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
-    state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
-    val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
-    val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
-    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4, termDepth = 2)
-    val predicate = spbeAction.createPlaceholder(predicateType, 0)
-    val list = spbeAction.createPlaceholder(listInt, 0)
-    val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
-    val filterfilter = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(AnnotatedTree.identifierOnly(predicate), filterOnPhs))
-    spbeAction.inductionStep(state, filterfilter, filterOnPhs) should not be empty
-  }
 }
