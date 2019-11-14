@@ -1,6 +1,5 @@
 package structures.generic
 
-import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 
 trait HyperGraph[Node, EdgeType]

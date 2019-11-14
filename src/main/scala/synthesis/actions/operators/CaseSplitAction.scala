@@ -1,13 +1,12 @@
 package synthesis.actions.operators
 
 import structures.{HyperEdge, IdMetadata, Uid}
-import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.ObservationalEquivalence.{anchorStart, createAnchor}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{Identifier, Language}
+import transcallang.Identifier
 
 
 /** Case split action splits a variable into options specified by the splitter edge. Variable edges are deleted to

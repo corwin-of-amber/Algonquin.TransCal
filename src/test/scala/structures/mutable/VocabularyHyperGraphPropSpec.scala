@@ -5,8 +5,6 @@ import org.scalatest.{Matchers, PropSpec}
 import structures.HyperGraphLike.HyperEdgePattern
 import structures.{HyperEdge, Item}
 
-import scala.util.Random
-
 
 class VocabularyHyperGraphPropSpec extends PropSpec with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)

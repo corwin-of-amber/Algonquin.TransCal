@@ -1,7 +1,7 @@
 package synthesis.actions.operators
 
-import structures.{IdMetadata, Uid, UnionMetadata}
-import synthesis.{HyperTermIdentifier, Programs}
+import structures.{IdMetadata, Uid}
+import synthesis.Programs
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.CaseSplitAction.SplitChooser
 import synthesis.rewrites.RewriteSearchState

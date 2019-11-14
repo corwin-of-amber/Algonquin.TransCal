@@ -2,7 +2,6 @@ package structures.mutable
 
 import org.scalacheck.Arbitrary
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.actions.ActionSearchState

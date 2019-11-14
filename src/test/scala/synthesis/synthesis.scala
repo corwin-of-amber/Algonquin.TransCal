@@ -1,7 +1,6 @@
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import transcallang.AnnotatedTree
-import transcallang.Identifier
+import transcallang.{AnnotatedTree, Identifier}
 
 import scala.util.Random
 

@@ -1,11 +1,9 @@
 package structures.immutable
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, PropSpec}
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 import structures.generic.VersionedHyperGraphLikeTest
-import structures.mutable.integerLetterGen
 
 
 class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{

@@ -1,8 +1,5 @@
 package structures.generic
 
-import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.HyperGraphLike.HyperEdgePattern
 import structures.{EmptyMetadata, Explicit, HyperEdge, HyperGraphLike, HyperGraphLikeTest, Item}
 

@@ -1,7 +1,5 @@
 package structures
 
-import scala.collection.mutable
-
 /**
   * @author tomer
   * @since 12/25/18

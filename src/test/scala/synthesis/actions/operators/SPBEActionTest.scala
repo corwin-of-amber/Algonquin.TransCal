@@ -1,10 +1,10 @@
 package synthesis.actions.operators
 
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
-import synthesis.actions.ActionSearchState
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis._
+import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
