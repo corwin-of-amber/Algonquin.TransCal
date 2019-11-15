@@ -1,6 +1,5 @@
 package synthesis.actions.operators
 
-import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.actions.ActionSearchState

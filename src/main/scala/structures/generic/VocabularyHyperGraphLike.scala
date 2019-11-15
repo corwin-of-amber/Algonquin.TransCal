@@ -5,7 +5,6 @@ import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
 
-import scala.collection.generic.Shrinkable
 import scala.collection.mutable
 
 trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike[Node, EdgeType, This] with collection.Set[HyperEdge[Node, EdgeType]]]

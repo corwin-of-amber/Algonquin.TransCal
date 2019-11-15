@@ -28,7 +28,6 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     // Change apply to function
-    // TODO: Test this
     val currentVersion = state.graph.version
     val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
     val newFuncEdges = for (
@@ -40,7 +39,7 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] {
         FlattenMetadata)
     }
 
-    val newGraph = state.graph.++(newFuncEdges)
+    val newGraph = state.graph.++(newFuncEdges.filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor")))
     (new RewriteSearchState(newGraph), currentVersion)
   }
 }

@@ -2,7 +2,8 @@ package structures
 
 import structures.VocabularyLike.Word
 import structures.immutable.Trie
-import collection.immutable.Set
+
+import scala.collection.immutable.Set
 
 /**
   * @author tomer

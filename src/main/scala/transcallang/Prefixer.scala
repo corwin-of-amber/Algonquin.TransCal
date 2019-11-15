@@ -1,7 +1,5 @@
 package transcallang
 
-import transcallang.AnnotatedTree
-
 import scala.util.parsing.combinator._
 
 /** A dynamic trait of parsers to add new prefix operators in parse time.

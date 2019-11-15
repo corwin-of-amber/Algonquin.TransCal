@@ -1,13 +1,12 @@
 package synthesis.actions.operators
 
 import structures.{HyperEdge, IdMetadata, Uid}
-import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.ObservationalEquivalence.{anchorStart, createAnchor}
 import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{Identifier, Language}
+import transcallang.Identifier
 
 
 /** Case split action splits a variable into options specified by the splitter edge. Variable edges are deleted to
@@ -37,6 +36,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
 
   val obvEquiv = new ObservationalEquivalence(maxDepth = maxDepth)
   val opRun = new OperatorRunAction(maxDepth)
+  val preProcessor = new OperatorRunAction(2)
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
   : Set[Set[HyperTermId]] = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
@@ -55,7 +55,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     } else {
       // For each splitter edge:
       // 1. build new graphs
-      // TODO: 2. pre run ops when we will have versioning
+      // 2. pre run ops when
       // 3. enter recursively
       // TODO: 3a. early merge results into graph to help next steps
       // 3b. merge recursive results
@@ -67,13 +67,11 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         val targets = splitter.sources.tail
         val tempGraph = withAnchors.clone
         tempGraph -= splitter
-        tempGraph --= tempGraph.findByTarget(source).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor"))
         val results = targets.par.map(t => {
           // 1 + 2. pre run ops
-          // Clean translations of source
-//          val state = opRun.fromRewriteState(RewriteSearchState(withAnchors.mergeNodes(source, target)), rules)
+          val newState = preProcessor.fromRewriteState(RewriteSearchState(tempGraph.mergeNodes(source, t)), rules)
           // 3. Recursion
-          innerGetFoundConclusionsFromRewriteState(RewriteSearchState(tempGraph.mergeNodes(source, t)), rules, chosen :+ splitter)
+          innerGetFoundConclusionsFromRewriteState(newState, rules, chosen :+ splitter)
         }).seq
         // 3b. Merge recursion results
         ObservationalEquivalence.flattenIntersectConclusions(results)

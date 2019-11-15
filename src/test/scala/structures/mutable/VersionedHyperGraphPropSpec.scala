@@ -1,8 +1,8 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import structures.HyperGraphLike.HyperEdgePattern
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
+import structures.HyperGraphLike.HyperEdgePattern
 import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.actions.ActionSearchState
@@ -10,13 +10,17 @@ import synthesis.actions.operators.{DefAction, OperatorRunAction}
 import transcallang.TranscalParser
 
 
-class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]]{
+class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, VersionedHyperGraph[Int, Int], VersionedHyperGraph[Item[Int, Int], Item[Int, Int]]] {
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
+
   implicit def graphCreator: Arbitrary[VersionedHyperGraph[Int, Int]] = Arbitrary(versionedIntegerGraphGen)
+
   override implicit def nodeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
+
   override implicit def edgeTypeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)
 
   override def grapher(es: Set[HyperEdge[Int, Int]]): VersionedHyperGraph[Int, Int] = VersionedHyperGraph(es.toSeq: _*)
+
   override def patterner(es: Set[HyperEdgePattern[Int, Int, Int]]): VersionedHyperGraph[Item[Int, Int], Item[Int, Int]] = VersionedHyperGraph(es.toSeq: _*)
 
   property("all constructor") {
@@ -25,19 +29,21 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
     }
   }
 
-  property ("cloned inner versioned grpahs") {
-    forAll (minSize(2)) { es: Set[HyperEdge[Int, Int]] =>
+  property("cloned inner versioned grpahs") {
+    forAll(minSize(2)) { es: Set[HyperEdge[Int, Int]] =>
       whenever(es.size > 1) {
         val g = VersionedHyperGraph.empty[Int, Int]
         var lastVer = -1L
+        var lastEdge: HyperEdge[Int, Int] = null
         for (e <- es) {
           lastVer = g.currentVersion
+          lastEdge = e
           g += e
         }
-        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = HyperGraph(HyperEdge(Explicit(g.last.target), Explicit(g.last.edgeType), g.last.sources.map(s => Explicit(s)), EmptyMetadata))
+        val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = HyperGraph(HyperEdge(Explicit(lastEdge.target), Explicit(lastEdge.edgeType), lastEdge.sources.map(s => Explicit(s)), EmptyMetadata))
         g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
         val newG = g.clone
-        newG.mergeNodesInPlace(10000, g.last.target)
+        newG.mergeNodesInPlace(10000, lastEdge.target)
         g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
       }
     }
@@ -52,7 +58,7 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
       val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
-    val pattern:  structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+    val pattern: structures.immutable.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
       val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
       structures.immutable.HyperGraph(pEdges.toSeq: _*)
     }
@@ -74,18 +80,18 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
   }
 
   // TODO: Fix this - will only be true with copybuilder for compact graph
-//  property("test versions using existential rule while copying graph") {
-//    val parser = new TranscalParser
-//    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
-//    val rules = stateWithExistentialRule.rewriteRules
-//    rules.size shouldEqual 1
-//    val r = rules.head.asInstanceOf[RewriteRule]
-//    var curVer = stateWithExistentialRule.programs.hyperGraph.version
-//    val rewriteState = new RewriteSearchState(stateWithExistentialRule.programs.hyperGraph)
-//    val (state1, version1) = r(rewriteState, 0)
-//    val (state2, version2) = r(new RewriteSearchState(CompactHyperGraph(state1.graph.edges.toSeq: _*)), version1)
-//    val (state3, version3) = r(new RewriteSearchState(CompactHyperGraph(state2.graph.edges.toSeq: _*)), version2)
-//    version2 shouldEqual version1 + 1
-//    state3.graph.size shouldEqual 8
-//  }
+  //  property("test versions using existential rule while copying graph") {
+  //    val parser = new TranscalParser
+  //    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(ActionSearchState(Programs.empty, Set.empty))
+  //    val rules = stateWithExistentialRule.rewriteRules
+  //    rules.size shouldEqual 1
+  //    val r = rules.head.asInstanceOf[RewriteRule]
+  //    var curVer = stateWithExistentialRule.programs.hyperGraph.version
+  //    val rewriteState = new RewriteSearchState(stateWithExistentialRule.programs.hyperGraph)
+  //    val (state1, version1) = r(rewriteState, 0)
+  //    val (state2, version2) = r(new RewriteSearchState(CompactHyperGraph(state1.graph.edges.toSeq: _*)), version1)
+  //    val (state3, version3) = r(new RewriteSearchState(CompactHyperGraph(state2.graph.edges.toSeq: _*)), version2)
+  //    version2 shouldEqual version1 + 1
+  //    state3.graph.size shouldEqual 8
+  //  }
 }

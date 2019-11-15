@@ -1,10 +1,7 @@
 package structures.mutable
 
-import structures.HyperGraphLike.HyperEdgePattern
-import structures.{Explicit, Hole, HyperEdge, Item, generic}
 import structures.generic.HyperGraphLikeGenericCompanion
-import synthesis.{HyperTermId, HyperTermIdentifier}
-import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
+import structures.{Explicit, Hole, HyperEdge, Item}
 
 
 trait HyperGraph[Node, EdgeType]

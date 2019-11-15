@@ -1,7 +1,7 @@
 package structures.generic
 
 import structures.generic.HyperGraph.HyperGraphPattern
-import structures.{HyperEdge, HyperGraphLike, Item, UnionMetadata}
+import structures.{HyperEdge, HyperGraphLike, Item}
 
 trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[Node, EdgeType, This] with scala.collection.Set[structures.HyperEdge[Node,EdgeType]]] extends HyperGraphLike[Node, EdgeType, This]{
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
