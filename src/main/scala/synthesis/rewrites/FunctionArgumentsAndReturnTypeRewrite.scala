@@ -2,15 +2,15 @@ package synthesis.rewrites
 
 import structures._
 import structures.immutable.HyperGraph
-import synthesis.HyperTermIdentifier
+import synthesis.{HyperTermId, HyperTermIdentifier}
 import synthesis.rewrites.rewrites._
-import synthesis.search.VersionedOperator
+import synthesis.search.{StepOperator, VersionedOperator}
 import transcallang.Language
 
 
 /** This rewrite rule finds functions return types by looking on their types.
   */
-object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSearchState] {
+object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSearchState] with StepOperator[RewriteSearchState] {
 
   object ApplyTypeMetadata extends Metadata {
     override protected def toStr: String = "ApplyTypeMetadata"
@@ -42,6 +42,13 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
 
   override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
     val currentVersion = state.graph.version
+    val newFuncEdges = getNewEdges(state, version)
+
+    state.graph.++=(newFuncEdges)
+    (state, currentVersion)
+  }
+
+  private def getNewEdges(state: RewriteSearchState, version: Long) = {
     val newFuncEdges = state.graph.findSubgraphVersioned[Int](funcTypeGraph, version)
       .flatMap { case (idMap, _) =>
         val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
@@ -52,8 +59,30 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
         val returnHyperEdge = HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(idMap(functionApplicationHole.id), idMap(functionReturnTypeHole.id)), ApplyTypeMetadata)
         argumentsHyperEdges.toSet + returnHyperEdge
       }
+    newFuncEdges
+  }
 
-    val newGraph = state.graph.++(newFuncEdges)
-    (new RewriteSearchState(newGraph), currentVersion)
+  /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
+    * edges to the graph until all calculations of a step are done.
+    *
+    * @param state       current state from which to do the initial calculations and create an operator
+    * @param lastVersion Version to use if this is a versioned step operator
+    * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
+    */
+  override def getStep(state: RewriteSearchState, lastVersion: Long): VersionedOperator[RewriteSearchState] = new VersionedOperator[RewriteSearchState] {
+    val currentVersion = state.graph.version
+    val newFuncEdges = getNewEdges(state, lastVersion)
+
+    /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
+      * unless operator is existential
+      *
+      * @param state       state on which to run operator
+      * @param lastVersion version from which to look for matchers in state
+      * @return (new state after update, next relevant version)
+      */
+    override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
+      state.graph.++=(newFuncEdges)
+      (state, currentVersion)
+    }
   }
 }

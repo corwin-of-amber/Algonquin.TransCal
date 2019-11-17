@@ -3,9 +3,11 @@ package synthesis.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import structures.mutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
+import synthesis.rewrites.RewriteSearchState.HyperGraph
 import synthesis.rewrites.Template.TemplateTerm
-import synthesis.search.VersionedOperator
+import synthesis.search.{StepOperator, VersionedOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
 
@@ -14,10 +16,10 @@ import transcallang.{Identifier, Namespace}
   * @author tomer
   * @since 11/18/18
   */
-class RewriteRule (val premise: HyperPattern,
+class RewriteRule(val premise: HyperPattern,
                     val conclusion: HyperPattern,
                     val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
-                    val termString: String=null) extends VersionedOperator[RewriteSearchState] with LazyLogging {
+                    val termString: String=null) extends VersionedOperator[RewriteSearchState] with StepOperator[RewriteSearchState] with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
@@ -28,42 +30,53 @@ class RewriteRule (val premise: HyperPattern,
     case _ => true
   }))
 
+  private val mutablePremise = mutable.HyperGraph(premise.toSeq: _*)
   private val conclusionExpansionNeeded = conclusion.nodes.exists(_.isInstanceOf[Repetition[HyperTermId, Int]])
   private val conclusionMutable = mutable.CompactHyperGraph(conclusion.toSeq: _*).asInstanceOf[RewriteRule.MutableHyperPattern]
 
   // Add metadata creator
   override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
     logger.trace(s"Running rewrite rule $this")
-    val compactGraph = state.graph
-    val currentVersion = compactGraph.version
+    val currentVersion = state.graph.version
 
-    // Fill conditions - maybe subgraph matching instead of current temple
-    val premiseReferencesMaps = compactGraph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
-
-    if (premiseReferencesMaps.nonEmpty) {
-      val nextHyperId: () => HyperTermId = {
-        val creator = Stream.from(if (compactGraph.isEmpty) 0 else compactGraph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
-        () => creator.next
-      }
-
-      val newEdges = premiseReferencesMaps.flatMap(m => {
-        val meta = metaCreator(m._1, m._2).merge(metadataCreator(generic.HyperGraph.mergeMap(premise, m)))
-        val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
-        if (compactGraph.findSubgraph[Int](merged).nonEmpty) Seq.empty
-        else mutable.HyperGraph.fillWithNewHoles(merged, nextHyperId).map(e =>
-          e.copy(metadata = e.metadata.merge(meta)))
-      })
-
-      compactGraph ++= newEdges
-      if (newEdges.nonEmpty) {
-        logger.debug(s"Used RewriteRule $this ")
-      }
+    val halfFilledPatterns = fillConclusions(state, lastVersion)
+    if (halfFilledPatterns.nonEmpty) {
+      logger.debug(s"Used RewriteRule $this ")
     }
 
-    (new RewriteSearchState(compactGraph), currentVersion)
+    (addConclusionsToState(state, halfFilledPatterns), currentVersion)
   }
 
   /* --- Privates --- */
+
+  private def addConclusionsToState(state: RewriteSearchState,
+                                    halfFilledPatterns: Set[(mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]], Metadata)]) = {
+    if (halfFilledPatterns.nonEmpty) {
+      val nextHyperId: () => HyperTermId = {
+        val creator = Stream.from(if (state.graph.isEmpty) 0 else state.graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
+        () => creator.next
+      }
+
+      state.graph ++= halfFilledPatterns.flatMap({
+        case (p, meta) =>
+          mutable.HyperGraph.fillWithNewHoles(p, nextHyperId).map(e => e.copy(metadata = e.metadata.merge(meta)))
+      })
+    }
+
+    state
+  }
+
+  private def fillConclusions(state: RewriteSearchState, lastVersion: Long) = {
+    // Fill conditions - maybe subgraph matching instead of current temple
+    val premiseReferencesMaps = state.graph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
+    val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
+      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
+      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+      if (state.graph.findSubgraph[Int](merged).nonEmpty) None
+      else Some((merged, meta))
+    })
+    halfFilledPatterns
+  }
 
   val metadataCreator: RewriteRule.HyperPattern => RewriteRuleMetadata = RewriteRuleMetadata.curried(this)
 
@@ -91,6 +104,29 @@ class RewriteRule (val premise: HyperPattern,
       mutable.CompactHyperGraph(conclusionMutable.toSeq: _*).++=(existentialEdges)
     }
     else mutable.CompactHyperGraph(conclusionMutable.toSeq: _*)
+  }
+
+  /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
+    * edges to the graph until all calculations of a step are done.
+    *
+    * @param state current state from which to do the initial calculations and create an operator
+    * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
+    */
+  override def getStep(state: RewriteSearchState, lastVersion: Long): VersionedOperator[RewriteSearchState] = {
+    new VersionedOperator[RewriteSearchState] {
+      val currentVersion = state.graph.version
+      val graphsAndMetas = fillConclusions(state, lastVersion)
+
+      /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
+        * unless operator is existential
+        *
+        * @param state       state on which to run operator
+        * @param lastVersion version from which to look for matchers in state
+        * @return (new state after update, next relevant version)
+        */
+      override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) =
+        (addConclusionsToState(state, graphsAndMetas), currentVersion)
+    }
   }
 }
 
