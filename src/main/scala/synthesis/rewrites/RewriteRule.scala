@@ -6,9 +6,9 @@ import structures._
 import structures.mutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.TemplateTerm
+import synthesis.rewrites.Template.{ReferenceTerm, TemplateTerm}
 import synthesis.search.{StepOperator, VersionedOperator}
-import synthesis.{HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
 
 /** Rewrites a program to a new program.
@@ -17,9 +17,10 @@ import transcallang.{Identifier, Namespace}
   * @since 11/18/18
   */
 class RewriteRule(val premise: HyperPattern,
-                    val conclusion: HyperPattern,
-                    val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
-                    val termString: String=null) extends VersionedOperator[RewriteSearchState] with StepOperator[RewriteSearchState] with LazyLogging {
+                  val conclusion: HyperPattern,
+                  val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
+                  val termString: String = null) extends VersionedOperator[RewriteSearchState]
+  with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
@@ -43,27 +44,23 @@ class RewriteRule(val premise: HyperPattern,
     if (halfFilledPatterns.nonEmpty) {
       logger.debug(s"Used RewriteRule $this ")
     }
-
-    (addConclusionsToState(state, halfFilledPatterns), currentVersion)
+    state.graph ++= getConclusionsByState(state, halfFilledPatterns)
+    (state, currentVersion)
   }
 
   /* --- Privates --- */
 
-  private def addConclusionsToState(state: RewriteSearchState,
+  private def getConclusionsByState(state: RewriteSearchState,
                                     halfFilledPatterns: Set[(mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]], Metadata)]) = {
-    if (halfFilledPatterns.nonEmpty) {
-      val nextHyperId: () => HyperTermId = {
-        val creator = Stream.from(if (state.graph.isEmpty) 0 else state.graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
-        () => creator.next
-      }
-
-      state.graph ++= halfFilledPatterns.flatMap({
-        case (p, meta) =>
-          mutable.HyperGraph.fillWithNewHoles(p, nextHyperId).map(e => e.copy(metadata = e.metadata.merge(meta)))
-      })
+    val nextHyperId: () => HyperTermId = {
+      val creator = Stream.from(if (state.graph.isEmpty) 0 else state.graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
+      () => creator.next
     }
 
-    state
+    halfFilledPatterns.flatMap({
+      case (p, meta) =>
+        mutable.HyperGraph.fillWithNewHoles(p, nextHyperId).map(e => e.copy(metadata = e.metadata.merge(meta)))
+    })
   }
 
   private def fillConclusions(state: RewriteSearchState, lastVersion: Long) = {
@@ -112,21 +109,29 @@ class RewriteRule(val premise: HyperPattern,
     * @param state current state from which to do the initial calculations and create an operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, lastVersion: Long): VersionedOperator[RewriteSearchState] = {
-    new VersionedOperator[RewriteSearchState] {
-      val currentVersion = state.graph.version
-      val graphsAndMetas = fillConclusions(state, lastVersion)
+  override def getStep(state: RewriteSearchState, lastVersion: Long): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+    val graphsAndMetas = fillConclusions(state, lastVersion)
+    var maxHole = 0
 
-      /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
-        * unless operator is existential
-        *
-        * @param state       state on which to run operator
-        * @param lastVersion version from which to look for matchers in state
-        * @return (new state after update, next relevant version)
-        */
-      override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) =
-        (addConclusionsToState(state, graphsAndMetas), currentVersion)
+    def moveHoles(graph: mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+      def ifHoleMoveElseCopy[T <: HyperTerm](t: TemplateTerm[T]): TemplateTerm[T] = t match {
+        case r: ReferenceTerm[T] => ReferenceTerm[T](r.id + maxHole)
+        case a: TemplateTerm[T] => a
+      }
+
+      graph.edges.map(e => e.copy(ifHoleMoveElseCopy(e.target), ifHoleMoveElseCopy(e.edgeType), e.sources.map(ifHoleMoveElseCopy)))
     }
+
+    def toId[T <: HyperTerm](t: TemplateTerm[T]): Int = t match {
+      case t: ReferenceTerm[T] => t.id
+      case _ => 0
+    }
+
+    graphsAndMetas.filter(_._1.nonEmpty).flatMap({ case (g, m) =>
+      val moved = moveHoles(g).map(e => e.copy(metadata = e.metadata.merge(m)))
+      maxHole = moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max
+      moved
+    })
   }
 }
 

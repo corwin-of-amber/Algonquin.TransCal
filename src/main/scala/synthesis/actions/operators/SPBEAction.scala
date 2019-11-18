@@ -3,7 +3,7 @@ package synthesis.actions.operators
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
 import synthesis.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, RewriteSearchState}
-import synthesis.search.Operator
+import synthesis.search.{Operator, StepOperator}
 import synthesis.{HyperTermId, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
@@ -45,7 +45,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   private val sygusRules = SyGuSRewriteRules(
     constructors ++
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
-  ).rewriteRules
+  ).rewriteRules.map(_.asInstanceOf[RewriteRule])
 
   private val types: Set[AnnotatedTree] =
     (constructors ++ grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty)))
@@ -142,13 +142,15 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     state
   }
 
-  def sygusStep(rewriteSearchState: RewriteSearchState): RewriteSearchState = {
-    val res = sygusRules.map((r: Operator[RewriteSearchState]) => r(rewriteSearchState.deepCopy()))
-    val newState = res.map(_.graph).foldLeft(rewriteSearchState)((state, es) => {
-      state.graph ++= CaseSplitAction.shiftEdges(state.graph.map(_.target.id).max, es.edges)
-      state
+  def sygusStep(state: RewriteSearchState): RewriteSearchState = {
+    val res = sygusRules.map((r: RewriteRule) => r.getStep(state, 0))
+    val hyperTermIds: Seq[() => HyperTermId] = 0 until res.size map(i => {
+      val creator = Stream.from(if (state.graph.isEmpty) i else state.graph.nodes.map(_.id).max + 1 + i, res.size).map(HyperTermId).iterator
+      () => creator.next
     })
-    FunctionArgumentsAndReturnTypeRewrite(newState)
+    val newEdges = res.zip(hyperTermIds).par.map({case (es, idCreator) => structures.mutable.HyperGraph.fillWithNewHoles(structures.mutable.HyperGraph(es.toSeq: _*), idCreator)}).seq
+    state.graph ++= newEdges.flatten
+    FunctionArgumentsAndReturnTypeRewrite(state)
   }
 
   def findEquives(rewriteState: RewriteSearchState,

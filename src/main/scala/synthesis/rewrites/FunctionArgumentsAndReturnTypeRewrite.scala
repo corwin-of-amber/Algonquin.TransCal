@@ -2,6 +2,7 @@ package synthesis.rewrites
 
 import structures._
 import structures.immutable.HyperGraph
+import synthesis.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import synthesis.rewrites.rewrites._
 import synthesis.search.{StepOperator, VersionedOperator}
@@ -10,7 +11,7 @@ import transcallang.Language
 
 /** This rewrite rule finds functions return types by looking on their types.
   */
-object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSearchState] with StepOperator[RewriteSearchState] {
+object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSearchState] with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] {
 
   object ApplyTypeMetadata extends Metadata {
     override protected def toStr: String = "ApplyTypeMetadata"
@@ -69,20 +70,10 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
     * @param lastVersion Version to use if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, lastVersion: Long): VersionedOperator[RewriteSearchState] = new VersionedOperator[RewriteSearchState] {
+  override def getStep(state: RewriteSearchState, lastVersion: Long): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
     val currentVersion = state.graph.version
     val newFuncEdges = getNewEdges(state, lastVersion)
 
-    /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
-      * unless operator is existential
-      *
-      * @param state       state on which to run operator
-      * @param lastVersion version from which to look for matchers in state
-      * @return (new state after update, next relevant version)
-      */
-    override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
-      state.graph.++=(newFuncEdges)
-      (state, currentVersion)
-    }
+    newFuncEdges.map(e => e.copy(target = Explicit(e.target), edgeType = Explicit(e.edgeType), sources = e.sources.map(Explicit(_))))
   }
 }

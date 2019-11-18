@@ -21,7 +21,7 @@ trait VersionedOperator[S <: State[S]] extends Operator[S] {
   def apply(state: S, lastVersion: Long): (S, Long)
 }
 
-trait StepOperator[S <: State[S]] {
+trait StepOperator[A, S <: State[S]] {
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
@@ -29,5 +29,5 @@ trait StepOperator[S <: State[S]] {
     * @param lastVersion Version to use if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  def getStep(state: S, lastVersion: Long): VersionedOperator[S]
+  def getStep(state: S, lastVersion: Long): (A)
 }
