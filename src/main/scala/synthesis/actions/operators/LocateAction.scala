@@ -58,7 +58,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val locateRule = new RewriteRule(goal, destPattern, locateDataCreator)
 
     // Rewrite search
-    val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
+    val rewriteSearch = new NaiveSearch()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(locateRule +: state.rewriteRules.toSeq, initialState, goalPredicate)
     val (rewriteResult, newState) = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
