@@ -143,12 +143,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
 
   def sygusStep(state: RewriteSearchState): RewriteSearchState = {
-    val res = sygusRules.map((r: RewriteRule) => r.getStep(state, 0))
-    val hyperTermIds: Seq[() => HyperTermId] = 0 until res.size map(i => {
-      val creator = Stream.from(if (state.graph.isEmpty) i else state.graph.nodes.map(_.id).max + 1 + i, res.size).map(HyperTermId).iterator
+    val hyperTermIds: Seq[() => HyperTermId] = 0 until sygusRules.size map(i => {
+      val creator = Stream.from(if (state.graph.isEmpty) i else state.graph.nodes.map(_.id).max + 1 + i, sygusRules.size).map(HyperTermId).iterator
       () => creator.next
     })
-    val newEdges = res.zip(hyperTermIds).par.map({case (es, idCreator) => structures.mutable.HyperGraph.fillWithNewHoles(structures.mutable.HyperGraph(es.toSeq: _*), idCreator)}).seq
+
+    val res = sygusRules.par.map((r: RewriteRule) => r.getStep(state, 0))
+    val newEdges = res.zip(hyperTermIds).map({case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator)}).seq
     state.graph ++= newEdges.flatten
     FunctionArgumentsAndReturnTypeRewrite(state)
   }
