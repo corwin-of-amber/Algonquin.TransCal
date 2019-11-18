@@ -35,8 +35,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     this(Seq(splitter), maxDepthOption)
 
   val obvEquiv = new ObservationalEquivalence(maxDepth = maxDepth)
-  val opRun = new OperatorRunAction(maxDepth)
-  val preProcessor = new OperatorRunAction(2)
+  val preProcessor = new OperatorRunAction(1)
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
   : Set[Set[HyperTermId]] = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
