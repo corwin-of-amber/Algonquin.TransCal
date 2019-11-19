@@ -13,6 +13,6 @@ spacecomplexTrue = spacecomplex l (len l)  [++]
 ((?z ||| map    f ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (addt(addt(tcl, sc1), sc1)) ))
 
 timecomplexTime -> timecomplex (filter p l) _
-timecomplexTime -> timecomplex (map f l) _
+timecomplexTime -> timecomplex (map f _) _
 timecomplexTime -> timecomplex (mapFilter p f l) _
 timecomplexTime -> timecomplex (mapFilter2 p f l) _
