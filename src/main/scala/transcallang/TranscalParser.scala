@@ -207,7 +207,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
-  def statementSpecialAction: Parser[AnnotatedTree] = spbeAction
+  def statementSpecialAction: Parser[AnnotatedTree] = spbeAction | recursiveTimeComplexAction
 
   def statement: Parser[AnnotatedTree] = (statementSpecialAction | statementDefinition | statementCommand) ^^ { t =>
     logger.debug(s"statement - ${Programs.termToString(t)} $t")
