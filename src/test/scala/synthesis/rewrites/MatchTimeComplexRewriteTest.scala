@@ -5,7 +5,7 @@ import structures.mutable.CompactHyperGraph
 import synthesis.actions.ActionSearchState
 import synthesis.actions.operators.{DefAction, RecursiveTimeComplexActionTest}
 import synthesis.{Programs, TimeComplexRewriteRulesDB}
-import transcallang.TranscalParser
+import transcallang.{Language, TranscalParser}
 
 class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
   test("single match test") {
@@ -26,7 +26,7 @@ class MatchTimeComplexRewriteTest extends FunSuite with Matchers {
     val resultSize = hyperGraphResult.size
     resultSize should be > startSize
 
-    val wantedMatch = hyperGraphResult.find(_.edgeType.identifier.literal == "match")
+    val wantedMatch = hyperGraphResult.find(_.edgeType.identifier == Language.matchId)
     wantedMatch should not be empty
     val a = Programs(hyperGraphResult).reconstructWithTimeComplex(wantedMatch.get.target)
     a should not be empty
