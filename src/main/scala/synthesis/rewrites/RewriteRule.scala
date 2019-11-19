@@ -127,6 +127,7 @@ class RewriteRule(val premise: HyperPattern,
       case _ => 0
     }
 
+    if(graphsAndMetas.nonEmpty) logger.debug(s"Stepped with RewriteRule $this")
     graphsAndMetas.filter(_._1.nonEmpty).flatMap({ case (g, m) =>
       val moved = moveHoles(g).map(e => e.copy(metadata = e.metadata.merge(m)))
       maxHole = moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max

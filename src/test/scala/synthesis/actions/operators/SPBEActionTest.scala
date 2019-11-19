@@ -1,5 +1,6 @@
 package synthesis.actions.operators
 
+import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import synthesis._
 import synthesis.actions.ActionSearchState
@@ -7,7 +8,7 @@ import synthesis.rewrites.RewriteSearchState
 import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
+class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {
   val parser = new TranscalParser
 
   val predicate = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
@@ -17,6 +18,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
   val listInttoListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, listInt))
   val inttoListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, listInt, listInt))
   val listIntToIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, Language.typeInt, listInt))
+  val listIntToListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(listInt, listInt, listInt))
   val predicateToListIntToListInt = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicate, listInt, listInt))
   val typedCons = Language.consId.copy(annotation = Some(inttoListIntToListInt))
   val typedSnoc = Language.snocId.copy(annotation = Some(listIntToIntToListInt))
@@ -25,6 +27,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
   val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
   val reverse = AnnotatedTree.identifierOnly(Identifier("reverse", annotation = Some(listInttoListInt)))
   val filter = AnnotatedTree.identifierOnly(Identifier("filter", annotation = Some(predicateToListIntToListInt)))
+  val concat =  AnnotatedTree.identifierOnly(Identifier("concat", annotation = Some(listIntToListIntToListInt)))
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
   val listPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{list(int)}", annotation = Some(listInt)))
@@ -32,29 +35,38 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution {
 
   test("sygus step doesnt create terms deeper then needed") {
     val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)),
-      grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)),
+      grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), concat),
       examples = Map(listInt -> Seq(nil, xnil, xynil)))
     val baseProgs = Programs(action.baseGraph)
     val relevantNodes = SyGuSRewriteRules.getSygusCreatedNodes(baseProgs.hyperGraph)
+    logger.info(s"created base graph ${baseProgs.hyperGraph.size}")
     for (n <- relevantNodes;
          t <- baseProgs.reconstruct(n) if t.root != Language.typeId) {
       t.depth should be < 2
     }
+    logger.info(s"finished reconstruct")
+
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val progs = Programs(state1.graph)
     val relevantNodes2 = SyGuSRewriteRules.getSygusCreatedNodes(progs.hyperGraph)
+    logger.info(s"created depth 2 ${progs.hyperGraph.size}")
     for (n <- relevantNodes2;
          t <- progs.reconstruct(n) if t.root != Language.typeId) {
       t.depth should be < 3
     }
+    logger.info(s"finished reconstruct")
 
-    val state2 = action.sygusStep(state1)
-    val progs2 = Programs(state2.graph)
-    val relevantNodes3 = SyGuSRewriteRules.getSygusCreatedNodes(progs2.hyperGraph)
-    for (n <- relevantNodes3;
-         t <- progs.reconstruct(n) if t.root != Language.typeId) {
-      t.depth should be < 4
-    }
+
+//    val state2 = action.sygusStep(state1)
+//    val progs2 = Programs(state2.graph)
+//    val relevantNodes3 = SyGuSRewriteRules.getSygusCreatedNodes(progs2.hyperGraph)
+//    logger.info(s"created depth 3 ${progs2.hyperGraph.size}")
+//    for (n <- relevantNodes3;
+//         t <- progs2.reconstruct(n) if t.root != Language.typeId) {
+//      t.depth should be < 4
+//    }
+//    logger.info(s"finished reconstruct")
+
   }
 
   test("testSygusStep can find reverse l") {
