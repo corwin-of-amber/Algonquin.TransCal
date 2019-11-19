@@ -36,7 +36,9 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   test("sygus step doesnt create terms deeper then needed") {
     val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)),
       grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), concat),
-      examples = Map(listInt -> Seq(nil, xnil, xynil)))
+      examples = Map(listInt -> Seq(nil, xnil, xynil)),
+      equivDepth = 6
+    )
     val baseProgs = Programs(action.baseGraph)
     val relevantNodes = SyGuSRewriteRules.getSygusCreatedNodes(baseProgs.hyperGraph)
     logger.info(s"created base graph ${baseProgs.hyperGraph.size}")
@@ -56,7 +58,16 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     }
     logger.info(s"finished reconstruct")
 
-
+//    val revRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
+//    val concatRules = new LetAction(parser("concat ?l1 ?l2 = l1 ++ l2")).rules
+//    val toMerge = action.findEquives(state1, revRules.toSeq ++ concatRules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
+//
+//    for (targets <- toMerge if targets.size > 1;
+//         source = targets.head;
+//         target <- targets.tail) {
+//      state1.graph.mergeNodesInPlace(source, target)
+//    }
+//
 //    val state2 = action.sygusStep(state1)
 //    val progs2 = Programs(state2.graph)
 //    val relevantNodes3 = SyGuSRewriteRules.getSygusCreatedNodes(progs2.hyperGraph)
@@ -124,6 +135,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     var state = action.sygusStep(new RewriteSearchState(action.baseGraph))
     state = action.sygusStep(state)
+    state.graph ++= state.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     val equives = action.findEquives(state, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules)
     equives should not be empty
     equives.forall({ s => s.forall(state.graph.nodes.contains) }) should be(true)
@@ -179,10 +191,11 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("reverse(?l :+ ?x)"))) should not be empty
-    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("?x :: reverse(?l)"))) should not be empty
+    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("reverse(?l :+ ?x) |||| possibleSplit(l, _, _, _)"))) should not be empty
+    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("?x :: reverse(?l) |||| possibleSplit(l, _, _, _)"))) should not be empty
+    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     val nodes = state2.graph.nodes
-    val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules).filter(_.size > 1)
+    val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     state2.graph.nodes shouldEqual nodes
     equives should not be empty
     equives.forall({ s => s.forall(state2.graph.nodes.contains) }) should be(true)

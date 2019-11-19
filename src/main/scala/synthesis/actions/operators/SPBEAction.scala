@@ -157,16 +157,16 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
+    // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
       .getEquivesFromRewriteState(rewriteState.deepCopy(), rules.toSet)._2
-      .filter(_.size > 1)
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,
                                   rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
     val toMerge = findEquives(rewriteState, rules)
 
-    for (targets <- toMerge;
+    for (targets <- toMerge if targets.size > 1;
          source = targets.head;
          target <- targets.tail) {
       rewriteState.graph.mergeNodesInPlace(source, target)

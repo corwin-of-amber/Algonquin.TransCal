@@ -68,7 +68,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   private def recursiveReconstruct(hyperGraph: rewrites.RewriteSearchState.HyperGraph,
                                    root: HyperTermId,
                                    fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
-    val hyperTermToEdge = hyperGraph.groupBy(_.target)
+    val hyperTermToEdge = hyperGraph.edges.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(root, mutable.CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
