@@ -188,15 +188,15 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             // Doing some lambda param fixing
             val rightParams = if (right.subtrees(0).root == Language.tupleId) right.subtrees(0).subtrees else List(right.subtrees(0))
             val newRight = right.subtrees(1)
-            val newLeft = AnnotatedTree(left.root, left.subtrees ++ rightParams, Seq.empty)
+            val newLeft = AnnotatedTree.withoutAnnotations(left.root, left.subtrees ++ rightParams)
             (newLeft, newRight)
           case _ => (left, right)
         }
-        val conditionedLeft = op.map(o => AnnotatedTree(trueCondBuilderId, List(o, fixedLeft), Seq.empty)).getOrElse(fixedLeft)
+        val conditionedLeft = op.map(o => AnnotatedTree.withoutAnnotations(trueCondBuilderId, List(o, fixedLeft))).getOrElse(fixedLeft)
         val dir = defdir.toIdentifier
         // TODO: we should insert annotation into tree node.
-        val definitionTerm = AnnotatedTree(dir, List(conditionedLeft, fixedRight), Seq.empty)
-        anno.map(a => AnnotatedTree(Language.annotationId, List(definitionTerm, a), Seq.empty)) getOrElse definitionTerm
+        val definitionTerm = AnnotatedTree.withoutAnnotations(dir, List(conditionedLeft, fixedRight))
+        anno.map(a => AnnotatedTree.withoutAnnotations(Language.annotationId, List(definitionTerm, a))) getOrElse definitionTerm
     }
   }
 
@@ -237,7 +237,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
         if (paramsUses.contains(term.root))
           if (term.isLeaf) term.map(i => paramsUses.getOrElse(i, i))
           // TODO: Why are we inserting apply?
-          else AnnotatedTree(Language.applyId, AnnotatedTree.identifierOnly(paramsUses(term.root)) +: term.subtrees.map(replaceIdentifiers(_, paramsUses)), Seq.empty)
+          else AnnotatedTree.withoutAnnotations(Language.applyId, AnnotatedTree.identifierOnly(paramsUses(term.root)) +: term.subtrees.map(replaceIdentifiers(_, paramsUses)))
         else term.copy(subtrees=term.subtrees.map(replaceIdentifiers(_, paramsUses)))
       }
 
@@ -260,7 +260,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             else t.subtrees(0).root match {
               // TODO: if we have annotation changing values might change annotation?
               case Language.tupleId => t.copy(subtrees=toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) ++ t.subtrees(0).subtrees)
-              case _: Identifier => AnnotatedTree(Language.tupleId, toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) :+ t.subtrees(0), Seq.empty)
+              case _: Identifier => AnnotatedTree.withoutAnnotations(Language.tupleId, toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)) :+ t.subtrees(0))
             }
           }
 
@@ -270,7 +270,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
               // TODO: if we have annotation changing values might change annotation?
               case Language.tupleId => st.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ st.subtrees(0).subtrees)
               case _: Identifier =>
-                if (toAddParamsDefinitions.nonEmpty) AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ st.subtrees(0), Seq.empty)
+                if (toAddParamsDefinitions.nonEmpty) AnnotatedTree.withoutAnnotations(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ st.subtrees(0))
                 else st.subtrees(0)
             }
 
@@ -281,11 +281,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             st.copy(subtrees=List(newMatchedTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(st.subtrees(1), useMap))))
           })
 
-          AnnotatedTree(
-            Language.matchId,
-            matchCallParams +: newGuarded,
-            t.annotations
-          )
+          t.copy(subtrees = matchCallParams +: newGuarded)
         case Language.lambdaId =>
           val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?")).toList
           assert(env.intersect(newParams).isEmpty)
@@ -297,7 +293,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             if (toAddParamsDefinitions.isEmpty) t.subtrees(0)
             else t.subtrees(0).root match {
               case Language.tupleId => t.subtrees(0).copy(subtrees=toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) ++ t.subtrees(0).subtrees)
-              case _: Identifier => AnnotatedTree(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ t.subtrees(0), Seq.empty)
+              case _: Identifier => AnnotatedTree.withoutAnnotations(Language.tupleId, toAddParamsDefinitions.map(i => AnnotatedTree.identifierOnly(i._2)) :+ t.subtrees(0))
             }
           }
 
@@ -309,8 +305,8 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
           )
 
           if (toAddParamsDefinitions.isEmpty) updatedLambda
-          else AnnotatedTree(Language.applyId, updatedLambda +: toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)), Seq.empty)
-        case i: Identifier => AnnotatedTree(i, t.subtrees map (s => applyClojure(env, s)), Seq.empty)
+          else AnnotatedTree.withoutAnnotations(Language.applyId, updatedLambda +: toAddParamsUses.map(i => AnnotatedTree.identifierOnly(i._1)))
+        case i: Identifier => AnnotatedTree.withoutAnnotations(i, t.subtrees map (s => applyClojure(env, s)))
       }
     }
 
@@ -328,7 +324,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   }
 
   def program: Parser[AnnotatedTree] = phrase(SEMICOLON().* ~> (statement | commands) ~ rep(SEMICOLON().+ ~> (statement | commands).?)) ^^ {
-    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => AnnotatedTree(semicolonId, List(t1, t2), Seq.empty))
+    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => AnnotatedTree.withoutAnnotations(semicolonId, List(t1, t2)))
   }
 
   /** The known left operators at the moment */

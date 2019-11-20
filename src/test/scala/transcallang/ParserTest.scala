@@ -4,13 +4,16 @@ import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{Matchers, PropSpec}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends PropSpec with Matchers with LazyLogging {
+abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends PropSpec with Matchers with LazyLogging
+  with ScalaCheckPropertyChecks {
   property("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"
-    for (f <- new File(path).listFiles().filter(_.getName.endsWith(".tc"))) {
+    val files = Table("f", new File(path).listFiles().filter(_.getName.endsWith(".tc")).toSeq:_*)
+    forAll (files) { (f: File) =>
       logger.info(s"Working on $f")
       val source = Source.fromFile(f)
       val text = source.getLines().mkString("\n")
