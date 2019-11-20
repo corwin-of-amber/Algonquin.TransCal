@@ -281,11 +281,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
             st.copy(subtrees=List(newMatchedTree, applyClojure(newParams ++ toAddParamsDefinitions.map(_._2) ++ env, replaceIdentifiers(st.subtrees(1), useMap))))
           })
 
-          AnnotatedTree(
-            Language.matchId,
-            matchCallParams +: newGuarded,
-            t.annotations
-          )
+          t.copy(subtrees = matchCallParams +: newGuarded)
         case Language.lambdaId =>
           val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?")).toList
           assert(env.intersect(newParams).isEmpty)
