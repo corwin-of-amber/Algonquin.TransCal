@@ -80,7 +80,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
 
   test("test flatten intersection doesn't miss sets") {
     forAll (maxDiscardedFactor(100.0)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
-      whenever(numsLen > 1 && numsLen < 30 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
+      whenever(numsLen > 1 && numsLen < 15 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
         checkIntersectionFlatten(numsLen, splitAt)
       }
     }

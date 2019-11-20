@@ -2,6 +2,7 @@ package synthesis.actions.operators
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
+import structures.Hole
 import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.rewrites.RewriteSearchState
@@ -187,26 +188,31 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("test find that reverse(l :+ x) == (x :: reverse(l))") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4)
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("reverse(?l :+ ?x) |||| possibleSplit(l, _, _, _)"))) should not be empty
-    state2.graph.findSubgraph[Int](Programs.destructPattern(parser.parseExpression("?x :: reverse(?l) |||| possibleSplit(l, _, _, _)"))) should not be empty
-    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
+    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(reverse.root,
+      Seq(AnnotatedTree.withoutAnnotations(Language.snocId, Seq(listPh.map(_.copy(annotation = None)), intPh.map(_.copy(annotation = None)))))))).head
+    state2.graph.findSubgraph[Int](pattern) should not be empty
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.consId,
+      Seq(intPh.map(_.copy(annotation = None)), AnnotatedTree.withoutAnnotations(reverse.root, Seq(listPh.map(_.copy(annotation = None)))))))).head
+    val correctId = state2.graph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    state2.graph.findSubgraph[Int](pattern2) should not be empty
+    val correctId2 = state2.graph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+//    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     val nodes = state2.graph.nodes
     val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     state2.graph.nodes shouldEqual nodes
     equives should not be empty
     equives.forall({ s => s.forall(state2.graph.nodes.contains) }) should be(true)
     val programs = Programs(state2.graph)
-    val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
-    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(l => l.exists(t => Programs.termToString(t) == s"reverse(${listPh.root.literal} :+ ${intPh.root.literal})")))
+//    val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
+    val correctSet = equives.find(_.contains(correctId))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
-    val consReversePlaceholder = correctSet.get.exists(_.exists(t => Programs.termToString(t) == s"${intPh.root.literal} :: reverse(${listPh.root.literal})"))
-    consReversePlaceholder shouldEqual true
+    correctSet.get should contain (correctId2)
   }
 
   test("test induction steps proves reverse(l :+ x) == (x :: reverse(l))") {
