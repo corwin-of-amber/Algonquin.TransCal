@@ -10,7 +10,7 @@ import synthesis.search.Operator
 class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[RewriteSearchState => Boolean] = None,
                                splitDepth: Option[Int] = None, chooser: Option[SplitChooser] = None)
   extends SearchAction {
-  private val opRun = new OperatorRunAction(4, goalPredicate)
+  private val opRun = new OperatorRunAction(maxSearchDepth, goalPredicate)
   private val splitter = new CaseSplitAction(chooser, splitDepth, Some(maxSearchDepth))
   private val idMetadata = IdMetadata(new Uid)
 
