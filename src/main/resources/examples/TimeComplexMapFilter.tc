@@ -1,5 +1,5 @@
 mapFilter ?p ?f ?l = map f (filter p l)    [++]
-mapFilter2 ?p ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => f x :: (filter p xs)) / false => filter p xs) )) [++]
+mapFilter2 ?p ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true => (f x) :: (mapFilter2 p f xs)) / false => mapFilter2 p f xs) )) [++]
 
 /*
 map ?f ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => f x :: map f xs))
