@@ -107,6 +107,28 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
     val found = lastState.programs.hyperGraph.findSubgraph[Int](wantedGraph)
     found should have size(1)
   }
+
+  test("map example textual") {
+    val parser = new TranscalParser()
+    val terms = List(
+      parser.apply("map ?f ?l = l match (⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (f x) :: (map f xs)) [++]"),
+      parser.apply("l = x :: xs [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} l 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} xs 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} (f x) 1 [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} l (len l) [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} (f x) 1 [++]"),
+      parser.apply(f"${Language.recursiveTimeComplexId.literal} map 2"),
+    )
+    val lastState = new Interpreter(terms.iterator, System.out).start()
+
+    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (map ?f ?l) _ >> ${Language.timeComplexTrueId.literal}")).rules.head.premise
+    val found = lastState.programs.hyperGraph.findSubgraph[Int](wantedGraph)
+    found should have size(1)
+  }
 }
 
 object RecursiveTimeComplexActionTest {
