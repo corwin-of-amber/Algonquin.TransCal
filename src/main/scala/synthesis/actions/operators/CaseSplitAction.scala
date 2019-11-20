@@ -46,10 +46,10 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
   : Set[Set[HyperTermId]] = {
     val withAnchors =
       if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph.clone
-      else state.graph.clone ++ state.graph.map(e => createAnchor(e.target))
+      else state.graph ++ state.graph.map(e => createAnchor(e.target))
     val splitters = chooser(state, chosen).toSeq
     if (chosen.length >= splitDepth || splitters.isEmpty) {
-      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors.clone), rules)
+      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors), rules)
       res._2
     } else {
       // For each splitter edge:
