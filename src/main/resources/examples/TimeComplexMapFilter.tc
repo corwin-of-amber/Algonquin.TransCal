@@ -21,4 +21,8 @@ spacecomplexTrue = spacecomplex (f x) 1  [++]
 timecomplexTime -> timecomplex (filter p l) _
 timecomplexTime -> timecomplex (map f _) _
 timecomplexTime -> timecomplex (mapFilter p f l) _
-timecomplexTime -> timecomplex (mapFilter2 p f l) _
+timecomplexTime -> timecomplex (mapFilter2 p f l) _  [lim(3)]
+
+RTC mapFilter2 3
+
+timecomplexTime -> timecomplex (mapFilter2 p f l) _  [lim(3)]
