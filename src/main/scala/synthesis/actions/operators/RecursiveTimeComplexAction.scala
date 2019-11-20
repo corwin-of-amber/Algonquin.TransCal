@@ -6,8 +6,9 @@ import synthesis._
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
 import synthesis.rewrites.RewriteRule.HyperPattern
-import synthesis.rewrites.RewriteSearchState
+import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
+import synthesis.search.NaiveSearch
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Calculate time complex of recursive terms.
@@ -56,17 +57,11 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   }
 
   private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
-    var searchState = RewriteSearchState(hyperGraph)
-    var lastSize = 0
-    var size = searchState.graph.size
-    do {
-      for (rewriteRule <- SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules) {
-        searchState = rewriteRule.apply(searchState)
-      }
-      lastSize = size
-      size = searchState.graph.size
-    } while (size != lastSize)
-    searchState.graph
+    val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
+    val initialState = new RewriteSearchState(hyperGraph)
+    val spaceSearch = new RewriteSearchSpace((SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules).toSeq, initialState, _ => false)
+    val (_, newState) = rewriteSearch.search(spaceSearch, 2)
+    newState.graph
   }
 
   private def findEquive(populated: RewriteSearchState.HyperGraph): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
