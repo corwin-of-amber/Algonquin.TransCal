@@ -42,7 +42,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
           case _ => new LetAction(term, cleanTypes=cleanTypes).apply(state)
         }
       case Language.tacticId =>
-        val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
+        val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt)
 
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
