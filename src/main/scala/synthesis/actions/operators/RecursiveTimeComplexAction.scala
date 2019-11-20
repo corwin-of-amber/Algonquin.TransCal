@@ -23,7 +23,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   private val hyperPattern: HyperPattern = HyperGraph(functionEdgeRegex)
 
   /** The function hole. */
-  private val timeComplexFunction = Identifier("f")
+  private val timeComplexFunction = Identifier("autoFunction")
 
   /** New function time complex matches. */
   private val hyperPattern1: HyperPattern = {
