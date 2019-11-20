@@ -19,3 +19,8 @@ a1 -> (_ ∉ {x}) /\ ((_ ∪ _) ‖ _) /\ nodup _
 timecomplexTrue -> timecomplex ({x'} ‖ elems(xs')) _
 
 a1 -> (_ ∉ {x}) /\ nodup' _ _    [lim(5)]
+
+RTC nodup' 2
+RTC nodup 1
+
+timecomplexTrue -> timecomplex (nodup _) _
