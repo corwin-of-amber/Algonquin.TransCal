@@ -31,7 +31,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
     }).par
     assert(operators.size == searchSpace.operators(state).size)
     // Don't need to check for new nodes when using versioning. Versioning finally faster.
-    var prevVersion = state.graph.version - 1
+    var prevVersion = 0L
     var prevState: Option[RewriteSearchState] = None
     while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
       prevState = Some(state.deepCopy())
