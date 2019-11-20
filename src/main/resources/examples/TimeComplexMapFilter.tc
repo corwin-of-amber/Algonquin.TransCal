@@ -9,6 +9,12 @@ filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => ( (p x) match (true
 timecomplexTrue = timecomplex l 0          [++]
 spacecomplexTrue = spacecomplex l (len l)  [++]
 
+timecomplexTrue = timecomplex (p x) 1  [++]
+spacecomplexTrue = spacecomplex (p x) 1  [++]
+
+timecomplexTrue = timecomplex (f x) 1  [++]
+spacecomplexTrue = spacecomplex (f x) 1  [++]
+
 ((?z ||| filter p ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (addt(addt(tcl, sc1), sc1)) ))
 ((?z ||| map    f ?l) |||| (spacecomplexTime ||| spacecomplex l ?scl) |||| ((timecomplexTime ||| timecomplex l ?tcl))) |>> ((spacecomplexTime ||| spacecomplex z (sc1)) |||| (timecomplexTime ||| timecomplex z (addt(addt(tcl, sc1), sc1)) ))
 
