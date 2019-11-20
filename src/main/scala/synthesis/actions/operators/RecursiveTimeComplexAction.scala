@@ -60,7 +60,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(hyperGraph)
     val spaceSearch = new RewriteSearchSpace((SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules).toSeq, initialState, _ => false)
-    val (_, newState) = rewriteSearch.search(spaceSearch, 2)
+    val (_, newState) = rewriteSearch.search(spaceSearch, 3)
     newState.graph
   }
 
