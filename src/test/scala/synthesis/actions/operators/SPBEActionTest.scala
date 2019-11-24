@@ -11,7 +11,6 @@ import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {
   val parser = new TranscalParser
-
   val predicate = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
   val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
   val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
@@ -31,14 +30,16 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   val concat =  AnnotatedTree.identifierOnly(Identifier("concat", annotation = Some(listIntToListIntToListInt)))
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
-  val listPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{list(int)}", annotation = Some(listInt)))
-  val intPh = AnnotatedTree.identifierOnly(Identifier("Placeholder_0_type_{int}", annotation = Some(Language.typeInt)))
+  val spbeAction = new SPBEAction(Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+  val listPh = spbeAction.createPlaceholder(listInt, 0)
+  val intPh = spbeAction.createPlaceholder(Language.typeInt, 0)
+  val predicatePh = spbeAction.createPlaceholder(predicate, 0)
 
   test("sygus step doesnt create terms deeper then needed") {
     val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)),
       grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), concat),
       examples = Map(listInt -> Seq(nil, xnil, xynil)),
-      equivDepth = 6
+      equivDepth = 4
     )
     val baseProgs = Programs(action.baseGraph)
     val relevantNodes = SyGuSRewriteRules.getSygusCreatedNodes(baseProgs.hyperGraph)
@@ -89,7 +90,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("testSygusStep can find reverse reverse l") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, x, y), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
@@ -104,7 +105,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("test find that l == reverse reverse l") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 8)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
@@ -113,11 +114,11 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     equives.forall({ s => s.forall(state2.graph.nodes.contains) }) should be(true)
     val programs = Programs(state2.graph)
     val terms = equives.map(s => s.map(id => programs.reconstruct(id)))
-    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(l => l.exists(t => t.copy(annotations = Seq.empty) == listPh)))
+    val correctSet = terms.map(_.map(_.toList)).find(s => s.exists(l => l.exists(t => t.copy(annotations = Seq.empty) == AnnotatedTree.identifierOnly(listPh.copy(annotation = None)))))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
-    val reversePlaceholderTwice = correctSet.get.exists(_.exists(t => t.root.literal == "reverse" && t.subtrees.head.root.literal == "reverse" && t.subtrees.head.subtrees.head.root == listPh.root))
+    val reversePlaceholderTwice = correctSet.get.exists(_.exists(t => t.root.literal == "reverse" && t.subtrees.head.root.literal == "reverse" && t.subtrees.head.subtrees.head.root == listPh))
     reversePlaceholderTwice shouldEqual true
   }
 
@@ -131,30 +132,25 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("test find that filter p (filter p l) == filter p l") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 8, splitDepth = 2)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepth = 6, splitDepth = 2)
     var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(ActionSearchState(Programs.empty, Set.empty))
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     var state = action.sygusStep(new RewriteSearchState(action.baseGraph))
     state = action.sygusStep(state)
-    state.graph ++= state.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     val equives = action.findEquives(state, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules)
     equives should not be empty
     equives.forall({ s => s.forall(state.graph.nodes.contains) }) should be(true)
     val programs = Programs(state.graph)
-    val terms = equives.map(s => s.map(id => programs.reconstruct(id)))
-    val correctSet = terms.map(_.map(_.toList)).find(s =>
-      s.exists(l =>
-        l.exists(t =>
-          t.root.literal == filter.root.literal
-            && t.subtrees.size == 2
-            && t.subtrees(1).root.literal == filter.root.literal
-            && t.subtrees(1).subtrees.size == 2
-            && t.subtrees(1).subtrees(1).root.copy(annotation = None) == listPh.root.copy(annotation = None))))
+    val terms = equives.map(s => s.map(id => programs.reconstruct(id).map(_.map(_.copy(annotation = None)))))
+    val oneFilter = AnnotatedTree.withoutAnnotations(filter.root, Seq(
+      AnnotatedTree.identifierOnly(predicatePh), AnnotatedTree.identifierOnly(listPh))).map(_.copy(annotation=None))
+    val correctSet = terms.map(_.map(_.toList.map(t => t.copy(annotations = Seq.empty).map(_.copy(annotation = None))))).find(s => s.exists(l =>
+        l.contains(oneFilter)))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
     val filterOnce = correctSet.get.exists(_.exists(t => t.root.literal == filter.root.literal
-      && t.subtrees(1).root.copy(annotation = None) == listPh.root.copy(annotation = None)))
+      && t.subtrees(1).root.copy(annotation = None) == listPh.copy(annotation = None)))
     filterOnce shouldEqual true
   }
 
@@ -164,7 +160,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
     val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
     val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
-    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 8, termDepth = 2, splitDepth = 3)
+    val spbeAction = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4, termDepth = 2, splitDepth = 3)
     val predicate = spbeAction.createPlaceholder(predicateType, 0)
     val list = spbeAction.createPlaceholder(listInt, 0)
     val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
@@ -173,7 +169,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("testSygusStep can find reverse(l :+ x) and (x :: reverse(l))") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4)
     val state1 = action.sygusStep(new RewriteSearchState(action.baseGraph))
     val state2 = action.sygusStep(state1)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse(_ :+ _)"))).head
@@ -193,10 +189,10 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     val state2 = action.sygusStep(state1)
     val reverseRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(reverse.root,
-      Seq(AnnotatedTree.withoutAnnotations(Language.snocId, Seq(listPh.map(_.copy(annotation = None)), intPh.map(_.copy(annotation = None)))))))).head
+      Seq(AnnotatedTree.withoutAnnotations(Language.snocId, Seq(listPh.copy(annotation = None), intPh.copy(annotation = None)).map(AnnotatedTree.identifierOnly)))))).head
     state2.graph.findSubgraph[Int](pattern) should not be empty
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.consId,
-      Seq(intPh.map(_.copy(annotation = None)), AnnotatedTree.withoutAnnotations(reverse.root, Seq(listPh.map(_.copy(annotation = None)))))))).head
+      Seq(AnnotatedTree.identifierOnly(intPh.copy(annotation = None)), AnnotatedTree.withoutAnnotations(reverse.root, Seq(AnnotatedTree.identifierOnly(listPh.copy(annotation = None)))))))).head
     val correctId = state2.graph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     state2.graph.findSubgraph[Int](pattern2) should not be empty
     val correctId2 = state2.graph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
@@ -216,31 +212,31 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("test induction steps proves reverse(l :+ x) == (x :: reverse(l))") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
-      intPh,
-      AnnotatedTree.withoutAnnotations(reverse.root, List(listPh))
+      AnnotatedTree.identifierOnly(intPh),
+      AnnotatedTree.withoutAnnotations(reverse.root, List(AnnotatedTree.identifierOnly(listPh)))
     ))
     val term2 = AnnotatedTree.withoutAnnotations(reverse.root, List(
-      AnnotatedTree.withoutAnnotations(typedSnoc, List(listPh, intPh))
+      AnnotatedTree.withoutAnnotations(typedSnoc, List(listPh, intPh).map(AnnotatedTree.identifierOnly))
     ))
     val newRules = action.inductionStep(state, term1, term2)
     newRules should not be empty
   }
 
   test("Cant proove x::xs == rev(xs) :+ x") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 6, termDepth = 3)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepth = 4, termDepth = 3)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
       intPh,
       listPh
-    ))
+    ).map(AnnotatedTree.identifierOnly))
     val term2 = AnnotatedTree.withoutAnnotations(typedSnoc, List(
-      AnnotatedTree.withoutAnnotations(reverse.root, List(listPh)),
-      intPh
+      AnnotatedTree.withoutAnnotations(reverse.root, List(AnnotatedTree.identifierOnly(listPh))),
+      AnnotatedTree.identifierOnly(intPh)
     ))
     val newRules = action.inductionStep(state, term1, term2)
     newRules shouldBe empty

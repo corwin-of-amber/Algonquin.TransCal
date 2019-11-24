@@ -14,7 +14,7 @@ import scala.collection.mutable
 class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  grammar: Set[AnnotatedTree],
                  examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
-                 termDepth: Int = 3,
+                 termDepth: Int = 2,
                  equivDepth: Int = 4,
                  splitDepth: Int = 2) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
