@@ -33,7 +33,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
       state.programs.addTerm(parser parseExpression s"${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}(z, true, false)"),
       state.rewriteRules
     )
-    val res2 = new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head).getFoundConclusions(splitableState)
+    val res2 = new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head, None).getFoundConclusions(splitableState)
     val newState = ObservationalEquivalence.mergeConclusions(new RewriteSearchState(splitableState.programs.hyperGraph), res2.toSeq)
     newState.graph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" map (_.copy(annotation = None)))).nonEmpty shouldBe true
   }

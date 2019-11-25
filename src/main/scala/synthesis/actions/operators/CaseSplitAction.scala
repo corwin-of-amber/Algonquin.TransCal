@@ -21,21 +21,22 @@ import transcallang.Identifier
   */
 class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
                       splitDepthOption: Option[Int],
-                      maxDepthOption: Option[Int]) extends Action {
+                      maxDepthOption: Option[Int],
+                      preProcessDepth: Option[Int]=None) extends Action {
   private val splitDepth = splitDepthOption.getOrElse(1)
   private val maxDepth = maxDepthOption.getOrElse(4)
   private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
 
   def this(splitters: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
            maxDepthOption: Option[Int]) =
-    this(Some(CaseSplitAction.specificChooser(splitters)), Some(splitters.length), maxDepthOption)
+    this(Some(CaseSplitAction.specificChooser(splitters)), Some(splitters.length), maxDepthOption, None)
 
   def this(splitter: HyperEdge[HyperTermId, HyperTermIdentifier],
-           maxDepthOption: Option[Int] = None) =
+           maxDepthOption: Option[Int]) =
     this(Seq(splitter), maxDepthOption)
 
   val obvEquiv = new ObservationalEquivalence(maxDepth = maxDepth)
-  val preProcessor = new OperatorRunAction(1)
+  val preProcessor = new OperatorRunAction(preProcessDepth.getOrElse(2))
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
   : Set[Set[HyperTermId]] = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
@@ -60,6 +61,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
       // 3b. merge recursive results
       // 4. merge all the results
       // Note: Don't keep the graphs after your finished, but don't mess up previous graph
+      preProcessor.fromRewriteState(RewriteSearchState(withAnchors), rules)
       val equives = splitters.zipWithIndex.map({ case (splitter, i) =>
         // 1. build new graph - for each possible value copy graph and merge the needed value
         val source = splitter.sources.head
@@ -68,7 +70,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
         tempGraph -= splitter
         val results = targets.par.map(t => {
           // 1 + 2. pre run ops
-          val newState = preProcessor.fromRewriteState(RewriteSearchState(tempGraph.mergeNodes(source, t)), rules)
+          val newState = RewriteSearchState(tempGraph.mergeNodes(source, t))
           // 3. Recursion
           innerGetFoundConclusionsFromRewriteState(newState, rules, chosen :+ splitter)
         }).seq

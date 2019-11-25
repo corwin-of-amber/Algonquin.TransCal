@@ -113,7 +113,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val typeBuilders = term.subtrees(0).subtrees.toSet
         val grammar = term.subtrees(1).subtrees.toSet
         val examples = term.subtrees(2).subtrees.map(t => t.subtrees(0) -> t.subtrees(1).subtrees).toMap
-        if(term.subtrees.length > 3) new SPBEAction(typeBuilders, grammar, examples, termDepth = term.subtrees(3).root.literal.toInt)(state)
+        if(term.subtrees.length > 3) new SPBEAction(typeBuilders, grammar, examples, equivDepth = term.subtrees(3).root.literal.toInt)(state)
         else new SPBEAction(typeBuilders, grammar, examples)(state)
     }
 

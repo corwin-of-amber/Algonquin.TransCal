@@ -20,7 +20,7 @@ class ElaborateWithCaseSplit(anchor: HyperTermIdentifier,
     while ((!immutablePredicate(newState)) && caseEdges.nonEmpty) {
       val e = caseEdges.head.copy(metadata = caseEdges.head.metadata.merge(idMetadata))
       newState = newState.copy(programs = Programs(newState.programs.hyperGraph - e + e))
-      newState = new CaseSplitAction(e)(newState)
+      newState = new CaseSplitAction(e, None)(newState)
       newState = opRun(newState)
       caseEdges = newState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
         .filterNot(_.metadata.exists(_ == idMetadata))

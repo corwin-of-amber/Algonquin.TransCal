@@ -362,6 +362,7 @@ object Programs extends LazyLogging {
     edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
   }
 
+  // TODO: Root should always be reference term
   def destructPatternsWithRoots(trees: Seq[AnnotatedTree], mergeRoots: Boolean = true)
   : Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
 
