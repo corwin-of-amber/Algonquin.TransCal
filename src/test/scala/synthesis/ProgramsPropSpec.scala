@@ -155,7 +155,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   }
 
   property("a few reconstruct in a row returns same results (using mutable state now)") {
-    forAll { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
+    forAll (SizeRange(20)) { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
       (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet should have size 1
     }}
   }
