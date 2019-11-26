@@ -75,10 +75,13 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
         //      val functionTC = idMaps(2)
         val fullTC = idMaps(3)
         val functionArguments = idMaps.filterKeys(_ >= 4).toList.sortBy(_._1).map(_._2)
-        val ttt = functionArguments.map(functionArguments => (functionArguments, populatedPrograms.reconstruct(functionArguments)))
-        val fullTimeComplexes = populatedPrograms.reconstructTimeComplex(fullTC).toList
+        val ttt = functionArguments.map(functionArguments => (functionArguments, populatedPrograms.reconstruct(functionArguments).filter(_.root != Language.applyId)))
+        val fullTimeComplexes = populatedPrograms.reconstructTimeComplex(fullTC).toSet
 
         fullTimeComplexes.flatMap {
+          case ContainerComplexity(tc) =>
+            logger.error("ContainerComplexity in fullTimeComplexes: " + tc)
+            Set.empty
           case ConstantComplexity(_) =>
             Seq(
               HyperEdge(trueTC, HyperTermIdentifier(Language.timeComplexId), Seq(functionNode, fullTC), EmptyMetadata),
@@ -86,6 +89,9 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
           case AddComplexity(complexities) =>
             val nonConstants = complexities.collect { case ContainerComplexity(tree) => tree }.filter(_.root == timeComplexFunction)
             nonConstants match {
+              case Nil =>
+                logger.error("Empty nonConstants in AddComplexity: " + complexities)
+                Set.empty
               case Seq(oneCall) =>
                 val arguments = oneCall.subtrees
 
@@ -93,8 +99,9 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
                 val filtered = ttt.zip(arguments).map(t => (t._1._1, t._1._2.filter(a => contains(a, t._2)))).filter(_._2.nonEmpty)
                 logger.debug("filtered " + filtered)
                 filtered match {
-                  case Seq(one) =>
-                    println(one)
+                  case filtered if filtered.count(_._2.exists(_.root == Language.consId)) == 1 =>
+                    val one = filtered.find(_._2.exists(_.root == Language.consId)).get
+                    logger.debug(one.toString)
                     val newTC = nodeCreator.next()
                     Seq(
                       HyperEdge(trueTC, HyperTermIdentifier(Language.timeComplexId), Seq(functionNode, newTC), EmptyMetadata),
