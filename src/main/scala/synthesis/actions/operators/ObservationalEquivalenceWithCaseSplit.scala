@@ -11,6 +11,6 @@ class ObservationalEquivalenceWithCaseSplit(maxDepth: Int = 4,
   override protected def createSearchAction(oPattern: Option[HyperPattern]): SearchAction =
     new OperatorRunWithCaseSplit(maxDepth,
       oPattern.map(p => (r: RewriteSearchState) => r.graph.findSubgraph[Int](p).nonEmpty),
-      splitDepth,
-      chooser)
+      splitDepth = splitDepth,
+      chooser = chooser)
 }

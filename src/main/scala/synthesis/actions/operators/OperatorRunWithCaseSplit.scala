@@ -8,10 +8,10 @@ import synthesis.rewrites.RewriteSearchState
 import synthesis.search.Operator
 
 class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[RewriteSearchState => Boolean] = None,
-                               splitDepth: Option[Int] = None, chooser: Option[SplitChooser] = None)
+                               preRunDepth: Option[Int] = None, splitDepth: Option[Int] = None, chooser: Option[SplitChooser] = None)
   extends SearchAction {
-  private val opRun = new OperatorRunAction(4, goalPredicate)
-  private val splitter = new CaseSplitAction(chooser, splitDepth, Some(maxSearchDepth))
+  private val opRun = new OperatorRunAction(preRunDepth.getOrElse(2), goalPredicate)
+  private val splitter = new CaseSplitAction(chooser, splitDepth, Some(maxSearchDepth), preRunDepth)
   private val idMetadata = IdMetadata(new Uid)
 
   override def apply(state: ActionSearchState): ActionSearchState = {
@@ -21,10 +21,9 @@ class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[Rewrit
 
   override def fromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]]): RewriteSearchState = {
     var rState = state
-    rState = opRun.fromRewriteState(rState, rules)
     val conclusions = splitter.getFoundConclusionsFromRewriteState(rState, rules)
     rState = ObservationalEquivalence.mergeConclusions(rState, conclusions.toSeq)
-    if (conclusions.exists(_.size > 1))
+    if (conclusions.exists(_.size > 2))
       rState = opRun.fromRewriteState(rState, rules)
     rState
   }

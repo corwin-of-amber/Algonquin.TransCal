@@ -12,7 +12,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
 case class RewriteSearchState(graph: RewriteSearchState.HyperGraph) extends State[RewriteSearchState] {
   def this(graph: ActionSearchState.HyperGraph) = this(CompactHyperGraph(graph.toSeq: _*))
 
-  override def deepCopy(): RewriteSearchState = RewriteSearchState(CompactHyperGraph(graph.toSeq: _*))
+  override def deepCopy(): RewriteSearchState = RewriteSearchState(graph.clone)
 }
 
 object RewriteSearchState {

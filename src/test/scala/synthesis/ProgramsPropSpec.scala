@@ -16,7 +16,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   private implicit val programsCreator: Arbitrary[Programs] = Arbitrary(programsGen)
 
   property("main program is in reconstruct") {
-    forAll (SizeRange(10)) { term: AnnotatedTree => {
+    forAll (SizeRange(7)) { term: AnnotatedTree => {
       val (graph, root) = Programs.destructWithRoot(term)
       val programs = Programs(graph)
       programs.reconstruct(root).contains(term) shouldEqual true
@@ -155,7 +155,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   }
 
   property("a few reconstruct in a row returns same results (using mutable state now)") {
-    forAll { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
+    forAll (SizeRange(20)) { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
       (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet should have size 1
     }}
   }

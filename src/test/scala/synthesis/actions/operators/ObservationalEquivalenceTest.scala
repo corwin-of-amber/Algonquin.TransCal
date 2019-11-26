@@ -52,8 +52,8 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
   }
 
   test("test flatten union doesn't miss sets") {
-    forAll (maxDiscardedFactor(500.0)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
-      whenever(numsLen > 0 && numsLen < 200 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
+    forAll (maxDiscardedFactor(500.0), SizeRange(10)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
+      whenever(numsLen > 0 && numsLen < 30 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
         checkUnionFlatten(numsLen, splitAt)
       }
     }
@@ -79,8 +79,8 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
   }
 
   test("test flatten intersection doesn't miss sets") {
-    forAll (maxDiscardedFactor(100.0)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
-      whenever(numsLen > 1 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
+    forAll (maxDiscardedFactor(100.0), SizeRange(10)) { (numsLen: Byte, splitAt: Set[Set[Int]]) =>
+      whenever(numsLen > 1 && numsLen < 30 && splitAt.nonEmpty && splitAt.forall(_.nonEmpty)) {
         checkIntersectionFlatten(numsLen, splitAt)
       }
     }
