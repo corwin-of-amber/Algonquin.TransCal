@@ -1,5 +1,6 @@
 package synthesis.actions.operators
 
+import com.typesafe.scalalogging.LazyLogging
 import structures._
 import structures.immutable.HyperGraph
 import synthesis._
@@ -14,7 +15,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 /** Calculate time complex of recursive terms.
   *
   */
-class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends Action {
+class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends Action with LazyLogging {
   assume(arguments > 0)
 
   /** The function edge regex to look for. */
@@ -88,9 +89,9 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
               case Seq(oneCall) =>
                 val arguments = oneCall.subtrees
 
-                println("arguments " + arguments)
-                val filtered = ttt.zip(arguments).map(t => (t._1._1, t._1._2.filter(a => contains(a, t._2)).toSeq)).filter(_._2.nonEmpty)
-                println("filtered " + filtered)
+                logger.debug("arguments " + arguments)
+                val filtered = ttt.zip(arguments).map(t => (t._1._1, t._1._2.filter(a => contains(a, t._2)))).filter(_._2.nonEmpty)
+                logger.debug("filtered " + filtered)
                 filtered match {
                   case Seq(one) =>
                     println(one)
@@ -113,6 +114,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
 
     val newEdges = findEquive(populated)
 
-    ActionSearchState(Programs(state.programs.hyperGraph ++ newEdges), state.rewriteRules)
+    val newHyperGraph = populated ++ newEdges -- (filledHyperGraph -- state.programs.hyperGraph)
+    state.copy(programs = Programs(newHyperGraph))
   }
 }
