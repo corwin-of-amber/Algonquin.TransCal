@@ -8,7 +8,7 @@ import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplex
 import synthesis.rewrites.RewriteRule.HyperPattern
 import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
 import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.search.NaiveSearch
+import synthesis.search.{NaiveSearch, Operator}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 /** Calculate time complex of recursive terms.
@@ -56,10 +56,10 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
     filledHyperGraph
   }
 
-  private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph): RewriteSearchState.HyperGraph = {
+  private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph, rewriteRules: Set[Operator[RewriteSearchState]]): RewriteSearchState.HyperGraph = {
     val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
     val initialState = new RewriteSearchState(hyperGraph)
-    val spaceSearch = new RewriteSearchSpace((SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules).toSeq, initialState, _ => false)
+    val spaceSearch = new RewriteSearchSpace((rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules).toSeq, initialState, _ => false)
     val (_, newState) = rewriteSearch.search(spaceSearch, 3)
     newState.graph
   }
@@ -109,7 +109,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   override def apply(state: ActionSearchState): ActionSearchState = {
     val filledHyperGraph = findUntouchedTerms(state.programs.hyperGraph)
 
-    val populated = populateEdges(filledHyperGraph)
+    val populated = populateEdges(filledHyperGraph, state.rewriteRules)
 
     val newEdges = findEquive(populated)
 
