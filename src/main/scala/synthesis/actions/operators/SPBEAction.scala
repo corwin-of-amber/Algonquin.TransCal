@@ -22,6 +22,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  splitDepth: Int = 2) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
 
+  val anchorPrefix = "SPBE_"
   // How to do this? for now given by user
   // Maybe i should use the rewrite system
   // * Create sygus rules only from constructors and grammer.
@@ -150,30 +151,24 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
 
   def createTupeledGraph(rewriteSearchState: RewriteSearchState) = {
-    def createIterationAnchor(e: HyperEdge[HyperTermId, HyperTermIdentifier], iteration: Int) =
-      e.copy(edgeType = e.edgeType.copy(e.edgeType.identifier.copy(literal = e.edgeType.identifier.literal + s"__iteration$iteration")))
-
     val exampleLength = examples.values.head.length
     // Need to shift all edges on graph because we want to prevent one changed value from affecting parts of other
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
-    var addedAnchors: Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = Set.empty
-    if (!rewriteSearchState.graph.edgeTypes.exists(_.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))) {
-      addedAnchors = rewriteSearchState.graph.nodes.map(ObservationalEquivalence.createAnchor)
-      rewriteSearchState.graph ++= addedAnchors
-    }
-    val anchors = rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
     val replacedGraphs = (0 until exampleLength).map(i => {
-      val currentGraph = rewriteSearchState.graph.clone
+      val itAnchorPrefix = s"${i}_$anchorPrefix"
+      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
+      // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
+      currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
       val currentExamples = examples.map(t => (t._1, t._2(i)))
       currentExamples.foreach({case (typ, example) =>
           val ph = createPlaceholder(typ, 0).copy(annotation = None)
-          currentGraph ++= Programs.destruct(example, maxId = currentGraph.nodes.maxBy(_.id))
-          val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example)).head
+          currentGraph ++= Programs.destruct(example.map(_.copy(annotation = None)), maxId = currentGraph.nodes.maxBy(_.id))
+          val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example.map(_.copy(annotation = None)))).head
           val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
           currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(ph)).head.target, id)
+          currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(ph))
       })
-      val currentAnchors = anchors.map(e => currentGraph.findByEdgeType(e.edgeType).head)
-      currentGraph --= currentAnchors ++= currentAnchors.map(e => createIterationAnchor(e, i))
+      currentGraph
     })
     val resGraph = replacedGraphs.head
     var max = resGraph.nodes.maxBy(_.id)
@@ -181,16 +176,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       resGraph ++= CaseSplitAction.shiftEdges(max.id + 1, g.edges)
       max = resGraph.nodes.maxBy(_.id)
     })
-
-    val ids = Stream.from(max.id + 1).iterator.map(HyperTermId)
-    resGraph ++= anchors.flatMap(a => {
-      val newTarget = ids.next()
-      val currentIds = (0 until exampleLength) map (i => resGraph.findByEdgeType(createIterationAnchor(a, i).edgeType).head.target)
-      Seq(HyperEdge(newTarget, HyperTermIdentifier(Language.tupleId), currentIds, NonConstructableMetadata), a.copy(target = newTarget))
-    })
-    resGraph --= anchors.flatMap(a => (0 until exampleLength) flatMap  (i => resGraph.findByEdgeType(createIterationAnchor(a, i).edgeType)))
-    rewriteSearchState.graph --= addedAnchors
     new RewriteSearchState(resGraph)
+  }
+
+  def getTupledConclusions(rewriteSearchState: RewriteSearchState): Set[Set[HyperTermId]] = {
+    val prefixes = examples.values.head.indices.map(i => s"${i}_$anchorPrefix")
+    // This can work because when we create the tupled graph we do not change the graph when inserting different anchors
+    ObservationalEquivalence.flattenIntersectConclusions(prefixes.map(p => ObservationalEquivalence.getIdsToMerge(p, rewriteSearchState.graph.edges)))
   }
 
   def sygusStep(state: RewriteSearchState): RewriteSearchState = {
@@ -209,8 +201,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
-    new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
-      .getEquivesFromRewriteState(createTupeledGraph(rewriteState), rules.toSet)._2
+    // TODO: Should just use operator run with case split
+    val res = new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
+      .getEquivesFromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
+    getTupledConclusions(res._1)
   }
 
   private def findAndMergeEquives(rewriteState: RewriteSearchState,

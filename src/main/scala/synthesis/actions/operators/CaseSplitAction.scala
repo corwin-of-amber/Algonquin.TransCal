@@ -35,24 +35,29 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
            maxDepthOption: Option[Int]) =
     this(Seq(splitter), maxDepthOption)
 
-  val obvEquiv = new ObservationalEquivalence(maxDepth = maxDepth)
+  val equivRun = new OperatorRunAction(maxDepth)
   val preProcessor = new OperatorRunAction(preProcessDepth.getOrElse(2))
+  val caseSplitPrefix = "Case_Depth_"
 
   def getFoundConclusionsFromRewriteState(state: RewriteSearchState, rules: Set[Operator[RewriteSearchState]])
-  : Set[Set[HyperTermId]] = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
+  : Set[Set[HyperTermId]] = {
+    val anchors = state.graph.nodes.map(n => ObservationalEquivalence.createAnchor(caseSplitPrefix, n))
+    state.graph ++= anchors
+    val newState = innerGetFoundConclusionsFromRewriteState(state, rules, Seq.empty)
+    anchors.foreach(a => {state.graph --= state.graph.findByEdgeType(a.edgeType)})
+    ObservationalEquivalence.getIdsToMerge(caseSplitPrefix, newState.graph.edges)
+  }
 
   private def innerGetFoundConclusionsFromRewriteState(state: RewriteSearchState,
                                                        rules: Set[Operator[RewriteSearchState]],
                                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]])
-  : Set[Set[HyperTermId]] = {
-    val withAnchors =
-      if (state.graph.edgeTypes.exists(_.identifier.literal.startsWith(anchorStart))) state.graph.clone
-      else state.graph ++ state.graph.map(e => createAnchor(e.target))
+  : RewriteSearchState = {
     val splitters = chooser(state, chosen).toSeq
     if (chosen.length >= splitDepth || splitters.isEmpty) {
-      val res = obvEquiv.getEquivesFromRewriteState(RewriteSearchState(withAnchors), rules)
-      res._2
+      equivRun.fromRewriteState(state, rules)
     } else {
+      val currentPrefix = caseSplitPrefix + chosen.length.toString + "_"
+      val withAnchors = state.graph ++ state.graph.nodes.map(ObservationalEquivalence.createAnchor(currentPrefix, _))
       // For each splitter edge:
       // 1. build new graphs
       // 2. pre run ops when
@@ -75,10 +80,12 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
           innerGetFoundConclusionsFromRewriteState(newState, rules, chosen :+ splitter)
         }).seq
         // 3b. Merge recursion results
-        ObservationalEquivalence.flattenIntersectConclusions(results)
+
+        ObservationalEquivalence.flattenIntersectConclusions(results.map(r =>
+          ObservationalEquivalence.getIdsToMerge(currentPrefix, r.graph.edges)))
       })
       // 4. Merge different split results
-      ObservationalEquivalence.flattenUnionConclusions(equives)
+      ObservationalEquivalence.mergeConclusions(state, ObservationalEquivalence.flattenUnionConclusions(equives).toSeq)
     }
   }
 

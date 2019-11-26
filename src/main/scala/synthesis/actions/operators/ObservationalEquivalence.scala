@@ -1,5 +1,7 @@
 package synthesis.actions.operators
 
+import java.util.UUID
+
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
@@ -15,28 +17,24 @@ import scala.collection.mutable
 
 
 class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLogging {
+  val uniquePrefix: String = UUID.randomUUID().toString
+
   protected def createSearchAction(oPattern: Option[HyperPattern]): SearchAction = {
     new OperatorRunAction(maxDepth, oPattern.map(p => (r: RewriteSearchState) => r.graph.findSubgraph[Int](p).nonEmpty))
   }
 
   def getEquivesFromRewriteState(rewriteSearchState: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): (RewriteSearchState, Set[Set[HyperTermId]]) = {
-    var addedAnchors = Set.empty[HyperEdge[HyperTermId, HyperTermIdentifier]]
-    if (ObservationalEquivalence.getAnchors(rewriteSearchState).isEmpty) {
-      logger.warn("Adding anchors to all nodes in observational equivalence")
-      addedAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
-      rewriteSearchState.graph ++= addedAnchors
-    }
-
-    val allAnchors = addedAnchors ++ ObservationalEquivalence.getAnchors(rewriteSearchState)
+    val allAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(uniquePrefix, n))
+    rewriteSearchState.graph ++= allAnchors
     val endPattern = ObservationalEquivalence.createEndPattern(allAnchors)
 
     val opAction = createSearchAction(Some(endPattern))
     val newState = opAction.fromRewriteState(rewriteSearchState, rewriteRules)
 
-    val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(newState.graph.edges)
+    val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(uniquePrefix, newState.graph.edges)
 
-    rewriteSearchState.graph --= addedAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
-    newState.graph --= addedAnchors.flatMap(e => newState.graph.findByEdgeType(e.edgeType))
+    rewriteSearchState.graph --= allAnchors.flatMap(e => rewriteSearchState.graph.findByEdgeType(e.edgeType))
+    newState.graph --= allAnchors.flatMap(e => newState.graph.findByEdgeType(e.edgeType))
     (newState, merged)
   }
 
@@ -52,11 +50,12 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
   }
 
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
+    // TODO: fix id to term to be able to deal with moving term targets
     var maxId = -1
     val termToEdges = (for (t <- terms) yield {
       val (graph, root) = Programs.destructWithRoot(t, HyperTermId(maxId + 1))
       maxId = graph.nodes.map(_.id).max
-      (t, (graph.edges + ObservationalEquivalence.createAnchor(root), root))
+      (t, (graph.edges, root))
     }).toMap
     val idToTerm = termToEdges.map({case (term, (_, id)) => (id, term)})
     val allEdges = termToEdges.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
@@ -66,24 +65,24 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 }
 
 object ObservationalEquivalence extends LazyLogging {
-  val anchorStart = "Equiv_Anchor_For_"
+  private val anchorStart = "Equiv_Anchor_For_"
 
-  def createAnchor(hyperTermId: HyperTermId): HyperEdge[HyperTermId, HyperTermIdentifier] =
-    HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"$anchorStart${hyperTermId.id}")), Seq(), NonConstructableMetadata)
+  def createAnchor(prefix: String, hyperTermId: HyperTermId): HyperEdge[HyperTermId, HyperTermIdentifier] =
+    HyperEdge(hyperTermId, HyperTermIdentifier(Identifier(s"$prefix$anchorStart${hyperTermId.id}")), Seq(), NonConstructableMetadata)
 
-  def getAnchors(rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
-    rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+  def getAnchors(prefix: String, rewriteSearchState: RewriteSearchState): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
+    rewriteSearchState.graph.edges.filter(_.edgeType.identifier.literal.startsWith(prefix+ObservationalEquivalence.anchorStart))
   }
 
   def createEndPattern(anchors: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): HyperPattern = {
     Programs.destructPattern(AnnotatedTree(Language.andCondBuilderId, anchors.map(a => AnnotatedTree.identifierOnly(a.edgeType.identifier)).toSeq, Seq.empty))
   }
 
-  def getIdsToMerge(edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Set[Set[HyperTermId]] = {
-    edges.filter(_.edgeType.identifier.literal.startsWith(ObservationalEquivalence.anchorStart))
+  def getIdsToMerge(prefix: String, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Set[Set[HyperTermId]] = {
+    edges.filter(_.edgeType.identifier.literal.startsWith(prefix + ObservationalEquivalence.anchorStart))
       .groupBy(_.target).values.toSet
       .map((set:  Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
-        set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(ObservationalEquivalence.anchorStart.length).toInt)))
+        set.map(e => HyperTermId(e.edgeType.identifier.literal.drop(prefix.length + ObservationalEquivalence.anchorStart.length).toInt)))
   }
 
   def mergeConclusions(rState: RewriteSearchState, equives: Seq[Set[HyperTermId]]): RewriteSearchState = {

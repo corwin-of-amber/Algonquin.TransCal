@@ -32,7 +32,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       val (graph, root) = Programs.destructPatternsWithRoots(Seq(t)).head
       programs.hyperGraph.findSubgraph[Int](graph).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     }).toSeq
-    val res = new ObservationalEquivalence(3).getEquives(ActionSearchState(Programs(programs.hyperGraph ++ ids.map(ObservationalEquivalence.createAnchor)), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
+    val res = new ObservationalEquivalence(3).getEquives(ActionSearchState(Programs(programs.hyperGraph ++ ids.map(i => ObservationalEquivalence.createAnchor("", i))), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
     Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res
   }
 
@@ -97,7 +97,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       graph.hyperGraph.findSubgraph[Int](pattern).map(_._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id))
     })
     val updatedState = ActionSearchState(Programs(graph.hyperGraph ++
-      ids.map(ObservationalEquivalence.createAnchor)), normalRules)
+      ids.map(i => ObservationalEquivalence.createAnchor("", i))), normalRules)
     val equives = new ObservationalEquivalence().getEquives(updatedState)
     equives.flatten shouldEqual ids.toSet
   }
