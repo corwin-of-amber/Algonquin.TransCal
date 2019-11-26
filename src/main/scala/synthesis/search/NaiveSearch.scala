@@ -29,7 +29,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
     val operators = searchSpace.operators(state).collect({
       case o: StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] => o
     }).par
-    assert(operators.size == searchSpace.operators(state).size)
+    assert(operators.size == searchSpace.operators(state).size, "All operators should be a StepOperator")
     // Don't need to check for new nodes when using versioning. Versioning finally faster.
     var prevVersion = 0L
     var prevState: Option[RewriteSearchState] = None
