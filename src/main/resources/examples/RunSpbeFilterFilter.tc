@@ -4,7 +4,7 @@ cons ?x ?l = x :: l
 
 filter ?p (?x::?xs) |>> splitTrue ||| possibleSplit((p x), true, false)
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 6
 
 filter pred (filter pred (t)) = filter pred (filter pred (l)) [++]
 

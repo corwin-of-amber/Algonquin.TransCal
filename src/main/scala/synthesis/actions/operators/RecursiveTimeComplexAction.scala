@@ -58,7 +58,7 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
   }
 
   private def populateEdges(hyperGraph: RewriteSearchState.HyperGraph, rewriteRules: Set[Operator[RewriteSearchState]]): RewriteSearchState.HyperGraph = {
-    val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
+    val rewriteSearch = new NaiveSearch()
     val initialState = new RewriteSearchState(hyperGraph)
     val spaceSearch = new RewriteSearchSpace((rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules).toSeq, initialState, _ => false)
     val (_, newState) = rewriteSearch.search(spaceSearch, 3)

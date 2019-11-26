@@ -69,13 +69,13 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   private def recursiveReconstruct(hyperGraph: rewrites.RewriteSearchState.HyperGraph,
                                    root: HyperTermId,
                                    fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
-    val hyperTermToEdge = hyperGraph.groupBy(_.target)
+    val hyperTermToEdge = hyperGraph.edges.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(root, mutable.CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
       val typ = findTypes(edge.target, hyperGraph)
       if (edge.sources.isEmpty) {
-        Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), typ.headOption.toSeq))
+        Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), Seq.empty))
       }
       else {
         val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
@@ -414,6 +414,7 @@ object Programs extends LazyLogging {
     edges.map(es => (mainRoot, es._2.map(e => e.copy(target = switcher(e.target), sources = e.sources.map(switcher)))))
   }
 
+  // TODO: Root should always be reference term
   def destructPatternsWithRoots(trees: Seq[AnnotatedTree], mergeRoots: Boolean = true)
   : Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
 

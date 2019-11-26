@@ -1,0 +1,12 @@
+reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))
+
+cons ?x ?l = x :: l
+snoc ?l ?x = l :+ x
+concat ?l1 ?l2 = l1 ++ l2
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((snoc : list int :> int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+
+reverse(reverse(f(t))) = reverse(reverse(l)) [++]
+
+reverse(reverse(f(t))) -> f(t)

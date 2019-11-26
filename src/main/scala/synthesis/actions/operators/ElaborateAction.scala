@@ -46,7 +46,7 @@ object ElaborateAction {
                      predicate: RewriteSearchState => Boolean,
                      maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
     // Rewrite search
-    val rewriteSearch = new NaiveSearch[RewriteSearchState, RewriteSearchSpace]()
+    val rewriteSearch = new NaiveSearch()
     val initialState = new RewriteSearchState(state.programs.hyperGraph)
     val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, predicate)
     val (success, newState) = rewriteSearch.search(spaceSearch, maxDepth)
