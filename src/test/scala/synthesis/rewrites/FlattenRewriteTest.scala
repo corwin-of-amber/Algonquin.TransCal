@@ -22,7 +22,7 @@ class FlattenRewriteTest extends PropSpec with Matchers  {
     val newEdge = newEdges.filter(_.sources.size == 4)
     newEdges should have size 2
     newEdge.head.sources should have size 4
-    newEdge.head.edgeType.identifier.literal shouldEqual "@"
+    newEdge.head.edgeType.identifier shouldEqual Language.applyId
     newEdge.head.sources.head.id shouldEqual 3
     newEdge.head.sources(1).id shouldEqual 4
     newEdge.head.sources.last.id shouldEqual 2
