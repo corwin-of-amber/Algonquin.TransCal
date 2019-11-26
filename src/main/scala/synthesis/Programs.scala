@@ -421,7 +421,7 @@ object Programs extends LazyLogging {
     def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
     val holeCreator = Stream.from(0).iterator.map(ReferenceTerm[HyperTermId])
-    val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
+    val vars = trees.flatMap(t => t.nodes.filter(_.root.literal.startsWith("?"))).map(t =>
       (t.root.copy(literal = t.root.literal.drop(1)), t.root)).toMap
 
     def holeFuncToApply(tree: AnnotatedTree): AnnotatedTree = {
