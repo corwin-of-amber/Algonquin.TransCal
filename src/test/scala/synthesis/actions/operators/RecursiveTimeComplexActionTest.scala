@@ -151,6 +151,29 @@ class RecursiveTimeComplexActionTest extends FunSuite with Matchers  {
     val found = lastState.programs.hyperGraph.findSubgraph[Int](wantedGraph)
     found should not be empty
   }
+
+  test("mapFilter example textual") {
+    val parser = new TranscalParser()
+    val terms = List(
+      parser.apply("mapFilter ?f ?p ?l = map f (filter p l) [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} l 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.timeComplexTrueId.literal} = ${Language.timeComplexId.literal} xs 0 [++]"),
+      parser.apply(f"((map ?f ?l) ||| ?z) |>> ${Language.timeComplexTrueId.literal} ||| ${Language.timeComplexId.literal} ( z ) (len l)"),
+      parser.apply(f"((filter ?p ?l) ||| ?z) |>> ${Language.timeComplexTrueId.literal} ||| ${Language.timeComplexId.literal} ( z ) (len l)"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} l (len l) [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} x 0 [++]"),
+      parser.apply(f"${Language.spaceComplexTrueId.literal} = ${Language.spaceComplexId.literal} xs (len xs) [++]"),
+      parser.apply(f"((map ?f ?l) ||| ?z) |>> ${Language.spaceComplexTrueId.literal} ||| ${Language.spaceComplexId.literal} ( z ) (len l)"),
+      parser.apply(f"((filter ?p ?l) ||| ?z) |>> ${Language.spaceComplexTrueId.literal} ||| ${Language.spaceComplexId.literal} ( z ) (len l)"),
+      parser.apply(f"${Language.recursiveTimeComplexId.literal} mapFilter 3"),
+    )
+    val lastState = new Interpreter(terms.iterator, System.out).start()
+
+    val wantedGraph = new LetAction(parser.apply(f"${Language.timeComplexId.literal} (mapFilter ?f ?p ?l) _ >> ${Language.timeComplexTrueId.literal}")).rules.head.premise
+    val found = lastState.programs.hyperGraph.findSubgraph[Int](wantedGraph)
+    found should not be empty
+  }
 }
 
 object RecursiveTimeComplexActionTest {
