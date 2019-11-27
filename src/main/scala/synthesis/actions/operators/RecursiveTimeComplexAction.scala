@@ -97,7 +97,6 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
 
                 logger.debug("arguments " + arguments)
                 val filtered = ttt.zip(arguments).map(t => (t._1._1, t._1._2.filter(a => contains(a, t._2)))).filter(_._2.nonEmpty)
-                logger.debug("filtered " + filtered)
                 filtered match {
                   case filtered if filtered.count(_._2.exists(_.root == Language.consId)) == 1 =>
                     val one = filtered.find(_._2.exists(_.root == Language.consId)).get
@@ -107,6 +106,9 @@ class RecursiveTimeComplexAction(function: Identifier, arguments: Int) extends A
                       HyperEdge(trueTC, HyperTermIdentifier(Language.timeComplexId), Seq(functionNode, newTC), EmptyMetadata),
                       HyperEdge(newTC, HyperTermIdentifier(Identifier("len")), Seq(one._1), EmptyMetadata)
                     )
+                  case _ =>
+                    logger.error("Unknown: " + filtered)
+                     Seq.empty
                 }
             }
         }
