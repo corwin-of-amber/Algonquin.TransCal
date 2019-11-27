@@ -51,16 +51,17 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
     // TODO: fix id to term to be able to deal with moving term targets
-    var maxId = -1
+    val graph = structures.mutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier]
+    terms.foreach(t => {
+      graph ++= Programs.destruct(t, if (graph.nonEmpty) graph.nodes.maxBy(_.id) else HyperTermId(0))
+    })
     val termToEdges = (for (t <- terms) yield {
-      val (graph, root) = Programs.destructWithRoot(t, HyperTermId(maxId + 1))
-      maxId = graph.nodes.map(_.id).max
-      (t, (graph.edges, root))
+      val (pattern, root) = Programs.destructPatternWithRoot(t)
+      (t, graph.findSubgraph[Int](pattern).head._1(root.id))
     }).toMap
-    val idToTerm = termToEdges.map({case (term, (_, id)) => (id, term)})
-    val allEdges = termToEdges.values.map(_._1).reduce((g1, g2) => g1 ++ g2)
-    getEquivesFromRewriteState(new RewriteSearchState(new RewriteSearchState.HyperGraph(allEdges)), rewriteRules)._2
-      .map(s => s.map(id => idToTerm(id)))
+    val idToTerm = termToEdges.map({case (term, id) => (id, term)})
+    getEquivesFromRewriteState(new RewriteSearchState(graph), rewriteRules)._2
+      .filter(_.exists(idToTerm.contains)).map(s => s.filter(idToTerm.contains).map(id => idToTerm(id)))
   }
 }
 

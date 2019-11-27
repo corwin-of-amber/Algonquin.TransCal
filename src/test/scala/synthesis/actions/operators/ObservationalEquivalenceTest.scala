@@ -29,11 +29,11 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
     val terms = "(x + y + z),(z + x + y),(j + k + z),(j + k),(k + j)".split(",").map(parser.parseExpression)
     val programs = Programs.empty.addTerm(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, terms))
     val ids = terms.map(t => {
-      val (graph, root) = Programs.destructPatternsWithRoots(Seq(t)).head
-      programs.hyperGraph.findSubgraph[Int](graph).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+      val (graph, root) = Programs.destructPatternWithRoot(t)
+      programs.hyperGraph.findSubgraph[Int](graph).head._1(root.id)
     }).toSeq
-    val res = new ObservationalEquivalence(3).getEquives(ActionSearchState(Programs(programs.hyperGraph ++ ids.map(i => ObservationalEquivalence.createAnchor("", i))), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
-    Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res
+    val res = new ObservationalEquivalence(5).getEquives(ActionSearchState(Programs(programs.hyperGraph), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
+    Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res.map(_.filter(ids.contains)).filter(_.nonEmpty)
   }
 
   private def checkUnionFlatten(numsLen: Int, splitAt: Set[Set[Int]]) = {
@@ -84,22 +84,6 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
         checkIntersectionFlatten(numsLen, splitAt)
       }
     }
-  }
-
-  test("test all nodes are present in original anchors") {
-    val graph = Programs.empty
-      .addTerm(parser.parseExpression("x + y + z"))
-      .addTerm(parser.parseExpression("x :: l ++ l2"))
-      .addTerm(parser.parseExpression("x :: l2"))
-      .addTerm(parser.parseExpression("1 + z"))
-    val patternRoots = Programs.destructPatternsWithRoots(Seq("?x + ?y + ?z", "?x :: ?l").map(parser.parseExpression))
-    val ids = patternRoots.flatMap({case (pattern, root) =>
-      graph.hyperGraph.findSubgraph[Int](pattern).map(_._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id))
-    })
-    val updatedState = ActionSearchState(Programs(graph.hyperGraph ++
-      ids.map(i => ObservationalEquivalence.createAnchor("", i))), normalRules)
-    val equives = new ObservationalEquivalence().getEquives(updatedState)
-    equives.flatten shouldEqual ids.toSet
   }
 
   test("test all nodes are present in original graph (auto add anchors)") {

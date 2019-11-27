@@ -36,9 +36,9 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
     while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
       prevState = Some(state.deepCopy())
       val nextVersion = state.graph.version
-      val hyperTermIds: Seq[() => HyperTermId] = 0 until operators.size map(i => {
+      val hyperTermIds: Seq[() => HyperTermId] = 0 until operators.size map(j => {
         val creator =
-          Stream.from(if (state.graph.isEmpty) i else state.graph.nodes.map(_.id).max + 1 + i, operators.size)
+          Stream.from(if (state.graph.isEmpty) j else state.graph.nodes.map(_.id).max + 1 + j, operators.size)
             .map(HyperTermId).iterator
         () => creator.next
       })
