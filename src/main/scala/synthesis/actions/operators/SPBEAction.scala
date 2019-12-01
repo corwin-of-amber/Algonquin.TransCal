@@ -18,10 +18,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  grammar: Set[AnnotatedTree],
                  examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
                  termDepth: Int = 2,
-                 equivDepth: Int = 6,
+                 equivDepth: Int = 4,
                  splitDepth: Int = 1) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
-
   val anchorPrefix = "SPBE_"
   // How to do this? for now given by user
   // Maybe i should use the rewrite system
@@ -126,7 +125,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
-      val roots = SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph)
+      val roots = rewriteState.graph.findByEdgeType(HyperTermIdentifier(SyGuSRewriteRules.sygusCreatedId)).map(_.sources.head)
       // Different context for temp names
       findNewRules(state, roots, Programs(rewriteState.graph), i) match {
         case (rules, newstate) => newRules = rules; state = newstate
@@ -156,7 +155,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
     val replacedGraphs = (0 until exampleLength).map(i => {
       val itAnchorPrefix = s"${i}_$anchorPrefix"
-      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
+//      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId
+//        || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
+      val currentGraph = rewriteSearchState.graph.clone
       // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
       currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
       val currentExamples = examples.map(t => (t._1, t._2(i)))
@@ -182,7 +183,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def getTupledConclusions(rewriteSearchState: RewriteSearchState): Set[Set[HyperTermId]] = {
     val prefixes = examples.values.head.indices.map(i => s"${i}_$anchorPrefix")
     // This can work because when we create the tupled graph we do not change the graph when inserting different anchors
-    ObservationalEquivalence.flattenIntersectConclusions(prefixes.map(p => ObservationalEquivalence.getIdsToMerge(p, rewriteSearchState.graph.edges)))
+    ObservationalEquivalence.flattenIntersectConclusions(prefixes.map(p =>
+      ObservationalEquivalence.getIdsToMerge(p, rewriteSearchState.graph.edges))).filter(_.nonEmpty)
   }
 
   def sygusStep(state: RewriteSearchState): RewriteSearchState = {
@@ -201,22 +203,16 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
-    // TODO: Should just use operator run with case split
-    val res = new ObservationalEquivalenceWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
-      .getEquivesFromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
-    getTupledConclusions(res._1)
+    val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
+      .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
+    getTupledConclusions(res)
   }
 
-  private def findAndMergeEquives(rewriteState: RewriteSearchState,
+  def findAndMergeEquives(rewriteState: RewriteSearchState,
                                   rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
     val toMerge = findEquives(rewriteState, rules)
-
-    for (targets <- toMerge if targets.size > 1;
-         source = targets.head;
-         target <- targets.tail) {
-      rewriteState.graph.mergeNodesInPlace(source, target)
-    }
-    rewriteState
+    assert(toMerge.flatten.intersect(rewriteState.graph.nodes) == toMerge.flatten)
+    ObservationalEquivalence.mergeConclusions(rewriteState, toMerge.toSeq)
   }
 
   private val ltwfId = Identifier("ltwf")
