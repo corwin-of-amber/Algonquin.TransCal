@@ -2,9 +2,10 @@ package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperEdge
-import synthesis.{HyperTermId, HyperTermIdentifier}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.rewrites.Template.TemplateTerm
+import transcallang.AnnotatedTree
 
 import scala.collection.mutable
 
@@ -32,9 +33,34 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
     assert(operators.size == searchSpace.operators(state).size)
     // Don't need to check for new nodes when using versioning. Versioning finally faster.
     var prevVersion = 0L
+
+    // Adding hardcoded patterns for debuging
+    val patterns = {
+      import transcallang.TranscalParser
+      val parser = new TranscalParser
+      Seq[String](
+//        "nil",
+//        "x::nil",
+//        "y::x::nil",
+//        "reverse(snoc(nil, ?z))",
+//        "reverse(snoc(x::nil, ?z))",
+//        "reverse(snoc(y::x::nil, ?z))"
+      ).map(s => (s, parser.parseExpression(s).map(_.copy(annotation=None)))).map({case (s, t) => (s, Programs.destructPatternWithRoot(t))})
+    }
+
+
     var prevState: Option[RewriteSearchState] = None
     while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
       prevState = Some(state.deepCopy())
+      for ((term, (pattern, patternRoot)) <- patterns) {
+        val reconstructed = Programs.reconstructPatternWithRoot(state.graph, pattern, patternRoot)
+        if (reconstructed.nonEmpty) {
+          logger.info(term)
+          for ((id, rTerms) <- reconstructed) {
+            logger.info(s"$id: ${rTerms.toList.map(Programs.termToString).mkString("  ---  ")}")
+          }
+        }
+      }
       val nextVersion = state.graph.version
       val hyperTermIds: Seq[() => HyperTermId] = 0 until operators.size map(j => {
         val creator =
@@ -48,6 +74,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
       state.graph ++= newEdges.flatten
       prevVersion = nextVersion
       i += 1
+
       logger.info(s"Done a round robin. Graph size is: ${state.graph.size}")
     }
 
