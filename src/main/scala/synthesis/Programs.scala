@@ -2,6 +2,7 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures._
+import structures.generic.HyperGraph
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
@@ -19,22 +20,10 @@ import scala.util.Try
   * @since 11/19/18
   */
 class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
-  private lazy val mutableHyperGraph = new RewriteSearchState(hyperGraph).graph
+  import Programs._
+
   private implicit class HasNextIterator[T](it: Iterator[T]) {
     def nextOption: Option[T] = if (it.hasNext) Some(it.next()) else None
-  }
-
-  /** Reconstruct annotation trees of the types.
-    *
-    * @param hyperTermId The root to get its types' annotation trees.
-    * @return All the constructed annotation trees.
-    */
-  private def findTypes(hyperTermId: HyperTermId, hyperGraph: rewrites.RewriteSearchState.HyperGraph): Stream[AnnotatedTree] = {
-    val searchGraph: HyperPattern = immutable.CompactHyperGraph(HyperEdge(ReferenceTerm(0),
-        ExplicitTerm(HyperTermIdentifier(Language.typeId)),
-        Seq(ExplicitTerm(hyperTermId), Hole(1)),
-        NonConstructableMetadata))
-    hyperGraph.findSubgraph[Int](searchGraph).toStream.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
   }
 
   /* --- Public --- */
@@ -48,40 +37,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   def reconstructWithPattern(hyperTermId: HyperTermId,
                              pattern: HyperPattern,
                              patternRoot: Option[TemplateTerm[HyperTermId]] = None): Stream[AnnotatedTree] = {
-    val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
-    val maps = hyperGraph.findSubgraph[Int](newPattern)
-    maps.toStream.flatMap(m => {
-      val fullPattern = generic.HyperGraph.fillPattern(newPattern, m, () =>
-        throw new RuntimeException("Shouldn't need to create nodes")
-      )
-      recursiveReconstruct(mutable.CompactHyperGraph.empty ++= fullPattern, hyperTermId, Some(this.reconstruct))
-    })
-  }
-
-  /** Build iterator of program's trees where their root is the current target.
-    *
-    * @param hyperGraph The hyperGraph to use for reconstruct.
-    * @param root         The root of the annotation tree.
-    * @param fallTo       What to do if failed
-    * @return Iterator with all the constructed annotation trees.
-    */
-  private def recursiveReconstruct(hyperGraph: rewrites.RewriteSearchState.HyperGraph,
-                                   root: HyperTermId,
-                                   fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
-    val hyperTermToEdge = hyperGraph.edges.groupBy(_.target)
-    val edges = hyperTermToEdge.getOrElse(root, mutable.CompactHyperGraph.empty)
-    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
-    else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
-      val typ = findTypes(edge.target, hyperGraph)
-      if (edge.sources.isEmpty) {
-        Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), Seq.empty))
-      }
-      else {
-        val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
-        Programs.combineSeq(recRes).map(subtrees =>
-          AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.headOption.toSeq))
-      }
-    })
+    Programs.reconstructPattern(hyperGraph, hyperTermId, pattern, patternRoot)
   }
 
   /** Finds annotation trees with their complexity and the relative hyper term id.
@@ -91,7 +47,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return Tuples of annotation tree, hyper term id of the complex and the complexity.
     */
   private def innerReconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
-                                                            hyperGraph: rewrites.RewriteSearchState.HyperGraph)
+                                                            hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[(AnnotatedTree, HyperTermId, Complexity)] = {
     hyperGraph.toStream
       .filter(e => e.edgeType.identifier == Language.timeComplexId && e.sources.head == termRoot)
@@ -103,7 +59,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   }
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId,
-                                     hyperGraph: rewrites.RewriteSearchState.HyperGraph,
+                                     hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier],
                                      fallTo: Option[HyperTermId => Stream[Complexity]]): Stream[Complexity] = {
     val hyperTermToEdge = hyperGraph.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(complexityRoot, mutable.CompactHyperGraph.empty)
@@ -137,7 +93,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     */
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
                                                        complexityRoot: HyperTermId,
-                                                       hyperGraph: rewrites.RewriteSearchState.HyperGraph)
+                                                       hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[(AnnotatedTree, Complexity)] = {
     val bridgeEdge = hyperGraph.find(e =>
       e.edgeType.identifier == Language.timeComplexId && e.sources == Seq(termRoot, complexityRoot)).get
@@ -196,20 +152,12 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
           .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity]) }
     }
   }
-  /** Reconstruct annotation trees.
-    *
-    * @param root The root of the annotation tree.
-    * @param hyperGraph The hyperGraph to use as reference.
-    * @return All the constructed annotation trees.
-    */
-  private def reconstructAnnotationTree(root: HyperTermId, hyperGraph: rewrites.RewriteSearchState.HyperGraph)
-  : Stream[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
 
-  private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: RewriteSearchState.HyperGraph)
+  private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[Complexity] = reconstructTimeComplex(complexityRoot, hyperGraph, None)
 
   def reconstructWithTimeComplex(termRoot: HyperTermId): Stream[(AnnotatedTree, Complexity)] = {
-    innerReconstructAnnotationTreeWithTimeComplex(termRoot, mutableHyperGraph).map{case (tree, _, complex) => (tree, complex)}
+    innerReconstructAnnotationTreeWithTimeComplex(termRoot, hyperGraph).map{case (tree, _, complex) => (tree, complex)}
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -219,14 +167,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
     * @return All the trees.
     */
   def reconstruct(hyperTermId: HyperTermId): Stream[AnnotatedTree] = {
-    logger.trace("Reconstruct programs")
-
-    if (!hyperGraph.nodes.contains(hyperTermId)) {
-      logger.debug(f"Unknown HyperTerm - $hyperTermId")
-      Stream.empty
-    } else {
-      recursiveReconstruct(mutableHyperGraph, hyperTermId, None)
-    }
+    Programs.reconstruct(hyperGraph, hyperTermId)
   }
 
   /** Adds a new term to the programs.
@@ -271,6 +212,106 @@ object Programs extends LazyLogging {
       (fun, args ++ term.subtrees.tail)
     }
     else (term.root, term.subtrees)
+  }
+
+  /** Reconstruct annotation trees.
+    *
+    * @param root The root of the annotation tree.
+    * @param hyperGraph The hyperGraph to use as reference.
+    * @return All the constructed annotation trees.
+    */
+  private def reconstructAnnotationTree(root: HyperTermId, hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
+  : Stream[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
+
+  /** Reconstruct annotation trees of the types.
+    *
+    * @param hyperTermId The root to get its types' annotation trees.
+    * @return All the constructed annotation trees.
+    */
+  private def findTypes(hyperTermId: HyperTermId, hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Stream[AnnotatedTree] = {
+    val searchGraph: HyperPattern = immutable.CompactHyperGraph(HyperEdge(ReferenceTerm(0),
+      ExplicitTerm(HyperTermIdentifier(Language.typeId)),
+      Seq(ExplicitTerm(hyperTermId), Hole(1)),
+      NonConstructableMetadata))
+    hyperGraph.findSubgraph[Int](searchGraph).toStream.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
+  }
+
+  /** Build iterator of program's trees where their root is the current target.
+    *
+    * @param hyperGraph The hyperGraph to use for reconstruct.
+    * @param root         The root of the annotation tree.
+    * @param fallTo       What to do if failed
+    * @return Iterator with all the constructed annotation trees.
+    */
+  private def recursiveReconstruct(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
+                                   root: HyperTermId,
+                                   fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
+    val hyperTermToEdge = hyperGraph.edges.groupBy(_.target)
+    val edges = hyperTermToEdge.getOrElse(root, mutable.CompactHyperGraph.empty)
+    if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
+    else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
+      val typ = findTypes(edge.target, hyperGraph)
+      if (edge.sources.isEmpty) {
+        Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), Seq.empty))
+      }
+      else {
+        val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
+        Programs.combineSeq(recRes).map(subtrees =>
+          AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.headOption.toSeq))
+      }
+    })
+  }
+
+  /** Builds trees from of programs where the hyper term is the base program.
+    * Disallow loops in buildings - each edges can be chose once in each branch.
+    *
+    * @param hyperGraph hyper graph to reconstruct from
+    * @param hyperTermId The hyper term to build.
+    * @return All the trees.
+    */
+  def reconstruct(hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier],
+                  hyperTermId: HyperTermId): Stream[AnnotatedTree] = {
+    logger.trace("Reconstruct programs")
+
+    if (!hyperGraph.nodes.contains(hyperTermId)) {
+      logger.debug(f"Unknown HyperTerm - $hyperTermId")
+      Stream.empty
+    } else {
+      recursiveReconstruct(hyperGraph, hyperTermId, None)
+    }
+  }
+
+  /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
+    *
+    * @param hyperTermId The hyper term to build.
+    * @param pattern     graph pattern to limit output terms
+    * @param patternRoot pattern root node
+    * @return all conforming terms
+    */
+  def reconstructPattern(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
+                         hyperTermId: HyperTermId,
+                         pattern: HyperPattern,
+                         patternRoot: Option[TemplateTerm[HyperTermId]] = None): Stream[AnnotatedTree] = {
+    val newPattern = patternRoot.map(pattern.mergeNodes(ExplicitTerm(hyperTermId), _)).getOrElse(pattern)
+    val maps = hyperGraph.findSubgraph[Int](newPattern)
+    val fallback = (id: HyperTermId) => reconstruct(hyperGraph, id)
+    maps.toStream.flatMap(m => {
+      val fullPattern = generic.HyperGraph.fillPattern(newPattern, m, () =>
+        throw new RuntimeException("Shouldn't need to create nodes")
+      )
+      recursiveReconstruct(mutable.CompactHyperGraph.empty ++= fullPattern, hyperTermId, Some(fallback))
+    })
+  }
+
+  def reconstructPatternWithRoot(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
+                                 pattern: HyperPattern,
+                                 patternRoot: ReferenceTerm[HyperTermId]): Set[(HyperTermId, Stream[AnnotatedTree])] = {
+    hyperGraph.findSubgraph[Int](pattern).map(ms => {
+      assert(ms._1.contains(patternRoot.id))
+//      val newPattern = HyperGraph.mergeMap(pattern, ms)
+      val newRoot = ms._1(patternRoot.id)
+      (newRoot, reconstruct(hyperGraph, newRoot))
+    })
   }
 
   private def innerDestruct[Node, EdgeType](tree: AnnotatedTree,
