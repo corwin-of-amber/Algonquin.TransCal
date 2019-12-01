@@ -132,7 +132,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   }
 
   test("test find that filter p (filter p l) == filter p l") {
-    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepth = 6, splitDepth = 2)
+    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepth = 6, splitDepth = 1)
     var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(ActionSearchState(Programs.empty, Set.empty))
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     var state = action.sygusStep(new RewriteSearchState(action.baseGraph))
