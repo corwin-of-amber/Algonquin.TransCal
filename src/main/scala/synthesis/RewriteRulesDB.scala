@@ -66,19 +66,19 @@ object SimpleRewriteRulesDB extends RewriteRulesDB {
     "(?x ≤ ?y) ||> min(y, x) >> id x",
     //    min(x, y) =:> min(y,x),
 
-    "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
+//    "(?x ≤ ?y) ||> bounded_minus(x, y) >> 0",
 
     "(take ?xs 0) >> ⟨⟩",
     "(take ?xs (len xs)) >> id xs",
-    "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
+//    "(take (?xs ++ ?xs') ?x) >> ((take xs (min len(xs) x)) ++ (take xs' (bounded_minus x len xs)))",
 //
 //    // merge range
-    "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
-    // exclude to include
-    "range_exclude(?x, ?y + 1) = range_include(x, y)",
-//    // singleton range
-    "range_include(?x, x) = (x :: ⟨⟩)",
-    "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))"
+//    "(range_exclude(?x, ?y) ++ range_exclude(y, ?z)) >> range_exclude(x, z)",
+//    // exclude to include
+//    "range_exclude(?x, ?y + 1) = range_include(x, y)",
+////    // singleton range
+//    "range_include(?x, x) = (x :: ⟨⟩)",
+//    "(?z ∈ range_exclude(?x, ?y) ||| true) >> ((x ≤ z) ||| (z < y))"
   )
 
   override protected val ruleTemplates: Set[AnnotatedTree] = templates.map(parser.apply)

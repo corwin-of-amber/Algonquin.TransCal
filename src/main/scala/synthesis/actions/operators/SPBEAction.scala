@@ -17,10 +17,16 @@ import scala.collection.mutable
 class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  grammar: Set[AnnotatedTree],
                  examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
-                 termDepth: Int = 2,
-                 equivDepth: Int = 4,
-                 splitDepth: Int = 1) extends Action {
+                 termDepthOption: Option[Int] = None,
+                 equivDepthOption: Option[Int] = None,
+                 splitDepthOption: Option[Int] = None,
+                 preRunDepth: Option[Int] = None) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
+
+  val termDepth = termDepthOption.getOrElse(2)
+  val splitDepth = splitDepthOption.getOrElse(1)
+  val equivDepth = equivDepthOption.getOrElse(4)
+
   val anchorPrefix = "SPBE_"
   // How to do this? for now given by user
   // Maybe i should use the rewrite system
@@ -203,7 +209,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
-    val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser))
+    val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth=preRunDepth)
       .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
     getTupledConclusions(res)
   }
@@ -324,7 +330,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
       val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last),
         ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-      val nextState = new ObservationalEquivalenceWithCaseSplit(equivDepth)(actionState)
+      val nextState = new OperatorRunWithCaseSplit(equivDepth, preRunDepth=preRunDepth)(actionState)
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {

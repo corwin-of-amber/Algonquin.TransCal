@@ -39,7 +39,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
       import transcallang.TranscalParser
       val parser = new TranscalParser
       Seq[String](
-//        "nil",
+//        "filter ?p (?x :: ?xs)",
 //        "x::nil",
 //        "y::x::nil",
 //        "reverse(snoc(nil, ?z))",
