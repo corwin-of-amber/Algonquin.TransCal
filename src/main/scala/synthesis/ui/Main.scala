@@ -1,6 +1,7 @@
 package synthesis.ui
 
 import java.io.{PrintStream, File => JFile}
+import java.util.Calendar
 
 import org.rogach.scallop.ScallopOption
 import synthesis._
@@ -14,6 +15,8 @@ import scala.io.Source
   */
 object Main extends App {
   import org.rogach.scallop.ScallopConf
+
+  println(s"Start time: ${Calendar.getInstance().getTime}")
 
   val parser = new TranscalParser()
 
@@ -64,6 +67,7 @@ object Main extends App {
   val timeComplexes = hyperGraph.filter(_.edgeType.identifier == Language.unionId).map(_.target).toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
   println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Language.timeComplexId)} - total time complexities ${timeComplexes.size}")
   timeComplexes.foreach(println)
+  println(s"End time: ${Calendar.getInstance().getTime}")
 //  println("============================== Reconstruct ==============================")
 //  hyperGraph.nodes.flatMap(
 //    node => fullProgram.reconstruct(node).take(10).map(Programs.termToString).map((node, _))

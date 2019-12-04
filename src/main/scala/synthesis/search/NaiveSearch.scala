@@ -2,10 +2,9 @@ package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperEdge
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import synthesis.rewrites.{RewriteRule, RewriteSearchSpace, RewriteSearchState}
 import synthesis.rewrites.Template.TemplateTerm
-import transcallang.AnnotatedTree
+import synthesis.rewrites.{RewriteSearchSpace, RewriteSearchState}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 import scala.collection.mutable
 
@@ -71,7 +70,9 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
 
       val steps = operators.map(r => r.getStep(state, prevVersion))
       val newEdges = steps.zip(hyperTermIds).map({case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator)}).seq
+      assert(state.graph.version == nextVersion)
       state.graph ++= newEdges.flatten
+      assert(state.graph.version == nextVersion + 1 || state.graph.version == nextVersion)
       prevVersion = nextVersion
       i += 1
 
