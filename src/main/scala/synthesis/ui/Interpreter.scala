@@ -27,5 +27,5 @@ class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
   }
 }
 object Interpreter {
-  val InterpreterRewriteRulesDB = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
+  val InterpreterRewriteRulesDB = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
 }
