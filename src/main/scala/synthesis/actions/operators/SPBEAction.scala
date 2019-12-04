@@ -47,12 +47,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   private val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
 
-  private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
+//  private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
+  private val constants = grammar.filterNot(isFunctionType)
 
   private val constructors = typeBuilders.filter(isFunctionType)
 
   private val sygusRules = SyGuSRewriteRules(
-    constructors ++
+//    constructors ++
       grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules.map(_.asInstanceOf[RewriteRule])
 
