@@ -29,8 +29,13 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
     val baseTerm = in.next()
     logger.info(seperator)
     logger.info(s"Got ${Programs.termToString(baseTerm)} from user")
-    val (term, annotation) = if (baseTerm.root == Language.annotationId) (baseTerm.subtrees(0), Some(baseTerm.subtrees(1)))
-    else (baseTerm, None)
+    val (tempTerm, annotation) =
+      if (baseTerm.root == Language.annotationId) (baseTerm.subtrees(0), Some(baseTerm.subtrees(1)))
+      else (baseTerm, None)
+
+    val term =
+      if(annotation.exists(_.root.literal.toLowerCase.startsWith("notype"))) tempTerm.map(_.copy(annotation=None))
+      else tempTerm
 
     val newState = term.root match {
       case i if Language.builtinDefinitions.contains(i) =>
@@ -38,8 +43,8 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
         val cleanTypes = annotation.exists(a => a.root.literal.contains("typedlet"))
         annotation match {
-          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term, cleanTypes=cleanTypes).apply(state)
-          case _ => new LetAction(term, cleanTypes=cleanTypes).apply(state)
+          case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term, cleanTypes = cleanTypes).apply(state)
+          case _ => new LetAction(term, cleanTypes = cleanTypes).apply(state)
         }
       case Language.tacticId =>
         val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
@@ -95,27 +100,27 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         }
       case Language.commandId =>
         logger.info(s"Received command $term")
-         term.subtrees(0).root.literal match {
-           case "[]" =>
-             logger.info("Saving state")
-             savedStates += state
-             state
-           case "<-" =>
-             logger.info("Adding state to stack")
-             stateStack.push(state)
-             state
-           case "->" =>
-             logger.info("Popping state from stack")
-             stateStack.pop()
-         }
+        term.subtrees(0).root.literal match {
+          case "[]" =>
+            logger.info("Saving state")
+            savedStates += state
+            state
+          case "<-" =>
+            logger.info("Adding state to stack")
+            stateStack.push(state)
+            state
+          case "->" =>
+            logger.info("Popping state from stack")
+            stateStack.pop()
+        }
       case Language.spbeId =>
         // should be tuples
         val typeBuilders = term.subtrees(0).subtrees.toSet
         val grammar = term.subtrees(1).subtrees.toSet
         val examples = term.subtrees(2).subtrees.map(t => t.subtrees(0) -> t.subtrees(1).subtrees).toMap
-        val equivDepthOption = if(term.subtrees.length > 3) Some(term.subtrees(3).root.literal.toInt) else None
-        val preRunDepth = if(term.subtrees.length > 4) Some(term.subtrees(4).root.literal.toInt) else None
-        new SPBEAction(typeBuilders, grammar, examples, equivDepthOption = equivDepthOption, preRunDepth=preRunDepth)(state)
+        val equivDepthOption = if (term.subtrees.length > 3) Some(term.subtrees(3).root.literal.toInt) else None
+        val preRunDepth = if (term.subtrees.length > 4) Some(term.subtrees(4).root.literal.toInt) else None
+        new SPBEAction(typeBuilders, grammar, examples, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth)(state)
     }
 
     logger.info(seperator)
