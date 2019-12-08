@@ -5,7 +5,7 @@ cons ?x ?l >> x :: l
 
 filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 3
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 3 2
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 
