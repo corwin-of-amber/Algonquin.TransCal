@@ -11,3 +11,4 @@ filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notyp
 SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3
 
 // Start time: Wed Dec 11 15:46:07 IST 2019
+// End time: Wed Dec 11 16:14:39 IST 2019
