@@ -3,8 +3,11 @@ filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true 
 concat ?l1 ?l2 >> l1 ++ l2
 l1 ++ l2 >> concat ?l1 ?l2 [notypes]
 
+cons ?x ?l >> x :: l
+?x :: ?l >> cons ?x ?l [notypes]
+
 filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 6 6
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3
 
-// Start time: Wed Dec 04 17:01:38 IST 2019
+// Start time: Wed Dec 11 15:46:07 IST 2019
