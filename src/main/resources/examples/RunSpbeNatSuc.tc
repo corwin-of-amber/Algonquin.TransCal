@@ -1,0 +1,9 @@
+// plus ?x ?y = x match (((zero) => id y) / ((suc ?t) => plus t (suc y)))
+
+plus (suc ?t) ?y = suc (plus t y)
+plus zero ?y >> id y
+
+one = suc zero
+two = suc one
+
+SPBE ((zero : nat) , (suc : nat :> nat)) ((zero : nat), (suc : nat :> nat), (plus: nat :> nat :> nat)) ((nat, ((zero : nat), (one : nat), (two : nat))),) 5 0 1 3

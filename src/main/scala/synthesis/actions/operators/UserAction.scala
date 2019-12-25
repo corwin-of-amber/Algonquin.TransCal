@@ -121,7 +121,8 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val equivDepthOption = if (term.subtrees.length > 3) Some(term.subtrees(3).root.literal.toInt) else None
         val preRunDepth = if (term.subtrees.length > 4) Some(term.subtrees(4).root.literal.toInt) else None
         val splitDepth = if (term.subtrees.length > 5) Some(term.subtrees(5).root.literal.toInt) else None
-        new SPBEAction(typeBuilders, grammar, examples, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth)(state)
+        val termDepth = if (term.subtrees.length > 6) Some(term.subtrees(6).root.literal.toInt) else None
+        new SPBEAction(typeBuilders, grammar, examples, termDepthOption=termDepth, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth)(state)
     }
 
     logger.info(seperator)
