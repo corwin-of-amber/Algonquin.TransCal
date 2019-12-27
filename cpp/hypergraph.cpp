@@ -237,6 +237,7 @@ void Hypergraph::merge(Vertex* u, Vertex* v) {
 
     for (auto& ie : v->edges) {
         ie.e->vertices[ie.index] = u;
+        ie.e->gen = gen;
         u->edges.push_back(ie);
     }
     v->merged = u;
@@ -283,20 +284,12 @@ void Hypergraph::compact() {
 
 void Hypergraph::fromText(std::istream& in) {
 
+    std::vector<Hypergraph::Vertex*> vertices;
     std::string line;
-    int nvert;
-    
-    if (!std::getline(in, line)) throw std::runtime_error("graph format error");
-    std::istringstream ss(line);
-    ss >> nvert;
-    if (nvert <= 0) throw std::runtime_error("graph format error");
-
-    std::vector<Hypergraph::Vertex*> vertices(nvert);
-    for (int i = 0; i < nvert; i++) {
-        vertices[i] = addVertex();
-    }
 
     while (std::getline(in, line)) {
+        if (line.substr(0, 2) == "//") continue;  // comment
+
         Hypergraph::Edge e;
         std::istringstream ss(line);
         std::string kind;
@@ -305,6 +298,9 @@ void Hypergraph::fromText(std::istream& in) {
         while (ss.good()) {
             int vindex;
             ss >> vindex;
+            if (vindex <= 0) throw std::runtime_error("graph format error");
+            while (vertices.size() < vindex)
+                vertices.push_back(addVertex());
             e.vertices.push_back(vertices[vindex - 1]);
         }
         if (e.vertices.size() > 0)
@@ -379,6 +375,9 @@ const RewriteRule::cmp_t RewriteRule::GEQ = true;
 
 
 void RewriteRule::fromText(std::istream& in) {
+    std::string title;
+    std::getline(in, title);
+    name = title;
     premise.fromText(in);
     putHoles(premise);
     conclusion.fromText(in);
@@ -512,30 +511,27 @@ int main(int argc, char *argv[]) {
     int initial_barrier = g.vertices.size();
 
     std::vector<RewriteRule> synth_rules;
-    const char *synth_vocab[] = { "::", ":+", "++" };
     const int synth_depth = 2;
 
     std::vector<RewriteRule> simpl_rules;
-    const int simpl_nrules = 5;
     const int simpl_depth = 6;
 
-    for (auto sym : synth_vocab) {
-        std::string name = std::string("vocab_") + sym;
-        std::ifstream frule("data/" + name);
+    {
+        std::ifstream frules("data/vocab");
 
-        synth_rules.push_back(RewriteRule(name));
-        synth_rules[synth_rules.size() - 1].fromText(frule);
+        while (!frules.eof()) {
+            synth_rules.push_back(RewriteRule());
+            synth_rules[synth_rules.size() - 1].fromText(frules);
+        }
     }
 
-    for (int i = 0; i < simpl_nrules; ++i) {
-        std::ostringstream ss;
-        ss << "rule" << (i + 1);
-        std::string name = ss.str();
+    {
+        std::ifstream frules("data/rules");
 
-        std::ifstream frule("data/" + name);
-
-        simpl_rules.push_back(RewriteRule(name));
-        simpl_rules[simpl_rules.size() - 1].fromText(frule);
+        while (!frules.eof()) {
+            simpl_rules.push_back(RewriteRule());
+            simpl_rules[simpl_rules.size() - 1].fromText(frules);
+        }
     }
 
     int gen = 0;
@@ -597,7 +593,7 @@ int main(int argc, char *argv[]) {
         for (auto e : g.edges_by_kind[skel]) {
             auto u = e->vertices[1], v = e->vertices[2];
             //(u->scratch.n += (u->scratch.n == 0)) *= v->id;
-            u->scratch.n *= v->id;
+            u->scratch.n *= (v->id | 0x1);
             skels[v].push_back(u);
         }
 
