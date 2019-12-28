@@ -1,0 +1,22 @@
+_::_
+skel 5 1 3
+skel 5 2 4
+
+:: 6 3 4
+:: 7 1 2
+skel 5 7 6
+
+_:+_
+skel 5 1 3
+skel 5 2 4
+
+:+ 6 1 2
+:+ 7 3 4
+skel 5 6 7
+
+rev_
+skel 3 1 2
+
+rev 4 1
+rev 5 2
+skel 3 4 5

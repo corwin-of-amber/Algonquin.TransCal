@@ -13,7 +13,7 @@ public:
     struct Edge;
 
     typedef uint64_t label_t;
-    union scratch_t { void *p; int64_t n; };
+    union scratch_t { void *p; int64_t z; };
 
     struct Incidence {
         Edge *e;
@@ -477,6 +477,12 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
                 if (e.e->vertices.size() == 1) {
                     cb(sop);
                 }
+                else if (e.e->vertices.size() == 2) {
+                    auto a1 = e.e->vertices[1];
+                    mini(g, a1, depth - 1, [&] (const std::string& t1) {
+                        cb("(" + sop + " " + t1 + ")");
+                    });
+                }
                 else if (e.e->vertices.size() == 3) {
                     auto a1 = e.e->vertices[1], a2 = e.e->vertices[2];
                     mini(g, a1, depth - 1, [&] (const std::string& t1) {
@@ -502,9 +508,11 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
 
 int main(int argc, char *argv[]) {
 
+    std::string dataDir = (argc > 1) ? argv[1] : "data/concat-snoc";
+
     Hypergraph g;
     g.reserve(160000, 200000);
-    std::ifstream fgraph("data/input");
+    std::ifstream fgraph(dataDir + "/input");
     g.fromText(fgraph);
     g.toText(std::cout);
 
@@ -514,10 +522,10 @@ int main(int argc, char *argv[]) {
     const int synth_depth = 2;
 
     std::vector<RewriteRule> simpl_rules;
-    const int simpl_depth = 6;
+    const int simpl_depth = 8;
 
     {
-        std::ifstream frules("data/vocab");
+        std::ifstream frules(dataDir + "/vocab");
 
         while (!frules.eof()) {
             synth_rules.push_back(RewriteRule());
@@ -526,7 +534,7 @@ int main(int argc, char *argv[]) {
     }
 
     {
-        std::ifstream frules("data/rules");
+        std::ifstream frules(dataDir + "/rules");
 
         while (!frules.eof()) {
             simpl_rules.push_back(RewriteRule());
@@ -580,6 +588,7 @@ int main(int argc, char *argv[]) {
         r.vocab.insert(Hypergraph::str2label("++"));
         r.vocab.insert(Hypergraph::str2label(":+"));
         r.vocab.insert(Hypergraph::str2label("::"));
+        r.vocab.insert(Hypergraph::str2label("rev"));
         r.addLeaves(g, initial_barrier);
 
         Hypergraph::label_t skel = Hypergraph::str2label("skel");
@@ -587,13 +596,13 @@ int main(int argc, char *argv[]) {
         std::map<Hypergraph::Vertex*, std::vector<Hypergraph::Vertex*>> skels;
 
         for (auto e : g.edges_by_kind[skel]) {
-            e->vertices[1]->scratch.n = 1;
+            e->vertices[1]->scratch.z = 1;
         }
 
         for (auto e : g.edges_by_kind[skel]) {
             auto u = e->vertices[1], v = e->vertices[2];
             //(u->scratch.n += (u->scratch.n == 0)) *= v->id;
-            u->scratch.n *= (v->id | 0x1);
+            u->scratch.z *= (v->id | 0x1);
             skels[v].push_back(u);
         }
 
@@ -615,16 +624,16 @@ int main(int argc, char *argv[]) {
         std::map<int64_t, std::set<Hypergraph::Vertex*>> skel_by_occ;
         for (auto e : g.edges_by_kind[skel]) {
             auto u = e->vertices[1];
-            skel_by_occ[u->scratch.n].insert(u);
+            skel_by_occ[u->scratch.z].insert(u);
         }
 
         for (auto it : skel_by_occ) {
             if (it.second.size() > 1) {
-                std::cout << it.first << "  |" << it.second.size() << "| ";
+                std::cout << std::hex << it.first << std::dec
+                          << "  |" << it.second.size() << "| ";
                 for (auto u : it.second) {
                     std::string min_term;
                     r.mini(g, u, 3, [&] (const std::string& term) {
-                        //std::cout << "  " << term;
                         if (min_term.size() == 0 || term.size() < min_term.size())
                             min_term = term;
                     });
