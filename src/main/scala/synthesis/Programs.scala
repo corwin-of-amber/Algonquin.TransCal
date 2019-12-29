@@ -11,6 +11,7 @@ import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm,
 import synthesis.rewrites.{RewriteRule, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
+import scala.collection
 import scala.util.Try
 
 
@@ -20,6 +21,7 @@ import scala.util.Try
   * @since 11/19/18
   */
 class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
+
   import Programs._
 
   private implicit class HasNextIterator[T](it: Iterator[T]) {
@@ -42,20 +44,20 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   /** Finds annotation trees with their complexity and the relative hyper term id.
     *
-    * @param termRoot The expression hyper term id.
+    * @param termRoot   The expression hyper term id.
     * @param hyperGraph The hyper graph to build from.
     * @return Tuples of annotation tree, hyper term id of the complex and the complexity.
     */
   private def innerReconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
-                                                            hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
+                                                            hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[(AnnotatedTree, HyperTermId, Complexity)] = {
     hyperGraph.toStream
       .filter(e => e.edgeType.identifier == Language.timeComplexId && e.sources.head == termRoot)
       .flatMap(edge => {
-        reconstructAnnotationTreeWithTimeComplex(termRoot, edge.sources(1), hyperGraph).map{case (tree, complex) =>
-          (tree,  edge.sources(1), complex)
+        reconstructAnnotationTreeWithTimeComplex(termRoot, edge.sources(1), hyperGraph).map { case (tree, complex) =>
+          (tree, edge.sources(1), complex)
         }
-    })
+      })
   }
 
   private def reconstructTimeComplex(complexityRoot: HyperTermId,
@@ -86,14 +88,14 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   /** Finds annotation trees with their complexity and the relative hyper term id.
     *
-    * @param termRoot The expression hyper term id.
+    * @param termRoot       The expression hyper term id.
     * @param complexityRoot The complexity hyper term id.
-    * @param hyperGraph The hyper graph to build from.
+    * @param hyperGraph     The hyper graph to build from.
     * @return Tuples of annotation tree and the complexity.
     */
   private def reconstructAnnotationTreeWithTimeComplex(termRoot: HyperTermId,
                                                        complexityRoot: HyperTermId,
-                                                       hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
+                                                       hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[(AnnotatedTree, Complexity)] = {
     val bridgeEdge = hyperGraph.find(e =>
       e.edgeType.identifier == Language.timeComplexId && e.sources == Seq(termRoot, complexityRoot)).get
@@ -121,17 +123,20 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                 bridgeEdgeInPremise.sources(1),
                 leftHyperGraph
               ).map(res => ((bridgeEdgeInPremise.sources.head, res._1), (bridgeEdgeInPremise.sources(1), res._2)))
-            })).flatMap{combination =>
+            })).flatMap { combination =>
             val annotationTrees = {
               val rootsToTrees = combination.map(t => t._1).toMap
+
               def annotationTreeLinker(rootAnnotatedTree: HyperTermId): Stream[AnnotatedTree] = {
                 Stream(rootsToTrees(rootAnnotatedTree))
               }
-              recursiveReconstruct(mutable.CompactHyperGraph(fullRewrite:_*), termRoot, Some(annotationTreeLinker)).toList
+
+              recursiveReconstruct(mutable.CompactHyperGraph(fullRewrite: _*), termRoot, Some(annotationTreeLinker)).toList
             }
 
             val timeComplexes = {
               val rootsToComplexities = combination.map(t => t._2).toMap.mapValues(Stream(_))
+
               def timeComplexLinker(rootTimeComplex: HyperTermId): Stream[Complexity] = {
                 if (rootsToComplexities.contains(rootTimeComplex)) {
                   rootsToComplexities(rootTimeComplex)
@@ -139,25 +144,26 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                   reconstructTimeComplex(rootTimeComplex, leftHyperGraph, Some(timeComplexLinker))
                 }
               }
-              reconstructTimeComplex(complexityRoot, mutable.CompactHyperGraph(fullRewrite:_*), Some(timeComplexLinker)).toList
+
+              reconstructTimeComplex(complexityRoot, mutable.CompactHyperGraph(fullRewrite: _*), Some(timeComplexLinker)).toList
             }
-            for (tree <- annotationTrees ; complex <- timeComplexes) yield {
+            for (tree <- annotationTrees; complex <- timeComplexes) yield {
               (tree, complex)
             }
           }
       }
     } else {
-        Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph),
-          reconstructTimeComplex(complexityRoot, hyperGraph)))
-          .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity]) }
+      Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph),
+        reconstructTimeComplex(complexityRoot, hyperGraph)))
+        .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity]) }
     }
   }
 
-  private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
+  private def reconstructTimeComplex(complexityRoot: HyperTermId, hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[Complexity] = reconstructTimeComplex(complexityRoot, hyperGraph, None)
 
   def reconstructWithTimeComplex(termRoot: HyperTermId): Stream[(AnnotatedTree, Complexity)] = {
-    innerReconstructAnnotationTreeWithTimeComplex(termRoot, hyperGraph).map{case (tree, _, complex) => (tree, complex)}
+    innerReconstructAnnotationTreeWithTimeComplex(termRoot, hyperGraph).map { case (tree, _, complex) => (tree, complex) }
   }
 
   /** Builds trees from of programs where the hyper term is the base program.
@@ -189,7 +195,8 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 }
 
 object Programs extends LazyLogging {
-  type Edge = HyperEdge[HyperTermIdentifier, HyperTermId]
+  type Edge = HyperEdge[HyperTermId, HyperTermIdentifier]
+
   def Edge(hyperTermId: HyperTermId, hyperTermIdentifier: HyperTermIdentifier, sources: Seq[HyperTermId])
   : HyperEdge[HyperTermId, HyperTermIdentifier] = HyperEdge(hyperTermId, hyperTermIdentifier, sources, EmptyMetadata)
 
@@ -214,13 +221,58 @@ object Programs extends LazyLogging {
     else (term.root, term.subtrees)
   }
 
+  def reconstructAll(inputEdges: Set[Edge], maxDepth: Int): Set[AnnotatedTree] = {
+    val edges = inputEdges.filter(_.metadata.exists(_ == NonConstructableMetadata))
+    case class Entry(edge: Edge, subEntries: Seq[Entry])
+    val knownTerms = collection.mutable.HashMultiMap.empty[HyperTermId, Entry]
+    var lastLevel = for (e <- edges if e.sources.isEmpty) yield {
+      val entry = Entry(e, Seq.empty)
+      knownTerms.addBinding(e.target, entry)
+      entry
+    }
+    // id to edges that might be available
+    val edgesByReqiurments = collection.mutable.HashMultiMap.empty[HyperTermId, (Int, HyperEdge[HyperTermId, HyperTermIdentifier])]
+    for (e <- edges; (s, i) <- e.sources.zipWithIndex) {
+      edgesByReqiurments.addBinding(s, (i, e))
+    }
+
+    def combiner[E](iterators: Seq[Set[E]]): Set[Seq[E]] = {
+      if (iterators.size == 1) return iterators.head.map(Seq(_))
+      var recRes = combiner(iterators.tail)
+      (for (e <- iterators.head; vals <- recRes) yield {
+        e +: vals
+      }).foldLeft(Set[Seq[E]]())((r, i) => r + i)
+    }
+
+    for (i <- 0 until maxDepth) {
+      lastLevel = for (e <- lastLevel;
+           (iToFill, eToFill) <- edgesByReqiurments(e.edge.target);
+           paramsToFill = eToFill.sources.take(iToFill) ++ eToFill.sources.drop(iToFill + 1);
+           entries = paramsToFill.map(hId => knownTerms.getOrElse(hId, Set.empty[Entry]).toSet);
+           fillers <- combiner[Entry](entries)) yield {
+        Entry(eToFill, (fillers.take(iToFill) :+ e) ++ fillers.drop(iToFill))
+      }
+      for (e <- lastLevel) knownTerms.addBinding(e.edge.target, e)
+    }
+    val entryTranslation: collection.mutable.Map[Entry, AnnotatedTree] = new collection.mutable.HashMap()
+    def translate(entry: Entry): AnnotatedTree = {
+      if (entryTranslation.contains(entry)) entryTranslation(entry)
+      else {
+        val tree = AnnotatedTree.withoutAnnotations(entry.edge.edgeType.identifier, entry.subEntries.map(translate))
+        entryTranslation(entry) = tree
+        tree
+      }
+    }
+    knownTerms.values.flatten.map(translate).toSet
+  }
+
   /** Reconstruct annotation trees.
     *
-    * @param root The root of the annotation tree.
+    * @param root       The root of the annotation tree.
     * @param hyperGraph The hyperGraph to use as reference.
     * @return All the constructed annotation trees.
     */
-  private def reconstructAnnotationTree(root: HyperTermId, hyperGraph:  generic.HyperGraph[HyperTermId, HyperTermIdentifier])
+  private def reconstructAnnotationTree(root: HyperTermId, hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier])
   : Stream[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
 
   /** Reconstruct annotation trees of the types.
@@ -239,8 +291,8 @@ object Programs extends LazyLogging {
   /** Build iterator of program's trees where their root is the current target.
     *
     * @param hyperGraph The hyperGraph to use for reconstruct.
-    * @param root         The root of the annotation tree.
-    * @param fallTo       What to do if failed
+    * @param root       The root of the annotation tree.
+    * @param fallTo     What to do if failed
     * @return Iterator with all the constructed annotation trees.
     */
   private def recursiveReconstruct(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
@@ -265,7 +317,7 @@ object Programs extends LazyLogging {
   /** Builds trees from of programs where the hyper term is the base program.
     * Disallow loops in buildings - each edges can be chose once in each branch.
     *
-    * @param hyperGraph hyper graph to reconstruct from
+    * @param hyperGraph  hyper graph to reconstruct from
     * @param hyperTermId The hyper term to build.
     * @return All the trees.
     */
@@ -308,7 +360,7 @@ object Programs extends LazyLogging {
                                  patternRoot: ReferenceTerm[HyperTermId]): Set[(HyperTermId, Stream[AnnotatedTree])] = {
     hyperGraph.findSubgraph[Int](pattern).map(ms => {
       assert(ms._1.contains(patternRoot.id))
-//      val newPattern = HyperGraph.mergeMap(pattern, ms)
+      //      val newPattern = HyperGraph.mergeMap(pattern, ms)
       val newRoot = ms._1(patternRoot.id)
       (newRoot, reconstruct(hyperGraph, newRoot))
     })
@@ -331,7 +383,7 @@ object Programs extends LazyLogging {
       case Language.andCondBuilderId =>
         val res = mergeEdgesRoots(targetToSubedges)
         (res.head._1,
-        res.flatMap(_._2)
+          res.flatMap(_._2)
         )
       case Language.trueCondBuilderId =>
         val precondRoot = targetToSubedges.head._1
@@ -461,7 +513,7 @@ object Programs extends LazyLogging {
     def anchorCreator(i: Int) = ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for $i")))
 
     // Add anchors on roots to return the right root later
-    val anchoredGraphs = edges.zipWithIndex.map({case ((target, graphEdges), i) =>
+    val anchoredGraphs = edges.zipWithIndex.map({ case ((target, graphEdges), i) =>
       val anchorEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
         target, anchorCreator(i), Seq.empty, NonConstructableMetadata)
       immutable.CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
@@ -477,11 +529,12 @@ object Programs extends LazyLogging {
     }))
 
     val afterCompaction = mergingVarHoles.zipWithIndex.map({ case (graph, i) =>
-      (graph.filter(e => e.edgeType != anchorCreator(i)), graph.findEdges(anchorCreator(i)).head.target)})
+      (graph.filter(e => e.edgeType != anchorCreator(i)), graph.findEdges(anchorCreator(i)).head.target)
+    })
 
     val results = {
       if (mergeRoots) afterCompaction
-        .map({case (graph, target) => (graph.mergeNodes(afterCompaction.head._2, target), afterCompaction.head._2)})
+        .map({ case (graph, target) => (graph.mergeNodes(afterCompaction.head._2, target), afterCompaction.head._2) })
       else afterCompaction
     }
 
