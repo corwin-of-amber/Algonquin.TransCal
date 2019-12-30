@@ -221,49 +221,53 @@ object Programs extends LazyLogging {
     else (term.root, term.subtrees)
   }
 
-  def reconstructAll(inputEdges: Set[Edge], maxDepth: Int): Set[AnnotatedTree] = {
-    val edges = inputEdges.filter(_.metadata.exists(_ == NonConstructableMetadata))
-    case class Entry(edge: Edge, subEntries: Seq[Entry])
+  case class Entry(edge: Edge, subEntries: Seq[Entry]) {
+    val tree: AnnotatedTree = AnnotatedTree.withoutAnnotations(edge.edgeType.identifier, subEntries.map(_.tree))
+  }
+
+  def reconstructAll(inputEdges: generic.HyperGraph[HyperTermId, HyperTermIdentifier], maxDepth: Int): Set[Entry] = {
+    val edges = inputEdges.edges.filterNot(_.metadata.exists(_ == NonConstructableMetadata))
+    val idToType = edges.filter(_.edgeType.identifier == Language.typeId).map(e => (e.sources(0), Programs.reconstruct(inputEdges, e.sources(1)).head)).toMap
     val knownTerms = collection.mutable.HashMultiMap.empty[HyperTermId, Entry]
     var lastLevel = for (e <- edges if e.sources.isEmpty) yield {
       val entry = Entry(e, Seq.empty)
       knownTerms.addBinding(e.target, entry)
       entry
     }
+    val levels = collection.mutable.Buffer(lastLevel)
+
     // id to edges that might be available
     val edgesByReqiurments = collection.mutable.HashMultiMap.empty[HyperTermId, (Int, HyperEdge[HyperTermId, HyperTermIdentifier])]
     for (e <- edges; (s, i) <- e.sources.zipWithIndex) {
       edgesByReqiurments.addBinding(s, (i, e))
     }
 
+    // If empty options then will return empty set which is ok
     def combiner[E](iterators: Seq[Set[E]]): Set[Seq[E]] = {
+      if (iterators.isEmpty) return Set(Seq.empty)
       if (iterators.size == 1) return iterators.head.map(Seq(_))
-      var recRes = combiner(iterators.tail)
+      val recRes = combiner(iterators.tail)
       (for (e <- iterators.head; vals <- recRes) yield {
         e +: vals
       }).foldLeft(Set[Seq[E]]())((r, i) => r + i)
     }
 
-    for (i <- 0 until maxDepth) {
-      lastLevel = for (e <- lastLevel;
+    // The reconstruct itself.
+    // TODO: I can multithread this part
+    for (_ <- 0 until maxDepth) {
+      lastLevel = for (e <- lastLevel if edgesByReqiurments.contains(e.edge.target);
            (iToFill, eToFill) <- edgesByReqiurments(e.edge.target);
            paramsToFill = eToFill.sources.take(iToFill) ++ eToFill.sources.drop(iToFill + 1);
            entries = paramsToFill.map(hId => knownTerms.getOrElse(hId, Set.empty[Entry]).toSet);
            fillers <- combiner[Entry](entries)) yield {
-        Entry(eToFill, (fillers.take(iToFill) :+ e) ++ fillers.drop(iToFill))
+        Entry(eToFill.copy(edgeType = eToFill.edgeType.copy(identifier = eToFill.edgeType.identifier.copy(annotation = idToType.get(eToFill.target)))),
+          (fillers.take(iToFill) :+ e) ++ fillers.drop(iToFill))
       }
+      levels.append(lastLevel)
       for (e <- lastLevel) knownTerms.addBinding(e.edge.target, e)
     }
-    val entryTranslation: collection.mutable.Map[Entry, AnnotatedTree] = new collection.mutable.HashMap()
-    def translate(entry: Entry): AnnotatedTree = {
-      if (entryTranslation.contains(entry)) entryTranslation(entry)
-      else {
-        val tree = AnnotatedTree.withoutAnnotations(entry.edge.edgeType.identifier, entry.subEntries.map(translate))
-        entryTranslation(entry) = tree
-        tree
-      }
-    }
-    knownTerms.values.flatten.map(translate).toSet
+
+    knownTerms.values.flatten.toSet
   }
 
   /** Reconstruct annotation trees.

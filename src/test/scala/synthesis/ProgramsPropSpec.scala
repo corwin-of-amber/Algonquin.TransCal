@@ -159,4 +159,12 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
       (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet should have size 1
     }}
   }
+
+  property("reconstruct all is sane and reconstructs all") {
+    forAll (SizeRange(20)) {terms: Set[AnnotatedTree] =>
+      val progs = terms.foldLeft(Programs.empty)((p, t) => p.addTerm(t))
+      val res = Programs.reconstructAll(progs.hyperGraph, 4).map(_.tree)
+      res.intersect(terms) shouldEqual terms.filter(_.depth <= 4)
+    }
+  }
 }

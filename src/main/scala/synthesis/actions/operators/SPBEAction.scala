@@ -94,13 +94,16 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   private def findNewRules(actionState: ActionSearchState, roots: Set[HyperTermId], rewriteStateProgs: Programs, depth: Int)
   : (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var state = actionState
-    ((for (r <- roots; terms = rewriteStateProgs.reconstruct(r).filter(_.depth <= depth).toList if terms.size > 1) yield {
+    val entries = Programs.reconstructAll(rewriteStateProgs.hyperGraph, depth)
+
+    // TODO: We can do this with one OE
+    val res = (for ((r, terms) <- entries.groupBy(_.edge.target) if terms.size > 1) yield {
       // Before running induction steps, should filter out some of the terms.
       // To do that I will run an observational equivalence step and insert temporary rules.
       // Because we might need these temporary rules to help with future induction rules.
       logger.info("Filtering terms that don't need induction using observational equivalence")
       val equives = new ObservationalEquivalence(equivDepth)
-        .fromTerms(terms, state.rewriteRules)
+        .fromTerms(terms.map(_.tree).toSeq, state.rewriteRules)
       // Take smallest of each set as heuristic to have no unneeded subterms
       val filteredTerms = equives.map(_.minBy(_.size)).toSeq
       // Do the induction step for each couple of terms
@@ -111,7 +114,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
           Some((term1, term2))
         } else None
       }).collect({ case Some(x) => x })
-    }).flatten, state)
+    })
+    (res.flatten.toSet, state)
   }
 
   override def apply(initialState: ActionSearchState): ActionSearchState = {
