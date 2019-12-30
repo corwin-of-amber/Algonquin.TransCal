@@ -1,0 +1,24 @@
+// This is a graph
+T 1
+[] 2
+x 3
+:: 4 3 2
+y 5
+:: 6 5 4
+# 7
+F 8
+(p) 15
+(q) 16
+f$1 17
+ty 17 15
+ty 17 16
+splt 1 15 3 1 8
+splt 1 15 5 1 8
+splt 1 16 3 1 8
+splt 1 16 5 1 8
+// Skeletons
+skel 1 7 2
+skel 1 7 4
+skel 1 7 6
+skel 1 18 15
+skel 1 19 16

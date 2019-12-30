@@ -58,6 +58,8 @@ public:
 
     Vertex* addVertex();
 
+    Vertex* dupVertex(Vertex* u, const std::set<Vertex*>& anchored);
+
     Edge* addEdge(const Edge& edge);
 
     void removeEdge(Edge* edge);
@@ -103,6 +105,24 @@ Hypergraph::Vertex* Hypergraph::addVertex() {
     return &vertices[vertices.size() - 1];
 }
 
+Hypergraph::Vertex* Hypergraph::dupVertex(Vertex* u, const std::set<Vertex*>& anchored) {
+    Vertex* uc = addVertex();
+    auto uedges = u->edges;
+    for (auto& ie : uedges) {
+        if (ie.index > 0) {
+            Edge e = *ie.e;
+            for (auto& v : e.vertices) {
+                if (v == u) v = uc;
+            }
+            Vertex* uv = e.vertices[0];
+            if (uv != uc && anchored.find(uv) == anchored.end())
+                e.vertices[0] = dupVertex(uv, anchored);
+            addEdge(e);
+        }
+    }
+    return uc;
+}
+
 Hypergraph::Edge* Hypergraph::addEdge(const Edge& edge) {
     assert(edges.size() < edges.capacity());  /* can't allow realloc */
     edges.push_back(edge);
@@ -133,11 +153,6 @@ void remove_from_vec_if(std::vector<T>& vec, UnaryPredicate cond) {
         *it = vec.back();
         vec.pop_back();
     }
-}
-
-void remove_from_incident(std::vector<Hypergraph::Incidence>& vec, 
-           Hypergraph::Edge* edge) {
-    
 }
 
 void Hypergraph::removeEdge(Edge* edge) {
@@ -463,23 +478,28 @@ void Reconstruct::addLeaves(Hypergraph& g, int upto) {
 
 void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
 
-    if (terminals.find(u) != terminals.end())
+    bool any = false;
+
+    if (terminals.find(u) != terminals.end()) {
         cb(mkleaf(u));
+        any = true;
+    }
 
     if (depth == 0) return;
 
-    bool qm = false;
     for (auto& e : u->edges) {
         if (e.index == 0) {
             if (vocab.find(e.e->kind) != vocab.end()) {
                 auto op = e.e->kind;
                 auto sop = Hypergraph::label2str(op);
                 if (e.e->vertices.size() == 1) {
+                    any = true;
                     cb(sop);
                 }
                 else if (e.e->vertices.size() == 2) {
                     auto a1 = e.e->vertices[1];
                     mini(g, a1, depth - 1, [&] (const std::string& t1) {
+                        any = true;
                         cb("(" + sop + " " + t1 + ")");
                     });
                 }
@@ -487,21 +507,94 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
                     auto a1 = e.e->vertices[1], a2 = e.e->vertices[2];
                     mini(g, a1, depth - 1, [&] (const std::string& t1) {
                         mini(g, a2, depth - 1, [&] (const std::string& t2) {
+                            any = true;
                             cb("(" + t1 + " " + sop + " " + t2 + ")");
                         });
                     });
                 }
-                else cb("?" + sop + "?");
+                else {
+                    any = true;
+                    cb("?" + sop + "?");
+                }
             }
-            else qm = true;
         }
     }
-    /*
-    if (qm) {
+
+    if (!any) {
         std::ostringstream ss;
         ss << "?" << u->id;
         cb(ss.str());
-    }*/
+    }
+}
+
+
+
+
+class CaseSplit {
+public:
+    std::set<Hypergraph::Vertex*> anchored;
+
+    Hypergraph::label_t splt;
+    Hypergraph::label_t app;
+
+    std::map<Hypergraph::Vertex*, std::vector<Hypergraph::Vertex*>> clones;
+
+    CaseSplit() : 
+        splt(Hypergraph::str2label("splt")), app(Hypergraph::str2label("@"))
+    { }
+
+    void split_all(Hypergraph& g);
+    Hypergraph::Vertex* split_one(Hypergraph& g, Hypergraph::Vertex* p,
+            Hypergraph::Vertex* x1,
+            Hypergraph::Vertex* val1, Hypergraph::Vertex* val2);
+};
+
+void CaseSplit::split_all(Hypergraph& g) {
+    // Acquire split edges
+    auto splt_edges = g.edges_by_kind[splt];
+    std::vector<Hypergraph::Edge> splt_edges_copy;
+
+    for (auto e : splt_edges) {
+        splt_edges_copy.push_back(*e);
+        g.removeEdge(e);
+    }
+
+    // Identify anchored vertices
+    for (auto& e : g.edges) {
+        if (!e.removed && e.vertices.size() == 1)
+            anchored.insert(e.vertices[0]);
+    }
+
+    // Apply splits and updates map of clones
+    for (auto& e : splt_edges_copy) {
+        Hypergraph::Vertex* p = e.vertices[1];
+        Hypergraph::Vertex* x1 = e.vertices[2];
+        Hypergraph::Vertex* val1 = e.vertices[3];
+        Hypergraph::Vertex* val2 = e.vertices[4];
+
+        auto& x1_clones = clones[x1];
+        auto existing_clones = x1_clones; // copy
+
+        x1_clones.push_back(split_one(g, p, x1, val1, val2));
+        // - split (pre-existing) clones of x1 as well
+        for (auto xm : existing_clones)
+            x1_clones.push_back(split_one(g, p, xm, val1, val2));
+    }
+}
+
+
+Hypergraph::Vertex* CaseSplit::split_one(Hypergraph& g, Hypergraph::Vertex* p,
+        Hypergraph::Vertex* x1,
+        Hypergraph::Vertex* val1, Hypergraph::Vertex* val2) {
+
+    Hypergraph::Vertex* x2 = g.dupVertex(x1, anchored);
+
+    g.addEdge({.kind = app,
+                .vertices = std::vector<Hypergraph::Vertex*> { val1, p, x1 } });
+    g.addEdge({.kind = app,
+                .vertices = std::vector<Hypergraph::Vertex*> { val2, p, x2 } });
+
+    return x2;
 }
 
 
@@ -514,6 +607,9 @@ int main(int argc, char *argv[]) {
     g.reserve(160000, 200000);
     std::ifstream fgraph(dataDir + "/input");
     g.fromText(fgraph);
+
+    CaseSplit cs;
+    cs.split_all(g);
     g.toText(std::cout);
 
     int initial_barrier = g.vertices.size();

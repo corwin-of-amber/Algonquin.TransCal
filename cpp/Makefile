@@ -1,2 +1,4 @@
+OPT = -O3
+
 tc: hypergraph.cpp
-	g++ -O3 -o tc -g -std=c++11 hypergraph.cpp
+	g++ $(OPT) -o tc -g -std=c++11 hypergraph.cpp
