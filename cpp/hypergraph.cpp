@@ -589,6 +589,7 @@ int main(int argc, char *argv[]) {
         r.vocab.insert(Hypergraph::str2label(":+"));
         r.vocab.insert(Hypergraph::str2label("::"));
         r.vocab.insert(Hypergraph::str2label("rev"));
+        r.vocab.insert(Hypergraph::str2label("filter"));
         r.addLeaves(g, initial_barrier);
 
         Hypergraph::label_t skel = Hypergraph::str2label("skel");
@@ -606,20 +607,29 @@ int main(int argc, char *argv[]) {
             skels[v].push_back(u);
         }
 
-#if 0
+#if 1
         for (auto& u : g.vertices) {
             auto it = skels.find(&u);
             if (it != skels.end()) {
                 std::cout << u.id;
                 for (auto v : it->second) {
+                    /*
                     r.mini(g, v, 3, [] (const std::string& term) {
                         std::cout << "  " << term;
+                    });*/
+                    std::string min_term;
+                    r.mini(g, v, 3, [&] (const std::string& term) {
+                        if (min_term.size() == 0 || term.size() < min_term.size())
+                            min_term = term;
                     });
+                    std::cout << "  " << min_term;
                 }
                 std::cout << std::endl;
             }
         }
 #endif
+
+        std::cout << "------" << std::endl;
 
         std::map<int64_t, std::set<Hypergraph::Vertex*>> skel_by_occ;
         for (auto e : g.edges_by_kind[skel]) {
