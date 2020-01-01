@@ -60,8 +60,8 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
       (t, graph.findSubgraph[Int](pattern).head._1(root.id))
     }).toMap
     val idToTerm = termToEdges.map({case (term, id) => (id, term)})
-    getEquivesFromRewriteState(new RewriteSearchState(graph), rewriteRules)._2
-      .filter(_.exists(idToTerm.contains)).map(s => s.filter(idToTerm.contains).map(id => idToTerm(id)))
+    val res = getEquivesFromRewriteState(new RewriteSearchState(graph), rewriteRules)
+    res._2.filter(_.exists(idToTerm.contains)).map(s => s.filter(idToTerm.contains).map(id => idToTerm(id)))
   }
 }
 

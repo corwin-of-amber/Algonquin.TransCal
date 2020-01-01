@@ -231,7 +231,7 @@ object Programs extends LazyLogging {
     val idToType = inputEdges.filter(_.edgeType.identifier == Language.typeId).map(e => (e.sources(0), Programs.reconstruct(inputEdges, e.sources(1)).head)).toMap
     val knownTerms = collection.mutable.HashMultiMap.empty[HyperTermId, Entry]
     var lastLevel = for (e <- edges if e.sources.isEmpty) yield {
-      val entry = Entry(e, Seq.empty)
+      val entry = Entry(e.copy(edgeType = e.edgeType.copy(identifier = e.edgeType.identifier.copy(annotation = idToType.get(e.target)))), Seq.empty)
       knownTerms.addBinding(e.target, entry)
       entry
     }
