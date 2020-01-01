@@ -1,0 +1,24 @@
+T 1
+[] 2
+x 3
+:: 4 3 2
+y 5
+:: 6 5 2
+# 7
+F 8
+(f) 9
+(g) 10
+fun^2 11
+ty 11 9
+ty 11 10
+ls 13
+ty 13 2
+ty 13 4
+ty 13 6
+f 14 3 3
+// Skeletons
+//skel 1 7 2
+skel 1 7 4
+skel 1 7 6
+skel 1 12 9
+skel 1 15 10

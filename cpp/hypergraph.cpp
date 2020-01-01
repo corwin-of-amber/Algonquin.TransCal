@@ -66,17 +66,17 @@ public:
 
     typedef const std::function< void(Valuation&, int) >& MatchCb;
 
-    void findEdge(Edge& pattern, int index,
+    void findEdge(Edge& pattern, int gen_max, int index,
                   Valuation& valuation, MatchCb cb);
 
     void unifyEdge(Edge& edge, Edge& pattern,
                    Valuation& valuation, MatchCb cb);
 
     void findSubgraph(std::vector<Edge>& pattern, int nholes,
-                      MatchCb cb);
+                      int gen_max, MatchCb cb);
 
     void findSubgraph(std::vector<Edge>& pattern,
-                      int gen_so_far, int index, 
+                      int gen_max, int gen_so_far, int index, 
                       Valuation& valuation,
                       MatchCb cb);
 
@@ -94,6 +94,9 @@ public:
     static label_t str2label(const std::string& s);
     static std::string label2str(label_t w);
 };
+
+
+//#define VERTEX_MATCH_THRESHOLD 20
 
 
 Hypergraph::Vertex* Hypergraph::addVertex() {
@@ -165,15 +168,27 @@ void Hypergraph::removeEdge(Edge* edge) {
     edge->removed = true;
 }
 
-void Hypergraph::findEdge(Edge& pattern, int index,
+void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
                           Valuation& valuation, MatchCb cb) {
 
     int n = pattern.vertices.size();
+#ifndef VERTEX_MATCH_THRESHOLD
     Vertex *u = NULL;
     for (int i = index; !u && i < n; i++) {
         u = pattern.vertices[i];
         if (u->id < 0) u = valuation[~u->id];
     }
+#else
+    const int thres = VERTEX_MATCH_THRESHOLD;
+    Vertex *u = NULL, *minu = NULL;
+    for (int i = index; !(minu && minu->edges.size() < thres) && i < n; i++) {
+        u = pattern.vertices[i];
+        if (u->id < 0) u = valuation[~u->id];
+        if (u && (!minu || u->edges.size() < minu->edges.size())) minu = u;
+    }
+
+    u = minu;
+#endif
 
     if (u) {
         for (auto& e : u->edges) {
@@ -185,6 +200,7 @@ void Hypergraph::findEdge(Edge& pattern, int index,
             unifyEdge(*e, pattern, valuation, cb);
         }
     }
+
 }
 
 void Hypergraph::unifyEdge(Edge& edge, Edge& pattern, 
@@ -219,22 +235,22 @@ void Hypergraph::unifyEdge(Edge& edge, Edge& pattern,
 }
 
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern, int k,
-                              MatchCb cb) {
+                              int gen_max, MatchCb cb) {
     Valuation valuation(k);
-    findSubgraph(pattern, 0, 0, valuation, cb);
+    findSubgraph(pattern, gen_max, 0, 0, valuation, cb);
 }
 
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern,
-                              int gen_so_far, int index, 
+                              int gen_max, int gen_so_far, int index, 
                               Valuation& valuation,
                               MatchCb cb) {
 
     if (index >= pattern.size()) cb(valuation, gen_so_far);
     else {
         Edge& e = pattern[index];
-        findEdge(e, 0, valuation, [&] (Valuation& valuation, int gen) {
+        findEdge(e, gen_max, 0, valuation, [&] (Valuation& valuation, int gen) {
             int ngen = std::max(gen_so_far, gen);
-            findSubgraph(pattern, ngen, index + 1, valuation, cb);
+            findSubgraph(pattern, gen_max, ngen, index + 1, valuation, cb);
         });
     }
 }
@@ -414,10 +430,11 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
     static Hypergraph::label_t label_id = Hypergraph::str2label("id");
 
     int nholes = premise.vertices.size();
+    int gen_max = gen_cmp ? INT32_MAX : gen_req;
 
     std::vector<Hypergraph::Edge> edges;
 
-    g.findSubgraph(premise.edges, nholes, [&] (Hypergraph::Valuation& valuation, int gen) {
+    g.findSubgraph(premise.edges, nholes, gen_max, [&] (Hypergraph::Valuation& valuation, int gen) {
         if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
 
         std::cout << "match [";
@@ -478,14 +495,7 @@ void Reconstruct::addLeaves(Hypergraph& g, int upto) {
 
 void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
 
-    bool any = false;
-
-    if (terminals.find(u) != terminals.end()) {
-        cb(mkleaf(u));
-        any = true;
-    }
-
-    if (depth == 0) return;
+    bool any = false, atom = false;
 
     for (auto& e : u->edges) {
         if (e.index == 0) {
@@ -493,31 +503,49 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
                 auto op = e.e->kind;
                 auto sop = Hypergraph::label2str(op);
                 if (e.e->vertices.size() == 1) {
-                    any = true;
+                    any = atom = true;
                     cb(sop);
                 }
-                else if (e.e->vertices.size() == 2) {
-                    auto a1 = e.e->vertices[1];
-                    mini(g, a1, depth - 1, [&] (const std::string& t1) {
-                        any = true;
-                        cb("(" + sop + " " + t1 + ")");
-                    });
-                }
-                else if (e.e->vertices.size() == 3) {
-                    auto a1 = e.e->vertices[1], a2 = e.e->vertices[2];
-                    mini(g, a1, depth - 1, [&] (const std::string& t1) {
-                        mini(g, a2, depth - 1, [&] (const std::string& t2) {
+                else if (depth > 0) {
+                    if (e.e->vertices.size() == 2) {
+                        auto a1 = e.e->vertices[1];
+                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
                             any = true;
-                            cb("(" + t1 + " " + sop + " " + t2 + ")");
+                            cb("(" + sop + " " + t1 + ")");
                         });
-                    });
-                }
-                else {
-                    any = true;
-                    cb("?" + sop + "?");
+                    }
+                    else if (e.e->vertices.size() == 3) {
+                        auto a1 = e.e->vertices[1], a2 = e.e->vertices[2];
+                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
+                            mini(g, a2, depth - 1, [&] (const std::string& t2) {
+                                any = true;
+                                cb("(" + t1 + " " + sop + " " + t2 + ")");
+                            });
+                        });
+                    }
+                    else if (e.e->vertices.size() == 4) {
+                        auto a1 = e.e->vertices[1], a2 = e.e->vertices[2], a3 = e.e->vertices[3];
+                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
+                            mini(g, a2, depth - 1, [&] (const std::string& t2) {
+                                mini(g, a3, depth - 1, [&] (const std::string& t3) {
+                                    any = true;
+                                    cb("(" + sop + " " + t1 + " " + t2 + " " + t3 + ")");
+                                });
+                            });
+                        });
+                    }
+                    else {
+                        any = true;
+                        cb("?" + sop + "?");
+                    }
                 }
             }
         }
+    }
+
+    if (terminals.find(u) != terminals.end() && !atom) {
+        cb(mkleaf(u));
+        any = true;
     }
 
     if (!any) {
@@ -613,6 +641,7 @@ int main(int argc, char *argv[]) {
     g.toText(std::cout);
 
     int initial_barrier = g.vertices.size();
+    std::set<Hypergraph::label_t> initial_vocab;
 
     std::vector<RewriteRule> synth_rules;
     const int synth_depth = 2;
@@ -646,6 +675,8 @@ int main(int argc, char *argv[]) {
         gen = g.gen;
     }
 
+    for (auto& e : g.edges_by_kind) initial_vocab.insert(e.first);
+
     gen = 0;
     for (int i = 0; i < simpl_depth; i++) {
         g.compact();
@@ -661,10 +692,7 @@ int main(int argc, char *argv[]) {
 #if 0
     {
         Reconstruct r;
-        r.vocab.insert(Hypergraph::str2label("++"));
-        r.vocab.insert(Hypergraph::str2label(":+"));
-        r.vocab.insert(Hypergraph::str2label("::"));
-        r.vocab.insert(Hypergraph::str2label("[]"));
+        r.vocab.insert(initial_vocab.begin(), initial_vocab.end());
         r.addLeaves(g, initial_barrier);
 
         for (auto& u : g.vertices) {
@@ -681,11 +709,7 @@ int main(int argc, char *argv[]) {
 
     {
         Reconstruct r;
-        r.vocab.insert(Hypergraph::str2label("++"));
-        r.vocab.insert(Hypergraph::str2label(":+"));
-        r.vocab.insert(Hypergraph::str2label("::"));
-        r.vocab.insert(Hypergraph::str2label("rev"));
-        r.vocab.insert(Hypergraph::str2label("filter"));
+        r.vocab.insert(initial_vocab.begin(), initial_vocab.end());
         r.addLeaves(g, initial_barrier);
 
         Hypergraph::label_t skel = Hypergraph::str2label("skel");
@@ -703,7 +727,7 @@ int main(int argc, char *argv[]) {
             skels[v].push_back(u);
         }
 
-#if 1
+#if 0
         for (auto& u : g.vertices) {
             auto it = skels.find(&u);
             if (it != skels.end()) {
