@@ -86,10 +86,11 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     case (x: AnnotatedTree) ~ Some(z) =>
       def flattenRightSide(t: AnnotatedTree): AnnotatedTree = {
         val updated = t.copy(subtrees = t.subtrees.map(flattenRightSide))
-        if(t.root == Language.mapTypeId && t.subtrees(1).root == Language.mapTypeId) updated.copy(subtrees = t.subtrees.head +: t.subtrees(1).subtrees)
+        if(t.root == Language.mapTypeId && t.subtrees.last.root == Language.mapTypeId) updated.copy(subtrees = updated.subtrees.head +: updated.subtrees.last.subtrees)
         else updated
       }
-      x.copy(root = x.root.copy(annotation = Some(flattenRightSide(z))))
+      val res = x.copy(root = x.root.copy(annotation = Some(flattenRightSide(z))))
+      res
   }
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ {
