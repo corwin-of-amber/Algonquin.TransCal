@@ -6,4 +6,7 @@ plus zero ?y >> id y
 one = suc zero
 two = suc one
 
-SPBE ((zero : nat) , (suc : nat :> nat)) ((zero : nat), (suc : nat :> nat), (plus: nat :> nat :> nat)) ((nat, ((zero : nat), (one : nat), (two : nat))),) 8 0 1 3
+SPBE ((zero : nat) , (suc : nat :> nat)) ((zero : nat), (suc : nat :> nat), (plus: nat :> nat :> nat)) ((nat, ((zero : nat), (one : nat), (two : nat))),)
+
+plus x y = function x y [++]
+plus x y -> plus y x

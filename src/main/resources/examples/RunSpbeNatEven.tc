@@ -1,0 +1,15 @@
+// plus ?x ?y = x match (((zero) => id y) / ((suc ?t) => plus t (suc y)))
+
+plus (suc ?t) ?y = suc (plus t y)
+plus zero ?y >> id y
+even ?x = x match (((zero) => true) / ((suc ?y) => ~(even y)))
+not ?x >> ~x
+~?x >> not ?x [notypes]
+
+one = suc zero
+two = suc one
+
+SPBE ((zero : nat) , (suc : nat :> nat)) ((zero : nat), (true), (false), (suc : nat :> nat), (plus : nat :> nat :> nat), (even : nat :> boolean), (not : bool :> bool)) ((nat, ((zero : nat), (one : nat), (two : nat))),) 9
+
+even (x + x) = f x [++]
+even (x+x) -> ~false

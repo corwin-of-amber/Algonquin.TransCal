@@ -1,0 +1,10 @@
+sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs))) [notypes]
+fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(i,x)) xs)) [notypes]
+
+cons ?x ?l >> x :: l
+?x :: ?l >> cons ?x ?l [notypes]
+pl ?x ?y >> x + y
+?x + ?y >> pl ?x ?y [notypes]
+zero = 0
+
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((zero : int), (fold : ((int :> int :> int) :> int :> (list int) :> int)), (sum : ((list int) :> int)), (pl : (int :> int :> int))) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 12 0
