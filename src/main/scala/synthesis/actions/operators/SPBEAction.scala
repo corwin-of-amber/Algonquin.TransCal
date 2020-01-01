@@ -47,14 +47,14 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   private val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
 
-//  private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
+  //  private val constants = typeBuilders.filterNot(isFunctionType) ++ grammar.filterNot(isFunctionType)
   private val constants = grammar.filterNot(isFunctionType)
 
   private val constructors = typeBuilders.filter(isFunctionType)
 
   private val sygusRules = SyGuSRewriteRules(
-//    constructors ++
-      grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
+    //    constructors ++
+    grammar.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
   ).rewriteRules.map(_.asInstanceOf[RewriteRule])
 
   private val types: Set[AnnotatedTree] =
@@ -68,12 +68,12 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     types.map(t => (t, 0 to 1 map (i => createPlaceholder(t, i)))).toMap
 
   private def createBaseGraph(typed: Boolean): HyperGraph = {
-    val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ constants
+    val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ grammar
     // Trying to go back to using tuples
-//    val addSplits = examples.map({ case (typ, exs) =>
-//      AnnotatedTree.withoutAnnotations(CaseSplitAction.possibleSplitId,
-//        AnnotatedTree.identifierOnly(placeholders(typ).head) +: exs)
-//    })
+    //    val addSplits = examples.map({ case (typ, exs) =>
+    //      AnnotatedTree.withoutAnnotations(CaseSplitAction.possibleSplitId,
+    //        AnnotatedTree.identifierOnly(placeholders(typ).head) +: exs)
+    //    })
     val addSplits = Seq.empty
     val symbolsToUse = symbols.map(t => AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
       AnnotatedTree.identifierOnly(Language.trueId),
@@ -83,8 +83,10 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse ++ addSplits)
     else
       symbolsToUse.head
-    if (typed) Programs.destruct(tree)
-    else Programs.destruct(tree.map(_.copy(annotation = None)))
+    val res =
+      if (typed) Programs.destruct(tree)
+      else Programs.destruct(tree.map(_.copy(annotation = None)))
+    res
   }
 
   val baseGraph: ActionSearchState.HyperGraph = createBaseGraph(true)
@@ -166,19 +168,19 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
     val replacedGraphs = (0 until exampleLength).map(i => {
       val itAnchorPrefix = s"${i}_$anchorPrefix"
-//      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId
-//        || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
+      //      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId
+      //        || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
       val currentGraph = rewriteSearchState.graph.clone
       // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
       currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
       val currentExamples = examples.map(t => (t._1, t._2(i)))
-      currentExamples.foreach({case (typ, example) =>
-          val ph = createPlaceholder(typ, 0).copy(annotation = None)
-          currentGraph ++= Programs.destruct(example.map(_.copy(annotation = None)), maxId = currentGraph.nodes.maxBy(_.id))
-          val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example.map(_.copy(annotation = None)))).head
-          val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
-          currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(ph)).head.target, id)
-          currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(ph))
+      currentExamples.foreach({ case (typ, example) =>
+        val ph = createPlaceholder(typ, 0).copy(annotation = None)
+        currentGraph ++= Programs.destruct(example.map(_.copy(annotation = None)), maxId = currentGraph.nodes.maxBy(_.id))
+        val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example.map(_.copy(annotation = None)))).head
+        val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+        currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(ph)).head.target, id)
+        currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(ph))
       })
       currentGraph
     })
@@ -214,13 +216,13 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   def findEquives(rewriteState: RewriteSearchState,
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
-    val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth=preRunDepth)
+    val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth)
       .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
     getTupledConclusions(res)
   }
 
   def findAndMergeEquives(rewriteState: RewriteSearchState,
-                                  rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
+                          rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
     val toMerge = findEquives(rewriteState, rules)
     assert(toMerge.flatten.intersect(rewriteState.graph.nodes) == toMerge.flatten)
     ObservationalEquivalence.mergeConclusions(rewriteState, toMerge.toSeq)
@@ -335,7 +337,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
       val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last),
         ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
-      val nextState = new OperatorRunWithCaseSplit(equivDepth, preRunDepth=preRunDepth)(actionState)
+      val nextState = new OperatorRunWithCaseSplit(equivDepth, preRunDepth = preRunDepth)(actionState)
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
