@@ -27,7 +27,7 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
   val xynil = AnnotatedTree.withoutAnnotations(typedCons, Seq(y, xnil))
   val reverse = AnnotatedTree.identifierOnly(Identifier("reverse", annotation = Some(listInttoListInt)))
   val filter = AnnotatedTree.identifierOnly(Identifier("filter", annotation = Some(predicateToListIntToListInt)))
-  val concat =  AnnotatedTree.identifierOnly(Identifier("concat", annotation = Some(listIntToListIntToListInt)))
+  val concat = AnnotatedTree.identifierOnly(Identifier("concat", annotation = Some(listIntToListIntToListInt)))
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
   val spbeAction = new SPBEAction(Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
@@ -60,25 +60,25 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     }
     logger.info(s"finished reconstruct")
 
-//    val revRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-//    val concatRules = new LetAction(parser("concat ?l1 ?l2 = l1 ++ l2")).rules
-//    val toMerge = action.findEquives(state1, revRules.toSeq ++ concatRules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
-//
-//    for (targets <- toMerge if targets.size > 1;
-//         source = targets.head;
-//         target <- targets.tail) {
-//      state1.graph.mergeNodesInPlace(source, target)
-//    }
-//
-//    val state2 = action.sygusStep(state1)
-//    val progs2 = Programs(state2.graph)
-//    val relevantNodes3 = SyGuSRewriteRules.getSygusCreatedNodes(progs2.hyperGraph)
-//    logger.info(s"created depth 3 ${progs2.hyperGraph.size}")
-//    for (n <- relevantNodes3;
-//         t <- progs2.reconstruct(n) if t.root != Language.typeId) {
-//      t.depth should be < 4
-//    }
-//    logger.info(s"finished reconstruct")
+    //    val revRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
+    //    val concatRules = new LetAction(parser("concat ?l1 ?l2 = l1 ++ l2")).rules
+    //    val toMerge = action.findEquives(state1, revRules.toSeq ++ concatRules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
+    //
+    //    for (targets <- toMerge if targets.size > 1;
+    //         source = targets.head;
+    //         target <- targets.tail) {
+    //      state1.graph.mergeNodesInPlace(source, target)
+    //    }
+    //
+    //    val state2 = action.sygusStep(state1)
+    //    val progs2 = Programs(state2.graph)
+    //    val relevantNodes3 = SyGuSRewriteRules.getSygusCreatedNodes(progs2.hyperGraph)
+    //    logger.info(s"created depth 3 ${progs2.hyperGraph.size}")
+    //    for (n <- relevantNodes3;
+    //         t <- progs2.reconstruct(n) if t.root != Language.typeId) {
+    //      t.depth should be < 4
+    //    }
+    //    logger.info(s"finished reconstruct")
 
   }
 
@@ -143,9 +143,9 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     val programs = Programs(state.graph)
     val terms = equives.map(s => s.map(id => programs.reconstruct(id).map(_.map(_.copy(annotation = None)))))
     val oneFilter = AnnotatedTree.withoutAnnotations(filter.root, Seq(
-      AnnotatedTree.identifierOnly(predicatePh), AnnotatedTree.identifierOnly(listPh))).map(_.copy(annotation=None))
+      AnnotatedTree.identifierOnly(predicatePh), AnnotatedTree.identifierOnly(listPh))).map(_.copy(annotation = None))
     val correctSet = terms.map(_.map(_.toList.map(t => t.copy(annotations = Seq.empty).map(_.copy(annotation = None))))).find(s => s.exists(l =>
-        l.contains(oneFilter)))
+      l.contains(oneFilter)))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
@@ -196,19 +196,19 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     val correctId = state2.graph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     state2.graph.findSubgraph[Int](pattern2) should not be empty
     val correctId2 = state2.graph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
-//    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
+    //    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     val nodes = state2.graph.nodes
     val equives = action.findEquives(state2, AssociativeRewriteRulesDB.rewriteRules.toSeq ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     state2.graph.nodes shouldEqual nodes
     equives should not be empty
     equives.forall({ s => s.forall(state2.graph.nodes.contains) }) should be(true)
     val programs = Programs(state2.graph)
-//    val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
+    //    val terms = equives.map(s => s.map(id => programs.reconstruct(id).toSeq))
     val correctSet = equives.find(_.contains(correctId))
     correctSet should not be empty
     println("Found correct set of equives")
     print(correctSet.get)
-    correctSet.get should contain (correctId2)
+    correctSet.get should contain(correctId2)
   }
 
   test("test induction steps proves reverse(l :+ x) == (x :: reverse(l))") {
@@ -240,6 +240,63 @@ class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution w
     ))
     val newRules = action.inductionStep(state, term1, term2)
     newRules shouldBe empty
+  }
+
+  test("fold can be found to equal sum") {
+    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+    state = new LetAction(parser("sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs)))").map(_.copy(annotation = None)))(state)
+    state = new LetAction(parser("fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(i,x)) xs))").map(_.copy(annotation = None)))(state)
+    state = new LetAction(parser("cons ?x ?l >> x :: l"))(state)
+    state = new LetAction(parser("?x :: ?l >> cons ?x ?l").map(_.copy(annotation = None)))(state)
+    state = new LetAction(parser("pl ?x ?y >> x + y"))(state)
+    state = new LetAction(parser("?x + ?y >> pl ?x ?y").map(_.copy(annotation = None)))(state)
+    state = new LetAction(parser("zero = 0"))(state)
+
+    val equivs1 = new ObservationalEquivalence(9).fromTerms(
+      Seq(
+        parser.parseExpression("fold pl zero nil"),
+        parser.parseExpression("sum nil")
+      ),
+      state.rewriteRules
+    )
+    equivs1.size shouldEqual 1
+
+    val equivs2 = new ObservationalEquivalence(9).fromTerms(
+      Seq(
+        parser.parseExpression("fold pl zero (x::nil)"),
+        parser.parseExpression("sum (x::nil)")
+      ),
+      state.rewriteRules
+    )
+    equivs2.size shouldEqual 1
+
+    val equivs3 = new ObservationalEquivalence(9).fromTerms(
+      Seq(
+        parser.parseExpression("fold pl zero (y::x::nil)"),
+        parser.parseExpression("sum (y::x::nil)")
+      ),
+      state.rewriteRules
+    )
+    equivs3.size shouldEqual 1
+
+//    state = new DefAction(parser("fold pl zero nil = fold pl zero nil"))(state)
+//    state = new DefAction(parser("sum nil = sum nil"))(state)
+//    val typedPl = parser.parseExpression("pl : (int :> int :> int)")
+//    val typedZero = parser.parseExpression("zero : int")
+//    val typedFold = parser.parseExpression("fold : ((int :> int :> int) :> int :> (list int) :> int)")
+//    val typedSum = parser.parseExpression("sum : ((list int) :> int)")
+//    val action = new SPBEAction(typeBuilders = Set(nil, AnnotatedTree.identifierOnly(typedCons)), grammar = Set(typedFold, typedPl, typedSum, typedZero), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(9), termDepthOption = Some(0), preRunDepth = Some(0))
+//
+//    val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
+//      intPh,
+//      listPh
+//    ).map(AnnotatedTree.identifierOnly))
+//    val term2 = AnnotatedTree.withoutAnnotations(typedSnoc, List(
+//      AnnotatedTree.withoutAnnotations(reverse.root, List(AnnotatedTree.identifierOnly(listPh))),
+//      AnnotatedTree.identifierOnly(intPh)
+//    ))
+//    val newRules = action.inductionStep(state, term1, term2)
+//    newRules shouldBe empty
   }
 
   // This test exists in interperter tests
