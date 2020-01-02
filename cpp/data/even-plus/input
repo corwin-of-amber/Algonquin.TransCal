@@ -4,8 +4,18 @@ S 3 2
 S 4 3
 S 5 4
 # 7
+F 8
+~ 1 8
+~ 8 1
+nat 10
+ty 10 2
+ty 10 3
+ty 10 4
+ty 10 5
+D 11
 //
-skel 1 7 2
-skel 1 7 3
-skel 1 7 4
-skel 1 7 5
+skel 11 7 2
+skel 11 7 3
+skel 11 7 4
+skel 11 7 5
+skel 11 9 1

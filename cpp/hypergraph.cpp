@@ -466,16 +466,26 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
 class Reconstruct {
 public:
-    typedef std::function< void(const std::string& term) > TermCb;
+    Hypergraph& g;
+
+    Reconstruct(Hypergraph& g) : g(g) { }
+
+    typedef std::vector<Hypergraph::Vertex*> Coordinates;
+
+    typedef const std::function< void(const std::string& term) >& TermCb;
+    typedef const std::function< void(Coordinates&) >& CoordCb;
 
     typedef Hypergraph::Vertex Vertex;
 
     std::set<Vertex*> terminals;
     std::set<Hypergraph::label_t> vocab;
 
-    void addLeaves(Hypergraph& g, int upto);
+    void addLeaves(int upto);
 
-    void mini(Hypergraph& g, Vertex* u, int depth, TermCb cb);
+    void mini(Vertex* u, int depth, TermCb cb);
+    std::string minimal(Vertex* u, int depth);
+
+    void coordinates(Vertex* u, Vertex* skel, int deptch, CoordCb cb);
 
     std::string mkleaf(Vertex* u) {
         std::ostringstream ss;
@@ -486,14 +496,14 @@ public:
 };
 
 
-void Reconstruct::addLeaves(Hypergraph& g, int upto) {
+void Reconstruct::addLeaves(int upto) {
     for (auto& u : g.vertices)
         if (u.id <= upto)
             terminals.insert(u.rep());
 }
 
 
-void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
+void Reconstruct::mini(Vertex* u, int depth, TermCb cb) {
 
     bool any = false, atom = false;
 
@@ -509,15 +519,15 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
                 else if (depth > 0) {
                     if (e.e->vertices.size() == 2) {
                         auto a1 = e.e->vertices[1];
-                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
+                        mini(a1, depth - 1, [&] (const std::string& t1) {
                             any = true;
                             cb("(" + sop + " " + t1 + ")");
                         });
                     }
                     else if (e.e->vertices.size() == 3) {
                         auto a1 = e.e->vertices[1], a2 = e.e->vertices[2];
-                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
-                            mini(g, a2, depth - 1, [&] (const std::string& t2) {
+                        mini(a1, depth - 1, [&] (const std::string& t1) {
+                            mini(a2, depth - 1, [&] (const std::string& t2) {
                                 any = true;
                                 cb("(" + t1 + " " + sop + " " + t2 + ")");
                             });
@@ -525,9 +535,9 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
                     }
                     else if (e.e->vertices.size() == 4) {
                         auto a1 = e.e->vertices[1], a2 = e.e->vertices[2], a3 = e.e->vertices[3];
-                        mini(g, a1, depth - 1, [&] (const std::string& t1) {
-                            mini(g, a2, depth - 1, [&] (const std::string& t2) {
-                                mini(g, a3, depth - 1, [&] (const std::string& t3) {
+                        mini(a1, depth - 1, [&] (const std::string& t1) {
+                            mini(a2, depth - 1, [&] (const std::string& t2) {
+                                mini(a3, depth - 1, [&] (const std::string& t3) {
                                     any = true;
                                     cb("(" + sop + " " + t1 + " " + t2 + " " + t3 + ")");
                                 });
@@ -555,6 +565,53 @@ void Reconstruct::mini(Hypergraph& g, Vertex* u, int depth, TermCb cb) {
     }
 }
 
+std::string Reconstruct::minimal(Vertex* u, int depth) {
+    std::string min_term;
+    mini(u, depth, [&] (const std::string& term) {
+        if (min_term.size() == 0 || term.size() < min_term.size())
+            min_term = term;
+    });
+    return min_term;
+}
+
+void Reconstruct::coordinates(Vertex* u, Vertex* skel, int depth, CoordCb cb) {
+    Coordinates coord;
+    Hypergraph::label_t hole = Hypergraph::str2label("#");
+
+    for (auto& e1 : skel->edges) {
+        if (e1.index != 0) continue;
+        if (e1.e->kind == hole) {
+            coord.push_back(u);
+            cb(coord);
+            coord.pop_back();
+        }
+        if (depth <= 0) continue;
+        for (auto& e2 : u -> edges) {
+            if (e2.index != 0) continue;
+            if (e1.e->kind == e2.e->kind &&
+                e1.e->vertices.size() == e2.e->vertices.size()) {
+                int n = e1.e->vertices.size() - 1;
+                bool inhabit = true;
+                std::vector<std::vector<Coordinates>> subcoords;
+                subcoords.resize(n);
+                for (int i = 0; inhabit && i < n; i++) {
+                    coordinates(e2.e->vertices[i + 1], e1.e->vertices[i + 1], depth - 1, [&] (Coordinates& subcoord) {
+                        subcoords[i].push_back(subcoord);
+                    });
+                    if (subcoords[i].size() == 0) inhabit = false;
+                    else coord.insert(coord.end(), subcoords[i][0].begin(), subcoords[i][0].end());
+                }
+                if (inhabit) {
+                    if (n == 1)
+                        for (auto& c : subcoords[0]) cb(c);
+                    else
+                        cb(coord);
+                }
+                coord.resize(0);
+            }
+        }
+    }
+}
 
 
 
@@ -626,10 +683,45 @@ Hypergraph::Vertex* CaseSplit::split_one(Hypergraph& g, Hypergraph::Vertex* p,
 }
 
 
+void coordinate_heuristic(Reconstruct& r, Hypergraph::Vertex* u, Hypergraph::Vertex* skel, int depth) {
+
+    bool flag = false;
+    static Hypergraph::label_t ldiag = Hypergraph::str2label("<\\>");
+    static Hypergraph::label_t lskel = Hypergraph::str2label("skel");
+
+    r.coordinates(u, skel, depth, [&] (Reconstruct::Coordinates& cv) {
+        if (cv.size() >= 2 && cv[0] == cv[1]) flag = true;
+    });
+
+    if (flag) {
+        std::cout << "  **** diagonally " << r.minimal(skel, 2) << std::endl;
+        Hypergraph::Vertex* dskel = NULL;
+        for (auto& e : skel->edges) {
+            if (e.index == 1 && e.e->kind == ldiag) {
+                dskel = e.e->vertices[0]; break;
+            }
+        }
+        if (dskel == NULL) {
+            dskel = r.g.addVertex();
+            dskel->scratch.z = 1;
+            r.g.addEdge({ .kind = ldiag, .vertices = { dskel, skel } });
+        }
+        r.g.addEdge({ .kind = lskel, .vertices = { dskel, dskel, u }});
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
     std::string dataDir = (argc > 1) ? argv[1] : "data/concat-snoc";
+    bool opt_diagonal = false;
+
+    for (int i = 1; i < argc; i++) {
+        std::string opt = argv[i];
+        if (opt == "+diag") opt_diagonal = true;
+    }
+
+    /* Rewrite frenzy */
 
     Hypergraph g;
     g.reserve(160000, 200000);
@@ -649,7 +741,7 @@ int main(int argc, char *argv[]) {
     std::vector<RewriteRule> simpl_rules;
     const int simpl_depth = 8;
 
-    {
+    {  /* sygus phase */
         std::ifstream frules(dataDir + "/vocab");
 
         while (!frules.eof()) {
@@ -658,7 +750,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    {
+    {  /* merge phase */
         std::ifstream frules(dataDir + "/rules");
 
         while (!frules.eof()) {
@@ -677,6 +769,8 @@ int main(int argc, char *argv[]) {
 
     for (auto& e : g.edges_by_kind) initial_vocab.insert(e.first);
 
+    initial_vocab.insert(Hypergraph::str2label("<\\>"));
+
     gen = 0;
     for (int i = 0; i < simpl_depth; i++) {
         g.compact();
@@ -691,14 +785,14 @@ int main(int argc, char *argv[]) {
 
 #if 0
     {
-        Reconstruct r;
+        Reconstruct r(g);
         r.vocab.insert(initial_vocab.begin(), initial_vocab.end());
-        r.addLeaves(g, initial_barrier);
+        r.addLeaves(initial_barrier);
 
         for (auto& u : g.vertices) {
             if (!u.merged) {
                 std::cout << u.id;
-                r.mini(g, &u, 2, [] (const std::string& term) {
+                r.mini(&u, 2, [] (const std::string& term) {
                     std::cout << "  " << term;
                 });
                 std::cout << std::endl;
@@ -708,23 +802,25 @@ int main(int argc, char *argv[]) {
 #endif
 
     {
-        Reconstruct r;
+        Reconstruct r(g);
         r.vocab.insert(initial_vocab.begin(), initial_vocab.end());
-        r.addLeaves(g, initial_barrier);
+        r.addLeaves(initial_barrier);
 
         Hypergraph::label_t skel = Hypergraph::str2label("skel");
 
         std::map<Hypergraph::Vertex*, std::vector<Hypergraph::Vertex*>> skels;
 
         for (auto e : g.edges_by_kind[skel]) {
-            e->vertices[1]->scratch.z = 1;
+            auto skel = e->vertices[1], u = e->vertices[2];
+            skel->scratch.z = 1;
+            if (opt_diagonal)
+                coordinate_heuristic(r, u, skel, 3);
         }
 
         for (auto e : g.edges_by_kind[skel]) {
-            auto u = e->vertices[1], v = e->vertices[2];
-            //(u->scratch.n += (u->scratch.n == 0)) *= v->id;
-            u->scratch.z *= (v->id | 0x1);
-            skels[v].push_back(u);
+            auto skel = e->vertices[1], u = e->vertices[2];
+            skel->scratch.z *= (u->id | 0x1);
+            skels[u].push_back(skel);
         }
 
 #if 0
@@ -737,12 +833,7 @@ int main(int argc, char *argv[]) {
                     r.mini(g, v, 3, [] (const std::string& term) {
                         std::cout << "  " << term;
                     });*/
-                    std::string min_term;
-                    r.mini(g, v, 3, [&] (const std::string& term) {
-                        if (min_term.size() == 0 || term.size() < min_term.size())
-                            min_term = term;
-                    });
-                    std::cout << "  " << min_term;
+                    std::cout << "  " << r.minimal(v, 3);
                 }
                 std::cout << std::endl;
             }
@@ -762,12 +853,7 @@ int main(int argc, char *argv[]) {
                 std::cout << std::hex << it.first << std::dec
                           << "  |" << it.second.size() << "| ";
                 for (auto u : it.second) {
-                    std::string min_term;
-                    r.mini(g, u, 3, [&] (const std::string& term) {
-                        if (min_term.size() == 0 || term.size() < min_term.size())
-                            min_term = term;
-                    });
-                    std::cout << "  " << min_term;
+                    std::cout << "  " << r.minimal(u, 3);
                 }
                 std::cout << std::endl;
             }

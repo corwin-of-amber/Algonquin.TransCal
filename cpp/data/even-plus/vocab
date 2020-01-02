@@ -1,10 +1,13 @@
 _+_
 skel 5 1 3
 skel 5 2 4
+ty 6 3
+ty 6 4
+nat 6
 
-+ 6 1 2
-+ 7 3 4
-skel 5 6 7
++ 7 1 2
++ 8 3 4
+skel 5 7 8
 
 even_
 skel 3 1 2
