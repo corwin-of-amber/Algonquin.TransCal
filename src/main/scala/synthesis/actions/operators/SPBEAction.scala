@@ -93,13 +93,14 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   val untypedBaseGraph: ActionSearchState.HyperGraph = createBaseGraph(false)
 
-  private def findNewRules(actionState: ActionSearchState, roots: Set[HyperTermId], rewriteStateProgs: Programs, depth: Int)
+  private def findNewRules(actionState: ActionSearchState, rewriteStateProgs: Programs, depth: Int)
   : (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var state = actionState
     val entries = Programs.reconstructAll(rewriteStateProgs.hyperGraph, depth)
 
     // TODO: We can do this with one OE
-    val res = (for ((r, terms) <- entries.groupBy(_.edge.target) if terms.size > 1) yield {
+    val entryGroups = entries.groupBy(_.edge.target)
+    val res = (for ((r, terms) <- entryGroups.toSeq.sortBy(_._2.map(_.tree.size).min) if terms.size > 1) yield {
       // Before running induction steps, should filter out some of the terms.
       // To do that I will run an observational equivalence step and insert temporary rules.
       // Because we might need these temporary rules to help with future induction rules.
@@ -140,7 +141,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       logger.info(s"Working on equivalences")
       val roots = rewriteState.graph.findByEdgeType(HyperTermIdentifier(SyGuSRewriteRules.sygusCreatedId)).map(_.sources.head)
       // Different context for temp names
-      findNewRules(state, roots, Programs(rewriteState.graph), i) match {
+      findNewRules(state, Programs(rewriteState.graph), i) match {
         case (rules, newstate) => newRules = rules; state = newstate
       }
       foundRules.last ++= newRules
@@ -149,10 +150,11 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     }
 
-    val progs = Programs(rewriteState.graph)
     logger.info(s"Searching for rules that became proovable:")
     while (newRules.nonEmpty) {
-      findNewRules(state, SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph), progs, termDepth) match {
+      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+      val progs = Programs(rewriteState.graph)
+      findNewRules(state, progs, termDepth) match {
         case (rules, newstate) => newRules = rules; state = newstate
       }
       for ((t1, t2) <- newRules)
