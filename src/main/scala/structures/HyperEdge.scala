@@ -22,9 +22,9 @@ object HyperEdge {
   import play.api.libs.json._
 
   case class JsonEdge(target: Int, edgeType: String, sources: Seq[Int])
-  private def toJsonEdge(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =
+  def toJsonEdge(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =
     JsonEdge(hyperEdge.target.id, hyperEdge.edgeType.identifier.literal, hyperEdge.sources.map(_.id))
-  private def toHyperEdge(edge: JsonEdge) =
+  def toHyperEdge(edge: JsonEdge) =
     HyperEdge(HyperTermId(edge.target), HyperTermIdentifier(Identifier(edge.edgeType)), edge.sources.map(HyperTermId), EmptyMetadata)
   implicit val edgeFormat = Json.format[JsonEdge]
 

@@ -1,6 +1,8 @@
 
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Gen._
+import synthesis.{HyperTermId, HyperTermIdentifier}
+import transcallang.Identifier
 
 import scala.util.Random
 
@@ -13,4 +15,8 @@ package object structures {
   } yield HyperEdge(source, edge, sources, EmptyMetadata)
 
   val integerEdgesGen: Gen[HyperEdge[Int, Int]] = HyperEdgeGenFactory(oneOf(0 to 50), oneOf(0 to 20))
+
+  val edgeCreator: Gen[HyperEdge[HyperTermId, HyperTermIdentifier]] = integerEdgesGen.map(e =>
+    HyperEdge(HyperTermId(e.target), HyperTermIdentifier(Identifier(e.edgeType.toString)), e.sources.map(HyperTermId), EmptyMetadata
+    ))
 }

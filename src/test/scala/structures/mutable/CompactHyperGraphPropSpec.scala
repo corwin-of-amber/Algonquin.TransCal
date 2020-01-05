@@ -112,4 +112,11 @@ class CompactHyperGraphPropSpec extends HyperGraphLikeTest[Int, Int, CompactHype
     val graph = CompactHyperGraph(Seq(HyperEdge(1, 0, Seq(3), EmptyMetadata), HyperEdge(2, 0, Seq(4), EmptyMetadata), HyperEdge(3, 0, Seq.empty, EmptyMetadata)): _*)
     graph.+(HyperEdge(4, 0, Seq.empty, EmptyMetadata)) should have size 2
   }
+
+  property("Serialization doesn't change graph") {
+    implicit val graphCreator: Arbitrary[CompactHyperGraph[HyperTermId, HyperTermIdentifier]] = Arbitrary(compactHyperGraphGen)
+    forAll { es: CompactHyperGraph[HyperTermId, HyperTermIdentifier] =>
+      es shouldEqual CompactHyperGraph.fromJson(CompactHyperGraph.toJson(es))
+    }
+  }
 }

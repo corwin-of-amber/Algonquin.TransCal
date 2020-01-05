@@ -1,9 +1,9 @@
 package structures.mutable
 
 import structures._
-import structures.generic.HyperGraph.HyperGraphPattern
+import structures.generic.HyperGraph.{HyperGraphPattern, JsonGraph}
 import structures.generic.HyperGraphLikeGenericCompanion
-import synthesis.HyperTermIdentifier
+import synthesis.{HyperEdgeTargetOrdering, HyperTermId, HyperTermIdentifier}
 import transcallang.Language
 
 import scala.collection.mutable
@@ -116,5 +116,23 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
     parts => {
       new CompactHyperGraph(parts.toSet)
     }
+  }
+
+  def toJsonGraph(graph: CompactHyperGraph[HyperTermId, HyperTermIdentifier]): JsonGraph =
+    JsonGraph(graph.edgesOrdered(HyperEdgeTargetOrdering).map(HyperEdge.toJsonEdge))
+  def fromJsonGraph(graph: JsonGraph): CompactHyperGraph[HyperTermId, HyperTermIdentifier] =
+    CompactHyperGraph(graph.edges.map(HyperEdge.toHyperEdge): _*)
+
+  implicit val jsonGraphFormat = generic.HyperGraph.graphFormat
+
+  def toJson(graph: CompactHyperGraph[HyperTermId, HyperTermIdentifier]): String = {
+    import play.api.libs.json._
+    val json = Json.toJson(toJsonGraph(graph))
+    Json.prettyPrint(json)
+  }
+
+  def fromJson(text: String): CompactHyperGraph[HyperTermId, HyperTermIdentifier] = {
+    import play.api.libs.json._
+    fromJsonGraph(Json.fromJson[JsonGraph](Json.parse(text)).get)
   }
 }
