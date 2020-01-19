@@ -11,9 +11,9 @@ libraryDependencies += "org.xerial" % "sqlite-jdbc" %  "3.25.2"
 
 libraryDependencies += "org.rogach" %% "scallop" % "3.3.1"
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
+libraryDependencies += "com.typesafe.play" %% "play-json" %  "2.7.4"
 
 libraryDependencies += "org.scalatest" %% "scalatest" %  "3.0.8" % Test
-libraryDependencies += "com.typesafe.play" %% "play-json" %  "2.7.4" % Test
 libraryDependencies += "org.scalacheck" %% "scalacheck" %  "1.14.0" % Test
 
 scalacOptions ++= Seq(
