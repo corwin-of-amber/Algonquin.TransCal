@@ -115,6 +115,10 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     logger.trace("addAll")
     otherTrie.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
   }
+
+  override protected def getSubtrie(index: Int, value: Letter): Option[Trie[Letter]] =
+    if (subtries.length > index) subtries(index).get(value)
+    else None
 }
 
 object Trie {
