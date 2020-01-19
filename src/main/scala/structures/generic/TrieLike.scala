@@ -13,24 +13,28 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
     if (isEmpty) {
       Set.empty
     } else {
-      def splitByRepetition(pattern: WordRegex[Letter, Id]): Set[WordRegex[Letter, Id]] = {
-        // TODO: Tailrec this so we can know how big is the current pattern. I am creating too long patterns when there is more then one repitition
+      def splitByRepetition(pattern: WordRegex[Letter, Id], index: Int): Set[WordRegex[Letter, Id]] = {
         if (pattern.isEmpty) Set(pattern)
         else pattern.head match {
           case Repetition(minR, maxR, repeated) =>
-            assert(repeated.take(scala.math.min(maxR, getSubtries.length - pattern.tail.length))
+            val patternMinimalLength = pattern.tail.map({
+              case Repetition(m, _, _) => m
+              case _ => 1
+            }).sum
+            assert(repeated.take(scala.math.min(maxR, getSubtries.length - index - patternMinimalLength))
               .forall(!_.isInstanceOf[Repetition[Letter, Id]]))
-            val results = (minR to scala.math.min(maxR, getSubtries.length)).flatMap(i => {
-              val tailRes = splitByRepetition(pattern.tail)
+
+            val results = (minR to scala.math.min(maxR, getSubtries.length - index - patternMinimalLength)).flatMap(i => {
+              val tailRes = splitByRepetition(pattern.tail, index + i)
               val headRes: WordRegex[Letter, Id] = repeated.take(i)
               tailRes.map(headRes ++ _)
             }).toSet
             results
-          case x => splitByRepetition(pattern.tail).map(x +: _)
+          case x => splitByRepetition(pattern.tail, index+1).map(x +: _)
         }
       }
 
-      splitByRepetition(pattern).flatMap(p => {
+      splitByRepetition(pattern, 0).flatMap(p => {
         val words = ReFindRegex(p)
         // create map from words
         val holeToIndex = mutable.HashMultiMap.empty[Id, Int]
@@ -69,7 +73,7 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
       val indexes = id_indexes._2
       (w: Word[Letter]) => indexes.tail.forall(j => w(indexes.head) == w(j))
     })
-    curTrie.map(cTrie => cTrie.words.filter(w => predicates.forall(_ (w)))).getOrElse(Set.empty)
+    curTrie.map(cTrie => cTrie.words.filter((w: Word[Letter]) => w.length == pattern.length).filter(w => predicates.forall(_ (w)))).getOrElse(Set.empty)
   }
 
   protected def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id],
