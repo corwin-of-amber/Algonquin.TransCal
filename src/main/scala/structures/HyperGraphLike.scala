@@ -28,6 +28,9 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
   def findInNodes[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findByTarget(n) ++ findInSources(n)
   def findByEdgeType[Id](et: EdgeType): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Explicit(et), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
 
+//  def toJson: String = {
+//
+//  }
 
   /** Finds all the edges with the EdgeType
     *

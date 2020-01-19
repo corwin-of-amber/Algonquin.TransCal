@@ -15,6 +15,21 @@ final case class HyperEdge[+Node, +EdgeType](target: Node, edgeType: EdgeType, s
   }
 }
 
+object HyperEdge {
+  import play.api.libs.json._
+  import synthesis.{HyperTermId, HyperTermIdentifier}
+  case class JsonEdge()
+  implicit val edgeReads: Format[HyperEdge[HyperTermId, HyperTermIdentifier]] = Json.format[HyperEdge[HyperTermId, HyperTermIdentifier]]
+
+  def toJson(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]): String = {
+    Json.toJson(hyperEdge).toString()
+  }
+
+  def fromJson(text: String): HyperEdge[HyperTermId, HyperTermIdentifier] = {
+    Json.fromJson[HyperEdge[HyperTermId, HyperTermIdentifier]](Json.parse(text)).get
+  }
+}
+
 trait Metadata extends collection.immutable.Iterable[Metadata] {
   def merge(other: Metadata): Metadata = if (other == EmptyMetadata) this else UnionMetadata(other.toSet ++ this.toSet)
 
