@@ -26,4 +26,11 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
     */
   override def newBuilder[A, B]: collection.mutable.Builder[HyperEdge[A, B], HyperGraph[A, B]] =
     structures.immutable.HyperGraph.newBuilder
+
+  import play.api.libs.json._
+  case class JsonGraph(edges: Seq[HyperEdge.JsonEdge])
+  val graphFormat: OFormat[JsonGraph] = {
+    implicit val edgeFormat: OFormat[HyperEdge.JsonEdge] = HyperEdge.edgeFormat
+    Json.format[JsonGraph]
+  }
 }

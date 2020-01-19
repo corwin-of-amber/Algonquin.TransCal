@@ -477,7 +477,7 @@ object Programs extends LazyLogging {
       (t.root.copy(literal = t.root.literal.drop(1)), t.root)).toMap
 
     def holeFuncToApply(tree: AnnotatedTree): AnnotatedTree = {
-      if (tree.subtrees.nonEmpty && vars.values.exists(_ == tree.root))
+      if (tree.subtrees.nonEmpty && vars.values.exists(_.literal == tree.root.literal))
         AnnotatedTree.withoutAnnotations(Language.applyId,
           AnnotatedTree.identifierOnly(tree.root) +: tree.subtrees.map(holeFuncToApply))
       else

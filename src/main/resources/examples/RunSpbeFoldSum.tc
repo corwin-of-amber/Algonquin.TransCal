@@ -1,5 +1,5 @@
 sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs))) [notypes]
-fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(i,x)) xs)) [notypes]
+fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs)) [notypes]
 
 cons ?x ?l >> x :: l
 ?x :: ?l >> cons ?x ?l [notypes]
@@ -7,4 +7,7 @@ pl ?x ?y >> x + y
 ?x + ?y >> pl ?x ?y [notypes]
 zero = 0
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((zero : int), (fold : ((int :> int :> int) :> int :> (list int) :> int)), (sum : ((list int) :> int)), (pl : (int :> int :> int))) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 12 0
+(?f: associative(int :> int :> int)) |||| (f(?x, f(?y, ?t)) ||| ?z) |>> z ||| f(f(x, y), t) [typedlet]
+
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((fold : (associative(int :> int :> int) :> int :> (list int) :> int)),) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 8 0
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((fold : (associative(int :> int :> int) :> int :> (list int) :> int)), (pl : associative(int :> int :> int))) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 8 0 1 1

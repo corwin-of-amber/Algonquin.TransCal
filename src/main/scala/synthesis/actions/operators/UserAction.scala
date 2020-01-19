@@ -41,10 +41,12 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
       case i if Language.builtinDefinitions.contains(i) =>
         // operator = in the main is Let (adding a new hyperterm)
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
-        val cleanTypes = annotation.exists(a => a.root.literal.contains("typedlet"))
+        val cleanTypes = !annotation.exists(a => a.root.literal.contains("typedlet"))
         annotation match {
           case Some(anno) if anno.root.literal.toString.contains("++") => new DefAction(term, cleanTypes = cleanTypes).apply(state)
-          case _ => new LetAction(term, cleanTypes = cleanTypes).apply(state)
+          case _ =>
+            val let = new LetAction(term, cleanTypes = cleanTypes)
+            let.apply(state)
         }
       case Language.tacticId =>
         val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)

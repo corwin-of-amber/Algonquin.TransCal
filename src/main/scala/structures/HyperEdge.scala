@@ -1,5 +1,6 @@
 package structures
 
+
 /**
   * @author tomer
   * @since 12/25/18
@@ -12,6 +13,28 @@ final case class HyperEdge[+Node, +EdgeType](target: Node, edgeType: EdgeType, s
   override def equals(obj: Any): Boolean = obj match {
     case rule: HyperEdge[Node, EdgeType] => tup.equals(rule.tup)
     case _ => false
+  }
+}
+
+object HyperEdge {
+  import transcallang.Identifier
+  import synthesis.{HyperTermId, HyperTermIdentifier}
+  import play.api.libs.json._
+
+  case class JsonEdge(target: Int, edgeType: String, sources: Seq[Int])
+  def toJsonEdge(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =
+    JsonEdge(hyperEdge.target.id, hyperEdge.edgeType.identifier.literal, hyperEdge.sources.map(_.id))
+  def toHyperEdge(edge: JsonEdge) =
+    HyperEdge(HyperTermId(edge.target), HyperTermIdentifier(Identifier(edge.edgeType)), edge.sources.map(HyperTermId), EmptyMetadata)
+  implicit val edgeFormat = Json.format[JsonEdge]
+
+  def toJson(edge: HyperEdge[HyperTermId, HyperTermIdentifier]): String = {
+    val jsonEdge = toJsonEdge(edge)
+    Json.toJson(jsonEdge).toString()
+  }
+
+  def fromJson(text: String): HyperEdge[HyperTermId, HyperTermIdentifier] = {
+    toHyperEdge(Json.fromJson[JsonEdge](Json.parse(text)).get)
   }
 }
 

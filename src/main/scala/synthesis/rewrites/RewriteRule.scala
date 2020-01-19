@@ -98,9 +98,9 @@ class RewriteRule(val premise: HyperPattern,
         HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
           Explicit(HyperTermIdentifier(Identifier(s"existential${existentialsMax + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
       })
-      mutable.CompactHyperGraph(conclusionMutable.toSeq: _*).++=(existentialEdges)
+      conclusionMutable.clone().++=(existentialEdges)
     }
-    else mutable.CompactHyperGraph(conclusionMutable.toSeq: _*)
+    else conclusionMutable.clone()
   }
 
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
@@ -129,7 +129,7 @@ class RewriteRule(val premise: HyperPattern,
 
     val res = graphsAndMetas.filter(_._1.nonEmpty).flatMap({ case (g, m) =>
       val moved = moveHoles(g).map(e => e.copy(metadata = e.metadata.merge(m)))
-      maxHole = moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max
+      maxHole = Math.max(maxHole, moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max)
       moved
     })
     if(res.nonEmpty) logger.debug(s"Stepped with RewriteRule $this")
