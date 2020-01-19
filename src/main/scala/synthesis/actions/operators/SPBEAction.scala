@@ -65,7 +65,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       })
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
-    types.map(t => (t, 0 to 1 map (i => createPlaceholder(t, i)))).toMap
+    types.map(t => (t, 0 to 2 map (i => createPlaceholder(t, i)))).toMap
 
   private def createBaseGraph(typed: Boolean): HyperGraph = {
     val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ grammar
@@ -114,7 +114,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
-          Some((term1, term2))
+          Some((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
+            term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
         } else None
       }).collect({ case Some(x) => x })
     })
@@ -139,7 +140,6 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
-      val roots = rewriteState.graph.findByEdgeType(HyperTermIdentifier(SyGuSRewriteRules.sygusCreatedId)).map(_.sources.head)
       // Different context for temp names
       findNewRules(state, Programs(rewriteState.graph), i) match {
         case (rules, newstate) => newRules = rules; state = newstate
@@ -147,7 +147,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for ((t1, t2) <- foundRules.last)
-        logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
+        logger.info(s"  ${Programs.termToString(t1)} = ${Programs.termToString(t2)}")
     }
 
     logger.info(s"Searching for rules that became proovable:")
