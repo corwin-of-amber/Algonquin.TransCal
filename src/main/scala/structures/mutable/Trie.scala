@@ -5,20 +5,20 @@ import structures.VocabularyLike.Word
 
 import scala.collection.{immutable, mutable}
 
-class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Letter]]], private val mutableWords: mutable.Set[Word[Letter]])
+class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Option[Trie[Letter]]]], private val mutableWords: mutable.Set[Word[Letter]], private val trieIndex: Int)
   extends structures.generic.TrieLike[Letter, Trie[Letter]] with Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
 
-  override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.clone)), mutable.Set.empty ++= mutableWords.clone)
+  override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.map(_.clone))), mutable.Set.empty ++= mutableWords.clone, trieIndex)
   override def letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
 
   override def getSubtriesLength: Int = subtries.length
 
   /** Inner constructor that translates mutable to immutable */
-  private def this(subtries: Seq[Map[Letter, Trie[Letter]]], wordsFull: immutable.Set[Word[Letter]]) =
-    this(mutable.Buffer(subtries.map(m => mutable.Map[Letter, Trie[Letter]](m.toSeq: _*)): _*), mutable.Set.empty[Word[Letter]].++=(wordsFull))
+  private def this(subtries: Seq[Map[Letter, Option[Trie[Letter]]]], wordsFull: immutable.Set[Word[Letter]], trieIndex: Int) =
+    this(mutable.Buffer.empty ++= subtries.map(m => mutable.Map[Letter, Option[Trie[Letter]]](m.toSeq: _*)), mutable.Set.empty[Word[Letter]].++=(wordsFull), trieIndex)
 
   /** Inner constructor that adds words where this Trie is for specific place */
   private def this(wordsFull: immutable.Set[Word[Letter]], trieIndex: Int) =
@@ -26,10 +26,10 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
       val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map { case (letter, index) => (index + trieIndex, letter, word) })
       val subtries = {
         indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map { case (index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) =>
-          wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => new Trie(wordsToLetters.map(_._3), index + 1))
+          wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => None)
         }
       }
-      subtries}, wordsFull)
+      subtries}, wordsFull, trieIndex)
 
   /** Constructors of all words **/
   def this(words: immutable.Set[Word[Letter]] = immutable.Set.empty[Word[Letter]]) = this(words, 0)
@@ -66,6 +66,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
     logger.trace("Add to indexes")
     for (((letter, mapSubtries), mapIndex) <- word.zip(subtries).zipWithIndex) {
+      if (!mapSubtries.contains(letter)) mapSubtries(letter) = None
       mapSubtries(letter) = mapSubtries.getOrElse(letter, Trie.empty).addRecursive(word.drop(1 + mapIndex), originalWord)
     }
 
@@ -123,7 +124,13 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   }
 
   override protected def getSubtrie(index: Int, value: Letter): Option[Trie[Letter]] =
-    if (subtries.length > index) subtries(index).get(value)
+    if (subtries.length > index) subtries(index).get(value).map({
+      case None =>
+        val newT = new Trie[Letter](words.filter(w => w(index) == value), index + trieIndex)
+        subtries(index).update(value, Some(newT))
+        newT
+      case Some(t) => t
+    })
     else None
 }
 
