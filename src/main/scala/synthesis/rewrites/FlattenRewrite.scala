@@ -27,17 +27,17 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] with StepOpe
   private val applyFuncGraph: generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     HyperGraph(Seq(outerApply, innerFunc): _*)
 
-  override def apply(state: RewriteSearchState, version: Long): (RewriteSearchState, Long) = {
+  override def apply(state: RewriteSearchState): (RewriteSearchState) = {
     // Change apply to function
-    val currentVersion = state.graph.version
-    val newFuncEdges = getNewEdges(state, version)
-
+    val newFuncEdges = getNewEdges(state, false)
     state.graph ++= newFuncEdges
-    (state, currentVersion)
+    (state)
   }
 
-  private def getNewEdges(state: RewriteSearchState, version: Long) = {
-    val funcResults = state.graph.findSubgraphVersioned[Int](applyFuncGraph, version)
+  private def getNewEdges(state: RewriteSearchState, versioned: Boolean) = {
+    val funcResults =
+      if (versioned) state.graph.findSubgraphVersioned[Int](applyFuncGraph)
+      else state.graph.findSubgraph[Int](applyFuncGraph)
     val newFuncEdges = (for ((idMap, identMap) <- funcResults) yield {
       HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0),
         identMap(2),
@@ -52,11 +52,23 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] with StepOpe
     * edges to the graph until all calculations of a step are done.
     *
     * @param state       current state from which to do the initial calculations and create an operator
-    * @param lastVersion Version to use if this is a versioned step operator
+    * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, lastVersion: Long): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
-    val newFuncEdges = getNewEdges(state, lastVersion)
+  override def getStep(state: RewriteSearchState, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+    val newFuncEdges = getNewEdges(state, versioned)
     newFuncEdges.map(e => e.copy(target = Explicit(e.target), edgeType = Explicit(e.edgeType), sources = e.sources.map(Explicit(_))))
+  }
+
+  /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
+    * unless operator is existential
+    *
+    * @param state state on which to run operator
+    * @return (new state after update, next relevant version)
+    */
+  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = {
+    val newFuncEdges = getNewEdges(state, true)
+    state.graph ++= newFuncEdges
+    (state)
   }
 }

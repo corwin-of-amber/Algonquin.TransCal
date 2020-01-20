@@ -21,7 +21,6 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
       case state1: RewriteSearchState => logger.debug(s"Starting Naive Search. Graph size: ${state1.graph.size}")
       case _ =>
     }
-    val operatorVer: mutable.Map[Operator[RewriteSearchState], Long] = mutable.Map.empty
     var i = 0
 
     // As we always have same operators I shortcut.
@@ -30,8 +29,6 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
       case o: StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] => o
     }).par
     assert(operators.size == searchSpace.operators(state).size)
-    // Don't need to check for new nodes when using versioning. Versioning finally faster.
-    var prevVersion = 0L
 
     // Adding hardcoded patterns for debuging
     val patterns = {
@@ -50,6 +47,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
 
     var prevState: Option[RewriteSearchState] = None
     while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
+      val versioned = prevState.isDefined
       prevState = Some(state.deepCopy())
       for ((term, (pattern, patternRoot)) <- patterns) {
         val reconstructed = Programs.reconstructPatternWithRoot(state.graph, pattern, patternRoot)
@@ -60,7 +58,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
           }
         }
       }
-      val nextVersion = state.graph.version
+
       val hyperTermIds: Seq[() => HyperTermId] = 0 until operators.size map(j => {
         val creator =
           Stream.from(if (state.graph.isEmpty) j else state.graph.nodes.map(_.id).max + 1 + j, operators.size)
@@ -68,12 +66,9 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
         () => creator.next
       })
 
-      val steps = operators.map(r => r.getStep(state, prevVersion))
+      val steps = operators.map(r => r.getStep(state, versioned))
       val newEdges = steps.zip(hyperTermIds).map({case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator)}).seq
-      assert(state.graph.version == nextVersion)
       state.graph ++= newEdges.flatten
-      assert(state.graph.version == nextVersion + 1 || state.graph.version == nextVersion)
-      prevVersion = nextVersion
       i += 1
 
       logger.info(s"Done a round robin. Graph size is: ${state.graph.size}")

@@ -20,8 +20,7 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   def this() = this(Set.empty[HyperEdge[Node, EdgeType]])
 
-  lazy val version: Long = wrapped.currentVersion
-  def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id], version: Long): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern, version)
+  def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 

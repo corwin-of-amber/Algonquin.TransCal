@@ -33,18 +33,16 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
     forAll(minSize(2)) { es: Set[HyperEdge[Int, Int]] =>
       whenever(es.size > 1) {
         val g = VersionedHyperGraph.empty[Int, Int]
-        var lastVer = -1L
         var lastEdge: HyperEdge[Int, Int] = null
         for (e <- es) {
-          lastVer = g.currentVersion
           lastEdge = e
           g += e
         }
         val pattern: HyperGraph[Item[Int, Int], Item[Int, Int]] = HyperGraph(HyperEdge(Explicit(lastEdge.target), Explicit(lastEdge.edgeType), lastEdge.sources.map(s => Explicit(s)), EmptyMetadata))
-        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
+        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern)
         val newG = g.clone
         newG.mergeNodesInPlace(10000, lastEdge.target)
-        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern, lastVer)
+        g.findSubgraph[Int](pattern) shouldEqual g.findSubgraphVersioned[Int](pattern)
       }
     }
   }

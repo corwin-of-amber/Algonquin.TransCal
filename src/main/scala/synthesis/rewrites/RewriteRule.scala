@@ -36,16 +36,15 @@ class RewriteRule(val premise: HyperPattern,
   private val conclusionMutable = mutable.CompactHyperGraph(conclusion.toSeq: _*).asInstanceOf[RewriteRule.MutableHyperPattern]
 
   // Add metadata creator
-  override def apply(state: RewriteSearchState, lastVersion: Long): (RewriteSearchState, Long) = {
+  override def apply(state: RewriteSearchState): (RewriteSearchState) = {
     logger.trace(s"Running rewrite rule $this")
-    val currentVersion = state.graph.version
 
-    val halfFilledPatterns = fillConclusions(state, lastVersion)
+    val halfFilledPatterns = fillConclusions(state, false)
     if (halfFilledPatterns.nonEmpty) {
       logger.debug(s"Used RewriteRule $this ")
     }
     state.graph ++= getConclusionsByState(state, halfFilledPatterns)
-    (state, currentVersion)
+    (state)
   }
 
   /* --- Privates --- */
@@ -63,9 +62,11 @@ class RewriteRule(val premise: HyperPattern,
     })
   }
 
-  private def fillConclusions(state: RewriteSearchState, lastVersion: Long) = {
+  private def fillConclusions(state: RewriteSearchState, versioned: Boolean) = {
     // Fill conditions - maybe subgraph matching instead of current temple
-    val premiseReferencesMaps = state.graph.findSubgraphVersioned[Int](subGraphPremise, lastVersion)
+    val premiseReferencesMaps =
+      if (versioned) state.graph.findSubgraphVersioned[Int](subGraphPremise)
+      else state.graph.findSubgraph[Int](subGraphPremise)
     val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
       val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
@@ -103,14 +104,32 @@ class RewriteRule(val premise: HyperPattern,
     else conclusionMutable.clone()
   }
 
+  /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
+    * unless operator is existential
+    *
+    * @param state state on which to run operator
+    * @return (new state after update, next relevant version)
+    */
+  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = {
+    logger.trace(s"Running rewrite rule $this")
+
+    val halfFilledPatterns = fillConclusions(state, true)
+    if (halfFilledPatterns.nonEmpty) {
+      logger.debug(s"Used RewriteRule $this ")
+    }
+    state.graph ++= getConclusionsByState(state, halfFilledPatterns)
+    (state)
+  }
+
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
-    * @param state current state from which to do the initial calculations and create an operator
+    * @param state     current state from which to do the initial calculations and create an operator
+    * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, lastVersion: Long): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
-    val graphsAndMetas = fillConclusions(state, lastVersion)
+  override def getStep(state: RewriteSearchState, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+    val graphsAndMetas = fillConclusions(state, versioned)
     var maxHole = 0
 
     def moveHoles(graph: mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
@@ -132,7 +151,7 @@ class RewriteRule(val premise: HyperPattern,
       maxHole = Math.max(maxHole, moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max)
       moved
     })
-    if(res.nonEmpty) logger.debug(s"Stepped with RewriteRule $this")
+    if (res.nonEmpty) logger.debug(s"Stepped with RewriteRule $this")
     res
   }
 }

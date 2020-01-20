@@ -35,9 +35,7 @@ class SequentialSearch[S <: State[S], SS <: SearchSpace[S]] extends SearchDepth[
         for (op <- searchSpace.operators(state)) {
           state = op match {
             case versionedOp: VersionedOperator[S] =>
-              val version = operatorVer.getOrElse(versionedOp, 0L)
-              val (s, newVer) = versionedOp.apply(state, 0)
-              operatorVer.put(versionedOp, newVer)
+              val (s) = versionedOp.apply(state)
               s
             case _ =>
               logger.warn(s"Using a non versioned operator $op")

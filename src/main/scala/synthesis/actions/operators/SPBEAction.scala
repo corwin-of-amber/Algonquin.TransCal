@@ -219,7 +219,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       () => creator.next
     })
 
-    val res = sygusRules.par.map((r: RewriteRule) => r.getStep(state, 0))
+    val res = sygusRules.par.map((r: RewriteRule) => r.getStep(state, false))
     val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
     logger.debug(s"Found ${newEdges.size} new edges using sygus")
     state.graph ++= newEdges

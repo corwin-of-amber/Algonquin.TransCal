@@ -9,16 +9,15 @@ trait Operator[S <: State[S]] {
 }
 
 trait VersionedOperator[S <: State[S]] extends Operator[S] {
-  override def apply(state: S): S = apply(state, -1)._1
+  override def apply(state: S): S
 
   /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
     * unless operator is existential
     *
     * @param state state on which to run operator
-    * @param lastVersion version from which to look for matchers in state
     * @return (new state after update, next relevant version)
     */
-  def apply(state: S, lastVersion: Long): (S, Long)
+  def applyVersioned(state: S): (S)
 }
 
 trait StepOperator[A, S <: State[S]] {
@@ -26,8 +25,8 @@ trait StepOperator[A, S <: State[S]] {
     * edges to the graph until all calculations of a step are done.
     *
     * @param state current state from which to do the initial calculations and create an operator
-    * @param lastVersion Version to use if this is a versioned step operator
+    * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  def getStep(state: S, lastVersion: Long): (A)
+  def getStep(state: S, versioned: Boolean): (A)
 }
