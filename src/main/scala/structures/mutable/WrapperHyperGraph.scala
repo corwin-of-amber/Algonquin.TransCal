@@ -23,6 +23,8 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
 
+  override def size: Int = wrapped.size
+
   /* --- Object Impl. --- */
 
   override def hashCode(): Int = wrapped.hashCode()

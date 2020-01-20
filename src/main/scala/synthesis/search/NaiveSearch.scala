@@ -35,13 +35,13 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
       import transcallang.TranscalParser
       val parser = new TranscalParser
       Seq[String](
-//        "filter ?p (?x :: ?xs)",
-//        "x::nil",
-//        "y::x::nil",
-//        "reverse(snoc(nil, ?z))",
-//        "reverse(snoc(x::nil, ?z))",
-//        "reverse(snoc(y::x::nil, ?z))"
-      ).map(s => (s, parser.parseExpression(s).map(_.copy(annotation=None)))).map({case (s, t) => (s, Programs.destructPatternWithRoot(t))})
+        //        "filter ?p (?x :: ?xs)",
+        //        "x::nil",
+        //        "y::x::nil",
+        //        "reverse(snoc(nil, ?z))",
+        //        "reverse(snoc(x::nil, ?z))",
+        //        "reverse(snoc(y::x::nil, ?z))"
+      ).map(s => (s, parser.parseExpression(s).map(_.copy(annotation = None)))).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
     }
 
 
@@ -59,15 +59,19 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
         }
       }
 
-      val hyperTermIds: Seq[() => HyperTermId] = 0 until operators.size map(j => {
-        val creator =
-          Stream.from(if (state.graph.isEmpty) j else state.graph.nodes.map(_.id).max + 1 + j, operators.size)
-            .map(HyperTermId).iterator
-        () => creator.next
-      })
+      val hyperTermIds: Seq[() => HyperTermId] = {
+        val graphEmpty = state.graph.isEmpty
+        val maxId = state.graph.nodes.map(_.id).max
+        0 until operators.size map (j => {
+          val creator =
+            Stream.from(if (graphEmpty) j else maxId + 1 + j, operators.size)
+              .map(HyperTermId).iterator
+          () => creator.next
+        })
+      }
 
       val steps = operators.map(r => r.getStep(state, versioned))
-      val newEdges = steps.zip(hyperTermIds).map({case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator)}).seq
+      val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
       state.graph ++= newEdges.flatten
       i += 1
 

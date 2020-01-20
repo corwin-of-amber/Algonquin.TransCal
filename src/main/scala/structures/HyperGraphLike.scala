@@ -49,17 +49,17 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     * @return all the nodes in the hyper graph.
     */
 //  def nodes: Set[Node] = edges.flatMap(edge => edge.target +: edge.sources)
-  def nodes: Set[Node] = findRegex[Int](HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Stream.from(1).map(Hole[Node, Int])).get), EmptyMetadata)).flatMap(_._2.values.toSet)
+  def nodes: Set[Node] = edges.flatMap(e => e.target +: e.sources)
 
   /**
     * @return all the nodes that apear as a target in the hyper graph.
     */
-  def targets: Set[Node] = findRegex[Int](HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata)).flatMap(_._2.values.toSet)
+  def targets: Set[Node] = edges.map(_.target)
 
   /**
     * @return all the edge types in the hyper graph.
     */
-  def edgeTypes: Set[EdgeType] = findRegex(HyperEdge(Ignored(), Hole(0), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata)).flatMap(_._3.values.toSet)
+  def edgeTypes: Set[EdgeType] = edges.map(_.edgeType)
 
   /**
     * @return all the edges in the hyper graph.

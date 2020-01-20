@@ -57,6 +57,8 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
       }
     }
 
+  override def size: Int = mutableWords.size
+
   /* --- Private Methods --- */
 
   private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type = {

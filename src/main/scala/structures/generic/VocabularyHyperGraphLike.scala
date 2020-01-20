@@ -119,6 +119,8 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
     * @return new builder for current state of graph.
     */
   def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], This]
+
+  override def size: Int = getVocabulary.size
 }
 
 object VocabularyHyperGraphLike {
