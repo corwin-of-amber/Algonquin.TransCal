@@ -98,9 +98,20 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     var state = actionState
     val entries = Programs.reconstructAll(rewriteStateProgs.hyperGraph, depth)
 
-    // TODO: We can do this with one OE
+    implicit val smallestGeneraliestOrdering: Ordering[AnnotatedTree] = new Ordering[AnnotatedTree] {
+      def getphs(annotatedTree: AnnotatedTree) = annotatedTree.nodes.map(_.root.literal).filter(_.toLowerCase.contains("placeholder")).toSet.size
+
+      override def compare(x: AnnotatedTree, y: AnnotatedTree): Int =
+        if (x.size < y.size) -1
+        else if (x.size > y.size) 1
+        else if (getphs(x) > getphs(y)) -1
+        else if (getphs(x) < getphs(y)) 1
+        else 0
+    }
+
     val entryGroups = entries.groupBy(_.edge.target)
-    val res = (for ((r, terms) <- entryGroups.toSeq.sortBy(_._2.map(_.tree.size).min) if terms.size > 1) yield {
+    // Sort groups by smallest tree with max variables
+    val res = (for ((r, terms) <- entryGroups.toSeq.sortBy(_._2.map(_.tree).min) if terms.size > 1) yield {
       // Before running induction steps, should filter out some of the terms.
       // To do that I will run an observational equivalence step and insert temporary rules.
       // Because we might need these temporary rules to help with future induction rules.
@@ -152,7 +163,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
     logger.info(s"Searching for rules that became proovable:")
     while (newRules.nonEmpty) {
-      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+//      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       val progs = Programs(rewriteState.graph)
       findNewRules(state, progs, termDepth) match {
         case (rules, newstate) => newRules = rules; state = newstate
