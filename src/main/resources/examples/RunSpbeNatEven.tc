@@ -2,7 +2,7 @@
 
 plus (suc ?t) ?y = suc (plus t y)
 plus zero ?y >> id y
-even ?x = x match (((zero) => true) / ((suc ?y) => ~(even y)))
+even ?x = x match (((zero) => true) / ((suc ?y) => ~(even y))) [notypes]
 not ?x >> ~x
 ~?x >> not ?x [notypes]
 
