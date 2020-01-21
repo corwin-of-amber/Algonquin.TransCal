@@ -22,6 +22,8 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern)
 
+  def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = wrapped.isLatest(hyperEdge)
+
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def +(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {

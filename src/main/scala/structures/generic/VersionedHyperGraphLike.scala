@@ -7,6 +7,8 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
   protected def getLastVersion: HyperGraph[Node, EdgeType]
 
+  def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = getLastVersion.contains(hyperEdge)
+
   protected def swapNode(hyperEdge: HyperEdge[Node, EdgeType], keep: Node, change: Node): HyperEdge[Node, EdgeType] =
     hyperEdge.copy(target = if (hyperEdge.target == change) keep else hyperEdge.target, sources = hyperEdge.sources.map(s => if (s == change) keep else s))
 
