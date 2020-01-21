@@ -162,14 +162,21 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     }
 
     logger.info(s"Searching for rules that became proovable:")
-    while (newRules.nonEmpty) {
-      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
-      val progs = Programs(rewriteState.graph)
-      findNewRules(state, progs, termDepth) match {
-        case (rules, newstate) => newRules = rules; state = newstate
+    var continue = 2
+    if (newRules.nonEmpty) {
+      while (continue > 0) {
+        continue -= 1
+        while (newRules.nonEmpty) {
+          val progs = Programs(rewriteState.graph)
+          findNewRules(state, progs, termDepth) match {
+            case (rules, newstate) => newRules = rules; state = newstate
+          }
+          for ((t1, t2) <- newRules)
+            logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
+          if (newRules.nonEmpty) continue = 1
+        }
+        rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       }
-      for ((t1, t2) <- newRules)
-        logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     }
 
     state
