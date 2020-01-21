@@ -293,6 +293,18 @@ trait HyperGraphLikeTest[Node,
     }}
   }
 
+  property("test edgetypes and edges agree on nodes in graph") {
+    forAll{ g: T => {
+      g.edgeTypes shouldEqual g.edges.map(e => e.edgeType)
+    }}
+  }
+
+  property("test targets and edges agree on nodes in graph") {
+    forAll{ g: T => {
+      g.targets shouldEqual g.edges.map(e => e.target)
+    }}
+  }
+
   property("test FindInNodes works correctly vs naive implementation") {
     forAll{ g: T => whenever(g.nonEmpty) {
       val s = g.nodes.head

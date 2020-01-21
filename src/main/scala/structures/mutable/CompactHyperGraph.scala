@@ -32,11 +32,13 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def +=(hyperEdge: HyperEdge[Node, EdgeType]): this.type = {
-    compact(List(hyperEdge), mutable.Map.empty[Node, Node])
+    if (contains(hyperEdge)) this
+    else compact(List(hyperEdge), mutable.Map.empty[Node, Node])
   }
 
   override def ++=(hyperEdges: TraversableOnce[HyperEdge[Node, EdgeType]]): this.type = {
-    compact(hyperEdges.toList, mutable.Map.empty[Node, Node])
+    val newEdges = hyperEdges.filter(e => !contains(e))
+    compact(newEdges.toList, mutable.Map.empty[Node, Node])
   }
 
   override def mergeNodesInPlace(keep: Node, change: Node): CompactHyperGraph[Node, EdgeType] = {

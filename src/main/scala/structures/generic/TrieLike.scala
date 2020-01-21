@@ -17,7 +17,13 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
 
   def longestWord: Int = getSubtries.length
 
-  def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]] = getSubtries(index).get(value).map(_.words).getOrElse(Set.empty)
+  def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]] =
+    if (getSubtries.size > index) getSubtries(index).get(value).map(_.words).getOrElse(Set.empty)
+    else Set.empty
+
+  def keysByIndex(index: Int): Set[Letter] =
+    if (getSubtries.size > index) getSubtries(index).keys.toSet
+    else Set.empty
 
   protected def getSubtries: Seq[collection.Map[Letter, This]]
 

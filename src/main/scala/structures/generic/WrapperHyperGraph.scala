@@ -11,6 +11,12 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
 
+  override def nodes: Set[Node] = wrapped.nodes
+
+  override def targets: Set[Node] = wrapped.targets
+
+  override def edgeTypes: Set[EdgeType] = wrapped.edgeTypes
+
   override def size: Int = wrapped.size
 
   override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)

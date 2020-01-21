@@ -15,6 +15,13 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
   protected def getVocabulary: Vocabulary[Either[Node, EdgeType]]
   protected def getMetadatas: collection.immutable.Map[(Node, EdgeType, Seq[Node]), Metadata]
 
+  override def nodes: Set[Node] =
+    (1 until getVocabulary.longestWord).flatMap(getVocabulary.keysByIndex(_)).collect({case Left(n: Node) => n}).toSet
+
+  override def targets: Set[Node] = getVocabulary.keysByIndex(1).collect({case Left(n: Node) => n})
+
+  override def edgeTypes: Set[EdgeType] = getVocabulary.keysByIndex(0).collect({case Right(e: EdgeType) => e})
+
   override def findInSources(n: Node): Set[HyperEdge[Node, EdgeType]] = (2 until getVocabulary.longestWord).flatMap(i => {
     getVocabulary.allByIndexedValue(Left(n), i)
   }).toSet.map(wordToHyperEdge)
