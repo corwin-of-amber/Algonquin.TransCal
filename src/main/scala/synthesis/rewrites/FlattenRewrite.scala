@@ -14,6 +14,7 @@ import transcallang.Language
   * first parameter that isn't an apply, the function that will be used, so we should flatten it into a single function.
   */
 object FlattenRewrite extends VersionedOperator[RewriteSearchState] with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] {
+
   object FlattenMetadata extends Metadata {
     override protected def toStr: String = "FlattenMetadata"
   }
@@ -27,6 +28,17 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] with StepOpe
   private val applyFuncGraph: generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
     HyperGraph(Seq(outerApply, innerFunc): _*)
 
+  //  private def getApplyMaps(state: RewriteSearchState, versioned: Boolean): Set[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier])] = {
+  //    val applyEdges = state.graph.findByEdgeType(HyperTermIdentifier(Language.applyId))
+  //    val appliedOn = applyEdges.map(e => (e.target, state.graph.findByTarget(e.target))).toMap
+  //    for(aEdge <- applyEdges; innerEdge <- appliedOn(aEdge.sources.head) if !innerEdge.edgeType.identifier.literal.toLowerCase.contains("anchor")) yield {
+  //      HyperEdge[HyperTermId, HyperTermIdentifier](aEdge.target,
+  //        innerEdge.edgeType,
+  //        (innerEdge.sources ++ aEdge.sources.drop(1)).toList,
+  //        FlattenMetadata)
+  //    }
+  //  }
+
   override def apply(state: RewriteSearchState): (RewriteSearchState) = {
     // Change apply to function
     val newFuncEdges = getNewEdges(state, false)
@@ -35,23 +47,23 @@ object FlattenRewrite extends VersionedOperator[RewriteSearchState] with StepOpe
   }
 
   private def getNewEdges(state: RewriteSearchState, versioned: Boolean) = {
-    val funcResults =
-      if (versioned) state.graph.findSubgraphVersioned[Int](applyFuncGraph)
-      else state.graph.findSubgraph[Int](applyFuncGraph)
-    val newFuncEdges = (for ((idMap, identMap) <- funcResults) yield {
-      HyperEdge[HyperTermId, HyperTermIdentifier](idMap(0),
-        identMap(2),
-        (Stream.from(4, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply) ++
-          Stream.from(3, 2).takeWhile(s => idMap.contains(s)).map(idMap.apply)).toList,
+    val applyEdges = state.graph.findByEdgeType(HyperTermIdentifier(Language.applyId))
+    val appliedOn = applyEdges.map(e => (e.sources.head, state.graph.findByTarget(e.sources.head))).toMap
+    val versionCheck =
+      if (versioned) (e1: HyperEdge[HyperTermId, HyperTermIdentifier], e2: HyperEdge[HyperTermId, HyperTermIdentifier]) => (state.graph.isLatest(e1) || state.graph.isLatest(e2))
+      else (e1: HyperEdge[HyperTermId, HyperTermIdentifier], e2: HyperEdge[HyperTermId, HyperTermIdentifier]) => true
+    for (aEdge <- applyEdges if appliedOn.contains(aEdge.sources.head); innerEdge <- appliedOn(aEdge.sources.head) if (!innerEdge.edgeType.identifier.literal.toLowerCase.contains("anchor")) && versionCheck(aEdge, innerEdge)) yield {
+      HyperEdge[HyperTermId, HyperTermIdentifier](aEdge.target,
+        innerEdge.edgeType,
+        (innerEdge.sources ++ aEdge.sources.drop(1)).toList,
         FlattenMetadata)
-    }).filterNot(_.edgeType.identifier.literal.toLowerCase.contains("anchor"))
-    newFuncEdges
+    }
   }
 
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
-    * @param state       current state from which to do the initial calculations and create an operator
+    * @param state     current state from which to do the initial calculations and create an operator
     * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
