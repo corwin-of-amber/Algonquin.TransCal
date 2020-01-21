@@ -15,6 +15,10 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
     }
   }
 
+  def longestWord: Int = getSubtries.length
+
+  def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]] = getSubtries(index).get(value).map(_.words).getOrElse(Set.empty)
+
   protected def getSubtries: Seq[collection.Map[Letter, This]]
 
   protected def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id],

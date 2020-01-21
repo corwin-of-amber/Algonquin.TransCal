@@ -23,10 +23,10 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
   def findRegexMaps[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = findRegex(pattern).map(t => (t._2, t._3))
   def contains(elem: HyperEdge[Node, EdgeType]): Boolean = findRegex(HyperEdge(Explicit(elem.target), Explicit(elem.edgeType), elem.sources.map(Explicit(_)), elem.metadata)).nonEmpty
 
-  def findInSources[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get, Explicit(n), Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-  def findByTarget[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Explicit(n), Ignored(), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
-  def findInNodes[Id](n: Node): Set[HyperEdge[Node, EdgeType]] = findByTarget(n) ++ findInSources(n)
-  def findByEdgeType[Id](et: EdgeType): Set[HyperEdge[Node, EdgeType]] = findRegexHyperEdges(HyperEdge(Ignored(), Explicit(et), Seq(Repetition.rep0(Int.MaxValue, Ignored()).get), EmptyMetadata))
+  def findInSources(n: Node): Set[HyperEdge[Node, EdgeType]]
+  def findByTarget(n: Node): Set[HyperEdge[Node, EdgeType]]
+  def findInNodes(n: Node): Set[HyperEdge[Node, EdgeType]] = findByTarget(n) ++ findInSources(n)
+  def findByEdgeType(et: EdgeType): Set[HyperEdge[Node, EdgeType]]
 
 
   /** Finds all the edges with the EdgeType
@@ -34,7 +34,7 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     * @param edgeType to search.
     * @return correspond edges.
     */
-  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = findByEdgeType[Int](edgeType)
+  def findEdges(edgeType: EdgeType): Set[HyperEdge[Node, EdgeType]] = findByEdgeType(edgeType)
 
   /** Finds subgraphs by a pattern graph.
     *

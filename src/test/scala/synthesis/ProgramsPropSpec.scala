@@ -149,8 +149,8 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
     val tree = new TranscalParser()("?x >> reverse(reverse(?x))")
     val res = Programs.destructPatternsWithRoots(tree.subtrees)
     res.head._2 shouldEqual res.last._2
-    val rootEdge = res.last._1.findByTarget[Int](res.last._2).head
-    val innerEdge = res.last._1.findByTarget[Int](rootEdge.sources.head).head
+    val rootEdge = res.last._1.findByTarget(res.last._2).head
+    val innerEdge = res.last._1.findByTarget(rootEdge.sources.head).head
     res.last._2 shouldEqual innerEdge.sources.head
   }
 

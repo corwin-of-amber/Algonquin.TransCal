@@ -93,7 +93,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
         val existsTarget = foundTarget.head
         val keysToChange = changedToKept.collect({case (k, v) if v == hyperEdge.target => k})
         for (k <- keysToChange) { changedToKept(k) = existsTarget }
-        val willChange = wrapped.findInSources[Int](hyperEdge.target).map(e => translateEdge(e, changedToKept))
+        val willChange = wrapped.findInSources(hyperEdge.target).map(e => translateEdge(e, changedToKept))
         wrapped.mergeNodesInPlace(existsTarget, hyperEdge.target)
 
         changedToKept(hyperEdge.target) = existsTarget

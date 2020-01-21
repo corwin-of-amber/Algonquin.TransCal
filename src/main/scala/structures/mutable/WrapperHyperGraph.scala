@@ -8,7 +8,7 @@ import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
   * @since 11/15/18
   */
 abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node, EdgeType, This]] protected (wrapped: HyperGraph[Node, EdgeType])
-  extends HyperGraph[Node, EdgeType]
+  extends structures.generic.WrapperHyperGraph[Node, EdgeType, This](wrapped) with HyperGraph[Node, EdgeType]
     with HyperGraphLike[Node, EdgeType, This] {
 
   override def empty: This = newBuilder.result()
@@ -16,20 +16,6 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def -=(elem: HyperEdge[Node, EdgeType]): this.type = {wrapped -= elem; this }
-
-  override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)
-
-  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
-
-  override def edges: Set[HyperEdge[Node, EdgeType]] = wrapped.edges
-
-  override def size: Int = wrapped.size
-
-  /* --- Object Impl. --- */
-
-  override def hashCode(): Int = wrapped.hashCode()
-
-  override def equals(obj: Any): Boolean = wrapped.equals(obj)
 }
 
 

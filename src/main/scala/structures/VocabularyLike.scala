@@ -22,6 +22,8 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with collecti
   def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])]
   def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_._1)
   override def contains(elem: Word[Letter]): Boolean = findRegex(elem.map(Explicit(_))).nonEmpty
+  def longestWord: Int
+  def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]]
 
   /**
     * @return The words in the vocabulary

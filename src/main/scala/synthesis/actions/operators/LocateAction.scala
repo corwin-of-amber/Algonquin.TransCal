@@ -34,7 +34,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val allTargets = goal.targets
       val nonTypeSources = goal.edges.filter(_.edgeType != ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(_.sources)
       val tempRoots = allTargets.diff(nonTypeSources)
-      val typeRoots = goal.findByEdgeType[Int](ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
+      val typeRoots = goal.findByEdgeType(ExplicitTerm(HyperTermIdentifier(Language.typeId))).flatMap(x => Set(x.sources(1), x.target))
       tempRoots.diff(typeRoots)
     }
     assert(roots.size == 1)
