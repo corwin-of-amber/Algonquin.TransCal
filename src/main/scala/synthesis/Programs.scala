@@ -72,7 +72,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
         edge.edgeType.identifier.literal match {
           case number if Try(number.toInt).isSuccess => Stream(ConstantComplexity(number.toInt))
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph.edges).map(Programs.termToString).map(ContainerComplexity)
         }
       } else {
         val leftHyperGraph = hyperGraph - edge
@@ -81,7 +81,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
             Programs.combineSeq(edge.sources.map(reconstructTimeComplex(_, leftHyperGraph, fallTo)))
               .map(AddComplexity(_))
           case _ =>
-            reconstructAnnotationTree(complexityRoot, hyperGraph).map(Programs.termToString).map(ContainerComplexity)
+            reconstructAnnotationTree(complexityRoot, hyperGraph.edges).map(Programs.termToString).map(ContainerComplexity)
         }
       }
     })
@@ -132,7 +132,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
                 Stream(rootsToTrees(rootAnnotatedTree))
               }
 
-              recursiveReconstruct(mutable.CompactHyperGraph(fullRewrite: _*), termRoot, Some(annotationTreeLinker)).toList
+              recursiveReconstruct(fullRewrite.toSet, termRoot, Some(annotationTreeLinker)).toList
             }
 
             val timeComplexes = {
@@ -154,7 +154,7 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
           }
       }
     } else {
-      Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph),
+      Programs.combineSeq(Seq(reconstructAnnotationTree(bridgeEdge.sources.head, hyperGraph.edges),
         reconstructTimeComplex(complexityRoot, hyperGraph)))
         .map { s => (s.head.asInstanceOf[AnnotatedTree], s(1).asInstanceOf[Complexity]) }
     }
@@ -274,45 +274,42 @@ object Programs extends LazyLogging {
   /** Reconstruct annotation trees.
     *
     * @param root       The root of the annotation tree.
-    * @param hyperGraph The hyperGraph to use as reference.
+    * @param edges The hyperGraph to use as reference.
     * @return All the constructed annotation trees.
     */
-  private def reconstructAnnotationTree(root: HyperTermId, hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier])
-  : Stream[AnnotatedTree] = recursiveReconstruct(hyperGraph, root, None)
+  private def reconstructAnnotationTree(root: HyperTermId, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]])
+  : Stream[AnnotatedTree] = recursiveReconstruct(edges, root, None)
 
   /** Reconstruct annotation trees of the types.
     *
     * @param hyperTermId The root to get its types' annotation trees.
     * @return All the constructed annotation trees.
     */
-  private def findTypes(hyperTermId: HyperTermId, hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Stream[AnnotatedTree] = {
-    val searchGraph: HyperPattern = immutable.CompactHyperGraph(HyperEdge(ReferenceTerm(0),
-      ExplicitTerm(HyperTermIdentifier(Language.typeId)),
-      Seq(ExplicitTerm(hyperTermId), Hole(1)),
-      NonConstructableMetadata))
-    hyperGraph.findSubgraph[Int](searchGraph).toStream.flatMap(m => reconstructAnnotationTree(m._1(1), hyperGraph))
+  private def findTypes(hyperTermId: HyperTermId, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Stream[AnnotatedTree] = {
+    val possibleTypes = edges.filter(e => e.edgeType.identifier == Language.typeId && e.sources.head == hyperTermId)
+    possibleTypes.toStream.flatMap(e => reconstructAnnotationTree(e.sources(1), edges))
   }
 
   /** Build iterator of program's trees where their root is the current target.
     *
-    * @param hyperGraph The hyperGraph to use for reconstruct.
+    * @param originalEdges The edges to use for reconstruct.
     * @param root       The root of the annotation tree.
     * @param fallTo     What to do if failed
     * @return Iterator with all the constructed annotation trees.
     */
-  private def recursiveReconstruct(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
+  private def recursiveReconstruct(originalEdges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]],
                                    root: HyperTermId,
                                    fallTo: Option[HyperTermId => Stream[AnnotatedTree]]): Stream[AnnotatedTree] = {
-    val hyperTermToEdge = hyperGraph.edges.groupBy(_.target)
+    val hyperTermToEdge = originalEdges.groupBy(_.target)
     val edges = hyperTermToEdge.getOrElse(root, mutable.CompactHyperGraph.empty)
     if (fallTo.nonEmpty && edges.isEmpty) fallTo.get(root)
     else edges.toStream.filter(_.metadata.forall(_ != NonConstructableMetadata)).flatMap(edge => {
-      val typ = findTypes(edge.target, hyperGraph)
+      val typ = findTypes(edge.target, originalEdges)
       if (edge.sources.isEmpty) {
         Stream(AnnotatedTree(edge.edgeType.identifier.copy(annotation = typ.headOption), Seq(), Seq.empty))
       }
       else {
-        val recRes = edge.sources.map(recursiveReconstruct(hyperGraph - edge, _, fallTo))
+        val recRes = edge.sources.map(recursiveReconstruct(originalEdges - edge, _, fallTo))
         Programs.combineSeq(recRes).map(subtrees =>
           AnnotatedTree(edge.edgeType.identifier, subtrees.toList, typ.headOption.toSeq))
       }
@@ -334,7 +331,7 @@ object Programs extends LazyLogging {
       logger.debug(f"Unknown HyperTerm - $hyperTermId")
       Stream.empty
     } else {
-      recursiveReconstruct(hyperGraph, hyperTermId, None)
+      recursiveReconstruct(hyperGraph.edges, hyperTermId, None)
     }
   }
 
@@ -356,7 +353,7 @@ object Programs extends LazyLogging {
       val fullPattern = generic.HyperGraph.fillPattern(newPattern, m, () =>
         throw new RuntimeException("Shouldn't need to create nodes")
       )
-      recursiveReconstruct(mutable.CompactHyperGraph.empty ++= fullPattern, hyperTermId, Some(fallback))
+      recursiveReconstruct(fullPattern, hyperTermId, Some(fallback))
     })
   }
 
