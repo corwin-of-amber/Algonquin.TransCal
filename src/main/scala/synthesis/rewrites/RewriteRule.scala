@@ -6,10 +6,12 @@ import structures._
 import structures.mutable.HyperGraph
 import synthesis.rewrites.RewriteRule._
 import synthesis.rewrites.RewriteSearchState.HyperGraph
-import synthesis.rewrites.Template.{ReferenceTerm, TemplateTerm}
+import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.{StepOperator, VersionedOperator}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
+
+import scala.annotation.tailrec
 
 /** Rewrites a program to a new program.
   *
@@ -67,11 +69,36 @@ class RewriteRule(val premise: HyperPattern,
     val premiseReferencesMaps =
       if (versioned) state.graph.findSubgraphVersioned[Int](subGraphPremise)
       else state.graph.findSubgraph[Int](subGraphPremise)
+
+    val edgeToTarget = collection.mutable.HashMap.empty[(HyperTermIdentifier, Seq[HyperTermId]), HyperTermId]
+    @tailrec
+    def fillKnownTargets(halfFilled: mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]): mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] = {
+      val toFill = halfFilled.edges
+        .collect({
+          case HyperEdge(t: ReferenceTerm[HyperTermId], et: ExplicitTerm[HyperTermIdentifier], s: Seq[Item[HyperTermId, Int]], _) if s.forall(_.isInstanceOf[ExplicitTerm[HyperTermId]]) =>
+            (t.id, et.value, s.map(_.asInstanceOf[ExplicitTerm[HyperTermId]].value))
+        })
+      val fillValues = toFill.flatMap({case (t, et, s) =>
+        edgeToTarget.get((et, s)).map((t, _))
+        if (edgeToTarget.contains((et, s))) Some((t, edgeToTarget((et, s))))
+        else {
+          state.graph.findRegex[Int](HyperEdge(ReferenceTerm(t), ExplicitTerm(et), s.map(ExplicitTerm(_)), EmptyMetadata))
+            .headOption.map(tup => {
+            edgeToTarget((et, s)) = tup._2(t)
+            (t, tup._2(t))
+          })
+        }
+      }).toMap
+      if (fillValues.isEmpty) halfFilled
+      else fillKnownTargets(mutable.HyperGraph.mergeMap(halfFilled, (fillValues, Map.empty)))
+    }
+
     val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
       val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
       val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
-      if (state.graph.findSubgraph[Int](merged).nonEmpty) None
-      else Some((merged, meta))
+      val furtherFilling = fillKnownTargets(merged)
+      if (state.graph.findSubgraph[Int](furtherFilling).nonEmpty) None
+      else Some((furtherFilling, meta))
     })
     halfFilledPatterns
   }
