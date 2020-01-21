@@ -166,7 +166,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     if (newRules.nonEmpty) {
       while (continue > 0) {
         continue -= 1
-        while (newRules.nonEmpty) {
+        do {
           val progs = Programs(rewriteState.graph)
           findNewRules(state, progs, termDepth) match {
             case (rules, newstate) => newRules = rules; state = newstate
@@ -174,8 +174,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
           for ((t1, t2) <- newRules)
             logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
           if (newRules.nonEmpty) continue = 1
-        }
-        rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+        } while (newRules.nonEmpty)
+        if (continue > 0)
+          rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       }
     }
 
