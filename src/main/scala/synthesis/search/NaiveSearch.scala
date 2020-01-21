@@ -46,9 +46,10 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
 
 
     var prevState: Option[RewriteSearchState] = None
-    while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
+//    while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
+    while (i < maxDepth && !searchSpace.isGoal(state)) {
       val versioned = prevState.isDefined
-      prevState = Some(state.deepCopy())
+//      prevState = Some(state.deepCopy())
       for ((term, (pattern, patternRoot)) <- patterns) {
         val reconstructed = Programs.reconstructPatternWithRoot(state.graph, pattern, patternRoot)
         if (reconstructed.nonEmpty) {
