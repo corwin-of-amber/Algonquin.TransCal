@@ -47,14 +47,10 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
   def longestWord: Int = getSubtries.length
 
   def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]] =
-    if (getSubtries.size > index) getSubtries(index).get(value).map(_.words).getOrElse(Set.empty)
+    if (getSubtriesLength > index) getSubtrie(index, value).map(_.words).getOrElse(Set.empty)
     else Set.empty
 
-  def keysByIndex(index: Int): Set[Letter] =
-    if (getSubtries.size > index) getSubtries(index).keys.toSet
-    else Set.empty
-
-  protected def getSubtries: Seq[collection.Map[Letter, This]]
+  def keysByIndex(index: Int): Set[Letter]
 
   protected def getSubtrie(index: Int, value: Letter): Option[This]
 
@@ -84,47 +80,5 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
       (w: Word[Letter]) => indexes.tail.forall(j => w(indexes.head) == w(j))
     })
     curTrie.map(cTrie => cTrie.words.filter((w: Word[Letter]) => w.length == pattern.length).filter(w => predicates.forall(_ (w)))).getOrElse(Set.empty)
-  }
-
-  protected def recursiveFindRegex[Id](pattern: WordRegex[Letter, Id],
-                                       placeholdersMap: Map[Id, Letter],
-                                       length: Int,
-                                       skip: Int): Set[(Word[Letter], Map[Id, Letter])] = {
-    def specificValue(value: Letter,
-                      more: WordRegex[Letter, Id],
-                      placeholdersMap: Map[Id, Letter]): Set[(Word[Letter], Map[Id, Letter])] =
-      if (getSubtries.length > skip)
-        getSubtries(skip).get(value)
-          .map(_.recursiveFindRegex(more, placeholdersMap, length + 1, 0)).getOrElse(Set.empty)
-      else Set.empty
-
-    pattern match {
-      case Nil => words.filter(_.length == length).zip(Stream.continually(placeholdersMap))
-      case item +: more =>
-        item match {
-          case Explicit(value) =>
-            specificValue(value, more, placeholdersMap)
-          case Hole(id) =>
-            placeholdersMap.get(id)
-              .map(specificValue(_, more, placeholdersMap))
-              .getOrElse(
-                getSubtries.applyOrElse(skip, (_: Int) => Map.empty[Letter, This])
-                  .flatMap {
-                    case (letter: Letter, subtrie: This) =>
-                      subtrie.recursiveFindRegex(more, placeholdersMap updated(id, letter), length + 1, 0)
-                  }.toSet
-              )
-          case Ignored() =>
-            recursiveFindRegex(more, placeholdersMap, length + 1, skip + 1)
-          case Repetition(minR, maxR, repeated) =>
-            assert(repeated.take(scala.math.min(maxR, getSubtries.length - more.length))
-              .forall(!_.isInstanceOf[Repetition[Letter, Id]]))
-            val results = (
-              for (newPattern <- (minR to scala.math.min(maxR, getSubtries.length)).map(i => repeated.take(i) ++ more))
-                yield recursiveFindRegex(newPattern, placeholdersMap, length, skip)
-              ).flatten.toSet
-            results
-        }
-    }
   }
 }
