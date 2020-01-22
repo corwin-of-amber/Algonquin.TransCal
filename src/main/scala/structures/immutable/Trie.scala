@@ -10,7 +10,7 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]])
+class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val words: Set[Word[Letter]], maxDepth: Int)
   extends generic.TrieLike[Letter, Trie[Letter]] with Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   override def getSubtriesLength: Int = subtries.length
@@ -21,17 +21,17 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   override lazy val letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
 
   /** Inner constructor that adds words where this Trie is for specific place */
-  private def this(wordsFull: Set[Word[Letter]], trieIndex: Int) =
-    this({
+  private def this(wordsFull: Set[Word[Letter]], trieIndex: Int, maxDepth: Int) =
+    this(if (maxDepth > 0){
       val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map{case (letter, index) => (index + trieIndex, letter, word)})
       val subtries = indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map { case (index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) =>
-        wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => new Trie(wordsToLetters.map(_._3), index + 1))
+        wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => new Trie(wordsToLetters.map(_._3), index + 1, maxDepth - 1))
       }
       subtries
-    }, wordsFull)
+    } else IndexedSeq.empty, wordsFull, maxDepth)
 
   /** Constructors of all words **/
-  def this(words: Set[Word[Letter]]=Set.empty[Word[Letter]]) = this(words, 0)
+  def this(words: Set[Word[Letter]]=Set.empty[Word[Letter]]) = this(words, 0, 2)
 
   /* --- Vocabulary Impl. --- */
 
@@ -54,23 +54,26 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
 
   private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
     logger.trace("Add word")
-    logger.trace("Make subtries larger if needed")
-    val expendedSubtries = subtries ++ (0 to word.length - subtries.length).map(_ => Map.empty[Letter, Trie[Letter]])
+    val newSubtries = if (maxDepth > 0) {
+      logger.trace("Make subtries larger if needed")
+      val expendedSubtries = subtries ++ (0 to word.length - subtries.length).map(_ => Map.empty[Letter, Trie[Letter]])
 
-    logger.trace("Add to indexes")
-    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(expendedSubtries).zipWithIndex) yield {
-      mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.empty).addRecursive(word.drop(1 + mapIndex), originalWord)))
-    }) ++ expendedSubtries.drop(word.size)
+      logger.trace("Add to indexes")
+      (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(expendedSubtries).zipWithIndex) yield {
+        mapSubtries + ((letter, mapSubtries.getOrElse(letter, Trie.emptyWithDepth[Letter](maxDepth - 1)).addRecursive(word.drop(1 + mapIndex), originalWord)))
+      }) ++ expendedSubtries.drop(word.size)
+    } else subtries
 
     logger.trace("Add to set")
     val newWords = words + originalWord
-    new Trie(newSubtries, newWords)
+    new Trie(newSubtries, newWords, maxDepth)
   }
 
   private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): Trie[Letter] = {
     logger.trace("Remove with index")
     logger.trace(f"Trying to remove $word")
-    val newSubtries = (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
+    val newSubtries = if (maxDepth > 0) {
+    (for (((letter, mapSubtries), mapIndex) <- word.toIndexedSeq.zip(subtries).zipWithIndex) yield {
       val subtrieRemoved = mapSubtries(letter).removeRecursive(word.drop(1 + mapIndex), originalWord)
       if (subtrieRemoved.isEmpty) {
         mapSubtries - letter
@@ -78,10 +81,11 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
         mapSubtries + ((letter, subtrieRemoved))
       }
     }) ++ subtries.drop(word.size)
+    } else subtries
 
     logger.trace("Remove from set")
     val newWords = words - originalWord
-    new Trie(newSubtries, newWords)
+    new Trie(newSubtries, newWords, maxDepth)
   }
 
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
@@ -89,26 +93,28 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
     val newWords = words.map(word => word.map(letter => if (letter == change) keep else letter))
 
     logger.trace("Replace in subtries")
-    val newSubtries = subtries.zipWithIndex.map(mapSubtriesWithIndex => {
-      val (mapSubtries, localIndex) = mapSubtriesWithIndex
-      val mapSubtriesIndex = index + localIndex + 1
-      logger.trace("Execute replace recursively")
-      val mapSubtriesRemoved = mapSubtries.mapValues(trie =>
-        trie.replaceWithIndex(keep, change, mapSubtriesIndex)
-      )
+    val newSubtries = if (maxDepth > 0) {
+      subtries.zipWithIndex.map(mapSubtriesWithIndex => {
+        val (mapSubtries, localIndex) = mapSubtriesWithIndex
+        val mapSubtriesIndex = index + localIndex + 1
+        logger.trace("Execute replace recursively")
+        val mapSubtriesRemoved = mapSubtries.mapValues(trie =>
+          trie.replaceWithIndex(keep, change, mapSubtriesIndex)
+        )
 
-      logger.trace("Merge change trie to keep trie")
-      mapSubtriesRemoved.get(change) match {
-        case Some(subtrieRemoved) =>
-          val newKeep = mapSubtriesRemoved.get(keep) match {
-            case Some(x) => x.addAll(subtrieRemoved, mapSubtriesIndex)
-            case None => subtrieRemoved
-          }
-          (mapSubtriesRemoved - change) + ((keep, newKeep))
-        case None => mapSubtriesRemoved
-      }
-    })
-    new Trie(newSubtries, newWords)
+        logger.trace("Merge change trie to keep trie")
+        mapSubtriesRemoved.get(change) match {
+          case Some(subtrieRemoved) =>
+            val newKeep = mapSubtriesRemoved.get(keep) match {
+              case Some(x) => x.addAll(subtrieRemoved, mapSubtriesIndex)
+              case None => subtrieRemoved
+            }
+            (mapSubtriesRemoved - change) + ((keep, newKeep))
+          case None => mapSubtriesRemoved
+        }
+      })
+    } else subtries
+    new Trie(newSubtries, newWords, maxDepth)
   }
 
   private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
@@ -123,10 +129,14 @@ class Trie[Letter] private (subtries: IndexedSeq[Map[Letter, Trie[Letter]]], val
   override def keysByIndex(index: Int): Set[Letter] =
     if (subtries.length > index) subtries(index).keys.toSet
     else Set.empty
+
+  override def getMaxDepth: Int = maxDepth
 }
 
 object Trie {
   def empty[Letter]: Trie[Letter] = new Trie()
 
   def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = new Trie(words)
+
+  private def emptyWithDepth[Letter](depth: Int): Trie[Letter] = new Trie(Set.empty[Word[Letter]], 0, depth)
 }

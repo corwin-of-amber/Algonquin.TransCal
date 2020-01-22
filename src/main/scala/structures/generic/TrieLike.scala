@@ -46,6 +46,7 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
 
   protected def getSubtriesLength: Int
   def longestWord: Int = getSubtriesLength
+  def getMaxDepth: Int
 
   def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]] =
     if (getSubtriesLength > index) getSubtrie(index, value).map(_.words).getOrElse(Set.empty)
@@ -63,11 +64,15 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
     var curTrie: Option[This] = Some(this.asInstanceOf[This])
     var toSkip = 0
     val holeToIndexes = mutable.HashMultiMap.empty[Id, Int]
+    val explicitsToIndexes = mutable.HashMultiMap.empty[Letter, Int]
     for ((item, i) <- pattern.zipWithIndex) {
       item match {
         case Explicit(value) =>
-          curTrie = curTrie.flatMap(t => t.getSubtrie(toSkip, value))
-          toSkip = 0
+          if (curTrie.map(_.getMaxDepth).getOrElse(1) > 0) {
+            curTrie = curTrie.flatMap(t => t.getSubtrie(toSkip, value))
+            toSkip = 0
+          }
+          explicitsToIndexes.addBinding(value, i)
         case Hole(id) =>
           toSkip += 1
           holeToIndexes.addBinding(id, i)
@@ -79,6 +84,8 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
     val predicates = holeToIndexes.filter(t => t._2.size > 1).toSeq.map(id_indexes => {
       val indexes = id_indexes._2
       (w: Word[Letter]) => indexes.tail.forall(j => w(indexes.head) == w(j))
+    }) ++ explicitsToIndexes.map({case (value, indexes) =>
+      (w: Word[Letter]) => indexes.forall(j => value == w(j))
     })
     curTrie.map(cTrie => cTrie.words.filter((w: Word[Letter]) => w.length == pattern.length).filter(w => predicates.forall(_ (w)))).getOrElse(Set.empty)
   }
