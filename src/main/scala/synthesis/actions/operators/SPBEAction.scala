@@ -100,10 +100,44 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   val untypedBaseGraph: ActionSearchState.HyperGraph = createBaseGraph(false)
 
+  protected def retryFailed(failedAttempts: mutable.Buffer[(AnnotatedTree, AnnotatedTree)], actionState: ActionSearchState):(Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState)  = {
+    var i = 0
+    var state = actionState
+    val found = mutable.Buffer.empty[(AnnotatedTree, AnnotatedTree)]
+    logger.info("Retrying failed proofs")
+    while (i < failedAttempts.length) {
+      val (term1, term2) = failedAttempts.head
+      val anchor = LocateAction.createTemporaryAnchor()
+      val (lhs, rhs) = {
+        val temp = Programs.destructPatternsWithRoots(Seq(term1, term2))
+        (temp.head, temp.last)
+      }
+      val state1 = ActionSearchState(Programs(term2), state.rewriteRules)
+      val state2 = ActionSearchState(Programs(term1), state.rewriteRules)
+      val newState1 = new ElaborateAction(anchor, lhs._1, lhs._2, maxSearchDepth = Some(equivDepth))(state1)
+      val newState2 = new ElaborateAction(anchor, rhs._1, rhs._2, maxSearchDepth = Some(equivDepth))(state2)
+      if (newState1 == state && newState2 == state) {
+        failedAttempts.remove(i)
+      } else {
+        val res = inductionStep(state, term1, term2).collect({ case rr => rr })
+        if (res.nonEmpty) {
+          state = ActionSearchState(state.programs, state.rewriteRules ++ res)
+          found.append((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
+            term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
+          failedAttempts.remove(i)
+          i = 0
+        } else i += 1
+      }
+    }
+    logger.info("Done Retrying failed proofs")
+    (found.toSet, state)
+  }
+
   private def findNewRules(actionState: ActionSearchState, rewriteStateProgs: Programs, depth: Int)
   : (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var state = actionState
     val entries = Programs.reconstructAll(rewriteStateProgs.hyperGraph, depth)
+    val failedAttempts = mutable.Buffer.empty[(AnnotatedTree, AnnotatedTree)]
 
     implicit val smallestGeneraliestOrdering: Ordering[AnnotatedTree] = new Ordering[AnnotatedTree] {
       def getphs(annotatedTree: AnnotatedTree) = annotatedTree.nodes.map(_.root.literal).filter(_.toLowerCase.contains("placeholder")).toSet.size
@@ -128,14 +162,20 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       // Take smallest of each set as heuristic to have no unneeded subterms
       val filteredTerms = equives.map(_.minBy(_.size)).toSeq
       // Do the induction step for each couple of terms
-      (for ((term1, term2) <- filteredTerms.combinations(2).toSeq.map(it => (it(0), it(1)))) yield {
+      val temp = (for ((term1, term2) <- filteredTerms.combinations(2).toSeq.map(it => (it(0), it(1)))) yield {
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
-          Some((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
+          val (newOnes, newState) = retryFailed(failedAttempts, state)
+          state = newState
+          newOnes ++ Some((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
             term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
-        } else None
-      }).collect({ case Some(x) => x })
+        } else {
+          failedAttempts.append((term1, term2))
+          Set.empty[(AnnotatedTree, AnnotatedTree)]
+        }
+      })
+      temp.flatten
     })
     (res.flatten.toSet, state)
   }
