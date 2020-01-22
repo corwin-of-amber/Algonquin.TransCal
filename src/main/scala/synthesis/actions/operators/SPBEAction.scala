@@ -1,5 +1,7 @@
 package synthesis.actions.operators
 
+import java.util.Calendar
+
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -10,6 +12,7 @@ import synthesis.search.{Operator, StepOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 // Constructors than split by datatype
@@ -20,12 +23,16 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  termDepthOption: Option[Int] = None,
                  equivDepthOption: Option[Int] = None,
                  splitDepthOption: Option[Int] = None,
-                 preRunDepth: Option[Int] = None) extends Action {
+                 preRunDepth: Option[Int] = None,
+                 placeholderCountOption: Option[Int] = None) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
 
-  val termDepth = termDepthOption.getOrElse(2)
-  val splitDepth = splitDepthOption.getOrElse(1)
   val equivDepth = equivDepthOption.getOrElse(4)
+
+  val splitDepth = splitDepthOption.getOrElse(1)
+  val termDepth = termDepthOption.getOrElse(2)
+  val placeholderCount = placeholderCountOption.getOrElse(2)
+
 
   val anchorPrefix = "SPBE_"
   // How to do this? for now given by user
@@ -65,7 +72,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       })
 
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
-    types.map(t => (t, 0 to 2 map (i => createPlaceholder(t, i)))).toMap
+    types.map(t => (t, 0 until placeholderCount map (i => createPlaceholder(t, i)))).toMap
 
   private def createBaseGraph(typed: Boolean): HyperGraph = {
     val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ grammar
@@ -139,7 +146,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
     var newRules = Set.empty[(AnnotatedTree, AnnotatedTree)]
 
-    logger.info("Running SPBE")
+    logger.info(s"Running SPBE at time: ${Calendar.getInstance().getTime}")
     for (i <- 1 to termDepth) {
       logger.info(s"Creating terms of depth $i")
       // ******** SPBE ********
@@ -164,22 +171,27 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     logger.info(s"Searching for rules that became proovable:")
     var continue = 2
     if (newRules.nonEmpty) {
-      while (continue > 0) {
-        continue -= 1
+//      while (continue > 0) {
+//        continue -= 1
         do {
           val progs = Programs(rewriteState.graph)
           findNewRules(state, progs, termDepth) match {
             case (rules, newstate) => newRules = rules; state = newstate
           }
-          for ((t1, t2) <- newRules)
+          for ((t1, t2) <- newRules) {
             logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
-          if (newRules.nonEmpty) continue = 1
+          }
+          //          if (newRules.nonEmpty) continue = 1
         } while (newRules.nonEmpty)
-        if (continue > 0)
-          rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+//        if (continue > 0)
+//          rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       }
-    }
+    logger.info("Done searching for rules:")
+    for ((t1, t2) <- foundRules.flatten)
+      logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
+//    }
 
+    logger.info(s"Done SPBE at time: ${Calendar.getInstance().getTime}")
     state
   }
 
