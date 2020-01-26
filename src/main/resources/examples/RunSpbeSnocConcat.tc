@@ -1,9 +1,11 @@
 //reverse ?l = l match ((Nil => Nil) / ((cons ?x ?xs) => snoc (reverse xs) x)) [notypes]
 
-concat Nil ?l2 >> id l2 [notypes]
-concat cons(?x, ?xs) ?l2 >> cons(x, (concat xs l2))
+concat Nil ?l2 >> id l2
+concat (cons(?x, ?xs)) ?l2 = cons(x, (concat xs l2))
 
-snoc ?l ?x >> concat l (cons x Nil) [typedlet]
-concat l (cons x Nil) >> snoc ?l ?x [notypes]
+snoc ?l ?x = concat l (cons x Nil) [typedlet]
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((snoc : list int :> int :> list int), (cons : int :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, cons x ⟨⟩, cons(y, cons(x, ⟨⟩)))),)
+concat(concat(?P0, ?P2), ?P1) = concat(?P0, concat(?P2, ?P1))
+
+// SPBE ( Nil , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (Nil, (cons x Nil), (cons y (cons x Nil)))),) 8 0 1 2 3
+SPBE ( Nil , (cons : int :> list int :> list int) ) ((Nil: list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (Nil, (cons x Nil), (cons y (cons x Nil)))),) 8 0 1 1
