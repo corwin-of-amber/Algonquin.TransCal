@@ -1,6 +1,6 @@
-and ?x ?y = x match ((true => id y) / (false => false)) [notypes]
-or ?x ?y = x match ((true => true) / (false => id y)) [notypes]
-not ?x = x match ((true => false) / (false => true)) [notypes]
+//and ?x ?y = x match ((true => id y) / (false => false)) [notypes]
+//or ?x ?y = x match ((true => true) / (false => id y)) [notypes]
+//not ?x = x match ((true => false) / (false => true)) [notypes]
 //Not ?p ?x = not(p x)
 forall ?l = l match ((⟨⟩ => true) / ((?x :: ?xs) => and x (forall xs))) [notypes]
 exists ?l = l match ((⟨⟩ => false) / ((?x :: ?xs) => or x (exists xs))) [notypes]
@@ -9,15 +9,18 @@ fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs))
 cons ?x ?l >> x :: l [typedlet]
 ?x :: ?l >> cons ?x ?l [notypes]
 
-or ?x ?y >> or y x
-and ?x ?y >> and y x
-and ?x (and ?y ?z) = and (and x y) z
-or ?x (or ?y ?z) = or (or x y) z
+and ?x ?y >> and ?y ?x
+and ?x (and ?y ?z) = and (and ?x ?y) ?z
+and false ?x >> false
+and true ?x >> id ?x
 
-or ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
-and ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
+or ?x ?y >> or ?y ?x
+or ?x (or ?y ?z) = or (or ?x ?y) ?z
+or false ?x >> id ?x
+or true ?x >> true
 
-SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, false, (or : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩)),) 4 2 1 2 1
-// SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, (and : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩, y::x::nil)),) 4 2 1 2 1
-// SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, false, (exists : list boolean :> boolean), (or : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩)),)
-// SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, (forall : list boolean :> boolean), (and : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),)
+// or ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
+// and ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
+
+SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, (forall : list boolean :> boolean), (and : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 6 0 1 2 1
+SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (false, (exists : list boolean :> boolean), (or : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) ((list boolean, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 6 0 1 2 1
