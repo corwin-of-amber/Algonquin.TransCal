@@ -13,7 +13,7 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
   override def empty: This = newBuilder.result()
 
   protected def getVocabulary: Vocabulary[Either[Node, EdgeType]]
-  protected def getMetadatas: collection.immutable.Map[(Node, EdgeType, Seq[Node]), Metadata]
+  protected def getMetadata(node: Node, et: EdgeType, sources: Seq[Node]): Metadata
 
   override def nodes: Set[Node] =
     (1 until getVocabulary.longestWord).flatMap(getVocabulary.keysByIndex(_)).collect({case Left(n: Node) => n}).toSet
@@ -40,7 +40,7 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
     val target = toNode(word(1))
     val edgeType = toEdge(word.head)
     val sources = word.drop(2) map toNode
-    HyperEdge(target, edgeType, sources, getMetadatas((target, edgeType, sources)))
+    HyperEdge(target, edgeType, sources, getMetadata(target, edgeType, sources))
   }
 
   protected def hyperEdgeToWord(hyperEdge: HyperEdge[Node, EdgeType]): Word[Either[Node, EdgeType]] = VocabularyHyperGraphLike.hyperEdgeToWord(hyperEdge)
