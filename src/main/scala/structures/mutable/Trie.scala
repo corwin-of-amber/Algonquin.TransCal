@@ -36,7 +36,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
     }, wordsFull, maxDepth)
 
   /** Constructors of all words **/
-  def this(words: immutable.Set[Word[Letter]] = immutable.Set.empty[Word[Letter]]) = this(words, 0, 2)
+  def this(words: immutable.Set[Word[Letter]] = immutable.Set.empty[Word[Letter]]) = this(words, 0, Trie.MAX_DEPTH)
 
   /* --- Vocabulary Impl. --- */
 
@@ -150,6 +150,8 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 }
 
 object Trie {
+  val MAX_DEPTH = 2
+
   def empty[Letter]: Trie[Letter] = new Trie()
 
   def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = new Trie(words)
