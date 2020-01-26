@@ -287,7 +287,7 @@ object Programs extends LazyLogging {
     */
   private def findTypes(hyperTermId: HyperTermId, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]): Stream[AnnotatedTree] = {
     val possibleTypes = edges.filter(e => e.edgeType.identifier == Language.typeId && e.sources.head == hyperTermId)
-    possibleTypes.toStream.flatMap(e => reconstructAnnotationTree(e.sources(1), edges))
+    possibleTypes.toStream.flatMap(e => reconstructAnnotationTree(e.sources(1), edges - e))
   }
 
   /** Build iterator of program's trees where their root is the current target.
