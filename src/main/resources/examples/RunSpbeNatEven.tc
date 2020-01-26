@@ -2,15 +2,26 @@
 
 plus (suc ?t) ?y = suc (plus t y)
 plus zero ?y >> id y
-even zero = true [notypes]
-even (suc ?y) = ~(even y) [notypes]
-not ?x >> ~x
+
+even zero >> true [typedlet]
+true >> even zero [notypes]
+even (suc ?y) >> ~(even y) [typedlet]
+~(even y) >> even (suc ?y) [notypes]
+
+not ?x >> ~x [typedlet]
 ~?x >> not ?x [notypes]
 
 one = suc zero
 two = suc one
 
-SPBE ((zero : nat) , (suc : nat :> nat)) ((zero : nat), (true), (false), (suc : nat :> nat), (plus : nat :> nat :> nat), (even : nat :> boolean), (not : bool :> bool)) ((nat, ((zero : nat), (one : nat), (two : nat))),) 9
+// previously discovered
+plus(?Placeholder0, zero) = ?Placeholder0
+suc(?Placeholder0) = plus(?Placeholder0, suc(zero))
+plus(suc(?Placeholder0), ?Placeholder2) = plus(?Placeholder0, suc(?Placeholder2))
+plus(plus(?Placeholder0, ?Placeholder2), ?Placeholder1) = plus(?Placeholder0, plus(?Placeholder2, ?Placeholder1))
+plus(?Placeholder2, ?Placeholder0) = plus(?Placeholder0, ?Placeholder2)
+
+SPBE ((zero : nat) , (suc : nat :> nat)) (false, true, (suc : nat :> nat), (plus : nat :> nat :> nat), (even : nat :> boolean)) ((nat, ((zero : nat), (one : nat), (two : nat))),) 5 0
 
 even (plus x x) = f x [++]
 even (plus x x) -> ~false

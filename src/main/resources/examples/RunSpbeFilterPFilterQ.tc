@@ -1,12 +1,19 @@
 filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs)))) [notypes]
 
-cons ?x ?l >> x :: l
+cons ?x ?l >> x :: l [typedlet]
 ?x :: ?l >> cons ?x ?l [notypes]
+
+predicate = int :> boolean
+
+And ?p ?q ?x >> (p x) /\ (q x)
+(?p ?x) /\ (?q ?x) >> And ?p ?q ?x [typedlet]
 
 filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 3 2
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((And: predicate :> predicate :> predicate), (filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 4 2
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 
 filter p (filter q (l)) -> filter q (filter p l)
+
+filter p (filter q (l)) -> filter (And p q) l

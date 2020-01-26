@@ -1,12 +1,16 @@
-drop ?i ?l = i match ((zero => l) / ((suc ?j) => l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => drop j xs)))) [notypes]
+drop ?i ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => i match ((zero => (x::xs)) / ((suc ?j) => (drop j xs))))) [notypes]
+take ?i ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => i match ((zero => nil) / ((suc ?j) => (x::(take j xs)))))) [notypes]
 
-cons ?x ?l >> x :: l
+concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
+l1 ++ l2 >> concat ?l1 ?l2 [notypes]
+
+cons ?x ?l >> x :: l [typedlet]
 ?x :: ?l >> cons ?x ?l [notypes]
 
-filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
+drop ?i (?x :: ?xs) |>> splitTrue ||| possibleSplit(i, zero, (suc ?j)) [notypes]
+take ?i (?x :: ?xs) |>> splitTrue ||| possibleSplit(i, zero, (suc ?j)) [notypes]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 3
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((concat : list int :> list int :> list int), (drop: int :> list int :> list int), (take: int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 4 2 1 2 1
 
-filter pred (filter pred (t)) = filter pred (filter pred (l)) [++]
-
-filter pred (filter pred (l)) -> filter pred l
+f = take l i ++ drop l i [++]
+f >> l
