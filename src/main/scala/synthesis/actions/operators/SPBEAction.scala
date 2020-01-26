@@ -199,6 +199,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
       // Different context for temp names
+//      val pattern1 = Programs.destructPattern(new TranscalParser().parseExpression("or(p1, fold or false p0)").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
+//      val pattern2 = Programs.destructPattern(new TranscalParser().parseExpression("fold or (or(p1, _)) p0").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
       findNewRules(state, Programs(rewriteState.graph), i) match {
         case (rules, newstate) => newRules = rules; state = newstate
       }
@@ -414,7 +416,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
-      logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} == ${Programs.termToString(updatedTerm2)}")
+      logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
       new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)),
         allowExistential = false).rules
     } else {
