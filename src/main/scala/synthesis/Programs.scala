@@ -370,13 +370,14 @@ object Programs extends LazyLogging {
 
   private def innerDestruct[Node, EdgeType](tree: AnnotatedTree,
                                             nodeCreator: Iterator[Node],
-                                            identToEdge: Identifier => EdgeType)
-  : (Node, Set[HyperEdge[Node, EdgeType]]) = {
+                                            identToEdge: Identifier => EdgeType,
+                                            cache: collection.mutable.Map[AnnotatedTree, (Node, Set[HyperEdge[Node, EdgeType]])])
+  : (Node, Set[HyperEdge[Node, EdgeType]]) = cache.getOrElse(tree, {
     val (function, args) = flattenApply(tree)
     // Skipping annotations, shouldn't be part of the graph, at least for now
-    if (function.literal == "Annotation") return innerDestruct(tree.subtrees(0), nodeCreator, identToEdge)
+    if (function.literal == "Annotation") return innerDestruct(tree.subtrees(0), nodeCreator, identToEdge, cache)
 
-    val targetToSubedges = args.map(subtree => innerDestruct(subtree, nodeCreator, identToEdge))
+    val targetToSubedges = args.map(subtree => innerDestruct(subtree, nodeCreator, identToEdge, cache))
     val subHyperEdges = targetToSubedges.flatMap(_._2).toSet
 
     val (target, newHyperEdges) = function match {
@@ -403,7 +404,7 @@ object Programs extends LazyLogging {
     }
     val annotationEdges = function.annotation match {
       case Some(annotatedTree) =>
-        val (targetType, hyperEdgesType) = innerDestruct(annotatedTree, nodeCreator, identToEdge)
+        val (targetType, hyperEdgesType) = innerDestruct(annotatedTree, nodeCreator, identToEdge, cache)
         val trueNode = nodeCreator.next()
         val functionNode = {
           val found = newHyperEdges.find(e =>
@@ -418,8 +419,9 @@ object Programs extends LazyLogging {
       case None => Set.empty
     }
 
+    cache(tree) = (target, annotationEdges ++ newHyperEdges)
     (target, annotationEdges ++ newHyperEdges)
-  }
+  })
 
   /** Create hyper graph from ast. Removes annotations. Root is always max HyperTermId.
     *
@@ -435,8 +437,8 @@ object Programs extends LazyLogging {
   : (ActionSearchState.HyperGraph, HyperTermId) = {
     logger.trace("Destruct a program")
 
-    val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)
-    (immutable.CompactHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
+    val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier, collection.mutable.Map.empty[AnnotatedTree, (HyperTermId, Set[Edge])])
+    (immutable.CompactHyperGraph(mutable.CompactHyperGraph(hyperEdges._2.toSeq: _*).toSeq: _*), hyperEdges._1)
   }
 
   def destructPattern(tree: AnnotatedTree): HyperPattern = {
@@ -506,7 +508,7 @@ object Programs extends LazyLogging {
       }
       else {
         val inner =
-          innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator)
+          innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator, collection.mutable.Map.empty)
         (inner._1, inner._2)
       }
     })
@@ -518,7 +520,7 @@ object Programs extends LazyLogging {
     val anchoredGraphs = edges.zipWithIndex.map({ case ((target, graphEdges), i) =>
       val anchorEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
         target, anchorCreator(i), Seq.empty, NonConstructableMetadata)
-      immutable.CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
+      mutable.CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
     })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>
