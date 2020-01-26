@@ -51,11 +51,11 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
 
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
     // TODO: fix id to term to be able to deal with moving term targets
-//    val graph = structures.mutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier]
-//    terms.foreach(t => {
-//      graph ++= Programs.destruct(t, if (graph.nonEmpty) graph.nodes.maxBy(_.id) else HyperTermId(0))
-//    })
-    val graph = Programs.destruct(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, terms))
+    // TODO: insert common subterms once
+    val graph = structures.mutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier]
+    terms.foreach(t => {
+      graph ++= Programs.destruct(t, if (graph.nonEmpty) graph.nodes.maxBy(_.id) else HyperTermId(0))
+    })
     val termToEdges = (for (t <- terms) yield {
       val (pattern, root) = Programs.destructPatternWithRoot(t)
       (t, graph.findSubgraph[Int](pattern).head._1(root.id))
