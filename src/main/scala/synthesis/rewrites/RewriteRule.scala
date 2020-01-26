@@ -94,7 +94,9 @@ class RewriteRule(val premise: HyperPattern,
     }
 
     val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
-      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
+      // TODO: undo this. just want better runtime then listing the graph a million times.
+//      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
+      val meta = metaCreator(m._1, m._2)
       val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
       val furtherFilling = fillKnownTargets(merged)
       if (state.graph.findSubgraph[Int](furtherFilling).nonEmpty) None
