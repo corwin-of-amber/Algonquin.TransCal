@@ -3,14 +3,32 @@ filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true 
 cons ?x ?l >> x :: l [typedlet]
 ?x :: ?l >> cons ?x ?l [notypes]
 
-predicate = int :> boolean
+and ?x ?y >> and ?y ?x
+and ?x (and ?y ?z) >> and (and ?x ?y) ?z
+and false ?x >> false
+and true ?x >> id ?x
 
-And ?p ?q ?x >> (p x) /\ (q x)
-(?p ?x) /\ (?q ?x) >> And ?p ?q ?x [typedlet]
+And ?p ?q ?x >> and (p x) (q x)
+// (?p ?x) /\ (?q ?x) >> And ?p ?q ?x [typedlet]
 
-filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
+// Gonna do a trick here. We can choose to split only when we know both q and p
+// So I am gonna add split as tuple and a deduction rule on tuple params
+// It doesn't really matter, just save some engineering time on smart choosing of edge splitters
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((And: predicate :> predicate :> predicate), (filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 2 4 2
+//t ?p = true
+//t2 ?p = true
+//f g = filter (And t t2) (y::x::nil) [++]
+//filter (And t t2) (y::x::nil) -> y::x::nil
+
+(?x, ?y) ||| (?w, ?z) |>> ?x ||| id ?w
+(?x, ?y) ||| (?w, ?z) |>> ?y ||| id ?z
+// (?x ,?y) |>> tup2 (?x ,?y) ||| ?y
+filter (And ?p ?q) (cons ?x ?xs) |>> splitTrue ||| possibleSplit(((p x), (q x)), (true, true), (true, false), (false, true), (false, false)) [typedlet]
+
+filter ?p (cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
+
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 4 2 2 2
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((And: predicate :> predicate :> predicate), (filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 4 4
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 
