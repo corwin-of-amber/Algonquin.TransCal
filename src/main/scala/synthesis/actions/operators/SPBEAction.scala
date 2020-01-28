@@ -26,13 +26,16 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                  preRunDepth: Option[Int] = None,
                  placeholderCountOption: Option[Int] = None) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
+  var termCount = 0
+  var failedProofs = 0
+  var retriedProofs = 0
+  val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
 
   val equivDepth = equivDepthOption.getOrElse(4)
 
   val splitDepth = splitDepthOption.getOrElse(1)
   val termDepth = termDepthOption.getOrElse(2)
   val placeholderCount = placeholderCountOption.getOrElse(2)
-
 
   val anchorPrefix = "SPBE_"
   // How to do this? for now given by user
@@ -125,6 +128,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
           found.append((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
             term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
           failedAttempts.remove(i)
+          retriedProofs += 1
           i = 0
         } else i += 1
       }
@@ -137,6 +141,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   : (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var state = actionState
     val entries = Programs.reconstructAll(rewriteStateProgs.hyperGraph, depth)
+    termCount = math.max(entries.size, termCount)
+
     val failedAttempts = mutable.Buffer.empty[(AnnotatedTree, AnnotatedTree)]
 
     implicit val smallestGeneraliestOrdering: Ordering[AnnotatedTree] = new Ordering[AnnotatedTree] {
@@ -168,10 +174,15 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
           val (newOnes, newState) = retryFailed(failedAttempts, state)
           state = newState
+          if (allfailed.contains((term1, term2)))
+            retriedProofs += 1
           newOnes ++ Some((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
             term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
         } else {
           failedAttempts.append((term1, term2))
+          failedProofs += 1
+          allfailed.add((term1, term2))
+          allfailed.add((term2, term1))
           Set.empty[(AnnotatedTree, AnnotatedTree)]
         }
       })
@@ -181,6 +192,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
 
   override def apply(initialState: ActionSearchState): ActionSearchState = {
+    logger.info(s"Created total: ${placeholders.values.flatten.size}")
     var rewriteState = new RewriteSearchState(baseGraph)
     var state = initialState
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
@@ -234,6 +246,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 //    }
 
     logger.info(s"Done SPBE at time: ${Calendar.getInstance().getTime}")
+    logger.info(s"term count: $termCount")
+    logger.info(s"failed count: $failedProofs")
+    logger.info(s"retry success count: $retriedProofs")
     state
   }
 
