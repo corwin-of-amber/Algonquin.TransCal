@@ -1,12 +1,13 @@
 package structures.mutable
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
 import structures.HyperGraphLike.HyperEdgePattern
 import structures.{HyperEdge, Item}
 
 
-class VocabularyHyperGraphPropSpec extends PropSpec with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
+class VocabularyHyperGraphPropSpec extends AnyPropSpec with Matchers with HyperGraphLikeTest[Int, Int, VocabularyHyperGraph[Int, Int], VocabularyHyperGraph[Item[Int, Int], Item[Int, Int]]]{
   implicit def edgeCreator: Arbitrary[HyperEdge[Int, Int]] = Arbitrary(integerEdgesGen)
   implicit def graphCreator: Arbitrary[VocabularyHyperGraph[Int, Int]] = Arbitrary(integerGraphGen)
   override implicit def nodeCreator: Arbitrary[Int] = Arbitrary(integerLetterGen)

@@ -1,6 +1,7 @@
 package synthesis.rewrites
 
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import synthesis.Programs
 import synthesis.rewrites.FunctionArgumentsAndReturnTypeRewrite.{ApplyTypeMetadata, ArgumentsTypeMetadata}
 import transcallang.{Language, TranscalParser}
@@ -9,7 +10,7 @@ import transcallang.{Language, TranscalParser}
   * @author tomer
   * @since 2/18/19
   */
-class FunctionArgumentsAndReturnTypeRewriteTest extends PropSpec with Matchers {
+class FunctionArgumentsAndReturnTypeRewriteTest extends AnyPropSpec with Matchers {
   property("Finds in the graph") {
     val term = new TranscalParser().apply("cl = (concat: list :> list :> list) al bl")
     val programs = Programs(term)

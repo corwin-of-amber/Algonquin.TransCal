@@ -3,12 +3,13 @@ package transcallang
 import java.io.File
 
 import com.typesafe.scalalogging.LazyLogging
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import scala.io.Source
 
-abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends PropSpec with Matchers with LazyLogging
+abstract class ParserTest(protected val p: Parser[AnnotatedTree]) extends AnyPropSpec with Matchers with LazyLogging
   with ScalaCheckPropertyChecks {
   property("testApply") {
     val path = getClass.getResource("/").getPath + "../classes/examples"

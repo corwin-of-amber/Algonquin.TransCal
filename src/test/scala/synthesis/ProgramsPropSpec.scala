@@ -1,7 +1,9 @@
 package synthesis
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
+import org.scalatest.ParallelTestExecution
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
@@ -9,7 +11,7 @@ import synthesis.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChecks with ParallelTestExecution  {
+class ProgramsPropSpec extends AnyPropSpec with Matchers with ScalaCheckPropertyChecks with ParallelTestExecution  {
 
   private implicit val identifierCreator: Arbitrary[Identifier] = Arbitrary(identifierGen)
   private implicit val termsCreator: Arbitrary[AnnotatedTree] = Arbitrary(identifierTreesGen)

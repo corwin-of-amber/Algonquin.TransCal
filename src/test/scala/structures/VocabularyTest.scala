@@ -1,7 +1,9 @@
 package structures
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Assertion, Matchers, PropSpec}
+import org.scalatest.Assertion
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.VocabularyLike.Word
 
@@ -10,7 +12,7 @@ import scala.util.Random
 trait VocabularyTest[
   Letter,
   V <: VocabularyLike[Letter, V] with scala.collection.Set[structures.VocabularyLike.Word[Letter]]
-] extends PropSpec with Matchers with ScalaCheckPropertyChecks {
+] extends AnyPropSpec with Matchers with ScalaCheckPropertyChecks {
 
   protected implicit val letterCreator: Arbitrary[Letter]
   protected implicit val wordCreator: Arbitrary[Word[Letter]]

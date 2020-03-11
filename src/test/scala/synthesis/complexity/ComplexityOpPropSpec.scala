@@ -1,7 +1,8 @@
 package synthesis.complexity
 
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.complexity.Complexity._
 
@@ -10,7 +11,7 @@ import synthesis.complexity.Complexity._
   * @author Tomer
   * @since 20/05/19
   */
-class ComplexityOpPropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
+class ComplexityOpPropSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers {
   val containerComplexityGen: Gen[ContainerComplexity] = synthesis.identifierTreesGen.map(ContainerComplexity)
   private implicit val containerComplexityCreator: Arbitrary[ContainerComplexity] = Arbitrary(containerComplexityGen)
 

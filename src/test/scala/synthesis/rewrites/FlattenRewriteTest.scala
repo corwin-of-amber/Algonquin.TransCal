@@ -1,13 +1,14 @@
 package synthesis.rewrites
 
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language}
 
 
-class FlattenRewriteTest extends PropSpec with Matchers  {
+class FlattenRewriteTest extends AnyPropSpec with Matchers  {
 
   property("flatten works") {
     val edges = Set(HyperEdge(HyperTermId(0), HyperTermIdentifier(Language.applyId), Seq(HyperTermId(1), HyperTermId(2)), EmptyMetadata),

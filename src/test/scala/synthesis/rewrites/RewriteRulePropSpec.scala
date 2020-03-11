@@ -1,7 +1,8 @@
 package synthesis.rewrites
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures._
 import structures.immutable.{CompactHyperGraph, HyperGraph}
@@ -13,7 +14,7 @@ import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
   * @author tomer
   * @since 12/18/18
   */
-class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
+class RewriteRulePropSpec extends AnyPropSpec with ScalaCheckPropertyChecks with Matchers {
   private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
   private implicit val hyperPatternCreator: Arbitrary[RewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
   private implicit val rewriteRuleCreator: Arbitrary[RewriteRule] = Arbitrary(rewriteRuleGen)
