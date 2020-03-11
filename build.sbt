@@ -14,6 +14,7 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 
 libraryDependencies += "org.scalatest" %% "scalatest" %  "3.1.1" % Test
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.1.1" % Test
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-14" % "3.1.1.1" % Test
 libraryDependencies += "com.typesafe.play" %% "play-json" %  "2.8.1" % Test
 libraryDependencies += "org.scalacheck" %% "scalacheck" %  "1.14.3" % Test
 
