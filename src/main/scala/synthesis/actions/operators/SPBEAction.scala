@@ -172,7 +172,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
+          logger.warn(s"Retrying failed depth ${depth} at time: ${Calendar.getInstance().getTime}")
           val (newOnes, newState) = retryFailed(failedAttempts, state)
+          logger.warn(s"Finished refailed depth ${depth} at time: ${Calendar.getInstance().getTime}")
           state = newState
           if (allfailed.contains((term1, term2)))
             retriedProofs += 1
@@ -192,22 +194,24 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   }
 
   override def apply(initialState: ActionSearchState): ActionSearchState = {
-    logger.info(s"Created total: ${placeholders.values.flatten.size}")
+    logger.warn(s"Created total: ${placeholders.values.flatten.size}")
     var rewriteState = new RewriteSearchState(baseGraph)
     var state = initialState
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
     var newRules = Set.empty[(AnnotatedTree, AnnotatedTree)]
 
-    logger.info(s"Running SPBE at time: ${Calendar.getInstance().getTime}")
     for (i <- 1 to termDepth) {
+      logger.warn(s"Running SPBE in depth ${i} at time: ${Calendar.getInstance().getTime}")
       logger.info(s"Creating terms of depth $i")
       // ******** SPBE ********
       foundRules += mutable.Buffer.empty
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
+      logger.warn(s"Finished term creation depth ${i} at time: ${Calendar.getInstance().getTime}")
       logger.info(s"Trying to merge terms")
       rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
+      logger.warn(s"Finished symbolic term evaluation depth ${i} at time: ${Calendar.getInstance().getTime}")
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
       // Different context for temp names
@@ -216,6 +220,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       findNewRules(state, Programs(rewriteState.graph), i) match {
         case (rules, newstate) => newRules = rules; state = newstate
       }
+      logger.warn(s"Finished finding rules depth ${i} at time: ${Calendar.getInstance().getTime}")
       foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for ((t1, t2) <- foundRules.last)
@@ -223,22 +228,19 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     }
 
     logger.info(s"Searching for rules that became proovable:")
-    var continue = 2
+    var continue = 0
     if (newRules.nonEmpty) {
-//      while (continue > 0) {
-//        continue -= 1
         do {
           val progs = Programs(rewriteState.graph)
           findNewRules(state, progs, termDepth) match {
             case (rules, newstate) => newRules = rules; state = newstate
           }
+          continue += 1
+          logger.warn(s"Finished finding rules repeat $continue depth ${termDepth} at time: ${Calendar.getInstance().getTime}")
           for ((t1, t2) <- newRules) {
             logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
           }
-          //          if (newRules.nonEmpty) continue = 1
         } while (newRules.nonEmpty)
-//        if (continue > 0)
-//          rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
       }
     logger.info("Done searching for rules:")
     for ((t1, t2) <- foundRules.flatten)

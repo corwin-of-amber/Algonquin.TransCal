@@ -1,0 +1,16 @@
+reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))  [notypes]
+len ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => 1 + len(xs)))  [notypes]
+
+cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> cons ?x ?l [notypes]
+snoc ?l ?x >> l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+pl ?x ?y >> ?x + ?y [typedlet]
+?x + ?y >> pl ?x ?y [notypes]
+concat ?x ?y = ?x ++ ?y
+
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((pl : int :> int :> int), (concat : list int :> list int :> list int), (len : list int :> int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 6 0
+
+reverse(len(t)) = reverse(len(l)) [++]
+
+reverse(len(?t)) -> len(t)

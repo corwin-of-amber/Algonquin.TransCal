@@ -1,0 +1,17 @@
+reverse ?l = l match ((Nil => Nil) / ((cons ?x ?xs) => snoc (reverse xs) x)) [notypes]
+
+concat Nil ?l2 >> id l2
+concat cons(?x, ?xs) ?l2 >> cons(x, (concat xs l2))
+
+snoc ?l ?x >> concat l (cons x Nil)
+concat l (cons x Nil) >> snoc ?l ?x
+
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int)) ((list int, (Nil, cons x Nil, cons(y, cons(x, Nil)))),) 6 0
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, cons x ⟨⟩, cons(y, cons(x, ⟨⟩)))),) 6 0
+
+reverse(reverse(f(t))) = reverse(reverse(l)) [++]
+
+reverse(reverse(f(t))) -> f(t)
+
+// start: Wed Dec 04 11:24:57 IST 2019
+// End time: Wed Dec 04 13:28:50 IST 2019
