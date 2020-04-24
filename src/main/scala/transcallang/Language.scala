@@ -78,6 +78,7 @@ object Language {
   val timeComplexTrueId = Identifier("timecomplexTrue")
   val typeTrueId = Identifier("typeTrue")
   val spbeId = Identifier("SPBE")
+  val forallId = Identifier("forall")
 
   val identifierRegex: Regex = "[?]?[\\w'`_]+".r
 
