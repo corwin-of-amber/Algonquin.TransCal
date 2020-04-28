@@ -1,32 +1,28 @@
 package coqintegration
 
-import play.api.libs.json.{JsArray, JsNumber, JsObject, JsString}
+import jdk.jshell.spi.ExecutionControl.NotImplementedException
+import play.api.libs.json.{JsArray, JsNumber, JsObject, JsString, JsValue}
 import transcallang.Identifier
 
 case class Environment(definitions: Seq[Definition]) {
+
   def this(json: JsArray) = this(
     // For each definition save its name and create a coq ast instance
-    json.value.map {
-      case (obj: JsObject) if obj.keys.contains("def") =>
-        val name = (obj \ "name").validate[JsString].getOrElse(Environment.errorRaising()).value
-        val defObj = (obj \ "def").validate[JsObject].getOrElse(Environment.errorRaising())
-        (CoqAst.fromJsObject(
-          (defObj \ "term").validate[JsObject].getOrElse(Environment.errorRaising()),
-          // Need to initialize types for term
-          (defObj \ "types").validate[JsArray].getOrElse(Environment.errorRaising())
-            .value.map(js => {
-            val obj = js.validate[JsObject].get
-            val index = (obj \ "index").validate[JsNumber].get.value.toInt
-            // Need to translate type key to term key so CoqAst.fromJsObject will work as expected
-            val tramsformed = Environment.transformKeys(
-              Environment.transformKeys((obj \ "type").validate[JsObject].get, "type", "term"),
-              "index",
-              "type_index"
-            )
-            (index,
-              CoqAst.fromJsObject(tramsformed.validate[JsObject].get, Map.empty))
-          }).toMap),
-          name)
+    json.value.flatMap {
+      case (arr: JsArray) =>
+        val obj = arr \ 0
+        val kind = (obj \ "kind").validate[String].getOrElse(Environment.errorRaising())
+        def process(obj: JsValue) = {
+          val name = (obj \ "name").validate[String].getOrElse(Environment.errorRaising())
+          val defObj = (obj \ "def").validate[JsArray].getOrElse(Environment.errorRaising())
+          (CoqAst.fromJson(defObj, Seq.empty), name)
+        }
+        Environment.JsonKinds.withName(kind) match {
+          case Environment.JsonKinds.ConstructRef => throw new NotImplementedException("Shouldn't get this outside of indref")
+          // When defining a type we null the def and add constructors in the array
+          case Environment.JsonKinds.IndRef if arr.value.length > 1 => arr.value.map(process)
+          case _ => Seq(process(obj.get ))
+        }
       case _ => Environment.errorRaising()
     } map // Turn the asts and names into Definition objects
       {case (ast, name) => Definition(Identifier(name), ast)})
@@ -34,6 +30,11 @@ case class Environment(definitions: Seq[Definition]) {
 
 object Environment {
   import play.api.libs.json._
+
+  object JsonKinds extends Enumeration {
+    type JsonKinds = Value
+    val ConstRef, IndRef, VarRef, ConstructRef = Value
+  }
 
   private def errorRaising[T](): T =  throw new IllegalArgumentException("Argument structure not correct. Expecting a __ / def /term and __/ def / types")
 
