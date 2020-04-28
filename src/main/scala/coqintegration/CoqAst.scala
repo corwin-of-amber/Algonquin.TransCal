@@ -49,14 +49,17 @@ object CoqAst {
     val termLiteral = (json \ 0).validate[String]
     termLiteral.get match {
       case "Lambda" | "Prod" =>
-        assert((json \ 1 \ "binder_name" \ 1 \ 0).validate[String].contains("Id"))
-        val paramName = (json \ 1 \ "binder_name" // Goto binder name object
-          \ 1 // go to id part (expecting index 0 to be "Name")
-          \ 1) // go to value (expecting index 0 to be "Id")
-          .validate[String].get
+        val toAssert = Seq("Name", "Anonymous").contains((json \ 1 \ "binder_name" \ 0).validate[String].get)
+        assert(toAssert)
+        val paramName = (json \ 1 \ "binder_name" \ 0).validate[String].map({
+          case "Name" => (json \ 1 \ "binder_name" // Goto binder name object
+            \ 1 // go to id part (expecting index 0 to be "Name")
+            \ 1).validate[String].get
+          case "Anonymous" => "_"
+        }).get
         val paramType = fromJson((json \ 2).get.validate[JsArray].get, types)
         val param = CoqAst(Identifier(paramName), Some(paramType), Seq.empty)
-        val recRes = fromJson((json \ 3).validate[JsArray].get, types :+ param)
+        val recRes = fromJson((json \ 3).validate[JsArray].get, types :+ param.expressionType.get)
         termLiteral.get match {
           case "Lambda" =>
             CoqAst(transcallang.Language.lambdaId,
@@ -118,6 +121,9 @@ object CoqAst {
         throw new NotImplementedException("Implement once encountered a fixpoint example")
       case "CoFix" =>
         throw new NotImplementedException("We do not support mutual recursion yet")
+      case "Case" =>
+        throw new NotImplementedException("We do not support cases yet")
+
     }
   }
 
