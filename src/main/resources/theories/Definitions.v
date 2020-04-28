@@ -5,7 +5,7 @@ Definition num_from_const x := x + const_number.
 Definition foo a (l: list a) := l.
 
 (*CallC.*)
-CallC "definitions.json".
+CallC "Definitions.json".
 
 (*Inductive bool := t | f.
 Definition gggg := t.

@@ -9,7 +9,7 @@ Qed.
 
 
 (*CallC.*)
-CallC "lemma.json".
+CallC "Lemma.json".
 
 (*Inductive bool := t | f.
 Definition gggg := t.
