@@ -45,21 +45,32 @@ object CoqAst {
     s"$mp.$id"
   }
 
-  def fromJson(json: JsArray, types: Seq[CoqAst]): CoqAst = {
+  /**
+    *
+    * @param obj representing binder definition
+    * @return name, relevance
+    */
+  def parseBinder(obj: JsObject): (String, Boolean) = {
+    val toAssert = Seq("Name", "Anonymous").contains((obj \ "binder_name" \ 0).validate[String].get)
+    assert(toAssert)
+    val paramName = (obj \ "binder_name" \ 0).validate[String].map({
+      case "Name" => (obj \ "binder_name" // Goto binder name object
+        \ 1 // go to id part (expecting index 0 to be "Name")
+        \ 1).validate[String].get
+      case "Anonymous" => "_"
+    }).get
+    val paramRelevance = (obj \ "binder_relevance" \ 0).validate[String].contains("Relevant")
+    (paramName, paramRelevance)
+  }
+
+  def fromJson(json: JsArray, bound: Seq[CoqAst]): CoqAst = {
     val termLiteral = (json \ 0).validate[String]
-    termLiteral.get match {
+    val translated = termLiteral.get match {
       case "Lambda" | "Prod" =>
-        val toAssert = Seq("Name", "Anonymous").contains((json \ 1 \ "binder_name" \ 0).validate[String].get)
-        assert(toAssert)
-        val paramName = (json \ 1 \ "binder_name" \ 0).validate[String].map({
-          case "Name" => (json \ 1 \ "binder_name" // Goto binder name object
-            \ 1 // go to id part (expecting index 0 to be "Name")
-            \ 1).validate[String].get
-          case "Anonymous" => "_"
-        }).get
-        val paramType = fromJson((json \ 2).get.validate[JsArray].get, types)
+        val (paramName, paramRelevance) = parseBinder((json \ 1).validate[JsObject].get)
+        val paramType = fromJson((json \ 2).get.validate[JsArray].get, bound)
         val param = CoqAst(Identifier(paramName), Some(paramType), Seq.empty)
-        val recRes = fromJson((json \ 3).validate[JsArray].get, types :+ param.expressionType.get)
+        val recRes = fromJson((json \ 3).validate[JsArray].get, param +: bound)
         termLiteral.get match {
           case "Lambda" =>
             CoqAst(transcallang.Language.lambdaId,
@@ -73,10 +84,12 @@ object CoqAst {
               Seq(param, recRes))
         }
       case "App" =>
-        // TODO: Add flatten to work **at the end** of translation. If it can be seperate it should.
-        val funcTerm = fromJson((json \ 1).validate[JsArray].get, types)
+        // I am flattening here because at this point in time we know if a parameter is bound.
+        // The only situation where flatten isn't feasable is when the funcTerm root is a parameter,
+        // meaning it is bound.
+        val funcTerm = fromJson((json \ 1).validate[JsArray].get, bound)
         val paramTerms = (json \ 2).validate[JsArray].get.value
-          .map(js => fromJson(js.validate[JsArray].get, types))
+          .map(js => fromJson(js.validate[JsArray].get, bound))
         val appType = funcTerm.expressionType.map(et => {
           assert(paramTerms.zipWithIndex.forall(t => t._1.expressionType.forall(pt => {
             et.subtrees(t._2) == pt
@@ -84,12 +97,15 @@ object CoqAst {
           if (et.subtrees.size == 2) et.subtrees.last
           else et.copy(subtrees = et.subtrees.drop(paramTerms.size))
         })
-        CoqAst(Language.applyId, appType, funcTerm +: paramTerms)
+        val toFlatten = (json \ 1 \ 0).validate[String].get != "Rel"
+        if (toFlatten) CoqAst(funcTerm.root, appType, funcTerm.subtrees ++ paramTerms)
+        else CoqAst(Language.applyId, appType, funcTerm +: paramTerms)
       case "Sort" =>
         CoqAst.TypeAst
       case "Rel" =>
         // TODO: Check if irrelevant means should not insert to types
-        types((json \ 1).validate[JsNumber].get.value.toInt - 1)
+        // TODO: Can there be two parameters with the same name? Does let take care of this?
+        bound((json \ 1).validate[JsNumber].get.value.toInt - 1)
       case "Const" =>
         val const = (json \ 1)
         val constant = (const \ 0)
@@ -109,22 +125,67 @@ object CoqAst {
         throw new NotImplementedException("Implement once encountered a float example")
       case "Construct" =>
         // This is an application of a constructor.
-        // TODO: Keep which constructor for type by index
         assert((json \ 0).validate[String].get == "Construct")
         // ignore universe
         val constructor = (json \ 1 \ 0)
-        val constIndex = (constructor \ 1)
-        parseInductive((constructor \ 0).validate[JsArray].get)
+        val constIndex = (constructor \ 1).get
+        val typeAst = parseInductive((constructor \ 0).validate[JsArray].get)
+        assert(typeAst.subtrees.isEmpty)
+        typeAst.copy(typeAst.root.copy(literal = typeAst.root.literal + s".constructor_$constIndex"))
       case "LetIn" =>
         throw new NotImplementedException("Implement once encountered a let example")
       case "Fix" =>
-        throw new NotImplementedException("Implement once encountered a fixpoint example")
+        // First assert there are no mutual fixpoints
+        assert((json \ 1 \ 0 \ 0).validate[Seq[JsValue]].get.length == 1)
+        // Now if I understand correctly, "The second component [int] tells which component of the block is
+        //     returned" means that with only one recursion the second arg is always 0.
+        assert((json \ 1 \ 0 \ 1).validate[Int].get == 0)
+        val recursiveArgIndex = (json \ 1 \ 0 \ 0 \ 0).validate[Int].get
+        val prec_declaration = (json \ 1 \ 1)
+        val arrayOfFunNames = (prec_declaration \ 0)
+        assert(arrayOfFunNames.validate[JsArray].get.value.length == 1)
+        val (funName, funRelevance) = parseBinder((arrayOfFunNames \ 0).validate[JsObject].get)
+        // TODO: maybe fun name should be in types as it is a binder?
+        val recType = fromJson((prec_declaration \ 1 \ 0).validate[JsArray].get, bound)
+        val recFun = fromJson((prec_declaration \ 2 \ 0).validate[JsArray].get, bound)
+        assert(recFun.expressionType.contains(recType))
+        recFun.copy(expressionType = Some(recType))
       case "CoFix" =>
         throw new NotImplementedException("We do not support mutual recursion yet")
       case "Case" =>
-        throw new NotImplementedException("We do not support cases yet")
-
+        // Case      of case_info * 'constr * 'constr * 'constr array
+        /** Found doc about case, return of this doc is the format of json:
+          *
+          * [mkCase ci p c ac] stand for match [c] as [x] in [I args] return [p] with [ac]
+          * presented as describe in [ci].
+          *
+          * (** Destructs a [match c as x in I args return P with ... |
+          *
+          * Ci(...yij...) => ti | ... end] (or [let (..y1i..) := c as x in I args
+          * return P in t1], or [if c then t1 else t2])
+          *
+          * @return [(info,c,fun args x => P,[|...|fun yij => ti| ...|])]
+          *         where [info] is pretty-printing information *)
+          */
+        val caseInfo =  (json \ 1)
+        val matchedType = parseInductive((caseInfo \ "ci_ind").validate[JsArray].get)
+        val numTypeParams = (caseInfo \ "ci_npar").validate[Int].get
+        // There is something called number of declerations which is different
+        // from number of args for each constructor. Something to do with let.
+        // Ignoring this for now
+        val numConstructorArgs = (caseInfo \ "ci_cstr_nargs").validate[JsArray].get.value
+          .map(js => js.validate[Int].get)
+        // TODO: Not sure how to use relevance. This means I need to insert things to types?
+        // Probably means i should insert x
+        val relevance = (caseInfo \ "ci_relevance" \ 0).validate[String].contains("Relevant")
+        // In coq when matching an alias can be given to matched and the return type can be specified.
+        // asReturn is a lambda with parameter with as named (similar to let) and the body is the return type.
+        val matched = fromJson((json \ 3).validate[JsArray].get, bound)
+        val asReturn = fromJson((json \ 2).validate[JsArray].get, bound)
+        val cases = (json \ 4).validate[Seq[JsArray]].get.map(j => fromJson(j, matched +: bound))
+        CoqAst(Language.matchId, Some(asReturn.subtrees.last), matched +: cases)
     }
+   translated
   }
 
   private def parseInductive(ind: JsArray) = {

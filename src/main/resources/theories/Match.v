@@ -1,14 +1,25 @@
-Declare ML Module "thesy".
+Declare ML Module "thesy". 
 
-Inductive TheSy (E : Set) := A : TheSy E | B : E -> nat -> TheSy E -> TheSy E | C : TheSy E.
-
-Definition f (e : TheSy nat) :=
+Definition f (e : list nat) :=
     match e with
-    | A _ => 0
-    | C _ => 1
-    | B _ x _ (B _ y _ _) => x + y
-    | B _ x y _ => x + y
+    | nil => 0
+    | cons y (cons x xs)=> x + y
+    | cons x xs => x
     end.
+
+Definition g (e : list nat) :=
+    match e return list nat with
+    | nil => nil
+    | cons y (cons x xs) as t => cons x t
+    | cons x xs => xs
+    end.
+
+Definition h (e : list nat) :=
+    match e return list nat with
+    | nil => nil
+    | cons x xs => nil
+    end.
+
 
 (*CallC.*)
 CallC "Match.json".

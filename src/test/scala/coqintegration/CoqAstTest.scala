@@ -11,13 +11,14 @@ class CoqAstTest  extends FunSuite with Matchers{
   val definitionsFile = "src/main/resources/theories/Definitions.json"
   val newInductiveFile = "src/main/resources/theories/NewInductive.json"
   val recursionFile = "src/main/resources/theories/Recursion.json"
+  val matchFile = "src/main/resources/theories/Match.json"
 
   test("Definitions - find constructor names") {
     val environment = Environment.readJson(Source.fromFile(definitionsFile).mkString)
     environment.valueDefinitions.exists(_.name.literal.endsWith("foo")) shouldEqual (true)
     val const_number = environment.valueDefinitions.find(_.name.literal.endsWith("const_number"))
     const_number should not be empty
-    const_number.get.ast.subtrees.head.root.literal should endWith ("S")
+    const_number.get.ast.subtrees.head.root.literal should endWith ("constructor_2")
   }
 
   test("Definitions - flatten function calls") {
@@ -60,5 +61,16 @@ class CoqAstTest  extends FunSuite with Matchers{
         value.ast.subtrees.last shouldEqual Language.applyId
       case None => fail("Type should not be empty")
     }
+  }
+
+  test("Match - parse double match (using two constructors)") {
+    val environment = Environment.readJson(Source.fromFile(matchFile).mkString)
+    val f = environment.valueDefinitions.find(_.name.literal.endsWith("f"))
+    f should not be empty
+    // last checked f is length
+    val ast = f.get.ast.subtrees.last
+    ast.root shouldEqual Language.matchId
+    ast.subtrees.head.root.literal shouldEqual "e"
+    ast.subtrees.head.expressionType.get.root.literal shouldEqual "list"
   }
 }
