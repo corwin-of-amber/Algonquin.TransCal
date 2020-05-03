@@ -1,0 +1,16 @@
+vectoradd ?v1 ?v2 = v1 match ((vnil => vnil) / ((vcons ?x ?xs) => v2 match ((vnil => vnil) / (vcons ?y ?ys => vcons (radd x y) (vectoradd xs ys)))))
+vectormul ?v1 ?v2 = v1 match ((vnil => 0) / ((vcons ?x ?xs) => v2 match ((vnil => 0) / (vcons ?y ?ys => radd (rmul x y) (vectormul xs ys)))))
+vectorscalar ?r ?v = v match ((vnil => vnil) / (vcons ?x ?xs => vcons (rmul r x) (vectorscalar r xs)))
+
+radd ?x ?y = radd y x
+radd ?x (radd y z) = radd (radd x y) z
+rmul ?x ?y = rmul y x
+rmul ?x (rmul ?y ?z) = rmul (rmul x y) z
+
+rmul ?z (radd ?x ?y) = radd (rmul z x) (rmul z y)
+
+vectoradd (vcons ?x ?xs) ?v2 |>> splitTrue ||| possibleSplit(v2, vnil, vcons r1 v2s) [typedlet]
+
+SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vectoradd : vec :> vec :> vec),) ((vec, (vnil, (vcons x vnil))),) 4 2 1 2 3
+SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) (  (vectoradd : vec :> vec :> vec),) ((vec, (vnil, (vcons x vnil), (vcons y (vcons x vnil)))),) 4 2 1 2 2
+SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vcons : real :> vec :> vec), (vectoradd : vec :> vec :> vec), (vectorscalar : real :> vec :> vec)) ((vec, (vnil, (vcons x vnil), (vcons y (vcons x vnil)))),)
