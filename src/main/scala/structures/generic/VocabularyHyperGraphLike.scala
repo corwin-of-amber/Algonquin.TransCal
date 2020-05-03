@@ -134,6 +134,8 @@ trait VocabularyHyperGraphLike[Node, EdgeType, +This <: VocabularyHyperGraphLike
   def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], This]
 
   override def size: Int = getVocabulary.size
+
+  override def contains(elem: HyperEdge[Node, EdgeType]): Boolean = getVocabulary.contains(hyperEdgeToWord(elem))
 }
 
 object VocabularyHyperGraphLike {

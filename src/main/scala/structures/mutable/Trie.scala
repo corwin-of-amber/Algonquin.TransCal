@@ -103,6 +103,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
     logger.trace("Replace local words")
 
+    // TODO: mutable words should be a map by first letter to help prevent going through all words
+    // TODO: after we know the first letter we can use subtries to find the rest of the relevant words
+    // TODO: if we got a better replace it might be a good idea to add depth to the trie.
     for (w <- mutableWords.filter(w => w.contains(change))) {
       mutableWords.remove(w)
       mutableWords.add(w.map(letter => if (letter == change) keep else letter))
@@ -147,6 +150,8 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   }
 
   override def getMaxDepth: Int = maxDepth
+
+  override def contains(elem: Word[Letter]): Boolean = mutableWords.contains(elem)
 }
 
 object Trie {

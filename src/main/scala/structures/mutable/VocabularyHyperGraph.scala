@@ -17,7 +17,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override protected def getVocabulary: structures.Vocabulary[Either[Node, EdgeType]] = vocabulary
 
-  override protected def getMetadata(n: Node, et: EdgeType, sources: Seq[Node]): Metadata = metadatas((n, et, sources))
+   override protected def getMetadata(n: Node, et: EdgeType, sources: Seq[Node]): Metadata = metadatas((n, et, sources))
 
   override def empty: VocabularyHyperGraph[Node, EdgeType] = VocabularyHyperGraph.empty
 

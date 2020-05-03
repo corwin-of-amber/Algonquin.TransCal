@@ -34,4 +34,6 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   override def hashCode(): Int = wrapped.hashCode()
 
   override def equals(obj: Any): Boolean = wrapped.equals(obj)
+
+  override def contains(elem: HyperEdge[Node, EdgeType]): Boolean = wrapped.contains(elem)
 }
