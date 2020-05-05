@@ -1,0 +1,8 @@
+setcontains (union ?s1 ?s2) = or (setcontains s1) (setcontains s2)
+or ?x ?y >> or ?y ?x
+or ?x (or ?y ?z) = or (or ?x ?y) ?z
+or false ?x >> id ?x
+or true ?x >> true
+
+
+count_unique l = fold
