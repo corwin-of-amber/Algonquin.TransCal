@@ -42,15 +42,19 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
 
   override def words: Set[Word[Letter]] = mutableWords.toSet
 
-  def +=(word: Word[Letter]): this.type = if (mutableWords.contains(word)) this else addRecursive(word, word)
+  def +=(word: Word[Letter]): this.type = if (this.contains(word)) this else addRecursive(word, word)
 
   override def replace(keep: Letter, change: Letter): Trie[Letter] = clone.replaceInPlace(keep, change)
 
-  override def replaceInPlace(keep: Letter, change: Letter): Trie[Letter] = replaceWithIndex(keep, change, 0)
+  override def replaceInPlace(keep: Letter, change: Letter): Trie[Letter] =
+    replaceWithIndex(keep,
+      change,
+      0,
+      subtries.toSet.flatMap((mp: mutable.Map[Letter, Trie[Letter]]) => mp.getOrElse(change, Trie.empty).mutableWords))
 
-  override def -(word: Word[Letter]): Trie[Letter] = if (!mutableWords.contains(word)) this else this.clone() -= word
+  override def -(word: Word[Letter]): Trie[Letter] = if (!this.contains(word)) this else this.clone() -= word
 
-  def -=(word: Word[Letter]): this.type = if (!mutableWords.contains(word)) this else removeRecursive(word, word)
+  def -=(word: Word[Letter]): this.type = if (!this.contains(word)) this else removeRecursive(word, word)
 
   /* --- IterableLike Impl. --- */
 
@@ -100,13 +104,13 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   }
 
 
-  private def replaceWithIndex(keep: Letter, change: Letter, index: Int): Trie[Letter] = {
+  private def replaceWithIndex(keep: Letter, change: Letter, index: Int, toChange: Set[Word[Letter]]): Trie[Letter] = {
     logger.trace("Replace local words")
-
-    // TODO: mutable words should be a map by first letter to help prevent going through all words
-    // TODO: after we know the first letter we can use subtries to find the rest of the relevant words
     // TODO: if we got a better replace it might be a good idea to add depth to the trie.
-    for (w <- mutableWords.filter(w => w.contains(change))) {
+
+    // TODO: Can probably presplit words for subtries
+    val wordsToChange = toChange.filter(this.contains)
+    for (w <- wordsToChange) {
       mutableWords.remove(w)
       mutableWords.add(w.map(letter => if (letter == change) keep else letter))
     }
@@ -117,7 +121,7 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
         val mapSubtriesIndex = index + localIndex + 1
         logger.trace("Execute replace recursively")
         for ((k, trie) <- mapSubtries) {
-          mapSubtries(k) = trie.replaceWithIndex(keep, change, mapSubtriesIndex)
+          mapSubtries(k) = trie.replaceWithIndex(keep, change, mapSubtriesIndex, wordsToChange)
         }
 
         logger.trace("Merge change trie to keep trie")
