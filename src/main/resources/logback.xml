@@ -47,11 +47,10 @@
         </connectionSource>
     </appender>
 
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
         <appender-ref ref="timings"/>
-        <appender-ref ref="db"/>
     </root>
 
 </configuration>
