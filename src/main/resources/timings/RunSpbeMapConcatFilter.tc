@@ -1,0 +1,19 @@
+cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> cons ?x ?l [notypes]
+snoc ?l ?x >> l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
+?l1 ++ ?l2 >> concat ?l1 ?l2 [notypes]
+
+concat(?l, ⟨⟩) >> id l
+concat(concat(?l, ?ll), ?lll) = concat(l, concat(ll, lll))
+
+map ?f ?l = l match (⟨⟩ => ⟨⟩) / ((cons ?x ?xs) => cons (f x) (map f xs))
+
+filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs)))) [notypes]
+
+
+filter ?p (cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
+
+SPBE (nil , (cons : int :> list int :> list int)) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int), (map : (int :> int) :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3 1
+
