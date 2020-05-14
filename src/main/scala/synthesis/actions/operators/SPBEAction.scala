@@ -2,6 +2,7 @@ package synthesis.actions.operators
 
 import java.util.Calendar
 
+import report.StopWatch
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -172,9 +173,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
-          logger.warn(s"Retrying failed depth ${depth} at time: ${Calendar.getInstance().getTime}")
+          logger.warn(s"Retrying failed depth ${depth}  @  ${StopWatch.instance.now}")
           val (newOnes, newState) = retryFailed(failedAttempts, state)
-          logger.warn(s"Finished refailed depth ${depth} at time: ${Calendar.getInstance().getTime}")
+          logger.warn(s"Finished refailed depth ${depth}  @  ${StopWatch.instance.now}")
           state = newState
           if (allfailed.contains((term1, term2)))
             retriedProofs += 1
@@ -203,19 +204,19 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     var newOps = Set.empty[Operator[RewriteSearchState]]
 
     for (i <- 1 to termDepth) {
-      logger.warn(s"Running SPBE in depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Running SPBE in depth ${i}  @  ${StopWatch.instance.now}")
       logger.info(s"Creating terms of depth $i")
       // ******** SPBE ********
       foundRules += mutable.Buffer.empty
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
-      logger.warn(s"Finished term creation depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Finished term creation depth ${i}  @  ${StopWatch.instance.now}")
       logger.info(s"Trying to merge terms")
       val temp = findAndMergeEquivesWithTupeled(rewriteState, state.rewriteRules.toSeq)
       rewriteState = temp._1
       tupledState = temp._2
-      logger.warn(s"Finished symbolic term evaluation depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Finished symbolic term evaluation depth ${i}  @  ${StopWatch.instance.now}")
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
       // Different context for temp names
@@ -227,14 +228,14 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
           newOps = newstate.rewriteRules -- state.rewriteRules
           state = newstate
       }
-      logger.warn(s"Finished finding rules depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Finished finding rules depth ${i}  @  ${StopWatch.instance.now}")
       foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for ((t1, t2) <- foundRules.last)
         logger.info(s"  ${Programs.termToString(t1)} = ${Programs.termToString(t2)}")
     }
 
-    logger.info(s"Searching for rules that became proovable:")
+    logger.info(s"Searching for rules that have become provable:")
     var continue = 0
     if (newRules.nonEmpty) {
       rewriteState = resetVersioningFindMergeEquivs(rewriteState, tupledState, newOps, state.rewriteRules)
@@ -248,7 +249,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
             state = newstate
         }
         continue += 1
-        logger.warn(s"Finished finding rules repeat $continue depth ${termDepth} at time: ${Calendar.getInstance().getTime}")
+        logger.warn(s"Finished finding rules repeat $continue depth ${termDepth}  @  ${StopWatch.instance.now}")
         for ((t1, t2) <- newRules) {
           logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
         }
@@ -260,7 +261,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
     //    }
 
-    logger.info(s"Done SPBE at time: ${Calendar.getInstance().getTime}")
+    logger.info(s"Done SPBE  @  ${StopWatch.instance.now}")
     logger.info(s"term count: $termCount")
     logger.info(s"failed count: $failedProofs")
     logger.info(s"retry success count: $retriedProofs")
