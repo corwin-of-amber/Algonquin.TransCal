@@ -46,8 +46,15 @@ object RunAllSPBE extends App with LazyLogging {
     }
   }
 
-  val path = getClass.getResource("/timings").getPath
-  val allFiles = new JFile(path).listFiles().filter(f => f.isFile && f.getName.startsWith("RunSpbe"))
+  def getBenchmarks: Array[JFile] = {
+    for (path <- List(getClass.getResource("/timings").getPath, "./src/main/resources/timings")) {
+      val files = new JFile(path).listFiles()
+      if (files != null) return files
+    }
+    throw new Error("cannot find `timings` directory")
+  }
+
+  val allFiles = getBenchmarks.filter(f => f.isFile && f.getName.startsWith("RunSpbe"))
   for (f <- allFiles) {
     //  val conf = new CommandLineConfiguration(args.toIndexedSeq)
     //  val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
