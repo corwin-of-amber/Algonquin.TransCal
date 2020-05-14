@@ -1,14 +1,13 @@
 filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs)))) [notypes]
 
-concat ?l1 ?l2 >> l1 ++ l2
-l1 ++ l2 >> concat ?l1 ?l2 [notypes]
+concat ?l1 ?l2 = l1 match ((⟨⟩ => id l2) / ((?x :: ?xs) => cons x (concat xs l2))) [notypes]
 
 cons ?x ?l >> x :: l
 ?x :: ?l >> cons ?x ?l [notypes]
 
 filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 4 3 2
 
 concat (filter p l1) (filter p l2) = f l1 l2   [++]
 concat (filter p l1) (filter p l2) -> filter p (concat l1 l2)

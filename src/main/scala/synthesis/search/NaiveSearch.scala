@@ -11,7 +11,7 @@ import scala.collection.mutable
 /**
   * BFS returns last state only.
   */
-class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, RewriteSearchState] with LazyLogging {
+class NaiveSearch(startVersioned: Boolean = false) extends SearchDepth[RewriteSearchState, RewriteSearchSpace, RewriteSearchState] with LazyLogging {
 
   /* --- Search Impl. --- */
 
@@ -47,7 +47,7 @@ class NaiveSearch extends SearchDepth[RewriteSearchState, RewriteSearchSpace, Re
 
     var prevState: Option[RewriteSearchState] = None
     while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
-      val versioned = prevState.isDefined
+      val versioned = prevState.isDefined || startVersioned
       prevState = Some(state.deepCopy())
       for ((term, (pattern, patternRoot)) <- patterns) {
         val reconstructed = Programs.reconstructPatternWithRoot(state.graph, pattern, patternRoot)

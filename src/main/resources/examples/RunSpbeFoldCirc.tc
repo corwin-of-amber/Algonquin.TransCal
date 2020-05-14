@@ -1,0 +1,15 @@
+map ?f mynil >> mynil [notypes]
+map ?f (?x::?xs) >> (f x)::(map f xs)
+
+cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> cons ?x ?l [notypes]
+
+circ ?f ?g ?x = f(g(x))
+
+fold ?f ?i mynil >> id i [notypes]
+fold ?f ?i (?x :: ?xs) = fold f (f(x,i)) xs [notypes]
+
+circall mynil ?x >> id x
+circall (?f :: ?fs) ?x = f (circall fs x) [notypes]
+
+SPBE ((mynil : list func) , (cons : func :> list func :> list func)) ((circall : (list func) :> func), (fold : (func :> func :> func) :> func :> (list func) :> func), (map : func :> list int :> list int), (circ : func :> func :> func)) ((list int, (nil, x::nil, y::x::nil)),) 8 0

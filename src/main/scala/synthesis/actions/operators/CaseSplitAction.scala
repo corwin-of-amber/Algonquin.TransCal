@@ -22,11 +22,12 @@ import transcallang.Identifier
 class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
                       splitDepthOption: Option[Int],
                       maxDepthOption: Option[Int],
-                      preProcessDepth: Option[Int]=None) extends Action {
+                      preProcessDepth: Option[Int]=None,
+                      startVersioned: Boolean=false) extends Action {
   private val splitDepth = splitDepthOption.getOrElse(1)
   private val maxDepth = maxDepthOption.getOrElse(4)
   private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
-  private val preProcessor = new OperatorRunAction(preProcessDepth.getOrElse(2))
+  private val preProcessor = new OperatorRunAction(preProcessDepth.getOrElse(2), startVersioned=startVersioned)
 
   def this(splitters: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
            maxDepthOption: Option[Int]) =
