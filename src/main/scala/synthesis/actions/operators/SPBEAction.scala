@@ -2,6 +2,7 @@ package synthesis.actions.operators
 
 import java.util.Calendar
 
+import report.StopWatch
 import structures.{EmptyMetadata, HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
@@ -130,7 +131,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
   val untypedBaseGraph: ActionSearchState.HyperGraph = createBaseGraph(false)
 
-  protected def retryFailed(failedAttempts: mutable.Buffer[(AnnotatedTree, AnnotatedTree)], actionState: ActionSearchState):(Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState)  = {
+  protected def retryFailed(failedAttempts: mutable.Buffer[(AnnotatedTree, AnnotatedTree)], actionState: ActionSearchState): (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var i = 0
     var state = actionState
     val found = mutable.Buffer.empty[(AnnotatedTree, AnnotatedTree)]
@@ -199,9 +200,9 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
           state = ActionSearchState(state.programs, state.rewriteRules ++ res)
-          logger.warn(s"Retrying failed depth ${depth} at time: ${Calendar.getInstance().getTime}")
+          logger.warn(s"Retrying failed depth ${depth}  @  ${StopWatch.instance.now}")
           val (newOnes, newState) = retryFailed(failedAttempts, state)
-          logger.warn(s"Finished refailed depth ${depth} at time: ${Calendar.getInstance().getTime}")
+          logger.warn(s"Finished refailed depth ${depth}  @  ${StopWatch.instance.now}")
           state = newState
           if (allfailed.contains((term1, term2)))
             retriedProofs += 1
@@ -223,58 +224,71 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   override def apply(initialState: ActionSearchState): ActionSearchState = {
     logger.warn(s"Created total: ${placeholders.values.flatten.size}")
     var rewriteState = new RewriteSearchState(baseGraph)
+    var tupledState = createTupeledGraph(rewriteState)
     var state = initialState
     val foundRules = mutable.Buffer.empty[mutable.Buffer[(AnnotatedTree, AnnotatedTree)]]
     var newRules = Set.empty[(AnnotatedTree, AnnotatedTree)]
+    var newOps = Set.empty[Operator[RewriteSearchState]]
 
     for (i <- 1 to termDepth) {
-      logger.warn(s"Running SPBE in depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Running SPBE in depth ${i}  @  ${StopWatch.instance.now}")
       logger.info(s"Creating terms of depth $i")
       // ******** SPBE ********
       foundRules += mutable.Buffer.empty
       // Gives a graph of depth i+~ applications of funcs on known terminals and functions
       // Because we merge in the graph there is no need to remember equivalences already found
       rewriteState = sygusStep(rewriteState)
-      logger.warn(s"Finished term creation depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Finished term creation depth ${i}  @  ${StopWatch.instance.now}")
       logger.info(s"Trying to merge terms")
-      rewriteState = findAndMergeEquives(rewriteState, state.rewriteRules.toSeq)
-      logger.warn(s"Finished symbolic term evaluation depth ${i} at time: ${Calendar.getInstance().getTime}")
+      val temp = findAndMergeEquivesWithTupeled(rewriteState, state.rewriteRules.toSeq)
+      rewriteState = temp._1
+      tupledState = temp._2
+      logger.warn(s"Finished symbolic term evaluation depth ${i}  @  ${StopWatch.instance.now}")
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
       // Different context for temp names
-//      val pattern1 = Programs.destructPattern(new TranscalParser().parseExpression("or(p1, fold or false p0)").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
-//      val pattern2 = Programs.destructPattern(new TranscalParser().parseExpression("fold or (or(p1, _)) p0").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
+      //      val pattern1 = Programs.destructPattern(new TranscalParser().parseExpression("or(p1, fold or false p0)").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
+      //      val pattern2 = Programs.destructPattern(new TranscalParser().parseExpression("fold or (or(p1, _)) p0").map(i => if(i.literal == "p0") i.copy(literal="Placeholder_0_type_{list(boolean)}") else i).map(i => if(i.literal == "p1") i.copy(literal="Placeholder_0_type_{boolean}") else i))
       findNewRules(state, Programs(rewriteState.graph), i) match {
-        case (rules, newstate) => newRules = rules; state = newstate
+        case (rules, newstate) =>
+          newRules = rules
+          newOps = newstate.rewriteRules -- state.rewriteRules
+          state = newstate
       }
-      logger.warn(s"Finished finding rules depth ${i} at time: ${Calendar.getInstance().getTime}")
+      logger.warn(s"Finished finding rules depth ${i}  @  ${StopWatch.instance.now}")
       foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for ((t1, t2) <- foundRules.last)
         logger.info(s"  ${Programs.termToString(t1)} = ${Programs.termToString(t2)}")
     }
 
-    logger.info(s"Searching for rules that became proovable:")
+    logger.info(s"Searching for rules that have become provable:")
     var continue = 0
     if (newRules.nonEmpty) {
-        do {
-          val progs = Programs(rewriteState.graph)
-          findNewRules(state, progs, termDepth) match {
-            case (rules, newstate) => newRules = rules; state = newstate
-          }
-          continue += 1
-          logger.warn(s"Finished finding rules repeat $continue depth ${termDepth} at time: ${Calendar.getInstance().getTime}")
-          for ((t1, t2) <- newRules) {
-            logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
-          }
-        } while (newRules.nonEmpty)
-      }
+      rewriteState = resetVersioningFindMergeEquivs(rewriteState, tupledState, newOps, state.rewriteRules)
+      do {
+        // Reset versioning to look only on results from new rules.
+        val progs = Programs(rewriteState.graph)
+        findNewRules(state, progs, termDepth) match {
+          case (rules, newstate) =>
+            newRules = rules
+            newOps = newstate.rewriteRules -- state.rewriteRules
+            state = newstate
+        }
+        continue += 1
+        logger.warn(s"Finished finding rules repeat $continue depth ${termDepth}  @  ${StopWatch.instance.now}")
+        for ((t1, t2) <- newRules) {
+          logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
+        }
+        foundRules.last ++= newRules
+      } while (newRules.nonEmpty)
+    }
     logger.info("Done searching for rules:")
     for ((t1, t2) <- foundRules.flatten)
       logger.info(s"  ${Programs.termToString(t1)} == ${Programs.termToString(t2)}")
-//    }
+    //    }
 
-    logger.info(s"Done SPBE at time: ${Calendar.getInstance().getTime}")
+    logger.info(s"Done SPBE  @  ${StopWatch.instance.now}")
     logger.info(s"term count: $termCount")
     logger.info(s"failed count: $failedProofs")
     logger.info(s"retry success count: $retriedProofs")
@@ -332,19 +346,44 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
     FunctionArgumentsAndReturnTypeRewrite(state)
   }
 
-  def findEquives(rewriteState: RewriteSearchState,
-                  rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
+  def resetVersioningFindMergeEquivs(rewriteState: RewriteSearchState,
+                                     tupledState: RewriteSearchState,
+                                     newRules: Set[Operator[RewriteSearchState]],
+                                     rules: Set[Operator[RewriteSearchState]]): RewriteSearchState = {
+    // Copy of graph is needed because we do not want merges to change our anchored nodes here.
+    val rs1 = new OperatorRunWithCaseSplit(1, splitDepth = Some(0), chooser = Some(randomChooser), preRunDepth = preRunDepth, startVersioned=true)
+      .fromRewriteState(tupledState, newRules)
+    val newEqDepth = (equivDepth / 2) - 1
+    val res =
+      if (newEqDepth <= 0) rs1
+      else new OperatorRunWithCaseSplit(newEqDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth, startVersioned=true)
+        .fromRewriteState(rs1, rules)
+    ObservationalEquivalence.mergeConclusions(rewriteState, getTupledConclusions(res).toSeq)
+  }
+
+  def findEquivesWithTupeled(rewriteState: RewriteSearchState,
+                             rules: Seq[Operator[RewriteSearchState]]): (Set[Set[HyperTermId]], RewriteSearchState) = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth)
       .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet ++ destructRewrites)
-    getTupledConclusions(res)
+    (getTupledConclusions(res), res)
+  }
+
+  def findEquives(rewriteState: RewriteSearchState,
+                  rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
+    findEquivesWithTupeled(rewriteState, rules)._1
+  }
+
+  def findAndMergeEquivesWithTupeled(rewriteState: RewriteSearchState,
+                                     rules: Seq[Operator[RewriteSearchState]]): (RewriteSearchState, RewriteSearchState) = {
+    val (toMerge, tupeled) = findEquivesWithTupeled(rewriteState, rules)
+    assert(toMerge.flatten.intersect(rewriteState.graph.nodes) == toMerge.flatten)
+    (ObservationalEquivalence.mergeConclusions(rewriteState, toMerge.toSeq), tupeled)
   }
 
   def findAndMergeEquives(rewriteState: RewriteSearchState,
                           rules: Seq[Operator[RewriteSearchState]]): RewriteSearchState = {
-    val toMerge = findEquives(rewriteState, rules)
-    assert(toMerge.flatten.intersect(rewriteState.graph.nodes) == toMerge.flatten)
-    ObservationalEquivalence.mergeConclusions(rewriteState, toMerge.toSeq)
+    findAndMergeEquivesWithTupeled(rewriteState, rules)._1
   }
 
   private val ltwfId = Identifier("ltwf")

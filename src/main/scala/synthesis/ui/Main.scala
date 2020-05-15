@@ -3,6 +3,7 @@ package synthesis.ui
 import java.io.{PrintStream, File => JFile}
 import java.util.Calendar
 
+import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.ScallopOption
 import synthesis._
 import transcallang.{AnnotatedTree, Language, TranscalParser}
@@ -13,7 +14,7 @@ import scala.io.Source
   * @author tomer
   * @since 11/24/18
   */
-object Main extends App {
+object Main extends App with LazyLogging {
   import org.rogach.scallop.ScallopConf
 
   println(s"Start time: ${Calendar.getInstance().getTime}")
@@ -40,6 +41,7 @@ object Main extends App {
   }
 
   def readJFile(jFile: JFile): Iterator[AnnotatedTree] = {
+    logger.warn(s"file name - ${jFile.getName}")
     val file = Source.fromFile(jFile)
     try {
       readLines(file.getLines())

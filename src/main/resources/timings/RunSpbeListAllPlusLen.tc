@@ -1,0 +1,20 @@
+fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs)) [notypes]
+
+concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
+?l1 ++ ?l2 >> concat ?l1 ?l2 [typedlet]
+
+cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> cons ?x ?l [notypes]
+snoc ?l ?x = l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+map ?f nil >> nil [notypes]
+map ?f (?x::?xs) = (f x)::(map f xs) [notypes]
+
+pl ?x ?y >> ?x + ?y [typedlet]
+?x + ?y >> pl ?x ?y [notypes]
+
+len ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => 1 + len(xs)))  [notypes]
+
+reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x)) [notypes]
+
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((len : list int :> int), (pl : int :> int :> int), (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 8 0
