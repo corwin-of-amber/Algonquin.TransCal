@@ -2,7 +2,7 @@ package synthesis.actions.operators
 
 import java.util.Calendar
 
-import structures.HyperEdge
+import structures.{EmptyMetadata, HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.actions.ActionSearchState
 import synthesis.actions.ActionSearchState.HyperGraph
@@ -77,8 +77,35 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
   private val placeholders: Map[AnnotatedTree, Seq[Identifier]] =
     types.map(t => (t, 0 until placeholderCount map (i => createPlaceholder(t, i)))).toMap
 
+  private val destructRewrites: Set[RewriteRule] = {
+    def metadataCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
+      (_: Map[Int, HyperTermId], _: Map[Int, HyperTermIdentifier]) => EmptyMetadata
+    }
+    placeholders.collect({
+      case (k @ AnnotatedTree(Language.tupleId, _, _), phs) => phs.map(p => {
+        val premise = Programs.destructPattern(AnnotatedTree.identifierOnly(p))
+        val conclusion = Programs.destructPattern(translatePlaceholders(p))
+        new RewriteRule(premise, conclusion, metadataCreator, "Destruct Tuple")
+      })}).flatten.toSet
+  }
+
+  private def translatePlaceholders(ph: Identifier): AnnotatedTree = {
+    if (ph.annotation.exists(_.root == Language.tupleId)) {
+      val index = ph.literal.drop("Placeholder_".length).takeWhile(_.isDigit).toInt
+      AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
+        AnnotatedTree.identifierOnly(ph),
+        AnnotatedTree.withoutAnnotations(Language.tupleId, ph.annotation.get.subtrees.zipWithIndex.map({
+          case (t, i) =>
+            val tupPh = createPlaceholder(t, i)
+            translatePlaceholders(tupPh.copy(literal = s"tuple_${index}_"+tupPh.literal))
+        }))
+      ))
+    } else AnnotatedTree.identifierOnly(ph)
+  }
+
   private def createBaseGraph(typed: Boolean): HyperGraph = {
-    val symbols = placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly)).toSeq ++ grammar
+    // TODO: add rewrite rules to create a deconstruction for types with a single constructor.
+    val symbols = grammar.toSeq ++ placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly))
     // Trying to go back to using tuples
     //    val addSplits = examples.map({ case (typ, exs) =>
     //      AnnotatedTree.withoutAnnotations(CaseSplitAction.possibleSplitId,
@@ -115,8 +142,8 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
         val temp = Programs.destructPatternsWithRoots(Seq(term1, term2))
         (temp.head, temp.last)
       }
-      val state1 = ActionSearchState(Programs(term2), state.rewriteRules)
-      val state2 = ActionSearchState(Programs(term1), state.rewriteRules)
+      val state1 = ActionSearchState(Programs(term2), state.rewriteRules ++ destructRewrites)
+      val state2 = ActionSearchState(Programs(term1), state.rewriteRules ++ destructRewrites)
       val newState1 = new ElaborateAction(anchor, lhs._1, lhs._2, maxSearchDepth = Some(equivDepth))(state1)
       val newState2 = new ElaborateAction(anchor, rhs._1, rhs._2, maxSearchDepth = Some(equivDepth))(state2)
       if (newState1 == state && newState2 == state) {
@@ -124,7 +151,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       } else {
         val res = inductionStep(state, term1, term2).collect({ case rr => rr })
         if (res.nonEmpty) {
-          state = ActionSearchState(state.programs, state.rewriteRules ++ res)
+          state = ActionSearchState(state.programs, state.rewriteRules ++ res  ++ destructRewrites)
           found.append((term1.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i),
             term2.map(i => if (i.literal.startsWith("Placeholder")) i.copy(literal = "?" + i.literal) else i)))
           failedAttempts.remove(i)
@@ -164,7 +191,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
       // Because we might need these temporary rules to help with future induction rules.
       logger.info("Filtering terms that don't need induction using observational equivalence")
       val equives = new ObservationalEquivalence(equivDepth)
-        .fromTerms(terms.map(_.tree).toSeq, state.rewriteRules)
+        .fromTerms(terms.map(_.tree).toSeq, state.rewriteRules ++ destructRewrites)
       // Take smallest of each set as heuristic to have no unneeded subterms
       val filteredTerms = equives.map(_.minBy(_.size)).toSeq
       // Do the induction step for each couple of terms
@@ -309,7 +336,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
                   rules: Seq[Operator[RewriteSearchState]]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     val res = new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth)
-      .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet)
+      .fromRewriteState(createTupeledGraph(rewriteState), rules.toSet ++ destructRewrites)
     getTupledConclusions(res)
   }
 
@@ -428,7 +455,7 @@ class SPBEAction(typeBuilders: Set[AnnotatedTree],
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
       val actionState = ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last),
-        ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules)
+        ltfwRules ++ hypoths ++ phToConstructed.rules ++ state.rewriteRules  ++ destructRewrites)
       val nextState = new OperatorRunWithCaseSplit(equivDepth, preRunDepth = preRunDepth)(actionState)
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.programs.hyperGraph.findSubgraph[Int](pattern).nonEmpty

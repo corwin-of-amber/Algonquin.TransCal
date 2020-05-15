@@ -5,71 +5,92 @@ import structures.VocabularyLike.Word
 
 import scala.collection.{immutable, mutable}
 
-class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Letter]]], private val mutableWords: mutable.Set[Word[Letter]], maxDepth: Int)
+class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Letter]]], private val mutableWords: mutable.Set[Word[Letter]], maxDepth: Int, path: Seq[Option[Letter]])
   extends structures.generic.TrieLike[Letter, Trie[Letter]] with Vocabulary[Letter] with VocabularyLike[Letter, Trie[Letter]] with LazyLogging {
 
   /** Needs to be overridden in subclasses. */
   override def empty: Trie[Letter] = Trie.empty
 
-  override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.clone)), mutable.Set.empty ++= mutableWords.clone, maxDepth)
+  override def clone = new Trie[Letter](mutable.Buffer.empty ++= subtries.map(mutable.Map.empty ++= _.mapValues(_.clone)), mutable.Set.empty ++= mutableWords.clone, maxDepth, path)
 
   override def letters: Set[Letter] = subtries.flatMap(_.keySet).toSet
 
   override def getSubtriesLength: Int = subtries.length
 
   /** Inner constructor that translates mutable to immutable */
-  private def this(subtries: Seq[Map[Letter, Trie[Letter]]], wordsFull: immutable.Set[Word[Letter]], maxDepth: Int) =
-    this(mutable.Buffer(subtries.map(m => mutable.Map[Letter, Trie[Letter]](m.toSeq: _*)): _*), mutable.Set.empty[Word[Letter]].++=(wordsFull), maxDepth)
+  private def this(subtries: Seq[Map[Letter, Trie[Letter]]], wordsFull: immutable.Set[Word[Letter]], maxDepth: Int, path: Seq[Option[Letter]]) =
+    this(mutable.Buffer(subtries.map(m => mutable.Map[Letter, Trie[Letter]](m.toSeq: _*)): _*), mutable.Set.empty[Word[Letter]].++=(wordsFull), maxDepth, path)
 
   /** Inner constructor that adds words where this Trie is for specific place */
-  private def this(wordsFull: immutable.Set[Word[Letter]], trieIndex: Int, maxDepth: Int) =
-    this({
+  private def this(wordsFull: immutable.Set[Word[Letter]], trieIndex: Int, maxDepth: Int, path: Seq[Option[Letter]]) =
+    this(
       if (maxDepth > 0) {
-        val indexes = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map { case (letter, index) => (index + trieIndex, letter, word) })
-        val subtries = {
-          indexes.groupBy(_._1).toIndexedSeq.sortBy(_._1).map { case (index: Int, wordsToIndexes: Set[(Int, Letter, Word[Letter])]) =>
-            wordsToIndexes.groupBy(_._2).mapValues(wordsToLetters => new Trie(wordsToLetters.map(_._3), index + 1, maxDepth - 1))
-          }
+        val groupedWords = wordsFull.flatMap(word => word.drop(trieIndex).zipWithIndex.map {
+          case (letter, index) => ((index + trieIndex, letter), word)
+        }).groupBy(_._1).mapValues(_.map(_._2))
+        // Get a map from index to letter to words then turn into into an ordered seq
+        val indexToGroupedWords = groupedWords.groupBy(_._1._1).map({ case (i, m) =>
+          (i, m.map({ case (k, v) => (k._2, v) }))
+        }).toIndexedSeq.sortBy(_._1).map(_._2)
+        indexToGroupedWords.zipWithIndex.map { case (gw, i) => gw.map({ case (letter, ws) =>
+          (letter, new Trie(ws, trieIndex + i + 1, maxDepth - 1, path ++ Seq.fill(i)(None) :+ Some(letter)))
+        })
         }
-        subtries
-      } else Seq.empty
-    }, wordsFull, maxDepth)
+      } else Seq.empty,
+      wordsFull,
+      maxDepth,
+      path
+    )
 
   /** Constructors of all words **/
-  def this(words: immutable.Set[Word[Letter]] = immutable.Set.empty[Word[Letter]]) = this(words, 0, Trie.MAX_DEPTH)
+  def this(words: immutable.Set[Word[Letter]] = immutable.Set.empty[Word[Letter]]) = this(words, 0, Trie.MAX_DEPTH, Seq())
 
   /* --- Vocabulary Impl. --- */
 
-  override def words: Set[Word[Letter]] = mutableWords.toSet
+  override def words: Set[Word[Letter]]
+
+  = mutableWords.toSet
 
   def +=(word: Word[Letter]): this.type = if (this.contains(word)) this else addRecursive(word, word)
 
-  override def replace(keep: Letter, change: Letter): Trie[Letter] = clone.replaceInPlace(keep, change)
+  override def replace(keep: Letter, change: Letter): Trie[Letter]
 
-  override def replaceInPlace(keep: Letter, change: Letter): Trie[Letter] =
+  = clone.replaceInPlace(keep, change)
+
+  override def replaceInPlace(keep: Letter, change: Letter): Trie[Letter]
+
+  =
     replaceWithIndex(keep,
       change,
       0,
-      subtries.toSet.flatMap((mp: mutable.Map[Letter, Trie[Letter]]) => mp.getOrElse(change, Trie.empty).mutableWords))
+      subtries.flatMap((mp: mutable.Map[Letter, Trie[Letter]]) => mp.getOrElse(change, Trie.empty).mutableWords).toSet)
 
-  override def -(word: Word[Letter]): Trie[Letter] = if (!this.contains(word)) this else this.clone() -= word
+  override def -(word: Word[Letter]): Trie[Letter]
+
+  = if (!this.contains(word)) this else this.clone() -= word
 
   def -=(word: Word[Letter]): this.type = if (!this.contains(word)) this else removeRecursive(word, word)
 
   /* --- IterableLike Impl. --- */
 
-  override protected[this] def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]] =
+  override protected[this] def newBuilder: mutable.Builder[Word[Letter], Trie[Letter]]
+
+  =
     new mutable.ListBuffer[Word[Letter]].mapResult {
       parts => {
         new Trie(parts.toSet)
       }
     }
 
-  override def size: Int = mutableWords.size
+  override def size: Int
+
+  = mutableWords.size
 
   /* --- Private Methods --- */
 
-  private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type = {
+  private def addRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type
+
+  = {
     logger.trace("Add word")
     if (maxDepth > 0) {
       logger.trace("Make subtries larger if needed")
@@ -86,7 +107,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
     this
   }
 
-  private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type = {
+  private def removeRecursive(word: Word[Letter], originalWord: Word[Letter]): this.type
+
+  = {
     logger.trace("Remove with index")
     logger.trace(f"Trying to remove $word")
     if (maxDepth > 0) {
@@ -104,7 +127,9 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
   }
 
 
-  private def replaceWithIndex(keep: Letter, change: Letter, index: Int, toChange: Set[Word[Letter]]): Trie[Letter] = {
+  private def replaceWithIndex(keep: Letter, change: Letter, index: Int, toChange: Set[Word[Letter]]): Trie[Letter]
+
+  = {
     logger.trace("Replace local words")
     // TODO: if we got a better replace it might be a good idea to add depth to the trie.
 
@@ -136,26 +161,42 @@ class Trie[Letter] private(subtries: mutable.Buffer[mutable.Map[Letter, Trie[Let
     this
   }
 
-  private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter] = {
+  private def addAll(otherTrie: Trie[Letter], index: Int): Trie[Letter]
+
+  = {
     logger.trace("addAll")
     otherTrie.foldLeft(this)((trie, word) => trie.addRecursive(word.drop(index), word))
   }
 
-  override protected def getSubtrie(index: Int, value: Letter): Option[Trie[Letter]] = {
+  override protected def getSubtrie(index: Int, value: Letter): Option[Trie[Letter]]
+
+  = {
     assert(maxDepth > 0)
     if (subtries.length > index) subtries(index).get(value)
     else None
   }
 
-  override def keysByIndex(index: Int): Set[Letter] = {
+  override def keysByIndex(index: Int): Set[Letter]
+
+  = {
     assert(maxDepth > 0)
     if (subtries.length > index) subtries(index).keys.toSet
     else Set.empty
   }
 
-  override def getMaxDepth: Int = maxDepth
+  override def getMaxDepth: Int
 
-  override def contains(elem: Word[Letter]): Boolean = mutableWords.contains(elem)
+  = maxDepth
+
+  override def contains(elem: Word[Letter]): Boolean
+
+  = mutableWords.contains(elem)
+
+  override def iterator: Iterator[Word[Letter]]
+
+  = mutableWords.iterator
+
+  override def hashCode(): Int = path.hashCode()
 }
 
 object Trie {
@@ -165,5 +206,5 @@ object Trie {
 
   def apply[Letter](words: Set[Word[Letter]]): Trie[Letter] = new Trie(words)
 
-  private def emptyWithDepth[Letter](depth: Int): Trie[Letter] = new Trie(immutable.Set.empty[Word[Letter]], 0, depth)
+  private def emptyWithDepth[Letter](depth: Int): Trie[Letter] = new Trie(immutable.Set.empty[Word[Letter]], 0, depth, Seq.empty)
 }
