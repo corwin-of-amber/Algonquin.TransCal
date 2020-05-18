@@ -2,8 +2,8 @@ package structures.generic
 
 import structures.HyperGraphLike.HyperEdgePattern
 import structures.{Explicit, Hole, HyperEdge, HyperGraphLike, Item}
-import synthesis.rewrites.Template
-import synthesis.rewrites.Template.{ExplicitTerm, TemplateTerm}
+import synthesis.search.rewrite.operators.Template
+import synthesis.search.rewrite.operators.Template.{ExplicitTerm, TemplateTerm}
 
 import scala.language.higherKinds
 

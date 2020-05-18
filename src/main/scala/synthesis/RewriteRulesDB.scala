@@ -2,9 +2,10 @@ package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import synthesis.actions.operators.LetAction
-import synthesis.rewrites.{FlattenRewrite, RewriteRule, RewriteSearchState}
+import synthesis.search.action.operators.LetAction
+import synthesis.search.rewrite.operators.{FlattenRewrite, RewriteRule}
 import synthesis.search.Operator
+import synthesis.search.rewrite.RewriteSearchState
 import transcallang.{AnnotatedTree, TranscalParser}
 
 /**

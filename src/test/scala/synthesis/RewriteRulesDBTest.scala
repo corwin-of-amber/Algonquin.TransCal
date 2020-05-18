@@ -4,8 +4,8 @@ import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteSearchState
-import synthesis.rewrites.Template.ReferenceTerm
+import synthesis.search.rewrite.RewriteSearchState
+import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
 class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecution {
@@ -213,7 +213,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
       val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(new rewrites.RewriteSearchState(graphAfter1))((g, o) => o.apply(g)).graph
+      val graphAfter2 = rewriteRules.foldLeft(new RewriteSearchState(graphAfter1))((g, o) => o.apply(g)).graph
 
       Programs(graphAfter2)
     }

@@ -3,8 +3,8 @@ package synthesis.ui
 import java.io.PrintStream
 
 import synthesis._
-import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.UserAction
+import synthesis.search.action.operators.UserAction
+import synthesis.search.action.ActionSearchState
 import transcallang.AnnotatedTree
 
 /**

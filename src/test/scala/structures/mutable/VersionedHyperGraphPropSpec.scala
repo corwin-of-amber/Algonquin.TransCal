@@ -5,8 +5,8 @@ import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.HyperGraphLike.HyperEdgePattern
 import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
-import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.{DefAction, OperatorRunAction}
+import synthesis.search.action.operators.{DefAction, OperatorRunAction}
+import synthesis.search.action.ActionSearchState
 import transcallang.TranscalParser
 
 

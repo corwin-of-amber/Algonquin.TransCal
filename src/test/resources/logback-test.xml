@@ -1,6 +1,14 @@
 <configuration>
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>TRACE</level>
+            <onMatch>DENY</onMatch>
+        </filter>
+<!--        <filter class="ch.qos.logback.classic.filter.LevelFilter">-->
+<!--            <level>DEBUG</level>-->
+<!--            <onMatch>DENY</onMatch>-->
+<!--        </filter>-->
         <encoder>
             <pattern>%msg%n</pattern>
         </encoder>
@@ -20,7 +28,7 @@
     <appender name="list" class="ch.qos.logback.core.read.ListAppender">
     </appender>
 
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="console"/>
         <appender-ref ref="list"/>
         <appender-ref ref="file"/>

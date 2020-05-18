@@ -3,13 +3,13 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import structures._
 import structures.generic.HyperGraph
-import synthesis.Programs.NonConstructableMetadata
-import synthesis.actions.ActionSearchState
-import synthesis.actions.operators.SyGuSRewriteRules
+import synthesis.search.action.operators.SyGuSRewriteRules
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
-import synthesis.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
-import synthesis.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.rewrites.{RewriteRule, RewriteSearchState}
+import synthesis.search.rewrite.operators.RewriteRule.{HyperPattern, RewriteRuleMetadata}
+import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
+import synthesis.search.action.ActionSearchState
+import synthesis.search.rewrite.RewriteSearchState
+import synthesis.search.rewrite.operators.RewriteRule
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection

@@ -2,7 +2,7 @@ package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
 import synthesis.Programs
-import synthesis.rewrites.RewriteSearchState
+import synthesis.search.rewrite.RewriteSearchState
 import transcallang.TranscalParser
 
 import scala.collection.mutable
