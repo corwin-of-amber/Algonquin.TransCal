@@ -4,8 +4,8 @@ import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import synthesis.search.action.ActionSearchState
-import synthesis.search.rewrite.RewriteSearchState
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.{HyperTermId, Programs}
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
 class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyChecks with Matchers with ParallelTestExecution {

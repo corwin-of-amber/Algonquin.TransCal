@@ -4,8 +4,8 @@ import structures.Metadata
 import structures.generic.HyperGraph
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.Operator
-import synthesis.search.rewrite.RewriteSearchState
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs, RewriteRulesDB}
+import synthesis.search.rewrite.{RewriteRulesDB, RewriteSearchState}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.AnnotatedTree._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 

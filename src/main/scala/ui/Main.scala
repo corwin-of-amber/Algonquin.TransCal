@@ -1,4 +1,4 @@
-package synthesis.ui
+package ui
 
 import java.io.{PrintStream, File => JFile}
 import java.util.Calendar

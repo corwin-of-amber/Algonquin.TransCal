@@ -1,10 +1,11 @@
-package synthesis.ui
+package ui
 
 import java.io.PrintStream
 
 import synthesis._
 import synthesis.search.action.operators.UserAction
 import synthesis.search.action.ActionSearchState
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.AnnotatedTree
 
 /**

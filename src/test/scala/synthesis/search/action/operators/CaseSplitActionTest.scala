@@ -5,7 +5,7 @@ import structures.HyperEdge
 import synthesis._
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import synthesis.search.action.ActionSearchState
-import synthesis.search.rewrite.RewriteSearchState
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{Identifier, TranscalParser}
 
 class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution {

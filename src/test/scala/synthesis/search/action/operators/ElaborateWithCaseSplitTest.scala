@@ -2,7 +2,8 @@ package synthesis.search.action.operators
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.search.action.ActionSearchState
-import synthesis.{AssociativeRewriteRulesDB, HyperTermIdentifier, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{Identifier, TranscalParser}
 
 class ElaborateWithCaseSplitTest extends FunSuite with Matchers {

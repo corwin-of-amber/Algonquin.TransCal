@@ -6,8 +6,8 @@ import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.action.ActionSearchState
-import synthesis.search.rewrite.RewriteSearchState
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class LetActionTest extends FunSuite with Matchers with LazyLogging {

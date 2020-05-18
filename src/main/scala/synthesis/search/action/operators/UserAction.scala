@@ -6,7 +6,8 @@ import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.action.ActionSearchState
-import synthesis.{AssociativeRewriteRulesDB, HyperTermId, HyperTermIdentifier, Programs}
+import synthesis.search.rewrite.AssociativeRewriteRulesDB
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Language}
 
 import scala.collection.mutable

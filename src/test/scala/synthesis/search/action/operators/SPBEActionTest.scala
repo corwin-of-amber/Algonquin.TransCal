@@ -6,7 +6,7 @@ import structures.Hole
 import synthesis._
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import synthesis.search.action.ActionSearchState
-import synthesis.search.rewrite.RewriteSearchState
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class SPBEActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {

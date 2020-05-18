@@ -4,7 +4,7 @@ import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
-import synthesis.search.rewrite.RewriteSearchState
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesDB}
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 

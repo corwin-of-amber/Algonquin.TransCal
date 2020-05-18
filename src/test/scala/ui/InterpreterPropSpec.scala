@@ -1,16 +1,16 @@
-package synthesis.ui
+package ui
 
 import java.io.{ByteArrayOutputStream, PrintStream, File => JFile}
 
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{Minutes, Span}
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
+import synthesis.search.action.ActionSearchState
 import synthesis.search.rewrite.operators.RewriteRule
 import synthesis.search.rewrite.operators.Template.ExplicitTerm
-import synthesis.search.action.ActionSearchState
-import synthesis.ui.Main.readJFile
 import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, TranscalParser}
+import ui.Main.readJFile
 
 import scala.language.higherKinds
 

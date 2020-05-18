@@ -3,6 +3,7 @@ package synthesis.search.action.operators
 import org.scalatest.{FunSuite, Matchers}
 import synthesis._
 import synthesis.search.action.ActionSearchState
+import synthesis.search.rewrite.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{Identifier, TranscalParser}
 
 class OperatorRunWithCaseSplitTest extends FunSuite with Matchers {
