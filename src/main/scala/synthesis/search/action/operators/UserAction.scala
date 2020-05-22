@@ -6,6 +6,7 @@ import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.action.ActionSearchState
+import synthesis.search.action.operators.thesy.TheoryExplorationAction
 import synthesis.search.rewrite.AssociativeRewriteRulesDB
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Language}
@@ -126,7 +127,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val splitDepth = if (term.subtrees.length > 5) Some(term.subtrees(5).root.literal.toInt) else None
         val termDepth = if (term.subtrees.length > 6) Some(term.subtrees(6).root.literal.toInt) else None
         val placeholderCount = if (term.subtrees.length > 7) Some(term.subtrees(7).root.literal.toInt) else None
-        new SPBEAction(typeBuilders, grammar, examples, termDepthOption=termDepth, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth, placeholderCountOption = placeholderCount)(state)
+        new TheoryExplorationAction(typeBuilders.map(_.root), grammar, examples, termDepthOption=termDepth, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth, placeholderCountOption = placeholderCount)(state)
     }
 
     logger.info(seperator)

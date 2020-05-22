@@ -1,9 +1,10 @@
-package synthesis.search.action.operators
+package synthesis.search.action.operators.thesy
 
 import structures.Metadata
 import structures.generic.HyperGraph
-import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.Operator
+import synthesis.search.action.operators.LetAction
+import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.rewrite.{RewriteRulesDB, RewriteSearchState}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.AnnotatedTree._
