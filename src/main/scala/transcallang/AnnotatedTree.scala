@@ -18,6 +18,10 @@ object Identifier {
 }
 
 case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]) {
+  def getType: Option[AnnotatedTree] = root.annotation
+
+  def cleanTypes: AnnotatedTree = this.map(_.copy(annotation = None))
+
   def isLeaf: Boolean = subtrees.isEmpty
 
   def nodes: Stream[AnnotatedTree] = this #:: {subtrees.toStream flatMap (x => x.nodes)}

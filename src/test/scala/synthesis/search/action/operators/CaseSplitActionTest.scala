@@ -35,7 +35,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     )
     val res2 = new CaseSplitAction(splitableState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head, None).getFoundConclusions(splitableState)
     val newState = ObservationalEquivalence.mergeConclusions(new RewriteSearchState(splitableState.programs.hyperGraph), res2.toSeq)
-    newState.graph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" map (_.copy(annotation = None)))).nonEmpty shouldBe true
+    newState.graph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" cleanTypes)).nonEmpty shouldBe true
   }
 
   test("test splitting examples for rev snoc vs 3 elaborate") {
@@ -75,13 +75,13 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     val res = new ObservationalEquivalenceWithCaseSplit(8, splitDepth = Some(3)).getEquives(state)
 //    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(3), maxDepthOption = Some(8))
 //      .getFoundConclusions(state)
-    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter p (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter p (x :: y :: ⟨⟩))" cleanTypes)).head
     val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
     patternResults should not be empty
     val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     val correctSet = res.find(_.contains(correctId))
     correctSet should not be empty
-    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (x :: y :: ⟨⟩)" map (_.copy(annotation = None)))).head
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (x :: y :: ⟨⟩)" cleanTypes)).head
     val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     correctSet.get should contain (correctId2)
   }
@@ -95,13 +95,13 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     state = new OperatorRunAction(maxSearchDepth = 2)(state)
     val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(4), maxDepthOption = Some(4))
       .getFoundConclusions(state)
-    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter q (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter q (x :: y :: ⟨⟩))" cleanTypes)).head
     val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
     patternResults should not be empty
     val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     val correctSet = res.find(_.contains(correctId))
     correctSet should not be empty
-    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter q (filter p (x :: y :: ⟨⟩))" map (_.copy(annotation = None)))).head
+    val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter q (filter p (x :: y :: ⟨⟩))" cleanTypes)).head
     val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
     correctSet.get should contain (correctId2)
   }

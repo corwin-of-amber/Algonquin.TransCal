@@ -18,7 +18,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = true, cleanTypes: Boolean = true) extends Action {
   // TODO: check what skolemize was
   // Beta reduction is done by adding rewrite rules and using flatten
-  private val term = if (cleanTypes) typedTerm.map(i => i.copy(annotation = None)) else typedTerm
+  private val term = if (cleanTypes) typedTerm.cleanTypes else typedTerm
 
   assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId :+ Language.limitedAndCondBuilderId) contains term.root)
 

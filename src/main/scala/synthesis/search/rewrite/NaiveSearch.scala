@@ -40,7 +40,7 @@ class NaiveSearch(startVersioned: Boolean = false) extends SearchDepth[RewriteSe
         //        "reverse(snoc(nil, ?z))",
         //        "reverse(snoc(x::nil, ?z))",
         //        "reverse(snoc(y::x::nil, ?z))"
-      ).map(s => (s, parser.parseExpression(s).map(_.copy(annotation = None)))).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
+      ).map(s => (s, parser.parseExpression(s) cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
     }
 
 
