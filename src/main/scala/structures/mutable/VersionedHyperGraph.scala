@@ -119,7 +119,6 @@ class  VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph
     // Handle version
     lastVersion.mergeNodesInPlace(keep, change)
     lastVersion ++= diff
-    assert(diff.nonEmpty)
     this
   }
 
@@ -130,7 +129,6 @@ class  VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph
     // Handle version
     lastVersion.mergeEdgeTypesInPlace(keep, change)
     lastVersion ++= diff
-    assert(diff.nonEmpty)
     this
   }
 
