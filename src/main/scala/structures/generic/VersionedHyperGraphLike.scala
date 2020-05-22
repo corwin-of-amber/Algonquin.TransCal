@@ -7,7 +7,7 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
   protected def getLastVersion: HyperGraph[Node, EdgeType]
 
-  def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = getLastVersion.contains(hyperEdge)
+  def isLatest(hyperEdge: HyperEdge[Node, EdgeType]): Boolean = getLastVersion.contains(hyperEdge)
 
   protected def swapNode(hyperEdge: HyperEdge[Node, EdgeType], keep: Node, change: Node): HyperEdge[Node, EdgeType] =
     hyperEdge.copy(target = if (hyperEdge.target == change) keep else hyperEdge.target, sources = hyperEdge.sources.map(s => if (s == change) keep else s))
@@ -16,7 +16,6 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
     hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
 
   def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
-    if (isLocked) throw new RuntimeException("Can't use find versioned while versions are locked")
     (for (
       edgePattern <- hyperPattern;
       edge <- getLastVersion.findRegexHyperEdges(edgePattern)
@@ -30,9 +29,11 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
     }).flatten.toSet
   }
 
-  def isLocked: Boolean
-  def lockVersions(): This
-  def unlockVersions(): This
+  def resetVersion(): This
+  def addKeepVersion(hyperEdge: HyperEdge[Node, EdgeType]): This
+  def addAllKeepVersion(hyperEdges: Set[HyperEdge[Node, EdgeType]]): This
+  def mergeNodesKeepVersion(keep: Node, change: Node): This
+  def mergeEdgeTypesKeepVersion(keep: EdgeType, change: EdgeType): This
 }
 
 object VersionedHyperGraphLike {

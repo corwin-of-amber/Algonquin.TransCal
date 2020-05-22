@@ -2,6 +2,7 @@ package structures.immutable
 
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
+import structures.immutable.CompactHyperGraph.innerCompact
 import synthesis.HyperTermIdentifier
 import transcallang.Language
 
@@ -20,9 +21,9 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   def this() = this(Set.empty[HyperEdge[Node, EdgeType]])
 
-  def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern)
-
+  // TODO: merge versioned and compact or haave an inheritence
   def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = wrapped.isLatest(hyperEdge)
+  def findSubgraphVersioned[Id](hyperPattern: generic.HyperGraph.HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -32,6 +33,14 @@ class CompactHyperGraph[Node, EdgeType] private (wrapped: VersionedHyperGraph[No
 
   override def ++(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
     compact(hyperEdges.toList)
+  }
+
+  def addKeepVersion(hyperEdge: HyperEdge[Node, EdgeType]): CompactHyperGraph[Node, EdgeType] = {
+    new CompactHyperGraph(innerCompact(wrapped, List(hyperEdge), Map.empty))
+  }
+
+  def addAllKeepVersion(hyperEdges: GenTraversableOnce[HyperEdge[Node, EdgeType]]): CompactHyperGraph[Node, EdgeType] = {
+    new CompactHyperGraph(innerCompact(wrapped, hyperEdges.toList, Map.empty))
   }
 
   /* --- Object Impl. --- */
@@ -70,7 +79,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
                                       hyperEdges: List[HyperEdge[Node, EdgeType]],
                                       changedToKept: Map[Node, Node] = Map.empty[Node, Node])
   : VersionedHyperGraph[Node, EdgeType] = {
-    innerCompact(wrapped.lockVersions(), hyperEdges, changedToKept).unlockVersions()
+    innerCompact(wrapped.resetVersion(), hyperEdges, changedToKept)
   }
 
   @tailrec
@@ -88,7 +97,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
           foundTarget = Set(hyperEdge.sources.head)
         } else {
           val regex = HyperEdge(Hole(0), Explicit(hyperEdge.edgeType), hyperEdge.sources.map(x => Explicit(x)), EmptyMetadata)
-          g = wrapped.+(hyperEdge)
+          g = wrapped.addKeepVersion(hyperEdge)
           foundTarget = wrapped.findRegexHyperEdges(regex).filter(_.target != hyperEdge.target).map(_.target)
         }
         // Recursive will change might create a multiple target merge
@@ -96,7 +105,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
         foundTarget.headOption match {
           case Some(existsTarget) =>
             val willChange = g.findInSources(hyperEdge.target).map(translateEdge)
-            val merged = g.mergeNodes(existsTarget, hyperEdge.target)
+            val merged = g.mergeNodesKeepVersion(existsTarget, hyperEdge.target)
             val updatedChangedToKept = changedToKept.map {
               case (change, hyperEdge.target) => (change, existsTarget)
               case t => t
