@@ -89,9 +89,10 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
 
   test("testSygusStep can find reverse l") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
-    val state = action.conjectureGenerator.increaseDepth()
+    action.conjectureGenerator.increaseDepth()
+    val state = action.conjectureGenerator.inferConjectures(Set.empty)
     val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
-    action.conjectureGenerator.inferConjectures(Set.empty).graph.findSubgraph[Int](pattern) should not be empty
+    state.graph.findSubgraph[Int](pattern) should not be empty
   }
 
   test("testSygusStep can find reverse reverse l") {
