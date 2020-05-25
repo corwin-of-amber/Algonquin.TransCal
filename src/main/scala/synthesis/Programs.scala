@@ -10,7 +10,7 @@ import synthesis.search.action.ActionSearchState
 import synthesis.search.action.operators.thesy.SyGuSRewriteRules
 import synthesis.search.rewrite.RewriteSearchState
 import synthesis.search.rewrite.operators.RewriteRule
-import transcallang.{AnnotatedTree, Identifier, Language}
+import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 import scala.collection
 import scala.util.Try
@@ -30,6 +30,20 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
   }
 
   /* --- Public --- */
+  /**
+    *
+    * @param annotatedTree
+    * @return
+    */
+  def findTree(annotatedTree: AnnotatedTree): Set[HyperTermId] = {
+    val (pattern, root) = destructPatternWithRoot(annotatedTree)
+    hyperGraph.findSubgraphVersioned[Int](pattern).map(_._1(root.id))
+  }
+
+
+  def findTerm(term: String): Set[HyperTermId] =
+    findTree(new TranscalParser().parseExpression(term))
+
   /** Builds trees from of programs where the hyper term is the base program and term conforms to pattern.
     *
     * @param hyperTermId The hyper term to build.
