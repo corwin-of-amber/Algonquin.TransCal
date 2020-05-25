@@ -221,9 +221,8 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   private val ltwfId = Identifier("ltwf")
   private val ltwfTransivity = new LetAction(new TranscalParser()("ltwf(?x, ?y) ||| ltwf(?z, x) >> ltwf(z, y)")).rules
   private val ltwfByConstructor = {
-    vocab.datatypes.flatMap(d => d.constructors.flatMap({
-      case c =>
-        val holesAndIgnores = c.annotation.get.subtrees.zipWithIndex.map({
+    vocab.datatypes.flatMap(d => d.constructors.flatMap({ c =>
+        val holesAndIgnores = c.annotation.get.subtrees.dropRight(1).zipWithIndex.map({
           // TODO: Once we support dependant types or enumerationg polymorphic types instantiantions we need to change this
           case (t, i) if t == d.asType => AnnotatedTree.identifierOnly(Identifier(s"?param$i"))
           case _ => AnnotatedTree.identifierOnly(Identifier("_"))
@@ -307,13 +306,13 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
 
     val hypoths = createHypothesis(term1, term2, inductionPh)
 
-    val conses = ourType.constructors
-    if (conses.forall({
-      case c =>
+    // TODO: isFunctionType should be as language utils
+    val conses = ourType.constructors.filter(_.annotation.exists(_.root == Language.mapTypeId))
+    if (conses.forall({ c =>
         // Replace inductionPh by inductionVar
         // Create base graph where inductionPh ||| c(existentials: _*)
         val constructedVal = AnnotatedTree.withoutAnnotations(c.copy(annotation = None),
-          c.annotation.get.subtrees.zipWithIndex.map({ case (_, i) =>
+          c.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (_, i) =>
             AnnotatedTree.identifierOnly(Identifier(s"param$i"))
           })
         )
