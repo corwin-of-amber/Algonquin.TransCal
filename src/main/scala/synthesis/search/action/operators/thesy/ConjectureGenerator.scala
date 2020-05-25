@@ -77,10 +77,13 @@ class ConjectureGenerator(vocab: SortedVocabulary,
 //    (d.asType, all.flatten)
 //  }).toMap
 
-  private val sygusRules =
+  private val sygusRules = {
+    // Need to use vocab as the function name is needed
     SyGuSRewriteRules(
-      types.filter(isFunctionType).map(t => t.copy(subtrees = Seq.empty))
+      (vocab.allSymbols.toSet).filter(isFunctionType)
+        .map(t => t.copy(subtrees = Seq.empty))
     ).rewriteRules.map(_.asInstanceOf[RewriteRule])
+  }
 
   private val baseState: RewriteSearchState = {
     val symbols = vocab.allSymbols ++ placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly))
@@ -112,7 +115,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
         val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
         logger.debug(s"Found ${newEdges.size} new edges using sygus")
         state.graph.addAllKeepVersion(newEdges)
-        val funcInferStep = FunctionArgumentsAndReturnTypeRewrite.getStep(state, versioned = true)
+        val funcInferStep = FunctionArgumentsAndReturnTypeRewrite.getStep(state, versioned = false)
         state.graph.addAllKeepVersion(structures.generic.HyperGraph.fillWithNewHoles(funcInferStep, hyperTermIds.last))
         state
       }
