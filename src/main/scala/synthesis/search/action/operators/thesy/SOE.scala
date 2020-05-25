@@ -22,14 +22,12 @@ class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputM
       val currentGraph = rewriteSearchState.graph.clone
       // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
       currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
-      valuations.foreach(example => {
-        currentGraph ++= Programs.destruct(example cleanTypes, maxId = currentGraph.nodes.maxBy(_.id))
-        val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example cleanTypes)).head
-        val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
-        currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(marker)).head.target, id)
-        // TODO: cant remove marker and also use marker for finding this later. Add iter to marker?
-        currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(marker))
-    })
+      val example = valuations(i)
+      currentGraph ++= Programs.destruct(example cleanTypes, maxId = currentGraph.nodes.maxBy(_.id))
+      val (pattern, root) = Programs.destructPatternsWithRoots(Seq(example cleanTypes)).head
+      val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+      currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(marker)).head.target, id)
+      currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(marker))
       currentGraph
     })
     val resGraph = replacedGraphs.head
@@ -42,7 +40,9 @@ class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputM
   }
 
   private def getTupledConclusions(rewriteSearchState: RewriteSearchState): Set[Set[HyperTermId]] = {
-    val prefixes = valuations.indices.map(i => s"${i}_$anchorPrefix")
+    val prefixes = valuations.indices.map(i => s"${
+      i
+    }_$anchorPrefix")
     // This can work because when we create the tupled graph we do not change the graph when inserting different anchors
     ObservationalEquivalence.flattenIntersectConclusions(prefixes.map(p =>
       ObservationalEquivalence.getIdsToMerge(p, rewriteSearchState.graph.edges))).filter(_.nonEmpty)
