@@ -6,7 +6,7 @@ import structures.Hole
 import synthesis._
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import synthesis.search.action.ActionSearchState
-import synthesis.search.action.operators.thesy.{SyGuSRewriteRules, TheoryExplorationAction}
+import synthesis.search.action.operators.thesy.{SyGuERewriteRules, TheoryExplorationAction}
 import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
@@ -48,7 +48,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val rewriteState = action.conjectureGenerator.inferConjectures(Set.empty)
     val programs = Programs(rewriteState.graph)
     logger.info(s"created base graph ${rewriteState.graph.size}")
-    for (n <- SyGuSRewriteRules.getSygusCreatedNodes(rewriteState.graph);
+    for (n <- SyGuERewriteRules.getSygusCreatedNodes(rewriteState.graph);
          t <- programs.reconstruct(n) if t.root != Language.typeId) {
       t.depth should be < 2
     }
@@ -57,7 +57,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     action.conjectureGenerator.increaseDepth()
     val state1 = action.conjectureGenerator.inferConjectures(Set.empty)
     val progs = Programs(state1.graph)
-    val relevantNodes2 = SyGuSRewriteRules.getSygusCreatedNodes(progs.hyperGraph)
+    val relevantNodes2 = SyGuERewriteRules.getSygusCreatedNodes(progs.hyperGraph)
     logger.info(s"created depth 2 ${progs.hyperGraph.size}")
     for (n <- relevantNodes2;
          t <- progs.reconstruct(n) if t.root != Language.typeId) {

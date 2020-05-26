@@ -2,15 +2,15 @@ package synthesis.search.action.operators
 
 import org.scalatest.{FunSuite, Matchers}
 import synthesis.Programs
-import synthesis.search.action.operators.thesy.SyGuSRewriteRules
+import synthesis.search.action.operators.thesy.SyGuERewriteRules
 import synthesis.search.rewrite.RewriteSearchState
 import transcallang.{AnnotatedTree, TranscalParser}
 
-class SyGuSRewriteRulesTest extends FunSuite with Matchers {
+class SyGuERewriteRulesTest extends FunSuite with Matchers {
   private val parser = new TranscalParser()
   private val basicGraph = Set("true ||| sygusCreated (var1 : int)",
-  s"true ||| ${SyGuSRewriteRules.sygusCreatedId.literal} (var2 : string)",
-  s"true |||  ${SyGuSRewriteRules.sygusCreatedId.literal} (var3 : list int)")
+  s"true ||| ${SyGuERewriteRules.sygusCreatedId.literal} (var2 : string)",
+  s"true |||  ${SyGuERewriteRules.sygusCreatedId.literal} (var3 : list int)")
     .map(parser.parseExpression)
     .map(x => Programs.destruct(x)).reduce(_ ++ _)
   private val badBasicGraph = Set("(var1 : int)",
@@ -22,13 +22,13 @@ class SyGuSRewriteRulesTest extends FunSuite with Matchers {
     .map(parser.parseExpression)
 
   test("test creating rewrite rule per symbol") {
-    val rules = new SyGuSRewriteRules(symbols).rewriteRules
+    val rules = new SyGuERewriteRules(symbols).rewriteRules
     rules.size shouldBe symbols.size
   }
 
   test("test rewrite function correctly") {
 //    val g = Programs(parser("f >> Expression : (list real) [++]")).hyperGraph ++ basicGraph
-    val rewriteRules = new SyGuSRewriteRules(symbols).rewriteRules
+    val rewriteRules = new SyGuERewriteRules(symbols).rewriteRules
     val searchState = new RewriteSearchState(basicGraph)
     val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("f1"))
     ex should be (true)
@@ -45,7 +45,7 @@ class SyGuSRewriteRulesTest extends FunSuite with Matchers {
 
   test("test rewrite function doesnt work without sygusCreated anchor") {
     //    val g = Programs(parser("f >> Expression : (list real) [++]")).hyperGraph ++ basicGraph
-    val rewriteRules = new SyGuSRewriteRules(symbols).rewriteRules
+    val rewriteRules = new SyGuERewriteRules(symbols).rewriteRules
     val searchState = new RewriteSearchState(badBasicGraph)
     val ex = rewriteRules.exists(r => r(searchState).graph.edgeTypes.map(_.identifier.literal).contains("f1"))
     ex should be (false)

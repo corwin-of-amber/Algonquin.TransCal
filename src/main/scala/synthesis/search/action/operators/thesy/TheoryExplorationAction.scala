@@ -14,8 +14,27 @@ import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalPars
 
 import scala.collection.mutable
 
-// Constructors than split by datatype
-// Grammar use this during graph expansion
+/** Theory exploration powered by term rewriting
+  *
+  * This works by applying a few actions iteratively, acheiving an iterative deepening of the hyper graph.
+  *
+  * Create sygue rules only from constructors and grammer (once).
+  * Create placeholders ahead of time (once).
+  * Base graph of placeholders and constants of created type (once).
+  * Create next depth by applying sygue rules.
+  * Run soe to find potential conjectures.
+  * Filter trivial conjectures.
+  * Prove conjectures.
+  *
+  * @param typeBuilders Constructors for types being inducted on
+  * @param grammar Function symbols to use as syntax for SyGuE
+  * @param examples Should be replaced by automatic creation of :typeBuilder application
+  * @param termDepthOption Depth to create terms, the iterative deepening depth
+  * @param equivDepthOption Depth to run rewrite rules in both conjecture genreration and prover
+  * @param splitDepthOption Allow nested split case up to this depth
+  * @param preRunDepth When using case split it is more efficient to run rewrite search before each split
+  * @param placeholderCountOption How many place holders to create
+  */
 class TheoryExplorationAction(typeBuilders: Set[Identifier],
                               grammar: Set[AnnotatedTree],
                               examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
@@ -31,7 +50,6 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
 
   val equivDepth = equivDepthOption.getOrElse(4)
-
   val splitDepth = splitDepthOption.getOrElse(1)
   val termDepth = termDepthOption.getOrElse(2)
   val placeholderCount = placeholderCountOption.getOrElse(2)
@@ -49,14 +67,6 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
 
   // TODO: fix tests and make this private
   val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
-
-  // How to do this? for now given by user
-  // Maybe i should use the rewrite system
-  // * Create sygus rules only from constructors and grammer.
-  // * Create placeholders ahead of time
-  // * Base graph of placeholders and constants of created type
-  // * Find all hyper terms by type
-  // * reconstruct
 
   protected def retryFailed(failedAttempts: mutable.Buffer[(AnnotatedTree, AnnotatedTree)], actionState: ActionSearchState): (Set[(AnnotatedTree, AnnotatedTree)], ActionSearchState) = {
     var i = 0

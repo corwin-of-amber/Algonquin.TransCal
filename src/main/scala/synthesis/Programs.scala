@@ -7,7 +7,7 @@ import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, Cont
 import synthesis.search.rewrite.operators.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.action.ActionSearchState
-import synthesis.search.action.operators.thesy.SyGuSRewriteRules
+import synthesis.search.action.operators.thesy.SyGuERewriteRules
 import synthesis.search.rewrite.RewriteSearchState
 import synthesis.search.rewrite.operators.RewriteRule
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
@@ -241,7 +241,7 @@ object Programs extends LazyLogging {
   }
 
   def reconstructAll(inputEdges: generic.HyperGraph[HyperTermId, HyperTermIdentifier], maxDepth: Int): Set[Entry] = {
-    val edges = inputEdges.edges.filterNot(e => e.metadata.exists(_ == NonConstructableMetadata) || e.edgeType.identifier == Language.typeId || SyGuSRewriteRules.sygusCreatedId == e.edgeType.identifier)
+    val edges = inputEdges.edges.filterNot(e => e.metadata.exists(_ == NonConstructableMetadata) || e.edgeType.identifier == Language.typeId || SyGuERewriteRules.sygusCreatedId == e.edgeType.identifier)
     val idToType = inputEdges.filter(_.edgeType.identifier == Language.typeId).map(e => (e.sources(0), Programs.reconstruct(inputEdges, e.sources(1)).head)).toMap
     val knownTerms = collection.mutable.HashMultiMap.empty[HyperTermId, Entry]
     var lastLevel = for (e <- edges if e.sources.isEmpty) yield {

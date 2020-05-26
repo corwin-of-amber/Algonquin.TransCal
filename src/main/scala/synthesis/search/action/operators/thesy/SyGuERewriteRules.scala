@@ -10,7 +10,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.AnnotatedTree._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
+case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   require(terms.forall(_.subtrees.isEmpty))
   require(terms.forall(_.root.annotation.nonEmpty))
   require(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
@@ -23,7 +23,7 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
       val premisedParams = params.map(p =>
           withoutAnnotations(Language.andCondBuilderId, Seq(
             identifierOnly(Language.trueId),
-            withoutAnnotations(SyGuSRewriteRules.sygusCreatedId, Seq(p)
+            withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(p)
           ))
         ))
       assert(params.nonEmpty)
@@ -35,7 +35,7 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
         val conclusion = withoutAnnotations(Language.limitedAndCondBuilderId, Seq(
           withoutAnnotations(Language.andCondBuilderId, Seq(
             identifierOnly(Language.trueId),
-            withoutAnnotations(SyGuSRewriteRules.sygusCreatedId, Seq(withoutAnnotations(t.root, params)))
+            withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(withoutAnnotations(t.root, params)))
           ))
         ))
         withoutAnnotations(Language.limitedDirectedLetId, Seq(premise, conclusion))
@@ -47,17 +47,17 @@ case class SyGuSRewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
 
   override protected def ruleTemplates: Set[AnnotatedTree] = Set.empty
 
-  override protected def metadata: Metadata = SyGuSRewriteRules.SyGuSMetadata
+  override protected def metadata: Metadata = SyGuERewriteRules.SyGuSMetadata
 }
 
-object SyGuSRewriteRules {
+object SyGuERewriteRules {
   val sygusCreatedId = Identifier("sygusCreated")
 
   private val createdSearchGraph = {
     val parser = new TranscalParser()
-    Programs.destructPattern(parser.parseExpression(s"${SyGuSRewriteRules.sygusCreatedId.literal} ?x"))
+    Programs.destructPattern(parser.parseExpression(s"${SyGuERewriteRules.sygusCreatedId.literal} ?x"))
   }
-  private val sygusCreatedSearchHole = createdSearchGraph.findByEdgeType(ExplicitTerm(HyperTermIdentifier(SyGuSRewriteRules.sygusCreatedId)))
+  private val sygusCreatedSearchHole = createdSearchGraph.findByEdgeType(ExplicitTerm(HyperTermIdentifier(SyGuERewriteRules.sygusCreatedId)))
     .head.sources.head.asInstanceOf[ReferenceTerm[HyperTermId]]
 
   def getSygusCreatedNodes(graph: HyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperTermId] = {

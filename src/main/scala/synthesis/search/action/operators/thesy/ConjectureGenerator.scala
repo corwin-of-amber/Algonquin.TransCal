@@ -79,7 +79,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
 
   private val sygusRules = {
     // Need to use vocab as the function name is needed
-    SyGuSRewriteRules(
+    SyGuERewriteRules(
       (vocab.allSymbols.toSet).filter(isFunctionType)
         .map(t => t.copy(subtrees = Seq.empty))
     ).rewriteRules.map(_.asInstanceOf[RewriteRule])
@@ -89,7 +89,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     val symbols = vocab.allSymbols ++ placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly))
     val symbolsToUse = symbols.map(t => AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
       AnnotatedTree.identifierOnly(Language.trueId),
-      AnnotatedTree.withoutAnnotations(SyGuSRewriteRules.sygusCreatedId, Seq(t))
+      AnnotatedTree.withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(t))
     )))
     val tree = if (symbols.size > 1)
       AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse)
