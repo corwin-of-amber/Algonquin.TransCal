@@ -30,10 +30,6 @@ class ConjectureGenerator(vocab: SortedVocabulary,
   private val types: Set[AnnotatedTree] =
     vocab.datatypes.flatMap(d => d.constructors.map(_.annotation.get)).toSet ++ vocab.definitions.flatMap(_.getType)
 
-  private def createPlaceholder(placeholderType: AnnotatedTree, i: Int): Identifier =
-    Identifier(literal = s"Placeholder_${i}_type_${Programs.termToString(placeholderType)}",
-      annotation = Some(placeholderType))
-
   private val createAutoVar: AnnotatedTree => AnnotatedTree = {
     val counter = mutable.Map.empty[AnnotatedTree, Int].withDefault(_ => 0)
     (varType: AnnotatedTree) => {
@@ -130,9 +126,5 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     val soes = vocab.datatypes.map(d => new SOE(searcher, baseState, placeholders(d.asType).head, examples(d.asType)))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators.toSeq)))
     ObservationalEquivalence.mergeConclusions(baseState, idsToMerge.toSeq)
-  }
-
-  def inductionVar(varType: AnnotatedTree): Identifier = {
-    placeholders(varType).head
   }
 }
