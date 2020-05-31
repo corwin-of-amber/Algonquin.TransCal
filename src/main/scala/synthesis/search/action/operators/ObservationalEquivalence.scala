@@ -16,7 +16,9 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 
-class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLogging {
+class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[SearchAction] = None) extends Action with LazyLogging {
+  // TODO: Make search action a must
+  // TODO: add end pattern api to search action
   val uniquePrefix: String = UUID.randomUUID().toString
 
   protected def createSearchAction(oPattern: Option[HyperPattern]): SearchAction = {
@@ -26,9 +28,9 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
   def getEquivesFromRewriteState(rewriteSearchState: RewriteSearchState, rewriteRules: Set[Operator[RewriteSearchState]]): (RewriteSearchState, Set[Set[HyperTermId]]) = {
     val allAnchors = rewriteSearchState.graph.nodes.map(n => ObservationalEquivalence.createAnchor(uniquePrefix, n))
     rewriteSearchState.graph ++= allAnchors
-    val endPattern = ObservationalEquivalence.createEndPattern(allAnchors)
 
-    val opAction = createSearchAction(Some(endPattern))
+    val opAction =
+      searchAction.getOrElse(createSearchAction(Some(ObservationalEquivalence.createEndPattern(allAnchors))))
     val newState = opAction.fromRewriteState(rewriteSearchState, rewriteRules)
 
     val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(uniquePrefix, newState.graph.edges)
@@ -52,6 +54,7 @@ class ObservationalEquivalence(maxDepth: Int = 4) extends Action with LazyLoggin
   def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[Operator[RewriteSearchState]]): Set[Set[AnnotatedTree]] = {
     // TODO: fix id to term to be able to deal with moving term targets
     // TODO: insert common subterms once
+    // TODO: use programs terms constructor (more efficient)
     val graph = structures.mutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier]
     terms.foreach(t => {
       graph ++= Programs.destruct(t, if (graph.nonEmpty) graph.nodes.maxBy(_.id) else HyperTermId(0))

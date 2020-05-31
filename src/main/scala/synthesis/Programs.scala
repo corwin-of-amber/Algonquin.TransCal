@@ -7,6 +7,7 @@ import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, Cont
 import synthesis.search.rewrite.operators.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.action.ActionSearchState
+import synthesis.search.action.operators.CaseSplitAction
 import synthesis.search.action.operators.thesy.SyGuERewriteRules
 import synthesis.search.rewrite.RewriteSearchState
 import synthesis.search.rewrite.operators.RewriteRule
@@ -227,6 +228,9 @@ object Programs extends LazyLogging {
   def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(immutable.CompactHyperGraph(hyperGraph.toSeq: _*))
 
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
+
+  def apply(trees: Set[AnnotatedTree]): Programs =
+    Programs(CaseSplitAction.disjointAppend(trees.map(t => new RewriteSearchState(Programs.destruct(t)).graph).toSeq))
 
   private def flattenApply(term: AnnotatedTree): (Identifier, Seq[AnnotatedTree]) = {
     if (term.root == Language.applyId && term.subtrees.head.root == Language.applyId) {
