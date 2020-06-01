@@ -6,7 +6,7 @@ import structures.Hole
 import synthesis._
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import synthesis.search.action.ActionSearchState
-import synthesis.search.action.operators.thesy.{SyGuERewriteRules, TheoryExplorationAction}
+import synthesis.search.action.operators.thesy.{Prover, SyGuERewriteRules, TheoryExplorationAction}
 import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
@@ -32,9 +32,9 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
   val spbeAction = new TheoryExplorationAction(Set(nil.root, typedCons), grammar = Set(reverse, filter), examples = Map(listInt -> Seq(nil, xnil, xynil)))
-  val listPh = spbeAction.conjectureGenerator.inductionVar(listInt)
-  val intPh = spbeAction.conjectureGenerator.inductionVar(Language.typeInt)
-  val predicatePh = spbeAction.conjectureGenerator.inductionVar(predicate)
+  val listPh = thesy.inductionVar(listInt)
+  val intPh = thesy.inductionVar(Language.typeInt)
+  val predicatePh = thesy.inductionVar(predicate)
 
   // TODO: Split tests to conjecture generator tests and inductive step tests and integration tests.
 
@@ -169,11 +169,12 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
     val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
     val spbeAction = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil)), equivDepthOption = Some(6), termDepthOption = Some(2), splitDepthOption = Some(1))
-    val predicate = spbeAction.conjectureGenerator.inductionVar(predicateType)
-    val list = spbeAction.conjectureGenerator.inductionVar(listInt)
+    val predicate = thesy.inductionVar(predicateType)
+    val list = thesy.inductionVar(listInt)
     val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
     val filterfilter = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(AnnotatedTree.identifierOnly(predicate), filterOnPhs))
-    spbeAction.inductionStep(state, filterfilter, filterOnPhs) should not be empty
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    prover.inductionProof(filterfilter, filterOnPhs) should not be empty
   }
 
   test("testSygusStep can find reverse(l :+ x) and (x :: reverse(l))") {
@@ -221,7 +222,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val term2 = AnnotatedTree.withoutAnnotations(reverse.root, List(
       AnnotatedTree.withoutAnnotations(typedSnoc, List(listPh, intPh).map(AnnotatedTree.identifierOnly))
     ))
-    val newRules = action.inductionStep(state, term1, term2)
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    val newRules = prover.inductionProof(term1, term2)
     newRules should not be empty
   }
 
@@ -237,7 +239,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
       AnnotatedTree.withoutAnnotations(reverse.root, List(AnnotatedTree.identifierOnly(listPh))),
       AnnotatedTree.identifierOnly(intPh)
     ))
-    val newRules = action.inductionStep(state, term1, term2)
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    val newRules = prover.inductionProof(term1, term2)
     newRules shouldBe empty
   }
 
