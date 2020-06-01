@@ -78,11 +78,11 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter p (x :: y :: ⟨⟩))" cleanTypes)).head
     val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
     patternResults should not be empty
-    val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctId = patternResults.head._1(root.id)
     val correctSet = res.find(_.contains(correctId))
     correctSet should not be empty
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (x :: y :: ⟨⟩)" cleanTypes)).head
-    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.id)
     correctSet.get should contain (correctId2)
   }
 
@@ -98,11 +98,11 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter q (x :: y :: ⟨⟩))" cleanTypes)).head
     val patternResults = state.programs.hyperGraph.findSubgraph[Int](pattern)
     patternResults should not be empty
-    val correctId = patternResults.head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctId = patternResults.head._1(root.id)
     val correctSet = res.find(_.contains(correctId))
     correctSet should not be empty
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter q (filter p (x :: y :: ⟨⟩))" cleanTypes)).head
-    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+    val correctId2 = state.programs.hyperGraph.findSubgraph[Int](pattern2).head._1(root2.id)
     correctSet.get should contain (correctId2)
   }
 

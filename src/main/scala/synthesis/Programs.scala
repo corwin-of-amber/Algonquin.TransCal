@@ -1,6 +1,7 @@
 package synthesis
 
 import com.typesafe.scalalogging.LazyLogging
+import report.StopWatch
 import structures._
 import structures.generic.HyperGraph
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
@@ -272,7 +273,7 @@ object Programs extends LazyLogging {
     }
 
     // The reconstruct itself.
-    // TODO: I can multithread this part
+    val start = StopWatch.instance.now
     for (_ <- 0 until maxDepth) {
       lastLevel = for (e <- lastLevel if edgesByReqiurments.contains(e.edge.target);
            (iToFill, eToFill) <- edgesByReqiurments(e.edge.target);
@@ -476,16 +477,14 @@ object Programs extends LazyLogging {
   }
 
   def destructPatternWithRoot(tree: AnnotatedTree): (HyperPattern, ReferenceTerm[HyperTermId]) = {
-    val res = destructPatternsWithRoots(Seq(tree)).head
-    (res._1, res._2.asInstanceOf[ReferenceTerm[HyperTermId]])
+    destructPatternsWithRoots(Seq(tree)).head
   }
 
-  // TODO: Root should always be reference term
   def destructPatternsWithRoots(trees: Seq[AnnotatedTree], mergeRoots: Boolean = true)
-  : Seq[(HyperPattern, TemplateTerm[HyperTermId])] = {
+  : Seq[(HyperPattern, ReferenceTerm[HyperTermId])] = {
 
     // ------------------ Create Edges -----------------------
-    def edgeCreator(i: Identifier): TemplateTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
+    def edgeCreator(i: Identifier): ExplicitTerm[HyperTermIdentifier] = ExplicitTerm(HyperTermIdentifier(i))
 
     val holeCreator = Stream.from(0).iterator.map(ReferenceTerm[HyperTermId])
     val vars = trees.flatMap(t => t.leaves.filter(_.root.literal.startsWith("?"))).map(t =>
@@ -525,12 +524,15 @@ object Programs extends LazyLogging {
       else {
         val inner =
           innerDestruct[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](tree, holeCreator, edgeCreator)
-        (inner._1, inner._2)
+        // Although it returns a template term, it represents the target,
+        // whihc should always be a hole as hole creator is used.
+        (inner._1.asInstanceOf[ReferenceTerm[HyperTermId]], inner._2)
       }
     })
 
     // ------------------ To Compact Graph -----------------------
-    def anchorCreator(i: Int) = ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for $i")))
+    def anchorCreator(i: Int): ExplicitTerm[HyperTermIdentifier] =
+      ExplicitTerm(HyperTermIdentifier(Identifier(s"Pattern anchor for $i")))
 
     // Add anchors on roots to return the right root later
     val anchoredGraphs = edges.zipWithIndex.map({ case ((target, graphEdges), i) =>
@@ -561,7 +563,9 @@ object Programs extends LazyLogging {
     for ((graph, target) <- results) {
       assert(graph.nodes.contains(target))
     }
-    results
+
+    // The assumption that target is hole should hold after merge. Using markers should simplify this
+    results.map({case (g, t) => (g, t.asInstanceOf[ReferenceTerm[HyperTermId]])})
   }
 
   /** Iterator which combines sequence of iterators (return all combinations of their results).
