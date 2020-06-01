@@ -67,8 +67,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => {
       val newState = r.apply(state)
-      val id = patternRoot.asInstanceOf[ReferenceTerm[HyperTermId]].id
-      newState.graph.findSubgraph[Int](pattern).head._1(id) == newState.graph.findEdges(anchor).head.target
+      newState.graph.findSubgraph[Int](pattern).head._1(patternRoot.id) == newState.graph.findEdges(anchor).head.target
     }) shouldEqual true
   }
 
@@ -81,9 +80,8 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
       val state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
       rules.exists(r => {
         val newState = r.apply(state)
-        val id = patternRoot.asInstanceOf[ReferenceTerm[HyperTermId]].id
         val findRes = newState.graph.findSubgraph[Int](pattern)
-        findRes.nonEmpty && findRes.head._1(id) == newState.graph.findEdges(anchor).head.target
+        findRes.nonEmpty && findRes.head._1(patternRoot.id) == newState.graph.findEdges(anchor).head.target
       }) shouldEqual true
     }
 
