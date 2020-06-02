@@ -4,12 +4,10 @@ import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.Operator
-import synthesis.search.action.ActionSearchState
-import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import synthesis.search.action.operators.{CaseSplitAction, ObservationalEquivalence, OperatorRunWithCaseSplit, SearchAction}
+import synthesis.search.action.operators.{ObservationalEquivalence, SearchAction}
 import synthesis.search.rewrite.RewriteSearchState
-import synthesis.search.rewrite.operators.RewriteRule
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
 import transcallang.{AnnotatedTree, Identifier}
 
 class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
@@ -39,7 +37,7 @@ class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputM
     val resGraph = replacedGraphs.head
     var max = resGraph.nodes.maxBy(_.id)
     replacedGraphs.tail.foreach(g => {
-      resGraph ++= CaseSplitAction.shiftEdges(max.id + 1, g.edges)
+      resGraph ++= search.shiftEdges(max.id + 1, g.edges)
       max = resGraph.nodes.maxBy(_.id)
     })
     new RewriteSearchState(resGraph)
