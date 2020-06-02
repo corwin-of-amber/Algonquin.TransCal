@@ -56,8 +56,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
     gen.headOption match {
       case None =>
         logger.info("Failed to generalize")
-        // TODO: return state
-        tempState
+        state
       case Some(newTerm) =>
         logger.info(s"Generalized to ${Programs.termToString(newTerm)}")
         tempState.copy(rewriteRules = tempState.rewriteRules ++ new LetAction(newTerm).rules)
