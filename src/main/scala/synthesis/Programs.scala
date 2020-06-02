@@ -231,7 +231,7 @@ object Programs extends LazyLogging {
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
 
   def apply(trees: Set[AnnotatedTree]): Programs =
-    Programs(CaseSplitAction.disjointAppend(trees.map(t => new RewriteSearchState(Programs.destruct(t)).graph).toSeq))
+    Programs(search.disjointAppend(trees.map(t => new RewriteSearchState(Programs.destruct(t)).graph).toSeq))
 
   private def flattenApply(term: AnnotatedTree): (Identifier, Seq[AnnotatedTree]) = {
     if (term.root == Language.applyId && term.subtrees.head.root == Language.applyId) {
