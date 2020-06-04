@@ -10,7 +10,6 @@ import synthesis.search.rewrite.operators.RewriteRule
 import synthesis.search.rewrite.operators.Template.ExplicitTerm
 import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, TranscalParser}
-import ui.Main.readJFile
 
 import scala.language.higherKinds
 
@@ -19,7 +18,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
   private val parser = new TranscalParser()
 
   private def abstractTest(fileName: String): ActionSearchState = {
-    val userInput: Iterator[AnnotatedTree] = readJFile(new JFile(fileName))
+    val userInput: Iterator[AnnotatedTree] = Main.readFile(new JFile(fileName))
     val userOutput: ByteArrayOutputStream = new ByteArrayOutputStream()
     val interpreter = new Interpreter(userInput, new PrintStream(userOutput))
     interpreter.start()

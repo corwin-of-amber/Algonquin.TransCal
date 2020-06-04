@@ -72,9 +72,23 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   // TODO: fix tests and make this private
   val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
 
+  /**
+    * Auxiliary class for a Prover and a ConjectureChecker that are tightly coupled,
+    * which cannot be declared separately due to forward reference rules
+    * @param state
+    */
+  private class ProverCheckerBundle(state: ActionSearchState) {
+    val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules) {
+      override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
+        super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
+    }
+    val checker = new ConjectureChecker(prover, searcher)
+
+    def toTuple = (prover, checker)
+  }
+
   override def apply(state: ActionSearchState): ActionSearchState = {
-    val prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules)
-    val conjectureChecker = new ConjectureChecker(prover, searcher)
+    val (prover, conjectureChecker) = new ProverCheckerBundle(state).toTuple
     val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
     var newRules = Set.empty[AnnotatedTree]
 

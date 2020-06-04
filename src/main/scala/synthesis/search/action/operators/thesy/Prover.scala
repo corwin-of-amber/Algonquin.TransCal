@@ -61,9 +61,8 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
 
     // Precondition on each direction of the hypothesis
     Seq((cleanTerm1, cleanTerm2), (cleanTerm2, cleanTerm1)).flatMap({ case (t1, t2) =>
-      new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(
-        AnnotatedTree.withoutAnnotations(Language.trueCondBuilderId, Seq(precondition, t1)), t2
-      ))).rules
+      createRules(
+        AnnotatedTree.withoutAnnotations(Language.trueCondBuilderId, Seq(precondition, t1)), t2)
     })
   }
 
@@ -71,8 +70,8 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 
-    val term1 = tree1 cleanTypes
-    val term2 = tree2 cleanTypes
+    val term1 = tree1.cleanTypes
+    val term2 = tree2.cleanTypes
 
     // TODO: Once we support dependant types or enumerationg polymorphic types instantiantions we need to change this
     // TODO: Try all knwon types

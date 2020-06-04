@@ -18,6 +18,14 @@ class Stats {
     }
     finally { out.close() }
   }
+
+  def dumpOnExit(filename: String = "stats.out"): Unit = {
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run() {
+        dumpToFile(filename)
+      }
+    })
+  }
 }
 
 
@@ -68,7 +76,7 @@ object Stats {
       ).mkString("\n")
     }
     private def formatCell(v: Option[T]) = v.map(toStringSafe).getOrElse("")
-    private def toStringSafe(o: Any) = if (o == null) "-null-" else o.toString
+    private def toStringSafe(o: Any) = if (o == null) "(null)" else o.toString
 
     def withTotals(cols: Seq[Int], aggregate: Seq[T] => T) = if (cols.isEmpty) this else {
       val sums = cols.map(i => i -> aggregate(data.map(_(i)).collect { case Some(v) => v })).toMap

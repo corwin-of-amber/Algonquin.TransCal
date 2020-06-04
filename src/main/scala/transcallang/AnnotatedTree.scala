@@ -46,6 +46,10 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
       case Some(sw) => sw._2
       case _ => copy(subtrees=subtrees map (_.replaceDescendants(switch)))
     }
+
+  def split(symbol: Identifier): Seq[AnnotatedTree] =
+    if (root == symbol) subtrees.flatMap(_.split(symbol))
+    else Seq(this)
 }
 
 object AnnotatedTree {

@@ -42,6 +42,7 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
       }
 
       new LetAction(term, cleanTypes = false).rules
+        .map(_.withTermString(s"SyGuS[${t.root.literal}]"))
     })
   }
 

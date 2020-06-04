@@ -1,6 +1,6 @@
 package ui
 
-import java.io.{PrintStream, File => JFile}
+import java.io.{PrintStream, File}
 import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
@@ -23,41 +23,39 @@ object Main extends App with LazyLogging {
   val parser = new TranscalParser()
 
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
-    val file: ScallopOption[JFile] = opt[JFile]()
+    val file: ScallopOption[File] = opt[File]()
     validateFileIsFile(file)
     validateFileExists(file)
     verify()
   }
 
-  private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] = {
-    term.root match {
-      case transcallang.Language.semicolonId => term.subtrees.flatMap(splitByStatements).iterator
-      case _ => Iterator(term)
-    }
-  }
+  private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] =
+    term.split(transcallang.Language.semicolonId).iterator
 
   def readLines(lines: Iterator[String]) = {
     val parser = new TranscalParser()
     splitByStatements(parser(lines.mkString("\n")))
   }
 
-  def readJFile(jFile: JFile): Iterator[AnnotatedTree] = {
-    logger.warn(s"file name - ${jFile.getName}")
-    val file = Source.fromFile(jFile)
+  def readFile(file: File): Iterator[AnnotatedTree] = {
+    logger.warn(s"file name - ${file.getName}")
+    val source = Source.fromFile(file)
     try {
-      readLines(file.getLines())
+      readLines(source.getLines())
     } finally {
-      file.close()
+      source.close()
     }
   }
 
   val conf = new CommandLineConfiguration(args.toIndexedSeq)
   val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
-  val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readJFile)
+  val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readFile)
   val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
   val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
-  val interpreter = new Interpreter(userInput, userOutput)
 
+  Stats.instance.dumpOnExit()
+
+  val interpreter = new Interpreter(userInput, userOutput)
   val lastState = interpreter.start()
 
   val fullProgram = lastState.programs
@@ -67,6 +65,4 @@ object Main extends App with LazyLogging {
   println(f"nodes: ${hyperGraph.nodes}")
   println(f"number of nodes: ${hyperGraph.nodes.size}")
   println(s"End time: ${Calendar.getInstance().getTime}")
-
-  Stats.instance.dumpToFile()
 }

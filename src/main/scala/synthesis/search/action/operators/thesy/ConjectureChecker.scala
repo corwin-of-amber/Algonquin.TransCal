@@ -100,4 +100,7 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogg
       case _ => v
     })
   }
+
+  def stringForRule(lhs: AnnotatedTree, rhs: AnnotatedTree) =
+    Programs.termToString(prettify(AnnotatedTree(transcallang.Language.letId, Seq(lhs, rhs), Seq())))
 }
