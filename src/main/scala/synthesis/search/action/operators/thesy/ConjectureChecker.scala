@@ -7,7 +7,7 @@ import synthesis.search.{Operator, action}
 import synthesis.search.action.ActionSearchState
 import synthesis.search.action.operators.{CaseSplitAction, LocateAction, ObservationalEquivalence, SearchAction}
 import synthesis.search.rewrite.RewriteSearchState
-import transcallang.{AnnotatedTree, Language}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
 
@@ -41,7 +41,7 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogg
       if (newState.programs.findTree(term1).intersect(newState.programs.findTree(term2)).nonEmpty) {
         failedAttempts.remove(i)
       } else {
-        val res = prover.inductionProof(term1, term2).collect({ case rr => rr })
+        val res = prover.inductionProof(term1, term2) //.collect({ case rr => rr })
         if (res.nonEmpty) {
           foundRules ++= res
           found.append((term1.map(i => if (i.literal.startsWith(placeholderString)) i.copy(literal = "?" + i.literal) else i),
@@ -91,5 +91,13 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogg
           }
         })
     }).toSet flatMap ((trees: Seq[(AnnotatedTree, AnnotatedTree)]) => trees.map({case (t1,t2) => AnnotatedTree.withoutAnnotations(Language.letId, Seq(t1, t2))}))
+  }
+
+  def prettify(term: AnnotatedTree) = {
+    val phs = term.nodes.map(_.root).filter(_.literal.startsWith("?"))
+    term.map((v: Identifier) => phs.indexOf(v) match {
+      case i if i >= 0 => new Identifier(s"?${i}")
+      case _ => v
+    })
   }
 }

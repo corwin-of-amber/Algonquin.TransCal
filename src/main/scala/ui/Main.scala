@@ -5,6 +5,7 @@ import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.ScallopOption
+import report.Stats
 import synthesis._
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
@@ -65,13 +66,7 @@ object Main extends App with LazyLogging {
   println(f"size: $hyperGraph.size")
   println(f"nodes: ${hyperGraph.nodes}")
   println(f"number of nodes: ${hyperGraph.nodes.size}")
-  println("============================== In time complex ==============================")
-  val timeComplexes = hyperGraph.filter(_.edgeType.identifier == Language.unionId).map(_.target).toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map{case(tree, complexity) => (Programs.termToString(tree), complexity)}
-  println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Language.timeComplexId)} - total time complexities ${timeComplexes.size}")
-  timeComplexes.foreach(println)
   println(s"End time: ${Calendar.getInstance().getTime}")
-//  println("============================== Reconstruct ==============================")
-//  hyperGraph.nodes.flatMap(
-//    node => fullProgram.reconstruct(node).take(10).map(Programs.termToString).map((node, _))
-//  ).foreach(println)
+
+  Stats.instance.dumpToFile()
 }

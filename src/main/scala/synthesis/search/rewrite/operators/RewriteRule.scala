@@ -1,6 +1,7 @@
 package synthesis.search.rewrite.operators
 
 import com.typesafe.scalalogging.LazyLogging
+import report.Stats
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 import structures.mutable.HyperGraph
@@ -28,25 +29,34 @@ class RewriteRule(val premise: HyperPattern,
 
   override def hashCode(): Int = toString.hashCode
 
-  require(conclusion.nodes.forall({
-    case Ignored() => false
-    case _ => true
-  }))
+  require(!conclusion.nodes.contains(Ignored()))
 
   private val mutablePremise = mutable.HyperGraph(premise.toSeq: _*)
   private val conclusionExpansionNeeded = conclusion.nodes.exists(_.isInstanceOf[Repetition[HyperTermId, Int]])
   private val conclusionMutable = mutable.CompactHyperGraph(conclusion.toSeq: _*).asInstanceOf[RewriteRule.MutableHyperPattern]
 
-  // Add metadata creator
-  override def apply(state: RewriteSearchState): (RewriteSearchState) = {
+  def withTermString(termString: String) = new RewriteRule(premise, conclusion, metaCreator, termString)
+
+  /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
+    * unless operator is existential
+    *
+    * @param state state on which to run operator
+    * @return (new state after update, next relevant version)
+    */
+  override def apply(state: RewriteSearchState): RewriteSearchState = apply(state)
+  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = apply(state, true)
+
+  def apply(state: RewriteSearchState, versioned: Boolean = false): RewriteSearchState = {
     logger.trace(s"Running rewrite rule $this")
 
     val halfFilledPatterns = fillConclusions(state, false)
     if (halfFilledPatterns.nonEmpty) {
       logger.debug(s"Used RewriteRule $this ")
+      val edges = getConclusionsByState(state, halfFilledPatterns)
+      state.graph ++= edges
+      Stats.instance.ruleUsage.inc(this, edges.size)
     }
-    state.graph ++= getConclusionsByState(state, halfFilledPatterns)
-    (state)
+    state
   }
 
   /* --- Privates --- */
@@ -133,23 +143,6 @@ class RewriteRule(val premise: HyperPattern,
     else conclusionMutable.clone()
   }
 
-  /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
-    * unless operator is existential
-    *
-    * @param state state on which to run operator
-    * @return (new state after update, next relevant version)
-    */
-  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = {
-    logger.trace(s"Running rewrite rule $this")
-
-    val halfFilledPatterns = fillConclusions(state, true)
-    if (halfFilledPatterns.nonEmpty) {
-      logger.debug(s"Used RewriteRule $this ")
-    }
-    state.graph ++= getConclusionsByState(state, halfFilledPatterns)
-    (state)
-  }
-
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
@@ -180,7 +173,10 @@ class RewriteRule(val premise: HyperPattern,
       maxHole = Math.max(maxHole, moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max)
       moved
     })
-    if (res.nonEmpty) logger.debug(s"Stepped with RewriteRule $this")
+    if (res.nonEmpty) {
+      logger.debug(s"Stepped with RewriteRule $this")
+      Stats.instance.ruleUsage.inc(this, res.size)
+    }
     res
   }
 }

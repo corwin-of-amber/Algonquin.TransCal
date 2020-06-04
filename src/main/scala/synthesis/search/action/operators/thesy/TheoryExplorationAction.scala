@@ -34,6 +34,7 @@ import scala.collection.mutable
   * @param splitDepthOption       Allow nested split case up to this depth
   * @param preRunDepth            When using case split it is more efficient to run rewrite search before each split
   * @param placeholderCountOption How many place holders to create
+  * @param reprove                Once finished, check for rules that have become provable
   */
 class TheoryExplorationAction(typeBuilders: Set[Identifier],
                               grammar: Set[AnnotatedTree],
@@ -42,7 +43,8 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
                               equivDepthOption: Option[Int] = None,
                               splitDepthOption: Option[Int] = None,
                               preRunDepth: Option[Int] = None,
-                              placeholderCountOption: Option[Int] = None) extends Action {
+                              placeholderCountOption: Option[Int] = None,
+                              reprove: Boolean = true) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
   var termCount = 0
   var failedProofs = 0
@@ -55,13 +57,13 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   val placeholderCount = placeholderCountOption.getOrElse(2)
 
   // TODO: change input into sorted vocab
-  // TODO: Should be provate, change tests
+  // TODO: Should be private, change tests
   val vocab = {
     val baseType = typeBuilders.find(_.annotation.get.root != Language.mapTypeId).flatMap(_.annotation).get
     SortedVocabulary(Seq(Datatype(baseType.root, baseType.subtrees, typeBuilders.toSeq)), grammar.toSeq)
   }
 
-  // TODO: Should be provate, change tests
+  // TODO: Should be private, change tests
   val searcher = {
     val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
     new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth)
@@ -101,29 +103,32 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
       foundRules.last ++= newRules
       logger.info(s"Found new lemmas in depth $i:")
       for (t <- foundRules.last)
-        logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
+        logger.info(s"  + ${Programs.termToString(conjectureChecker.prettify(t))}")
     }
 
-    logger.info(s"Searching for rules that have become provable:")
-    var continue = 0
-    if (newRules.nonEmpty) {
-      val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules)
-      do {
-        // Reset versioning to look only on results from new rules.
-        val classes: Set[Set[AnnotatedTree]] = Programs.reconstructAll(equivalenceClasses.graph, termDepth)
-          .groupBy(_.edge.target).values.toSet
-          .map((s: Set[Programs.Entry]) => s.map(_.tree))
-        newRules = conjectureChecker.checkConjectures(classes)
-        continue += 1
-        logger.warn(s"Finished finding rules repeat $continue depth ${termDepth}  @  ${StopWatch.instance.now}")
-        for (t <- foundRules.last)
-          logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
-        foundRules.last ++= newRules
-      } while (newRules.nonEmpty)
+    if (reprove) {
+      logger.info(s"Searching for rules that have become provable:")
+      var continue = 0
+      if (newRules.nonEmpty) {
+        val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules)
+        do {
+          // Reset versioning to look only on results from new rules.
+          val classes: Set[Set[AnnotatedTree]] = Programs.reconstructAll(equivalenceClasses.graph, termDepth)
+            .groupBy(_.edge.target).values.toSet
+            .map((s: Set[Programs.Entry]) => s.map(_.tree))
+          newRules = conjectureChecker.checkConjectures(classes)
+          continue += 1
+          logger.warn(s"Finished finding rules repeat $continue depth ${termDepth}  @  ${StopWatch.instance.now}")
+          for (t <- foundRules.last)
+            logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
+          foundRules.last ++= newRules
+        } while (newRules.nonEmpty)
+      }
     }
     logger.info("Done searching for rules:")
     for (t <- foundRules.flatten)
-      logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
+      logger.info(s"  ⦿ ${Programs.termToString(conjectureChecker.prettify(t))}")
+      //logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
     //    }
 
     logger.info(s"Done SPBE  @  ${StopWatch.instance.now}")
@@ -132,4 +137,5 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
     logger.info(s"retry success count: $retriedProofs")
     state.copy(rewriteRules = prover.knownRules)
   }
+
 }

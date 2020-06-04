@@ -110,20 +110,19 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
           AnnotatedTree.identifierOnly(Identifier(s"param$i"))
         })
       )
-      val phToConstructed = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(
+      val phToConstructed = createRules(
         AnnotatedTree.identifierOnly(cleanVars(identMapper(inductionPh, inductionPh))),
         constructedVal
-      )))
+      )
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
       val state = new RewriteSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last).hyperGraph)
-      val nextState = searcher.fromRewriteState(state, mutableRules.toSet ++ hypoths ++ phToConstructed.rules ++ ltwfRules(ourType))
+      val nextState = searcher.fromRewriteState(state, mutableRules.toSet ++ hypoths ++ phToConstructed ++ ltwfRules(ourType))
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
       nextState.graph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
-      val newRules = new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(updatedTerm1, updatedTerm2)),
-        allowExistential = false).rules
+      val newRules = createRules(updatedTerm1, updatedTerm2)
       mutableRules ++= newRules
       newRules
     } else {
@@ -132,6 +131,10 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
       Set.empty
     }
   }
+
+  def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
+    new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(lhs, rhs)),
+                  allowExistential = false).rules
 }
 
 object Prover {
