@@ -32,11 +32,12 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
       (patterns(0), patterns(1))
     }
 
-    val premise: HyperPattern = {
-      val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
-      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
-      pattern.+(newRootEdge).-(rootEdge)
-    }
+//    val premise: HyperPattern = {
+//      val rootEdge = pattern.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
+//      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Ignored[HyperTermId, Int]()).get)
+//      pattern.+(newRootEdge).-(rootEdge)
+//    }
+    val premise = pattern
 
     // TODO: Add non existantial double directed rewrites for matches
     val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName), Programs.termToString(term))
@@ -49,10 +50,13 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
   private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
     t.root match {
       case i: Identifier if Language.builtinDefinitions.contains(i) =>
-        val conclusionIsSingle = t.subtrees.last.size == 1 && (t.subtrees.last.root.literal.startsWith("?") || t.nodes.map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(t.subtrees.last.root.literal))
-        val premiseIsSingle = t.subtrees.last.size == 1 && (t.subtrees.head.root.literal.startsWith("?") || t.nodes.map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(t.subtrees.head.root.literal))
-
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
+
+        val conclusionIsSingle = results.last._2.size == 1 && (results.last._2.root.literal.startsWith("?") ||
+          results.flatMap(_._2.nodes).map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(results.last._2.root.literal))
+        val premiseIsSingle = results.head._2.size == 1 && (results.head._2.root.literal.startsWith("?") ||
+          results.flatMap(_._2.nodes).map(_.root.literal).filter(_.startsWith("?")).map(_.drop(1)).contains(results.head._2.root.literal))
+
         val (premise, conclusion) = {
           val temp = Programs.destructPatterns(Seq(results(0)._2, results(1)._2),
             mergeRoots = !Language.builtinLimitedDefinitions.contains(i))
@@ -61,7 +65,7 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
 
         val newRules: Set[RewriteRule] = {
           val optionalRule: Set[RewriteRule] =
-            if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
+            if (Language.builtinDirectedDefinitions.contains(i)) Set.empty
             else {
               val toUsePremise = if (!premiseIsSingle) premise
                                 else Programs.destructPatterns(Seq(AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(0)._2)), results(1)._2), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).head
@@ -77,16 +81,16 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
         if (premise == conclusion) (results.flatMap(_._1).toSet, t.copy(subtrees = results.map(_._2)))
         else (newRules ++ results.flatMap(_._1), t.copy(subtrees = results.map(_._2)))
       case Language.lambdaId =>
-        val newFunc = optName.getOrElse(LetAction.functionNamer(t))
+        val newFunc = optName.map(x => x.copy(literal = x.literal + "'")).getOrElse(LetAction.functionNamer(t))
         createRuleWithNameFromLambda(t.subtrees(0), t.subtrees(1), newFunc)
       case Language.matchId =>
         val param = t.subtrees.head
-        val newFunc = optName.getOrElse(LetAction.functionNamer(t))
+        val newFunc = optName.map(x => x.copy(literal = x.literal + "'")).getOrElse(LetAction.functionNamer(t))
         val guarded = t.subtrees.tail
         val innerRules = guarded.flatMap(g => createRuleWithNameFromLambda(g.subtrees(0), g.subtrees(1), newFunc)._1).toSet
         (innerRules, AnnotatedTree(newFunc, if (param.root == Language.tupleId) param.subtrees else List(param), Seq.empty))
       case _ =>
-        val results = t.subtrees map (s => createRewrites(s))
+        val results = t.subtrees map (s => createRewrites(s, optName))
         val subtrees = results.map(_._2)
         val innerRewrites = results.flatMap(_._1)
         (innerRewrites.toSet, AnnotatedTree(t.root, subtrees, Seq.empty))
