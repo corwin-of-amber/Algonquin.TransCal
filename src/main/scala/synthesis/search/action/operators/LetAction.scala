@@ -35,10 +35,13 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
     }
     val repetitionTerm = RepetitionTerm.rep0[HyperTermId](Int.MaxValue, Stream.from(repetitionStart).map(ReferenceTerm(_))).get
 
-    val rootEdge = lhs.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName))).head
+    val rootEdges = lhs.findEdges(new ExplicitTerm(HyperTermIdentifier(funcName)))
     val premise: HyperPattern = {
-      val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ repetitionTerm)
-      lhs.+(newRootEdge).-(rootEdge)
+      if (rootEdges.isEmpty) lhs
+      else {
+        val newRootEdge = rootEdges.head.copy(sources = rootEdges.head.sources :+ repetitionTerm)
+        lhs.-(rootEdges.head).+(newRootEdge)
+      }
     }
 
     // There is no promise that the conclusion has a single edge from target.
@@ -60,14 +63,16 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
         graph --= graph.findByTarget(ReferenceTerm(repetitionStart - 2))
     }
 
-    // TODO: Add non existantial double directed rewrites for matches
     val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName), Programs.termToString(term), Seq(preProcessor))
     val optionalRewrite = (if(body.root != Language.limitedAndCondBuilderId && body.root != Language.andCondBuilderId) {
         val newPremise = {
           assert(rhs.findByTarget(rRoot).size == 1)
-          val rootEdge = rhs.findByTarget(rRoot).head
-          val newRootEdge = rootEdge.copy(sources = rootEdge.sources :+ repetitionTerm)
-          rhs.-(rootEdge).+(newRootEdge)
+          val rootEdges = rhs.findByTarget(rRoot)
+          if (rootEdges.isEmpty) rhs
+          else {
+            val newRootEdge = rootEdges.head.copy(sources = rootEdges.head.sources :+ repetitionTerm)
+            rhs.-(rootEdges.head).+(newRootEdge)
+          }
         }
         val newConclusion = {
           lhsToUse.+(HyperEdge(
@@ -114,19 +119,20 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
         val (((lhs, _), (rhsToUse, _)), ((lhsToUse, _), (rhs, _))) = fixSingles(results.head._2, results.last._2, !Language.builtinLimitedDefinitions.contains(i))
 
         val newRules: Set[RewriteRule] = {
-          val optionalRule: Set[RewriteRule] =
-            if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
-            else {
-              val toUsePremise = if (!premiseIsSingle) premise
-                                else Programs.destructPatterns(Seq(AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(0)._2)), results(1)._2), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).head
-              Set(new RewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root), Programs.termToString(t)))
-            }
-          val toUseConclusion = if (!conclusionIsSingle) conclusion
-                                else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
-          val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
-          Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
+          if ((!Language.builtinLimitedDefinitions.contains(i)) &&
+            results.head._2.subtrees.forall(st => st.root.literal.startsWith("?") && st.subtrees.isEmpty)) {
+            // In case of function definition we want to take care of premise and conclusion
+            createRuleWithNameFromLambda(AnnotatedTree.withoutAnnotations(Language.tupleId, results.head._2.subtrees), results.last._2, results.head._2.root, !Language.builtinDirectedDefinitions.contains(t.root))._1
+          } else {
+            val optionalRule: Set[RewriteRule] =
+              if (Language.builtinDirectedDefinitions.contains(t.root)) Set.empty
+              else Set(new RewriteRule(rhs, lhsToUse, metadataCreator(t.subtrees(1).root), Programs.termToString(t)))
+            val requiredRule = Set(new RewriteRule(lhs, rhsToUse, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
+            Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
+          }
         }
-        if (newRules.exists(_.isExistential)) logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
+        if (newRules.exists(_.isExistential))
+          logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
 
         if (rhsToUse == lhsToUse) (results.flatMap(_._1).toSet, t.copy(subtrees = results.map(_._2)))
         else (newRules ++ results.flatMap(_._1), t.copy(subtrees = results.map(_._2)))
