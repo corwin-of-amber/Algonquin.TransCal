@@ -6,7 +6,7 @@ import structures._
 import structures.mutable.HyperGraph
 import synthesis.search.rewrite.RewriteSearchState
 import synthesis.search.rewrite.operators.RewriteRule._
-import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
+import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.{StepOperator, VersionedOperator}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
@@ -21,7 +21,8 @@ import scala.annotation.tailrec
 class RewriteRule(val premise: HyperPattern,
                   val conclusion: HyperPattern,
                   val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
-                  val termString: String = null) extends VersionedOperator[RewriteSearchState]
+                  val termString: String = null,
+                  val postProcessors: Seq[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends VersionedOperator[RewriteSearchState]
   with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
@@ -71,14 +72,16 @@ class RewriteRule(val premise: HyperPattern,
       else state.graph.findSubgraph[Int](subGraphPremise)
 
     val edgeToTarget = collection.mutable.HashMap.empty[(HyperTermIdentifier, Seq[HyperTermId]), HyperTermId]
+
     @tailrec
-    def fillKnownTargets(halfFilled: mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]): mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] = {
+    def fillKnownTargets(halfFilled: mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]])
+    : mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]] = {
       val toFill = halfFilled.edges
         .collect({
           case HyperEdge(t: ReferenceTerm[HyperTermId], et: ExplicitTerm[HyperTermIdentifier], s: Seq[Item[HyperTermId, Int]], _) if s.forall(_.isInstanceOf[ExplicitTerm[HyperTermId]]) =>
             (t.id, et.value, s.map(_.asInstanceOf[ExplicitTerm[HyperTermId]].value))
         })
-      val fillValues = toFill.flatMap({case (t, et, s) =>
+      val fillValues = toFill.flatMap({ case (t, et, s) =>
         edgeToTarget.get((et, s)).map((t, _))
         if (edgeToTarget.contains((et, s))) Some((t, edgeToTarget((et, s))))
         else {
@@ -95,9 +98,9 @@ class RewriteRule(val premise: HyperPattern,
 
     val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
       // TODO: undo this. just want better runtime then listing the graph a million times.
-//      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
+      //      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
       val meta = metaCreator(m._1, m._2)
-      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta), m)
+      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta, m._1, m._2), m)
       val furtherFilling = fillKnownTargets(merged)
       if (state.graph.findSubgraph[Int](furtherFilling).nonEmpty) None
       else Some((furtherFilling, meta))
@@ -113,13 +116,15 @@ class RewriteRule(val premise: HyperPattern,
   private val destHoles = conclusion.edges.flatMap(_.sources).filter(_.isInstanceOf[Hole[HyperTermId, Int]]).diff(conclusion.targets)
   private val condHoles = premise.nodes.filter(_.isInstanceOf[Hole[HyperTermId, Int]])
   private val existentialHoles = destHoles.diff(condHoles)
+  private val repetitionEdges = conclusion.edges.filter(_.sources.exists(_.isInstanceOf[RepetitionTerm[HyperTermId]]))
 
   def isExistential: Boolean = existentialHoles.nonEmpty
 
-  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata): MutableHyperPattern = {
+  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata, idMap: Map[Int, HyperTermId], edgeMap: Map[Int, HyperTermIdentifier]): MutableHyperPattern = {
+    val withExist = conclusionMutable.clone()
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {
-        val temp = graph.edgeTypes.filter(_.identifier.literal.toString.startsWith("existential")).map(_.identifier.literal.toString.drop("existential".length).toInt)
+        val temp = graph.edgeTypes.filter(_.identifier.literal.startsWith("existential")).map(_.identifier.literal.drop("existential".length).toInt)
         if (temp.isEmpty) -1 else temp.max
       }
 
@@ -128,9 +133,27 @@ class RewriteRule(val premise: HyperPattern,
         HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](existentialHole,
           Explicit(HyperTermIdentifier(Identifier(s"existential${existentialsMax + index + 1}", namespace = Some(new Namespace {})))), Seq.empty, metadata)
       })
-      conclusionMutable.clone().++=(existentialEdges)
+      withExist.++=(existentialEdges)
     }
-    else conclusionMutable.clone()
+    for (re <- repetitionEdges) {
+      val newEdge = re.copy(sources = re.sources.flatMap({
+        case Repetition(min, max, rep) =>
+          // This is ok because:
+          //  a. for each min to max we will have a different match (different m)
+          //  b. max will be reached during takewhile because the original findsubgraph is finite
+          val start = rep.take(min)
+          assert(start.forall(item => (!item.isInstanceOf[RepetitionTerm[HyperTermId]]) && !item.isInstanceOf[Ignored[HyperTermId, Int]]))
+          start.toSeq ++ rep.drop(min).takeWhile({
+            case ExplicitTerm(_) => true
+            case ReferenceTerm(id) => idMap.contains(id)
+            case Repetition(_, _, _) => throw new IllegalArgumentException("Can't have nested repetitions")
+            case Ignored() => throw new IllegalArgumentException("Can't have Ignored in conclusions")
+          })
+        case i => Seq(i)
+      }))
+      withExist.-=(re).+=(newEdge)
+    }
+    postProcessors.foldLeft(withExist)({case (g, pp) => pp(idMap, edgeMap, g)})
   }
 
   /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
@@ -189,7 +212,7 @@ object RewriteRule {
 
   /* --- Public --- */
   type HyperPattern = immutable.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
-  private type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
+  type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
   case class RewriteRuleMetadata(origin: RewriteRule, originalEdges: RewriteRule.HyperPattern) extends Metadata {
