@@ -10,6 +10,7 @@ import synthesis.search.rewrite.operators.RewriteRule.HyperPattern
 import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.search.rewrite.operators.operators._
+import transcallang.{Identifier, TranscalParser}
 
 /**
   * @author tomer
@@ -88,6 +89,17 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
         else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
       }
     }
+  }
+
+  property("Can use repetition in conclusion") {
+    forAll{(state: RewriteSearchState) => whenever(state.graph.nonEmpty) {
+      val edge = HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](ReferenceTerm[HyperTermId](0), ReferenceTerm(1), Seq(Repetition.rep0(10, Stream.from(2).map(ReferenceTerm(_))).get), EmptyMetadata)
+      val premise = CompactHyperGraph(edge)
+      val conclusion = CompactHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edge.copy(edgeType = ExplicitTerm(HyperTermIdentifier(Identifier("00500")))))
+      val rule = new RewriteRule(premise, conclusion, (_, _) => EmptyMetadata)
+      val origSize = state.graph.size
+      rule(state).graph.edges.size should be >= (origSize + state.graph.edges.map(_.sources.size).toSet.size)
+    }}
   }
 }
 
