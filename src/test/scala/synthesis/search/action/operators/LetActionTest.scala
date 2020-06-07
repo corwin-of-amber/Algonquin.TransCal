@@ -15,13 +15,13 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
   test("Bidirectional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat = ?xs :: ?xss ↦ xs ++ concat xss")
     val newState = new LetAction(letTerm) apply ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty)
-    newState.rewriteRules.size shouldEqual 3
+    newState.rewriteRules.size shouldEqual 4
   }
 
   test("Directional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat >> ?xs :: ?xss ↦ xs ++ concat xss")
     val newState = new LetAction(letTerm) apply ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty)
-    newState.rewriteRules.size shouldEqual 2
+    newState.rewriteRules.size shouldEqual 3
   }
 
   test("Simple let rewrite should match and reconstruct") {
@@ -79,4 +79,6 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val terms = Programs(state.graph).reconstructWithPattern(newRoot, resPattern).take(100).toSeq
     terms should not be empty
   }
+
+//  test("Rewrites can match on larger edges")
 }
