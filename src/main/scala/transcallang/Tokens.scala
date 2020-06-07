@@ -47,6 +47,7 @@ object Tokens {
   case class POLYMORPHIC() extends WorkflowToken {override val toIdentifier: Identifier = I("polymorphic")}
 
   case class BACKSLASH() extends WorkflowToken {override val toIdentifier: Identifier = Language.splitId} // /
+  case class VARARGS() extends WorkflowToken {override val toIdentifier: Identifier = Language.varargsId} // /
 
   case class FALSE() extends WorkflowToken {override val toIdentifier: Identifier = Language.falseId} // ⊥
   case class TRUE() extends WorkflowToken {override val toIdentifier: Identifier = Language.trueId} // ⊤

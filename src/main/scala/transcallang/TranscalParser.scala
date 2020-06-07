@@ -77,6 +77,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   private def identifierLiteral: Parser[AnnotatedTree] = accept("identifier", {
     case IDENTIFIER(name) if Language.identifierRegex.unapplySeq(name).isDefined => AnnotatedTree.identifierOnly(Identifier(name))
     case HOLE() => AnnotatedTree.identifierOnly(Language.holeId)
+    case VARARGS() => AnnotatedTree.identifierOnly(varargsId)
   })
 
   private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree.identifierOnly(Identifier(x.toString, annotation = Some(AnnotatedTree.identifierOnly(Identifier("int"))))) })

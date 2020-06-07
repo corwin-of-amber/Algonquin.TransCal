@@ -31,6 +31,8 @@ object Language {
   val innerTypeId: Identifier = Identifier("polymorphic")
   val lambdaId: Identifier = Identifier("↦")
   val splitId: Identifier = Identifier("/")
+  val varargsId: Identifier = Identifier("..args")
+
   val idId: Identifier = Identifier("id")
 //  val trueId: Identifier = Identifier("⊤")
   val trueId: Identifier = Identifier("⊤", annotation=Some(typeBoolean))

@@ -22,7 +22,7 @@ object Lexer extends RegexParsers {
 
   // Tokens is the main part of the lexer. Add your new token here!!!
   def tokens: Parser[Seq[WorkflowToken]] = {
-    phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
+    phrase(rep1(varargs | matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
       truecondbuilder | limitedandcondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
       | backslash | lambda | let | plus | minus | union | directedlet | hole | setin | setnotin | lt | gt | annotation
@@ -70,7 +70,10 @@ object Lexer extends RegexParsers {
   def typekeyword: Parser[TYPE] = positioned { "type" ^^ (_ => TYPE() ) }
   def maptype: Parser[MAPTYPE] = positioned { ":>" ^^ (_ => MAPTYPE() ) }
   def polymorphickeyword: Parser[POLYMORPHIC] = positioned { "polymorphic" ^^ (_ => POLYMORPHIC() ) }
+
   def backslash: Parser[BACKSLASH] = positioned { "/" ^^ (_ => BACKSLASH() ) }
+  def varargs: Parser[VARARGS] = positioned { Language.varargsId.literal ^^ (_ => VARARGS())}
+
   def falsekeyword: Parser[FALSE] = positioned { ("⊥" | "false") ^^ ( _ => FALSE() ) }
   def truekeyword: Parser[TRUE] = positioned { ("⊤" | "true") ^^ ( _ => TRUE() ) }
   def nil: Parser[NIL] = positioned { ("⟨⟩" | "nil") ^^ (_ => NIL() ) }
