@@ -99,9 +99,8 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
 
     val hypoths = createHypothesis(term1, term2, inductionPh)
 
-    // TODO: isFunctionType should be as language utils
     val conses = ourType.constructors.filter(_.annotation.exists(_.root == Language.mapTypeId))
-    // TODO: move forall logic out of it condition
+    // TODO: move forall logic out of if condition
     if (conses.forall({ c =>
       // Replace inductionPh by inductionVar
       // Create base graph where inductionPh ||| c(existentials: _*)
