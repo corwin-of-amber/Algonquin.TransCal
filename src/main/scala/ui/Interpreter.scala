@@ -3,9 +3,9 @@ package ui
 import java.io.PrintStream
 
 import synthesis._
-import synthesis.search.action.operators.UserAction
-import synthesis.search.action.ActionSearchState
-import synthesis.search.rewrite.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.ActionSearchState
+import synthesis.search.actions.UserAction
+import synthesis.search.rewrites.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.AnnotatedTree
 
 /**

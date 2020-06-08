@@ -5,7 +5,7 @@ import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.search.rewrite.operators.Template.ReferenceTerm
+import synthesis.search.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 

@@ -3,7 +3,7 @@ package structures.immutable
 import org.scalacheck.Arbitrary
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
-import synthesis.search.rewrite.operators.Template.ExplicitTerm
+import synthesis.search.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language, TranscalParser}
 

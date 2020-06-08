@@ -3,6 +3,9 @@ package synthesis
 import structures.HyperEdge
 
 package object search {
+
+  import synthesis.search.RewriteSearchState
+
   def shiftEdges(startId: Int, edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]])
   : Set[HyperEdge[HyperTermId, HyperTermIdentifier]] =
     edges.map(e => e.copy(target = e.target.copy(e.target.id + startId),
@@ -22,7 +25,6 @@ package object search {
     )
   }
 
-  import synthesis.search.rewrite.RewriteSearchState
   def disjointAppend(graphs: Seq[RewriteSearchState.HyperGraph]): RewriteSearchState.HyperGraph = {
     graphs.fold(new RewriteSearchState.HyperGraph)({
       case (g1, g2) if g1.nonEmpty => g1 ++= shiftEdges(g1.nodes.map(_.id).max, g2.edges)

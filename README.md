@@ -13,7 +13,7 @@ still some so it is recommended to read to the end.
 ## General Overview
 Import the sbt.build
 The system is built as a user guided rewrite system.
-This works by using [rewrite rules](src/main/scala/synthesis/search/rewrite/operators/RewriteRule.scala) stored in [dataset structures](src/main/scala/synthesis/RewriteRulesDB.scala) 
+This works by using [rewrite rules](src/main/scala/synthesis/search/rewrites/operators/RewriteRule.scala) stored in [dataset structures](src/main/scala/synthesis/RewriteRulesDB.scala) 
 and a [data structure](src/main/scala/structures/mutable/CompactHyperGraph.scala) for efficient congruence closure.
 The user guided search is enabled by [Actions](src/main/scala/synthesis/actions), which in turn are usually implemented
 by using other actions or by running a [rewrite search](src/main/scala/synthesis/search/action/operators/OperatorRunAction.scala)

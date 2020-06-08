@@ -5,16 +5,13 @@ import report.StopWatch
 import structures._
 import structures.generic.HyperGraph
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
-import synthesis.search.rewrite.operators.RewriteRule.{HyperPattern, RewriteRuleMetadata}
-import synthesis.search.rewrite.operators.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.search.action.ActionSearchState
-import synthesis.search.action.operators.CaseSplitAction
-import synthesis.search.action.operators.thesy.SyGuERewriteRules
-import synthesis.search.rewrite.RewriteSearchState
-import synthesis.search.rewrite.operators.RewriteRule
+import synthesis.search.actions.thesy.SyGuERewriteRules
+import synthesis.search.rewrites.RewriteRule
+import synthesis.search.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
+import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
+import synthesis.search.{ActionSearchState, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
-import scala.collection
 import scala.util.Try
 
 

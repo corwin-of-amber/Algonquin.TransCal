@@ -4,8 +4,9 @@ import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
-import synthesis.search.rewrite.{AssociativeRewriteRulesDB, RewriteSearchState, SimpleRewriteRulesDB, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesDB}
-import synthesis.search.rewrite.operators.Template.ReferenceTerm
+import synthesis.search.RewriteSearchState
+import synthesis.search.rewrites.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesDB}
+import synthesis.search.rewrites.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, TranscalParser}
 
 class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecution {
