@@ -3,17 +3,18 @@ package synthesis.search
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperEdge
 import structures.generic.HyperGraph
+import synthesis.search.actions.SearchAction
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 /**
   * BFS returns last state only.
   */
-class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean, maxDepth: Double = Double.PositiveInfinity)
-  extends Operator[ActionSearchState] with LazyLogging {
+class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean)
+  extends SearchAction with LazyLogging {
 
   /* --- Search Impl. --- */
-  override def apply(state: ActionSearchState): ActionSearchState = {
+  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
     state.updateGraph(graph => {
       logger.debug(s"Starting Naive Search. Graph size: ${graph.size}")
 
@@ -39,7 +40,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
 
 
       var prevGraph: Option[ActionSearchState.HyperGraph] = None
-      while (i < maxDepth && !isGoal(graph) && !prevGraph.contains(graph)) {
+      while (i < depth && !isGoal(graph) && !prevGraph.contains(graph)) {
         val versioned = prevGraph.isDefined || startVersioned
         prevGraph = Some(graph.clone)
         for ((term, (pattern, patternRoot)) <- patterns) {

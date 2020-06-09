@@ -13,7 +13,7 @@ class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[IRewriteRule.
 
   private def run(state: ActionSearchState) = {
     logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as $goalPredicate")
-    val newState = searchAction(state)
+    val newState = searchAction(state, maxSearchDepth)
     // TODO: hells no! use query graph. This is temporary, only did it because it is still an action
     var res = false
     state.updateGraph(g => res = predicate(g))

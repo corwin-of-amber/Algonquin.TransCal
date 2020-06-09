@@ -44,8 +44,8 @@ object ElaborateAction {
                      predicate: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier] => Boolean,
                      maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
     // Rewrite search
-    val searchAction = new NaiveSearch(isGoal = g => predicate(g), maxDepth=maxDepth)
-    val newState = searchAction(state)
+    val searchAction = new NaiveSearch(isGoal = g => predicate(g))
+    val newState = searchAction(state, maxDepth)
     if (predicate(newState.programs.queryGraph)) Some(newState) else None
   }
 }
