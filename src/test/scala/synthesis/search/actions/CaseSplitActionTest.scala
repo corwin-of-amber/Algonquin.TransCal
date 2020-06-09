@@ -44,11 +44,11 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     val rules = reverseRules ++ SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
     val nilState = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "a1 ||| reverse(⟨⟩ :+ z)").addTerm(parser parseExpression "z :: reverse(⟨⟩)"), rules)
     val (nilPattern, nilRoot) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "z :: reverse(⟨⟩)")).head
-    val nilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), nilPattern, nilRoot, maxSearchDepth = Some(8))(nilState)
+    val nilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), nilPattern, nilRoot, maxSearchDepth = Some(8))(nilState.deepCopy())
     nilResState should not equal (nilState)
     val xNilState = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "a1 ||| reverse((x::⟨⟩) :+ z)").addTerm(parser parseExpression "z :: reverse(x::⟨⟩)"), rules)
     val (xNilPattern, xNilRoot) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "z :: reverse(x::⟨⟩)")).head
-    val xNilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), xNilPattern, xNilRoot, maxSearchDepth = Some(8))(xNilState)
+    val xNilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), xNilPattern, xNilRoot, maxSearchDepth = Some(8))(xNilState.deepCopy())
     xNilResState should not equal (xNilState)
     val yxNilState = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "a1 ||| reverse((y::x::⟨⟩) :+ z)").addTerm(parser parseExpression "z :: reverse(y::x:::⟨⟩)"), rules)
     val (yxNilPattern, yxNilRoot) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "z :: reverse(y::x::⟨⟩)")).head
