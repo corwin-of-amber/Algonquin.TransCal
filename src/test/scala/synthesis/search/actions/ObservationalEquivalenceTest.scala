@@ -2,10 +2,9 @@ package synthesis.search.actions
 
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import synthesis.search.{ActionSearchState, RewriteSearchState}
-import synthesis.search.rewrites.Template.ReferenceTerm
+import synthesis.Programs
+import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
-import synthesis.{HyperTermId, Programs}
 import transcallang.{AnnotatedTree, Language, TranscalParser}
 
 class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyChecks with Matchers with ParallelTestExecution {
@@ -30,10 +29,10 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
     val programs = Programs.empty.addTerm(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, terms))
     val ids = terms.map(t => {
       val (graph, root) = Programs.destructPatternWithRoot(t)
-      programs.hyperGraph.findSubgraph[Int](graph).head._1(root.id)
+      programs.queryGraph.findSubgraph[Int](graph).head._1(root.id)
     }).toSeq
-    val res = new ObservationalEquivalence(5).getEquives(ActionSearchState(Programs(programs.hyperGraph), AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
-    Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res.map(_.filter(ids.contains)).filter(_.nonEmpty)
+    val res = new ObservationalEquivalence(5).getEquives(new ActionSearchState(programs, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
+    Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res._2.map(_.filter(ids.contains)).filter(_.nonEmpty)
   }
 
   private def checkUnionFlatten(numsLen: Int, splitAt: Set[Set[Int]]) = {
@@ -92,10 +91,8 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       .addTerm(parser.parseExpression("x :: l ++ l2"))
       .addTerm(parser.parseExpression("x :: l2"))
       .addTerm(parser.parseExpression("1 + z"))
-    val updatedState = ActionSearchState(Programs(graph.hyperGraph), normalRules)
-    val equives = new ObservationalEquivalence().getEquives(updatedState)
-    equives.flatten shouldEqual updatedState.programs.hyperGraph.nodes
-    val mutableEqs = new ObservationalEquivalence().getEquivesFromRewriteState(new RewriteSearchState(updatedState.programs.hyperGraph), normalRules)
-    mutableEqs._2.flatten shouldEqual updatedState.programs.hyperGraph.nodes
+    val updatedState = new ActionSearchState(graph, normalRules)
+    val equives = new ObservationalEquivalence().getEquives(updatedState.deepCopy())
+    equives._2.flatten shouldEqual updatedState.programs.queryGraph.nodes
   }
 }

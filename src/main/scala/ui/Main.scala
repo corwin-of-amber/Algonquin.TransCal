@@ -59,7 +59,7 @@ object Main extends App with LazyLogging {
   val lastState = interpreter.start()
 
   val fullProgram = lastState.programs
-  val hyperGraph = fullProgram.hyperGraph
+  val hyperGraph = fullProgram.queryGraph
 
   println(f"size: $hyperGraph.size")
   println(f"nodes: ${hyperGraph.nodes}")

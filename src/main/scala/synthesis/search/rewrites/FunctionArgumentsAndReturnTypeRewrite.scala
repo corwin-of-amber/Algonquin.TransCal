@@ -3,13 +3,12 @@ package synthesis.search.rewrites
 import structures.immutable.HyperGraph
 import structures._
 import synthesis.search.rewrites.Template.TemplateTerm
-import synthesis.search.{RewriteSearchState, StepOperator, VersionedOperator}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Language
 
 /** This rewrite rule finds functions return types by looking on their types.
   */
-object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSearchState] with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] {
+object FunctionArgumentsAndReturnTypeRewrite extends IRewriteRule {
 
   object ApplyTypeMetadata extends Metadata {
     override protected def toStr: String = "ApplyTypeMetadata"
@@ -39,17 +38,16 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
 
   private val funcTypeGraph = HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
-  override def apply(state: RewriteSearchState): (RewriteSearchState) = {
-    val newFuncEdges = getNewEdges(state, false)
+  override def apply(graph: IRewriteRule.HyperGraph): Unit = {
+    val newFuncEdges = getNewEdges(graph, false)
 
-    state.graph.++=(newFuncEdges)
-    (state)
+    graph.++=(newFuncEdges)
   }
 
-  private def getNewEdges(state: RewriteSearchState, versioned: Boolean) = {
+  private def getNewEdges(graph: IRewriteRule.HyperGraph, versioned: Boolean) = {
     val newFuncEdges =
-      (if (versioned) state.graph.findSubgraphVersioned[Int](funcTypeGraph)
-      else state.graph.findSubgraph[Int](funcTypeGraph))
+      (if (versioned) graph.findSubgraphVersioned[Int](funcTypeGraph)
+      else graph.findSubgraph[Int](funcTypeGraph))
       .flatMap { case (idMap, _) =>
         val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
           val argumentType = pairs.filterKeys(_ % 2 == 0).values.head
@@ -65,26 +63,27 @@ object FunctionArgumentsAndReturnTypeRewrite extends VersionedOperator[RewriteSe
   /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
     * unless operator is existential
     *
-    * @param state state on which to run operator
+    * @param graph state on which to run operator
     * @return (new state after update, next relevant version)
     */
-  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = {
-    val newFuncEdges = getNewEdges(state, true)
+  override def applyVersioned(graph: IRewriteRule.HyperGraph): Unit = {
+    val newFuncEdges = getNewEdges(graph, true)
 
-    state.graph.++=(newFuncEdges)
-    (state)
+    graph.++=(newFuncEdges)
   }
 
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
-    * @param state     current state from which to do the initial calculations and create an operator
+    * @param graph     current state from which to do the initial calculations and create an operator
     * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
-    val newFuncEdges = getNewEdges(state, versioned)
+  override def getStep(graph: IRewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+    val newFuncEdges = getNewEdges(graph, versioned)
 
     newFuncEdges.map(e => e.copy(target = Explicit(e.target), edgeType = Explicit(e.edgeType), sources = e.sources.map(Explicit(_))))
   }
+
+  override def isExistential: Boolean = false
 }

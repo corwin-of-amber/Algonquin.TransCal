@@ -1,7 +1,7 @@
 package synthesis.search.actions
 
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.search.{ActionSearchState, NaiveSearch, RewriteSearchSpace, RewriteSearchState}
+import synthesis.search.{ActionSearchState, NaiveSearch}
 import synthesis.search.rewrites.RewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -18,16 +18,16 @@ class ElaborateAction(anchor: HyperTermIdentifier,
   /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
   private val updatedGoal = goal.+(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
 
-  private def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findSubgraph[Int](updatedGoal).nonEmpty
+  private def goalPredicate(state: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean = state.findSubgraph[Int](updatedGoal).nonEmpty
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Rewrite search
     val newState = new OperatorRunAction(maxSearchDepth.getOrElse(Int.MaxValue), Some(goalPredicate))(state)
-    val success = goalPredicate(new RewriteSearchState(newState.programs.hyperGraph))
+    val success = goalPredicate(newState.programs.queryGraph)
 
     // Process result
     if (success) {
-      val root = newState.programs.hyperGraph.findByEdgeType(anchor).head.target
+      val root = newState.programs.queryGraph.findByEdgeType(anchor).head.target
       val terms = newState.programs.reconstructWithPattern(root, goal, Some(goalRoot))
       if (terms.nonEmpty) logger.info(s"Elaborated term is '${Programs.termToString(terms.head)}'")
       else logger.info("Found term not constructable (probably a symbol)")
@@ -41,13 +41,11 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 
 object ElaborateAction {
   def RunNaiveSearch(state: ActionSearchState,
-                     predicate: RewriteSearchState => Boolean,
+                     predicate: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier] => Boolean,
                      maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
     // Rewrite search
-    val rewriteSearch = new NaiveSearch()
-    val initialState = new RewriteSearchState(state.programs.hyperGraph)
-    val spaceSearch = new RewriteSearchSpace(state.rewriteRules.toSeq, initialState, predicate)
-    val (success, newState) = rewriteSearch.search(spaceSearch, maxDepth)
-    if (success) Some(ActionSearchState(Programs(newState.graph), state.rewriteRules)) else None
+    val searchAction = new NaiveSearch(isGoal = g => predicate(g), maxDepth=maxDepth)
+    val newState = searchAction(state)
+    if (predicate(newState.programs.queryGraph)) Some(newState) else None
   }
 }

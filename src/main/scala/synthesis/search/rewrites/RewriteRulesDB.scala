@@ -2,9 +2,7 @@ package synthesis.search.rewrites
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, Metadata}
-import synthesis.search.{Operator, RewriteSearchState}
 import synthesis.search.actions.LetAction
-import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, TranscalParser}
 
 /**
@@ -18,11 +16,11 @@ trait RewriteRulesDB extends LazyLogging {
 
   private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[Operator[RewriteSearchState]] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[IRewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
 
 object SystemRewriteRulesDB extends RewriteRulesDB {
-  override lazy val rewriteRules: Set[Operator[RewriteSearchState]] = Set[Operator[RewriteSearchState]](FlattenRewrite)
+  override lazy val rewriteRules: Set[IRewriteRule] = Set[IRewriteRule](FlattenRewrite)
 
   override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
 

@@ -1,7 +1,7 @@
 package synthesis.search.actions
 
 import com.typesafe.scalalogging.LazyLogging
-import synthesis.search.{ActionSearchState, RewriteSearchState}
+import synthesis.search.{ActionSearchState}
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -18,7 +18,7 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
   private def getGeneralizedTerms(progs: Programs): Set[AnnotatedTree] = {
     // TODO: Filter out expressions that use context but allow constants
     // Reconstruct and generalize
-    progs.hyperGraph.findEdges(anchor) map (_.target) flatMap { root =>
+    progs.queryGraph.findEdges(anchor) map (_.target) flatMap { root =>
       (for (term <- progs.reconstruct(root).filter(t => leaves.diff(t.nodes).isEmpty)) yield {
         logger.debug(s"Generalizing using the term $term")
 
@@ -38,15 +38,12 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         logger.info("Generalize couldn't find term, trying to elaborate")
         val leavesPattern = Programs.destructPatterns(leaves, mergeRoots = false).reduce((g1, g2) => g1.++(g2.edges))
         val temp = new ElaborateAction(anchor, leavesPattern, ReferenceTerm(-1), maxSearchDepth = maxSearchDepth)(state)
-        val progs = Programs(temp.programs.hyperGraph)
-        val terms = getGeneralizedTerms(progs)
+        val terms = getGeneralizedTerms(temp.programs)
         if (terms.nonEmpty)
-          (terms, ActionSearchState(progs, temp.rewriteRules))
+          (terms, temp)
         else {
-          var rewriteSearchState = new RewriteSearchState(temp.programs.hyperGraph)
-          for (_ <- 1 to 2; op <- temp.rewriteRules) rewriteSearchState = op(rewriteSearchState)
-          val afterNaiveProgs = Programs(rewriteSearchState.graph)
-          (getGeneralizedTerms(afterNaiveProgs), ActionSearchState(afterNaiveProgs, temp.rewriteRules))
+          for (_ <- 1 to 2; op <- temp.rewriteRules) temp.updateGraph(g => op.apply(g))
+          (getGeneralizedTerms(temp.programs), temp)
         }
       }
     }
@@ -58,7 +55,8 @@ class GeneralizeAction(anchor: HyperTermIdentifier, leaves: Seq[AnnotatedTree], 
         state
       case Some(newTerm) =>
         logger.info(s"Generalized to ${Programs.termToString(newTerm)}")
-        tempState.copy(rewriteRules = tempState.rewriteRules ++ new LetAction(newTerm).rules)
+        tempState.addRules(new LetAction(newTerm).rules)
+        tempState
     }
   }
 }

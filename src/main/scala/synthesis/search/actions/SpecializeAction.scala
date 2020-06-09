@@ -7,9 +7,9 @@ import transcallang.{AnnotatedTree, Language}
 /** Adds information on a called function/lambda.
   * Doing that by creating a new lambda which only call to the original function.
   *
-  * @param searchTerm The term to replace.
+  * @param searchTerm         The term to replace.
   * @param functionDefinition The function header and params.
-  * @param newPreds The new information, should include any additional graph information, for example (T ||| i < 3).
+  * @param newPreds           The new information, should include any additional graph information, for example (T ||| i < 3).
   */
 class SpecializeAction(searchTerm: AnnotatedTree, functionDefinition: AnnotatedTree, newPreds: AnnotatedTree) extends Action {
 
@@ -27,7 +27,7 @@ class SpecializeAction(searchTerm: AnnotatedTree, functionDefinition: AnnotatedT
     val oldFuncName = functionDefinition.root.copy(annotation = None)
     val newFuncId = functionDefinition.root.copy(literal = autoFuncName)
     val newFuncDefinition = functionDefinition.copy(root = newFuncId)
-    val specificFuncRewrites = Seq(
+    val specificFuncRewrites = Set(
       new LetAction(withoutAnnotations(Language.limitedDirectedLetId, Seq(newFuncDefinition, newPreds))),
       new LetAction(withoutAnnotations(Language.directedLetId, Seq(newFuncDefinition, functionDefinition))),
       new LetAction(withoutAnnotations(Language.directedLetId, Seq(searchTerm, searchTerm.map({
@@ -36,6 +36,7 @@ class SpecializeAction(searchTerm: AnnotatedTree, functionDefinition: AnnotatedT
       }))))
     ).flatMap(_.rules)
 
-     state.copy(rewriteRules = state.rewriteRules ++ specificFuncRewrites)
+    state.addRules(specificFuncRewrites)
+    state
   }
 }

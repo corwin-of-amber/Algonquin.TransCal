@@ -2,80 +2,78 @@ package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperEdge
+import structures.generic.HyperGraph
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 
 /**
   * BFS returns last state only.
   */
-class NaiveSearch(startVersioned: Boolean = false) extends SearchDepth[RewriteSearchState, RewriteSearchSpace, RewriteSearchState] with LazyLogging {
+class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean, maxDepth: Double = Double.PositiveInfinity)
+  extends Operator[ActionSearchState] with LazyLogging {
 
   /* --- Search Impl. --- */
+  override def apply(state: ActionSearchState): ActionSearchState = {
+    state.updateGraph(graph => {
+      logger.debug(s"Starting Naive Search. Graph size: ${graph.size}")
 
-  def search(searchSpace: RewriteSearchSpace, maxDepth: Double): (Boolean, RewriteSearchState) = {
-    val state = searchSpace.initialStates.head
-    state match {
-      case state1: RewriteSearchState => logger.debug(s"Starting Naive Search. Graph size: ${state1.graph.size}")
-      case _ =>
-    }
-    var i = 0
+      var i = 0
 
-    // As we always have same operators I shortcut.
-    // Using stepping API we can parallelize our work.
-    val operators = searchSpace.operators(state).collect({
-      case o: StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] => o
-    }).par
-    assert(operators.size == searchSpace.operators(state).size)
+      // As we always have same operators I shortcut.
+      // Using stepping API we can parallelize our work.
+      val operators = state.rewriteRules.par
 
-    // Adding hardcoded patterns for debuging
-    val patterns = {
-      import transcallang.TranscalParser
-      val parser = new TranscalParser
-      Seq[String](
-        //        "filter ?p (?x :: ?xs)",
-        //        "x::nil",
-        //        "y::x::nil",
-        //        "reverse(snoc(nil, ?z))",
-        //        "reverse(snoc(x::nil, ?z))",
-        //        "reverse(snoc(y::x::nil, ?z))"
-      ).map(s => (s, parser.parseExpression(s) cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
-    }
+      // Adding hardcoded patterns for debuging
+      val patterns = {
+        import transcallang.TranscalParser
+        val parser = new TranscalParser
+        Seq[String](
+          //        "filter ?p (?x :: ?xs)",
+          //        "x::nil",
+          //        "y::x::nil",
+          //        "reverse(snoc(nil, ?z))",
+          //        "reverse(snoc(x::nil, ?z))",
+          //        "reverse(snoc(y::x::nil, ?z))"
+        ).map(s => (s, parser.parseExpression(s) cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
+      }
 
 
-    var prevState: Option[RewriteSearchState] = None
-    while (i < maxDepth && !searchSpace.isGoal(state) && !prevState.contains(state)) {
-      val versioned = prevState.isDefined || startVersioned
-      prevState = Some(state.deepCopy())
-      for ((term, (pattern, patternRoot)) <- patterns) {
-        val reconstructed = Programs.reconstructPatternWithRoot(state.graph, pattern, patternRoot)
-        if (reconstructed.nonEmpty) {
-          logger.info(term)
-          for ((id, rTerms) <- reconstructed) {
-            logger.info(s"$id: ${rTerms.toList.map(Programs.termToString).mkString("  ---  ")}")
+      var prevGraph: Option[ActionSearchState.HyperGraph] = None
+      while (i < maxDepth && !isGoal(graph) && !prevGraph.contains(graph)) {
+        val versioned = prevGraph.isDefined || startVersioned
+        prevGraph = Some(graph.clone)
+        for ((term, (pattern, patternRoot)) <- patterns) {
+          val reconstructed = state.programs.reconstructPatternWithRoot(pattern, patternRoot)
+          if (reconstructed.nonEmpty) {
+            logger.info(term)
+            for ((id, rTerms) <- reconstructed) {
+              logger.info(s"$id: ${rTerms.toList.map(Programs.termToString).mkString("  ---  ")}")
+            }
           }
         }
+
+        val hyperTermIds: Seq[() => HyperTermId] = {
+          val graphEmpty = graph.isEmpty
+          val maxId = graph.nodes.map(_.id).max
+          0 until operators.size map (j => {
+            val creator =
+              Stream.from(if (graphEmpty) j else maxId + 1 + j, operators.size)
+                .map(HyperTermId).iterator
+            () => creator.next
+          })
+        }
+
+        // TODO: fix after fixing rewrite rule traits
+        val steps = operators.map(r => r.getStep(graph, versioned))
+        val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
+        graph ++= newEdges.flatten
+        i += 1
+
+        logger.info(s"Done a round robin. Graph size is: ${graph.size}")
       }
+    })
 
-      val hyperTermIds: Seq[() => HyperTermId] = {
-        val graphEmpty = state.graph.isEmpty
-        val maxId = state.graph.nodes.map(_.id).max
-        0 until operators.size map (j => {
-          val creator =
-            Stream.from(if (graphEmpty) j else maxId + 1 + j, operators.size)
-              .map(HyperTermId).iterator
-          () => creator.next
-        })
-      }
-
-      val steps = operators.map(r => r.getStep(state, versioned))
-      val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
-      state.graph ++= newEdges.flatten
-      i += 1
-
-      logger.info(s"Done a round robin. Graph size is: ${state.graph.size}")
-    }
-
-    (searchSpace.isGoal(state), state)
+    state
   }
 }
 

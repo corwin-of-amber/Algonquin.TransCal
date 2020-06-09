@@ -3,7 +3,7 @@ package synthesis.search.actions
 import structures.immutable.HyperGraph
 import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
-import synthesis.search.{ActionSearchState, NaiveSearch, RewriteSearchSpace, RewriteSearchState}
+import synthesis.search.{ActionSearchState, NaiveSearch}
 import LocateAction.LocateMetadata
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.RewriteRule.HyperPattern
@@ -22,7 +22,8 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     * @param state the current state
     * @return is state final
     */
-  protected def goalPredicate(state: RewriteSearchState): Boolean = state.graph.findEdges(anchor).nonEmpty
+  protected def goalPredicate(graph: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean =
+    graph.findEdges(anchor).nonEmpty
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Anchor should not have a type as it will add a type annotation to the node we are marking
@@ -57,25 +58,23 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val locateRule = new RewriteRule(goal, destPattern, locateDataCreator)
 
     // Rewrite search
-    val rewriteSearch = new NaiveSearch()
-    val initialState = new RewriteSearchState(state.programs.hyperGraph)
-    val spaceSearch = new RewriteSearchSpace(locateRule +: state.rewriteRules.toSeq, initialState, goalPredicate)
-    val (rewriteResult, newState) = maxSearchDepth.map(d => rewriteSearch.search(spaceSearch, d)).getOrElse(rewriteSearch.search(spaceSearch))
+    val rewriteSearch = new NaiveSearch(isGoal = goalPredicate)
+    state.addRule(locateRule)
+    // TODO: enable search depth in search actions
+    val newState = rewriteSearch(state)
+    val rewriteResult = goalPredicate(newState.programs.queryGraph)
+    newState.removeRule(locateRule)
 
     // Process result
-    val newEdges = newState.graph.findEdges(anchor).take(1)
-    val newPrograms =
-      if (rewriteResult) {
-        val tempProgs = Programs(newState.graph)
-        val terms = tempProgs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
-        if (terms.nonEmpty) logger.debug(terms.head.toString)
-        else logger.debug("Found term not constructable (probably a symbol)")
-        tempProgs
-      } else {
-        logger.warn("Locate did not find the requested pattern.")
-        Programs(state.programs.hyperGraph.++(newEdges))
-      }
-    ActionSearchState(newPrograms, state.rewriteRules)
+    val newEdges = newState.programs.queryGraph.findEdges(anchor).take(1)
+    if (rewriteResult) {
+      val terms = newState.programs.reconstructWithPattern(newEdges.head.target, goal, goalRoot)
+      if (terms.nonEmpty) logger.debug(terms.head.toString)
+      else logger.debug("Found term not constructable (probably a symbol)")
+    } else {
+      logger.warn("Locate did not find the requested pattern.")
+    }
+    newState
   }
 }
 

@@ -5,13 +5,11 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures._
 import structures.immutable.{CompactHyperGraph, HyperGraph}
-import synthesis.search.RewriteSearchState
-import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.RewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
-import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.search.rewrites.operators._
-import transcallang.{Identifier, TranscalParser}
+import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
+import transcallang.Identifier
 
 /**
   * @author tomer
@@ -21,13 +19,14 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
   private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
   private implicit val hyperPatternCreator: Arbitrary[RewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
   private implicit val rewriteRuleCreator: Arbitrary[RewriteRule] = Arbitrary(rewriteRuleGen)
-  private implicit val rewriteSearchStateCreator: Arbitrary[RewriteSearchState] = Arbitrary(rewriteSearchStateGen)
+  private implicit val rewriteSearchStateCreator: Arbitrary[IRewriteRule.HyperGraph] = Arbitrary(hyperGraphGen)
 
   property("Every state keep old edges") {
     // Not necessarily true because of compaction
-    forAll { (rewriteRule: RewriteRule, state: RewriteSearchState) =>
-      val newState = rewriteRule.apply(state)
-      (state.graph.edges -- newState.graph.edges).isEmpty
+    forAll { (rewriteRule: RewriteRule, state: IRewriteRule.HyperGraph) =>
+      val oldState = state.clone
+      rewriteRule.apply(state)
+      (oldState.edges -- state.edges).isEmpty
     }
   }
 
@@ -82,24 +81,25 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
         val filledConditions = generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
 
         val rewriteRule = new RewriteRule(conditions, HyperGraph(destination), (_, _) => EmptyMetadata)
-        val state = new RewriteSearchState(CompactHyperGraph(filledConditions.toSeq: _*))
-        val tempProgs = Programs(state.graph)
-        val newState = rewriteRule.apply(state)
+        val state = new IRewriteRule.HyperGraph() ++= filledConditions
+        val tempProgs = Programs(state.clone)
+        rewriteRule.apply(state)
 
-        if (willMerge.isEmpty) (newState.graph.edges -- tempProgs.hyperGraph.edges).size == 1
-        else (state.graph.edges -- newState.graph.edges).forall(_.target == destinationEdge.target)
+        if (willMerge.isEmpty) (state.edges -- tempProgs.queryGraph.edges).size == 1
+        else (tempProgs.queryGraph.edges -- state.edges).forall(_.target == destinationEdge.target)
       }
     }
   }
 
   property("Can use repetition in conclusion") {
-    forAll{(state: RewriteSearchState) => whenever(state.graph.nonEmpty) {
+    forAll{(state: IRewriteRule.HyperGraph) => whenever(state.nonEmpty) {
       val edge = HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](ReferenceTerm[HyperTermId](0), ReferenceTerm(1), Seq(Repetition.rep0(10, Stream.from(2).map(ReferenceTerm(_))).get), EmptyMetadata)
       val premise = CompactHyperGraph(edge)
       val conclusion = CompactHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edge.copy(edgeType = ExplicitTerm(HyperTermIdentifier(Identifier("00500")))))
       val rule = new RewriteRule(premise, conclusion, (_, _) => EmptyMetadata)
-      val origSize = state.graph.size
-      rule(state).graph.edges.size should be >= (origSize + state.graph.edges.map(_.sources.size).toSet.size)
+      val origSize = state.size
+      rule(state)
+      state.edges.size should be >= (origSize + state.edges.map(_.sources.size).toSet.size)
     }}
   }
 }

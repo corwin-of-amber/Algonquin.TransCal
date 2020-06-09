@@ -2,7 +2,6 @@ package synthesis.search.rewrites
 
 import org.scalatest.{Matchers, PropSpec}
 import synthesis.Programs
-import synthesis.search.RewriteSearchState
 import synthesis.search.rewrites.FunctionArgumentsAndReturnTypeRewrite.{ApplyTypeMetadata, ArgumentsTypeMetadata}
 import transcallang.{Language, TranscalParser}
 
@@ -14,9 +13,10 @@ class FunctionArgumentsAndReturnTypeRewriteTest extends PropSpec with Matchers {
   property("Finds in the graph") {
     val term = new TranscalParser().apply("cl = (concat: list :> list :> list) al bl")
     val programs = Programs(term)
-    val graph = programs.hyperGraph
+    val graph = programs.queryGraph
 
-    val newGraph = FunctionArgumentsAndReturnTypeRewrite(new RewriteSearchState(graph)).graph
+    val newGraph = new IRewriteRule.HyperGraph() ++= graph.edges
+    FunctionArgumentsAndReturnTypeRewrite(newGraph)
     val actualNewEdges = newGraph.edges -- graph.edges
 
     actualNewEdges should have size 3
@@ -26,9 +26,10 @@ class FunctionArgumentsAndReturnTypeRewriteTest extends PropSpec with Matchers {
   property("Finds in the graph number 2") {
     val term = new TranscalParser().apply("bl = (flatten: (list list) :> list) al")
     val programs = Programs(term)
-    val graph = programs.hyperGraph
+    val graph = programs.queryGraph
 
-    val newGraph = FunctionArgumentsAndReturnTypeRewrite(new RewriteSearchState(graph)).graph
+    val newGraph = new IRewriteRule.HyperGraph() ++= graph.edges
+    FunctionArgumentsAndReturnTypeRewrite(newGraph)
     val actualNewEdges = newGraph.edges -- graph.edges
 
     actualNewEdges should have size 2

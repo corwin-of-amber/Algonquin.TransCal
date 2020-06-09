@@ -66,16 +66,7 @@ object RunAllSPBE extends App with LazyLogging {
 
     val lastState = interpreter.start()
 
-    val fullProgram = lastState.programs
-    val hyperGraph = fullProgram.hyperGraph
-
-    println(f"size: $hyperGraph.size")
-    println(f"nodes: ${hyperGraph.nodes}")
-    println(f"number of nodes: ${hyperGraph.nodes.size}")
     println("============================== In time complex ==============================")
-    val timeComplexes = hyperGraph.filter(_.edgeType.identifier == Language.unionId).map(_.target).toSeq.flatMap(fullProgram.reconstructWithTimeComplex).map { case (tree, complexity) => (Programs.termToString(tree), complexity) }
-    println(f"timecomplex edges ${hyperGraph.count(_.edgeType.identifier == Language.timeComplexId)} - total time complexities ${timeComplexes.size}")
-    timeComplexes.foreach(println)
     println(s"End time: ${Calendar.getInstance().getTime}")
     logger.warn(s"finished file")
   }

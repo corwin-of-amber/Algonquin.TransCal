@@ -7,7 +7,7 @@ import synthesis._
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.search.actions.thesy.{Prover, SyGuERewriteRules, TheoryExplorationAction}
-import synthesis.search.rewrites.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrites.{AssociativeRewriteRulesDB, IRewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {
@@ -45,22 +45,20 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
       equivDepthOption = Some(0)
     )
     action.conjectureGenerator.increaseDepth()
-    val rewriteState = action.conjectureGenerator.inferConjectures(Set.empty)
-    val programs = Programs(rewriteState.graph)
-    logger.info(s"created base graph ${rewriteState.graph.size}")
-    for (n <- SyGuERewriteRules.getSygusCreatedNodes(rewriteState.graph);
-         t <- programs.reconstruct(n) if t.root != Language.typeId) {
+    val actionState = action.conjectureGenerator.inferConjectures(Set.empty)
+    logger.info(s"created base graph ${actionState.programs.queryGraph.size}")
+    for (n <- SyGuERewriteRules.getSygusCreatedNodes(actionState.programs.queryGraph);
+         t <- actionState.programs.reconstruct(n) if t.root != Language.typeId) {
       t.depth should be < 2
     }
     logger.info(s"finished reconstruct")
 
     action.conjectureGenerator.increaseDepth()
     val state1 = action.conjectureGenerator.inferConjectures(Set.empty)
-    val progs = Programs(state1.graph)
-    val relevantNodes2 = SyGuERewriteRules.getSygusCreatedNodes(progs.hyperGraph)
-    logger.info(s"created depth 2 ${progs.hyperGraph.size}")
+    val relevantNodes2 = SyGuERewriteRules.getSygusCreatedNodes(state1.programs.queryGraph)
+    logger.info(s"created depth 2 ${state1.programs.queryGraph.size}")
     for (n <- relevantNodes2;
-         t <- progs.reconstruct(n) if t.root != Language.typeId) {
+         t <- state1.programs.reconstruct(n) if t.root != Language.typeId) {
       t.depth should be < 3
     }
     logger.info(s"finished reconstruct")
@@ -92,7 +90,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     action.conjectureGenerator.increaseDepth()
     val state = action.conjectureGenerator.inferConjectures(Set.empty)
     val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
-    state.graph.findSubgraph[Int](pattern) should not be empty
+    state.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
   }
 
   test("testSygusStep can find reverse reverse l") {
@@ -102,8 +100,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse (reverse _)"))).head
-    val results1 = state2.graph.findSubgraph[Int](pattern1)
-    val results2 = state2.graph.findSubgraph[Int](pattern2)
+    val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
+    val results2 = state2.programs.queryGraph.findSubgraph[Int](pattern2)
     results1 should not be empty
     results2 should not be empty
     val results2Roots = results2.map(_._1(root2.id)).map(_.id)
@@ -118,9 +116,9 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
-    equives.graph should not be empty
-    val programs = Programs(state2.graph)
-    val terms = equives.graph.nodes.map(id => programs.reconstruct(id))
+    equives.programs.queryGraph should not be empty
+    val programs = state2.programs
+    val terms = equives.programs.queryGraph.nodes.map(id => programs.reconstruct(id))
     val correctSet = terms.map(_.toList).find(s => s.exists(t => t.copy(annotations = Seq.empty) == AnnotatedTree.identifierOnly(listPh.copy(annotation = None))))
     correctSet should not be empty
     println("Found correct set of equives")
@@ -135,21 +133,21 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("filter ?p (filter ?p ?l)"))).head
-    val results1 = state2.graph.findSubgraph[Int](pattern1)
+    val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
     results1 should not be empty
   }
 
   test("test find that filter p (filter p l) == filter p l") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepthOption = Some(6), splitDepthOption = Some(1))
-    var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(ActionSearchState(Programs.empty, Set.empty))
+    var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(new ActionSearchState(Programs.empty, Set.empty[IRewriteRule]))
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state = action.conjectureGenerator.inferConjectures(Set.empty)
     val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules)
-    equives.graph should not be empty
-    val programs = Programs(equives.graph)
-    val terms = equives.graph.nodes.map(id => programs.reconstruct(id).map(_.cleanTypes))
+    equives.programs.queryGraph should not be empty
+    val programs = equives.programs
+    val terms = equives.programs.queryGraph.nodes.map(id => programs.reconstruct(id).map(_.cleanTypes))
     val oneFilter = AnnotatedTree.withoutAnnotations(filter.root, Seq(
       AnnotatedTree.identifierOnly(predicatePh), AnnotatedTree.identifierOnly(listPh))) cleanTypes
     val correctSet = terms.map(_.toList.map(t => t.copy(annotations = Seq.empty) cleanTypes)).find(l =>
@@ -163,7 +161,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("Induction step for filter p (filter p l) == filter p l using case splitting") {
-    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+    var state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
     val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
@@ -184,8 +182,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse(_ :+ _)"))).head
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("_ :: (reverse _)"))).head
-    val results1 = state2.graph.findSubgraph[Int](pattern1)
-    val results2 = state2.graph.findSubgraph[Int](pattern2)
+    val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
+    val results2 = state2.programs.queryGraph.findSubgraph[Int](pattern2)
     results1 should not be empty
     results2 should not be empty
     val results2Roots = results2.map(_._1(root2.id)).map(_.id)
@@ -201,12 +199,12 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val state2 = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(reverse.root,
       Seq(AnnotatedTree.withoutAnnotations(Language.snocId, Seq(listPh.copy(annotation = None), intPh.copy(annotation = None)).map(AnnotatedTree.identifierOnly)))))).head
-    state2.graph.findSubgraph[Int](pattern) should not be empty
+    state2.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.consId,
       Seq(AnnotatedTree.identifierOnly(intPh.copy(annotation = None)), AnnotatedTree.withoutAnnotations(reverse.root, Seq(AnnotatedTree.identifierOnly(listPh.copy(annotation = None)))))))).head
-    val correctId = state2.graph.findSubgraph[Int](pattern).head._1(root.id)
-    state2.graph.findSubgraph[Int](pattern2) should not be empty
-    val correctId2 = state2.graph.findSubgraph[Int](pattern2).head._1(root2.id)
+    val correctId = state2.programs.queryGraph.findSubgraph[Int](pattern).head._1(root.id)
+    state2.programs.queryGraph.findSubgraph[Int](pattern2) should not be empty
+    val correctId2 = state2.programs.queryGraph.findSubgraph[Int](pattern2).head._1(root2.id)
     //    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     correctId shouldEqual correctId2
   }
@@ -230,7 +228,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   test("Cant proove x::xs == rev(xs) :+ x") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(4), termDepthOption = Some(3))
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
+    val state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
       intPh,
       listPh
@@ -245,7 +243,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("fold can be found to equal sum") {
-    var state = ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
+    var state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs)))").cleanTypes)(state)
     state = new LetAction(parser("fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(i,x)) xs))").cleanTypes)(state)
     state = new LetAction(parser("cons ?x ?l >> x :: l"))(state)

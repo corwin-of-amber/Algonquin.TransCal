@@ -28,7 +28,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/NoDup.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.apply("a1 -> (_ ∉ {x}) /\\ nodup' _ _").subtrees(1))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
@@ -36,7 +36,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/NoDupWithTimeComplex.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.apply("a1 -> timecomplex ({x'} ∪ elems(xs')) (1 + 1 + 1 + 1 + len(xs') + len(xs'))").subtrees(1))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
@@ -54,7 +54,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/ConcatMap.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.apply("_ ++ _ -> concatMap' _ _ _").subtrees(1))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
@@ -70,7 +70,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/ReverseReverse.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩").cleanTypes)
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
@@ -78,7 +78,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/RunSpbeFilterFilter.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("filter pred (filter pred (l)) ||| filter pred l"))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
@@ -86,7 +86,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     val fileName = "src/main/resources/examples/RunSpbeReverseReverse.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(f(t))) ||| f(t)"))
-    val result = lastState.programs.hyperGraph.findSubgraph[Int](pattern)
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 

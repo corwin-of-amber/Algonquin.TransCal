@@ -106,7 +106,8 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Take main expression and create a rewrite
-    ActionSearchState(state.programs, state.rewriteRules ++ rewrites)
+    state.addRules(rewrites)
+    state
   }
 }
 

@@ -16,14 +16,14 @@ class ElaborateWithCaseSplit(anchor: HyperTermIdentifier,
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     var newState = opRun(state)
-    var caseEdges = newState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+    var caseEdges = newState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
 
     while ((!immutablePredicate(newState)) && caseEdges.nonEmpty) {
       val e = caseEdges.head.copy(metadata = caseEdges.head.metadata.merge(idMetadata))
-      newState = newState.copy(programs = Programs(newState.programs.hyperGraph - e + e))
+      newState.updateGraph(g => g -= e += e)
       newState = new CaseSplitAction(e, None)(newState)
       newState = opRun(newState)
-      caseEdges = newState.programs.hyperGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
+      caseEdges = newState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId))
         .filterNot(_.metadata.exists(_ == idMetadata))
     }
 

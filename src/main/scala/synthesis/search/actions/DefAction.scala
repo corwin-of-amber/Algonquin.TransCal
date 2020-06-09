@@ -18,6 +18,6 @@ class DefAction(term: AnnotatedTree, val allowExistential: Boolean = true, clean
     val newProgs =
       if (isDirect) state.programs.addTerm(updatedTerm.subtrees(1))
       else state.programs.addTerm(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, updatedTerm.subtrees))
-    ActionSearchState(newProgs, letAction(state).rewriteRules)
+    new ActionSearchState(newProgs, letAction(state).rewriteRules)
   }
 }

@@ -4,7 +4,7 @@ import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures.immutable.CompactHyperGraph
-import structures.{EmptyMetadata, HyperEdge}
+import structures.{EmptyMetadata, HyperEdge, mutable}
 import synthesis.search.rewrites.Template.ReferenceTerm
 import transcallang.Language._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
@@ -26,7 +26,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
 
   property("10 first nodes are constructable") {
     forAll (SizeRange(10)) { programs: Programs =>
-      programs.hyperGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty) shouldEqual true
+      programs.queryGraph.nodes.take(10).map(programs.reconstruct).forall(_.nonEmpty) shouldEqual true
     }
   }
 
@@ -35,7 +35,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
       val tree = new AnnotatedTree(root, List(AnnotatedTree.identifierOnly(son)), Seq.empty)
       val programs = Programs(tree)
 
-      val results = programs.reconstruct(HyperTermId(programs.hyperGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
+      val results = programs.reconstruct(HyperTermId(programs.queryGraph.nodes.map { case HyperTermId(i) => i }.max)).toList
 
       results should have size 1
       results should contain (tree)
@@ -50,7 +50,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
         val programs = Programs(tree)
 
         val results = {
-          val mainHyperTermId = programs.hyperGraph.findEdges(HyperTermIdentifier(root))
+          val mainHyperTermId = programs.queryGraph.findEdges(HyperTermIdentifier(root))
           programs.reconstruct(mainHyperTermId.head.target).toList
         }
 
@@ -70,7 +70,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
     forAll { (term1: AnnotatedTree, term2: AnnotatedTree) =>
       whenever((term1.nodes ++ term2.nodes).map(_.root).intersect(Seq("/", "id")).isEmpty) {
         val progs = Programs(new AnnotatedTree(splitId, List(term1, term2), Seq.empty))
-        val edges = progs.hyperGraph.findEdges(HyperTermIdentifier(Language.idId))
+        val edges = progs.queryGraph.findEdges(HyperTermIdentifier(Language.idId))
         edges.map(_.target).forall(t => progs.reconstruct(t).toSeq.intersect(Seq(term1, term2)).nonEmpty) shouldBe true
       }
     }
@@ -96,7 +96,7 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   }
 
   property("Reconstructs more then one possibility") {
-    val graph = CompactHyperGraph(
+    val graph = mutable.CompactHyperGraph(
         HyperEdge(HyperTermId(1), HyperTermIdentifier(Identifier("x")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(2), HyperTermIdentifier(Identifier("xs")), List(), EmptyMetadata),
         HyperEdge(HyperTermId(7), HyperTermIdentifier(Identifier("elem")), List(HyperTermId(1), HyperTermId(2)), EmptyMetadata),
@@ -155,15 +155,15 @@ class ProgramsPropSpec extends PropSpec with Matchers with ScalaCheckPropertyChe
   }
 
   property("a few reconstruct in a row returns same results (using mutable state now)") {
-    forAll (SizeRange(20)) { programs: Programs => whenever(programs.hyperGraph.nonEmpty) {
-      (0 to 3).map(_ => programs.reconstruct(programs.hyperGraph.nodes.head).toSet).toSet should have size 1
+    forAll (SizeRange(20)) { programs: Programs => whenever(programs.queryGraph.nonEmpty) {
+      (0 to 3).map(_ => programs.reconstruct(programs.queryGraph.nodes.head).toSet).toSet should have size 1
     }}
   }
 
   property("reconstruct all is sane and reconstructs all") {
     forAll (SizeRange(20)) {terms: Set[AnnotatedTree] =>
       val progs = terms.foldLeft(Programs.empty)((p, t) => p.addTerm(t))
-      val res = Programs.reconstructAll(progs.hyperGraph, 4).map(_.tree)
+      val res = progs.reconstructAll(4).map(_.tree)
       res.intersect(terms) shouldEqual terms.filter(_.depth <= 4)
     }
   }

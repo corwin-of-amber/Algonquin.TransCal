@@ -3,15 +3,14 @@ package synthesis.search.actions.thesy
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
 import synthesis.Programs
-import synthesis.search.{Operator, RewriteSearchState}
-import synthesis.search.actions.{LetAction, SearchAction}
-import synthesis.search.actions.SearchAction
-import synthesis.search.rewrites.RewriteRule
-import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalParser}
+import synthesis.search.ActionSearchState
+import synthesis.search.actions.{Action, LetAction}
+import synthesis.search.rewrites.{IRewriteRule, RewriteRule}
+import transcallang._
 
 import scala.collection.mutable
 
-class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operator[RewriteSearchState]])
+class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule])
     extends LazyLogging with LazyTiming {
   import Prover._
 
@@ -21,7 +20,7 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
   private val ltwfTransivity = new LetAction(new TranscalParser()("ltwf(?x, ?y) ||| ltwf(?z, x) >> ltwf(z, y)")).rules
 
   // TODO: bad design change this
-  def knownRules: Set[Operator[RewriteSearchState]] = mutableRules.toSet
+  def knownRules: Set[IRewriteRule] = mutableRules.toSet
 
   private def ltwfRules(datatype: Datatype): Set[RewriteRule] = {
     val contructorRules = datatype.constructors.flatMap({ c =>
@@ -68,7 +67,7 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
     })
   }
 
-  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = timed {
+  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: IRewriteRule] = timed {
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 
@@ -116,10 +115,10 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
       )
 
       val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
-      val state = new RewriteSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last).hyperGraph)
-      val nextState = searcher.fromRewriteState(state, mutableRules.toSet ++ hypoths ++ phToConstructed ++ ltwfRules(ourType))
+      val state = new ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), knownRules ++ hypoths ++ phToConstructed ++ ltwfRules(ourType))
+      val nextState = searcher(state)
       val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
-      nextState.graph.findSubgraph[Int](pattern).nonEmpty
+      nextState.programs.queryGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
       val newRules = createRules(updatedTerm1, updatedTerm2)

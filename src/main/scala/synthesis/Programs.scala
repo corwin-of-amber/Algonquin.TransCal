@@ -3,13 +3,13 @@ package synthesis
 import com.typesafe.scalalogging.LazyLogging
 import report.StopWatch
 import structures._
-import structures.generic.HyperGraph
+import structures.generic.{HyperGraph, WrapperHyperGraph}
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
 import synthesis.search.actions.thesy.SyGuERewriteRules
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.search.{ActionSearchState, RewriteSearchState}
+import synthesis.search.ActionSearchState
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 import scala.util.Try
@@ -20,15 +20,19 @@ import scala.util.Try
   * @author tomer
   * @since 11/19/18
   */
-class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
+class Programs(private val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging {
 
   import Programs._
+
+  override def clone(): Programs = Programs(hyperGraph.clone)
 
   private implicit class HasNextIterator[T](it: Iterator[T]) {
     def nextOption: Option[T] = if (it.hasNext) Some(it.next()) else None
   }
 
   /* --- Public --- */
+  val queryGraph: HyperGraph[HyperTermId, HyperTermIdentifier] = new QueryWrapper(hyperGraph)
+
   /**
     *
     * @param annotatedTree
@@ -202,14 +206,52 @@ class Programs(val hyperGraph: ActionSearchState.HyperGraph) extends LazyLogging
 
   def +(term: AnnotatedTree): Programs = addTerm(term)
 
+  def reconstructPatternWithRoot(pattern: HyperPattern,
+                                 patternRoot: ReferenceTerm[HyperTermId]): Set[(HyperTermId, Stream[AnnotatedTree])] =
+    Programs.reconstructPatternWithRoot(hyperGraph, pattern, patternRoot)
 
-  /* --- Object Impl. --- */
+  def reconstructAll(maxDepth: Int): Set[Entry] = {
+    Programs.reconstructAll(hyperGraph, maxDepth)
+  }
+
+   /* --- Object Impl. --- */
 
   override def toString: String = f"Programs($hyperGraph)"
 }
 
 object Programs extends LazyLogging {
   type Edge = HyperEdge[HyperTermId, HyperTermIdentifier]
+  private class QueryWrapper(graph: generic.HyperGraph[HyperTermId, HyperTermIdentifier]) extends WrapperHyperGraph[HyperTermId, HyperTermIdentifier, QueryWrapper](graph) {
+    /** Adds an edge to the hyper graph.
+      *
+      * @param hyperEdge The edge to add.
+      * @return The new hyper graph with the edge.
+      */
+    override def +(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]): QueryWrapper = new QueryWrapper(graph + hyperEdge)
+
+    /** Removes an edge from the hyper graph.
+      *
+      * @param hyperEdge The edge to remove.
+      * @return The new hyper graph without the edge.
+      */
+    override def -(hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]): QueryWrapper = new QueryWrapper(graph - hyperEdge)
+
+    /** Merges two node to one.
+      *
+      * @param keep   The node to change to.
+      * @param change The node to change from.
+      * @return The new graph after the change.
+      */
+    override def mergeNodes(keep: HyperTermId, change: HyperTermId): QueryWrapper = new QueryWrapper(graph.mergeNodes(keep, change))
+
+    /** Merges two edge types to one.
+      *
+      * @param keep   The edge to change to.
+      * @param change The edge to change from.
+      * @return The new graph after the change.
+      */
+    override def mergeEdgeTypes(keep: HyperTermIdentifier, change: HyperTermIdentifier): QueryWrapper = new QueryWrapper(graph.mergeEdgeTypes(keep, change))
+  }
 
   def Edge(hyperTermId: HyperTermId, hyperTermIdentifier: HyperTermIdentifier, sources: Seq[HyperTermId])
   : HyperEdge[HyperTermId, HyperTermIdentifier] = HyperEdge(hyperTermId, hyperTermIdentifier, sources, EmptyMetadata)
@@ -219,16 +261,11 @@ object Programs extends LazyLogging {
     override protected def toStr: String = "NonConstructable"
   }
 
-  def empty: Programs = Programs(immutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier])
+  def empty: Programs = Programs(mutable.CompactHyperGraph.empty[HyperTermId, HyperTermIdentifier])
 
   def apply(hyperGraph: ActionSearchState.HyperGraph): Programs = new Programs(hyperGraph)
 
-  def apply(hyperGraph: RewriteSearchState.HyperGraph): Programs = new Programs(immutable.CompactHyperGraph(hyperGraph.toSeq: _*))
-
   def apply(tree: AnnotatedTree): Programs = Programs(Programs.destruct(tree))
-
-  def apply(trees: Set[AnnotatedTree]): Programs =
-    Programs(search.disjointAppend(trees.map(t => new RewriteSearchState(Programs.destruct(t)).graph).toSeq))
 
   private def flattenApply(term: AnnotatedTree): (Identifier, Seq[AnnotatedTree]) = {
     if (term.root == Language.applyId && term.subtrees.head.root == Language.applyId) {
@@ -452,7 +489,7 @@ object Programs extends LazyLogging {
     logger.trace("Destruct a program")
 
     val hyperEdges = innerDestruct(tree, Stream.from(maxId.id + 1).iterator.map(HyperTermId), HyperTermIdentifier)
-    (immutable.CompactHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
+    (mutable.CompactHyperGraph(hyperEdges._2.toSeq: _*), hyperEdges._1)
   }
 
   def destructPattern(tree: AnnotatedTree): HyperPattern = {

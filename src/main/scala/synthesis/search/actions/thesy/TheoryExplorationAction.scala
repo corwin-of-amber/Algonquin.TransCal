@@ -104,7 +104,7 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
       logger.info(s"Working on equivalences")
       // Different context for temp names
       val classes: Set[Set[AnnotatedTree]] =
-        Programs.reconstructAll(equivalenceClasses.graph, i)
+        equivalenceClasses.programs.reconstructAll(i)
           .groupBy(_.edge.target).values.toSet
           .map((s: Set[Programs.Entry]) => s.map(_.tree))
       logger.warn(s"Finished finding rules depth ${i}  @  ${StopWatch.instance.now}")
@@ -122,7 +122,7 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
         val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules)
         do {
           // Reset versioning to look only on results from new rules.
-          val classes: Set[Set[AnnotatedTree]] = Programs.reconstructAll(equivalenceClasses.graph, termDepth)
+          val classes: Set[Set[AnnotatedTree]] = equivalenceClasses.programs.reconstructAll(termDepth)
             .groupBy(_.edge.target).values.toSet
             .map((s: Set[Programs.Entry]) => s.map(_.tree))
           newRules = conjectureChecker.checkConjectures(classes)
@@ -144,7 +144,9 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
     logger.info(s"term count: $termCount")
     logger.info(s"failed count: $failedProofs")
     logger.info(s"retry success count: $retriedProofs")
-    state.copy(rewriteRules = prover.knownRules)
+    // TODO: insert rules on the go, don't hold rules in prover
+    state.addRules(prover.knownRules)
+    state
   }
 
 }

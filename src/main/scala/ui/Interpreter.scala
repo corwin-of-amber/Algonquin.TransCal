@@ -17,7 +17,7 @@ class Interpreter(terms: Iterator[AnnotatedTree], userOutput: PrintStream) {
 
   def start(): ActionSearchState = {
     var oldState: ActionSearchState = null
-    var newState = ActionSearchState(Programs.empty, Interpreter.InterpreterRewriteRulesDB)
+    var newState = new ActionSearchState(Programs.empty, Interpreter.InterpreterRewriteRulesDB)
     do {
       oldState = newState
       for(action <- actions) {

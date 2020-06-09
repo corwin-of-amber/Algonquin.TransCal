@@ -1,9 +1,8 @@
 package synthesis.search.rewrites
 
 import org.scalatest.{Matchers, PropSpec}
-import structures.immutable.CompactHyperGraph
+import structures.mutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.search.RewriteSearchState
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language}
 
@@ -17,9 +16,11 @@ class FlattenRewriteTest extends PropSpec with Matchers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("y")), Seq(), EmptyMetadata))
-    val progs = Programs(CompactHyperGraph(edges.toSeq: _*))
-    val state = new RewriteSearchState(CompactHyperGraph(progs.hyperGraph.toSeq: _*))
-    val newEdges = FlattenRewrite(state).graph.edges -- progs.hyperGraph.edges
+
+    val newGraph = CompactHyperGraph(edges.toSeq: _*)
+    val progs = new Programs(newGraph.clone)
+    FlattenRewrite(newGraph)
+    val newEdges = newGraph.edges -- progs.queryGraph.edges
     val newEdge = newEdges.filter(_.sources.size == 4)
     newEdges should have size 2
     newEdge.head.sources should have size 4
@@ -48,10 +49,11 @@ class FlattenRewriteTest extends PropSpec with Matchers  {
       HyperEdge(HyperTermId(3), HyperTermIdentifier(Identifier("f")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(4), HyperTermIdentifier(Identifier("z")), Seq(), EmptyMetadata),
       HyperEdge(HyperTermId(5), HyperTermIdentifier(Identifier("y")), Seq(), EmptyMetadata))
-    val progs = Programs(CompactHyperGraph(edges.toSeq: _*))
-    val state = new RewriteSearchState(CompactHyperGraph(progs.hyperGraph.toSeq: _*))
-    val flattened = FlattenRewrite(state)
-    val newEdge = (flattened.graph.edges -- progs.hyperGraph.edges).filter(e => e.edgeType.identifier.literal == "f")
+    val newGraph = CompactHyperGraph(edges.toSeq: _*)
+    val progs = new Programs(newGraph.clone)
+    FlattenRewrite(newGraph)
+    val newEdges = newGraph.edges -- progs.queryGraph.edges
+    val newEdge = (newGraph.edges -- progs.queryGraph.edges).filter(e => e.edgeType.identifier.literal == "f")
     newEdge should have size 1
     newEdge.head.sources should have size 2
     newEdge.head.sources.head.id shouldEqual 4

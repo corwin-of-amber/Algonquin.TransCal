@@ -1,7 +1,6 @@
 package synthesis.search.actions
 
 import synthesis.Programs
-import synthesis.search.{ActionSearchState, Operator, RewriteSearchState}
 import transcallang.{AnnotatedTree, Identifier}
 
 package object thesy {

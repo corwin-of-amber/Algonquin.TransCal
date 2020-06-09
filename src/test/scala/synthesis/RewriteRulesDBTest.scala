@@ -4,7 +4,6 @@ import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import structures.HyperEdge
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.complexity.{AddComplexity, ConstantComplexity, ContainerComplexity}
-import synthesis.search.RewriteSearchState
 import synthesis.search.rewrites.{AssociativeRewriteRulesDB, SimpleRewriteRulesDB, SpaceComplexRewriteRulesDB, TimeComplexRewriteRulesDB}
 import synthesis.search.rewrites.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier, TranscalParser}
@@ -15,9 +14,13 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val term = new TranscalParser().apply("1 -> a + (b + c)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> ((_ + _) + _)").subtrees(1)
     val pattern = Programs.destructPattern(patternTerm)
-    val state = new RewriteSearchState(Programs.destruct(term))
+    val graph = Programs.destruct(term)
     val rules = AssociativeRewriteRulesDB.rewriteRules
-    rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).nonEmpty) shouldEqual true
+    rules.exists(x => {
+      val g = graph.clone
+      x.apply(g)
+      g.findSubgraph[Int](pattern).nonEmpty
+    }) shouldEqual true
   }
 
   //  property("rewriteRules manage to rewrite ?x / false >> id x") {
@@ -40,11 +43,12 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
 
   test("rewriteRules manage to rewrite (?x le ?y) ||> min(x, y) >> id x") {
     val term = new TranscalParser().parseExpression("min(a, b) |||| ((a <= b) ||| true)")
-    val state = new RewriteSearchState(Programs.destruct(term))
+    val graph = Programs.destruct(term)
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => {
-      val newProgs = synthesis.Programs(r(state).graph)
-      val aRoot = newProgs.hyperGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
+      r(graph)
+      val newProgs = synthesis.Programs(graph)
+      val aRoot = newProgs.queryGraph.findEdges(HyperTermIdentifier(Identifier("a"))).head.target
       newProgs.reconstruct(aRoot).contains(new TranscalParser().parseExpression("min(a, b)"))
     }) shouldEqual true
   }
@@ -53,9 +57,11 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val term = new TranscalParser().apply("1 -> min(a, b)").subtrees(1)
     val patternTerm = new TranscalParser().apply("1 -> id a").subtrees(1)
     val pattern = Programs.destructPattern(patternTerm)
-    val state = new RewriteSearchState(Programs.destruct(term))
+    val state = Programs.destruct(term)
     val rules = SimpleRewriteRulesDB.rewriteRules
-    rules.exists(_.apply(state).graph.findSubgraph[Int](pattern).isEmpty) shouldEqual true
+    rules.exists(x => {
+      x.apply(state)
+     state.findSubgraph[Int](pattern).isEmpty}) shouldEqual true
   }
 
   test("rule to a single hole works") {
@@ -64,11 +70,11 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(patternTerm)).head
     val (graph, root) = Programs.destructWithRoot(term)
     val anchor = HyperTermIdentifier(Identifier("anchor"))
-    val state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
+    val state = graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata)
     val rules = SimpleRewriteRulesDB.rewriteRules
     rules.exists(r => {
-      val newState = r.apply(state)
-      newState.graph.findSubgraph[Int](pattern).head._1(patternRoot.id) == newState.graph.findEdges(anchor).head.target
+      r.apply(state)
+      state.findSubgraph[Int](pattern).head._1(patternRoot.id) == state.findEdges(anchor).head.target
     }) shouldEqual true
   }
 
@@ -78,11 +84,11 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
       val (pattern, patternRoot) = Programs.destructPatternsWithRoots(Seq(patternTerm)).head
       val (graph, root) = Programs.destructWithRoot(term)
       val anchor = HyperTermIdentifier(Identifier("anchor"))
-      val state = new RewriteSearchState(graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata))
+      val state = graph + HyperEdge(root, anchor, Seq.empty, NonConstructableMetadata)
       rules.exists(r => {
-        val newState = r.apply(state)
-        val findRes = newState.graph.findSubgraph[Int](pattern)
-        findRes.nonEmpty && findRes.head._1(patternRoot.id) == newState.graph.findEdges(anchor).head.target
+        r.apply(state)
+        val findRes = state.findSubgraph[Int](pattern)
+        findRes.nonEmpty && findRes.head._1(patternRoot.id) == state.findEdges(anchor).head.target
       }) shouldEqual true
     }
 
@@ -97,7 +103,7 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val tree = parser.apply("timecomplexTrue = timecomplex x 0")
     val programs = Programs.empty.addTerm(tree)
 
-    val headEdge = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
+    val headEdge = programs.queryGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
     assume(headEdge.nonEmpty)
     val result = programs.reconstructWithTimeComplex(headEdge.get).toSeq
     result shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
@@ -111,21 +117,21 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
 
     val graphBefore = {
       val programs = Programs.empty + tree1 + tree2 + tree3
-      programs.hyperGraph
+      programs.queryGraph
     }
-    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+    val graphAfter = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => {o.apply(g); g})
     assume((graphAfter -- graphBefore).nonEmpty)
 
     val programs = Programs(graphAfter)
 
-    val xEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
+    val xEdgeOption = programs.queryGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("x")).map(_.target)
     assume(xEdgeOption.nonEmpty)
     programs.reconstructWithTimeComplex(xEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("x")), ConstantComplexity(0)))
-    val xsEdgeOption = programs.hyperGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("xs")).map(_.target)
+    val xsEdgeOption = programs.queryGraph.find(e => e.sources.isEmpty && e.edgeType.identifier == Identifier("xs")).map(_.target)
     assume(xsEdgeOption.nonEmpty)
     programs.reconstructWithTimeComplex(xsEdgeOption.get).toSeq shouldEqual Seq((AnnotatedTree.identifierOnly(Identifier("xs")), ConstantComplexity(0)))
 
-    val concatEdgeOption = programs.hyperGraph.find(e => e.sources == Seq(xEdgeOption.get, xsEdgeOption.get) && e.edgeType.identifier == Identifier("::")).map(_.target)
+    val concatEdgeOption = programs.queryGraph.find(e => e.sources == Seq(xEdgeOption.get, xsEdgeOption.get) && e.edgeType.identifier == Identifier("::")).map(_.target)
     assume(concatEdgeOption.nonEmpty)
 
     val result = programs.reconstructWithTimeComplex(concatEdgeOption.get).toSeq
@@ -144,18 +150,24 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val programs = {
       val graphBefore = {
         val programs = Programs.empty + tree1 + tree2 + tree3
-        programs.hyperGraph
+        programs.queryGraph
       }
-      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = SpaceComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => {
+        o.apply(g)
+        g
+      })
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = TimeComplexRewriteRulesDB.rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => {
+        o.apply(g)
+        g
+      })
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)
     }
 
-    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 1 && e.edgeType.identifier == Identifier("elems")).map(_.target)
+    val elemsEdgeOption = programs.queryGraph.find(e => e.sources.size == 1 && e.edgeType.identifier == Identifier("elems")).map(_.target)
     assume(elemsEdgeOption.nonEmpty)
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq
@@ -175,19 +187,25 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val programs = {
       val graphBefore = {
         val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
-        programs.hyperGraph
+        programs.queryGraph
       }
       val rewriteRules = SimpleRewriteRulesDB.rewriteRules.toSeq ++ TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
-      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => {
+        o.apply(g)
+        g
+      })
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter2 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphAfter1.toSeq:_*))((g, o) => {
+        o.apply(g)
+        g
+      })
       assume((graphAfter2 -- graphAfter1).nonEmpty)
 
       Programs(graphAfter2)
     }
 
-    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("∪")).map(_.target)
+    val elemsEdgeOption = programs.queryGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("∪")).map(_.target)
     assume(elemsEdgeOption.nonEmpty)
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSet
@@ -206,18 +224,24 @@ class RewriteRulesDBTest extends FunSuite with Matchers with ParallelTestExecuti
     val programs = {
       val graphBefore = {
         val programs = Programs.empty + tree1 + tree2 + tree3 + tree4
-        programs.hyperGraph
+        programs.queryGraph
       }
       val rewriteRules = TimeComplexRewriteRulesDB.rewriteRules ++ SpaceComplexRewriteRulesDB.rewriteRules
-      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => o.apply(RewriteSearchState(g)).graph)
+      val graphAfter1 = rewriteRules.foldLeft(structures.mutable.CompactHyperGraph(graphBefore.toSeq:_*))((g, o) => {
+        o.apply(g)
+        g
+      })
       assume((graphAfter1 -- graphBefore).nonEmpty)
 
-      val graphAfter2 = rewriteRules.foldLeft(new RewriteSearchState(graphAfter1))((g, o) => o.apply(g)).graph
+      val graphAfter2 = rewriteRules.foldLeft(graphAfter1)((g, o) => {
+        o.apply(g)
+        g
+      })
 
       Programs(graphAfter2)
     }
 
-    val elemsEdgeOption = programs.hyperGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("‖")).map(_.target)
+    val elemsEdgeOption = programs.queryGraph.find(e => e.sources.size == 2 && e.edgeType.identifier == Identifier("‖")).map(_.target)
     assume(elemsEdgeOption.nonEmpty)
 
     val result = programs.reconstructWithTimeComplex(elemsEdgeOption.get).toSeq

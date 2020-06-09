@@ -1,10 +1,8 @@
 package synthesis.search.rewrites
 
 import org.scalatest.{FunSuite, Matchers}
-import structures.immutable.{CompactHyperGraph, VocabularyHyperGraph}
-import structures.{EmptyMetadata, HyperEdge}
-import synthesis.search.RewriteSearchState
-import synthesis.search.rewrites.RewriteRule
+import structures.immutable.VocabularyHyperGraph
+import structures.{EmptyMetadata, HyperEdge, mutable}
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.Identifier
@@ -17,13 +15,13 @@ class RewriteRuleTest extends FunSuite with Matchers {
     val rewriteRule = new RewriteRule(conditions, destinations, (_, _) => EmptyMetadata)
     val templateTermToHyperTermId: TemplateTerm[HyperTermId] => HyperTermId = RewriteRulePropSpec.mapper(Stream.from(0).map(HyperTermId).iterator)
     val templateTermToHyperTermIdentifier: TemplateTerm[HyperTermIdentifier] => HyperTermIdentifier = RewriteRulePropSpec.mapper(Stream.from(0).map(x => Identifier(x.toString)).map(HyperTermIdentifier).iterator)
-    val state = new RewriteSearchState(CompactHyperGraph[HyperTermId, HyperTermIdentifier](conditions.map(edge => {
+    val state = mutable.CompactHyperGraph[HyperTermId, HyperTermIdentifier](conditions.map(edge => {
       HyperEdge[HyperTermId, HyperTermIdentifier](templateTermToHyperTermId(edge.target), templateTermToHyperTermIdentifier(edge.edgeType), edge.sources.map(templateTermToHyperTermId), EmptyMetadata)
-    }).toSeq:_*))
-    val tempProgs = Programs(state.graph)
-    val newState = rewriteRule.apply(state)
+    }).toSeq:_*)
+    val tempProgs = Programs(state.clone)
+    rewriteRule.apply(state)
     val expectedEdges = (destinations.edges -- conditions.edges).map(e => HyperEdge(e.target.asInstanceOf[ExplicitTerm[HyperTermId]].value, e.edgeType.asInstanceOf[ExplicitTerm[HyperTermIdentifier]].value, e.sources.map(_.asInstanceOf[ExplicitTerm[HyperTermId]].value), e.metadata))
-    expectedEdges.size shouldEqual (newState.graph.edges -- tempProgs.hyperGraph.edges).size
+    expectedEdges.size shouldEqual (state.edges -- tempProgs.queryGraph.edges).size
   }
 
 }

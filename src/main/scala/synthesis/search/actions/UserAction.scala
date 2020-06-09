@@ -51,7 +51,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             let.apply(state)
         }
       case Language.tacticId =>
-        val lim = annotation.map(_.root.literal.toString).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
+        val lim = annotation.map(_.root.literal).filter(_.startsWith("lim")).map(s => "lim\\(([0-9]+)\\)".r.findFirstMatchIn(s).get.group(1).toInt * state.rewriteRules.size)
 
         // operator ->:
         // We have 2 patterns which might hold common holes so we destruct them together
@@ -62,8 +62,10 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         //   For left is a pattern - Locate (locating a pattern) and adding an anchor. The pattern is found using associative rules only.
         val anchor: HyperTermIdentifier = LocateAction.createTemporaryAnchor()
         logger.info(s"LHS is Locate with pattern ${Programs.termToString(term.subtrees.head)} and temporary anchor ${anchor.identifier.literal}")
-        val tempState = new LocateAction(anchor, lhs._1, maxSearchDepth = lim).apply(ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)).copy(rewriteRules = state.rewriteRules)
-        val foundId = tempState.programs.hyperGraph.findEdges(anchor).headOption.map(_.target)
+        val depletedState = new ActionSearchState(state.programs, AssociativeRewriteRulesDB.rewriteRules)
+        val locateState = new LocateAction(anchor, lhs._1, maxSearchDepth = lim).apply(depletedState)
+        val tempState = new ActionSearchState(locateState.programs, state.rewriteRules)
+        val foundId = tempState.programs.queryGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
             val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1, Some(lhs._2))

@@ -1,8 +1,33 @@
-setcontains (union ?s1 ?s2) = or (setcontains s1) (setcontains s2)
+setcontains (union ?s1 ?s2) ?x >> or (setcontains s1 x) (setcontains s2 x)
+setcontains setempty ?x >> false
+setcontains (setcreate ?x) ?x >> true
+
 or ?x ?y >> or ?y ?x
 or ?x (or ?y ?z) = or (or ?x ?y) ?z
 or false ?x >> id ?x
 or true ?x >> true
 
+union ?s1 ?s2 = union ?s2 ?s1
+union ?s ?s >> id s
+union ?s setempty >> id s
 
-count_unique l = fold
+addandcount (?s, ?c) ?x = (setcontains s x) match ((false => (union (setcreate x) s, c + 1)) / (true => (s, c)))
+countunique (?s, ?c) ?l = l match ((nil => (s, c)) / ((?x::?xs) => countunique (addandcount (s, c) x) xs))
+
+first ((?x, ?y),) >> id x
+second ((?x, ?y),) >> id y
+emptytuple = (setempty, 0)
+uniquefromlist ?l = first (countunique (setempty, 0) l)
+uniquecountfromlist ?l = second (countunique (setempty, 0) l)
+
+// set is actually a list but we want to seperate the types for development convinience.
+
+addandcount (?s, ?c) ?x |>> splitTrue ||| possibleSplit((setcontains ?s ?x), true, false)
+
+first (countunique emptytuple (y :: x :: nil)) = gggg [++]
+union (setcreate y) (first (countunique emptytuple (x :: nil))) = fffff [++]
+first (countunique emptytuple (y :: x :: nil)) -> union (setcreate y) (first (countunique emptytuple (x::nil))) [notypes]
+
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((emptytuple: (set, int)), (union : set :> set :> set), (countunique : (set, int) :> list int :> set), (first : (set, int) :> set), (setcreate: int :> set), (cons : int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 40 40 1 3 1
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int)) ((list int, (⟨⟩, x::⟨⟩)),) 10 2 1
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int), (cons : int :> list int :> list int), (union : int :> set :> set)) ((list int, (⟨⟩, x::⟨⟩)),)

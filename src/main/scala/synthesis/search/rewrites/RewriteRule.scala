@@ -6,7 +6,6 @@ import structures.HyperGraphLike.HyperEdgePattern
 import structures._
 import synthesis.search.rewrites.RewriteRule.{HyperPattern, MutableHyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
-import synthesis.search.{RewriteSearchState, StepOperator, VersionedOperator}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
 import transcallang.{Identifier, Namespace}
 
@@ -21,8 +20,7 @@ class RewriteRule(val premise: HyperPattern,
                   val conclusion: HyperPattern,
                   val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
                   val termString: String = null,
-                  val postProcessors: Seq[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends VersionedOperator[RewriteSearchState]
-  with StepOperator[Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]], RewriteSearchState] with LazyLogging {
+                  val postProcessors: Seq[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends IRewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
@@ -42,28 +40,26 @@ class RewriteRule(val premise: HyperPattern,
     * @param state state on which to run operator
     * @return (new state after update, next relevant version)
     */
-  override def apply(state: RewriteSearchState): RewriteSearchState = apply(state)
-  override def applyVersioned(state: RewriteSearchState): RewriteSearchState = apply(state, true)
+  override def apply(state: IRewriteRule.HyperGraph): Unit = apply(state, false)
+  override def applyVersioned(state: IRewriteRule.HyperGraph): Unit = apply(state, true)
 
-  def apply(state: RewriteSearchState, versioned: Boolean = false): RewriteSearchState = {
-    logger.trace(s"Running rewrite rule $this")
+  // Add metadata creator
+  def innerApply(graph: IRewriteRule.HyperGraph, versioned: Boolean): Unit = {
+      logger.trace(s"Running rewrite rule $this")
 
-    val halfFilledPatterns = fillConclusions(state, false)
-    if (halfFilledPatterns.nonEmpty) {
-      logger.debug(s"Used RewriteRule $this ")
-      val edges = getConclusionsByState(state, halfFilledPatterns)
-      state.graph ++= edges
-      Stats.instance.ruleUsage.inc(this, edges.size)
+      val halfFilledPatterns = fillConclusions(graph, versioned)
+      if (halfFilledPatterns.nonEmpty) {
+        logger.debug(s"Used RewriteRule $this ")
+      }
+      graph ++= getConclusionsByState(graph, halfFilledPatterns)
     }
-    state
-  }
 
   /* --- Privates --- */
 
-  private def getConclusionsByState(state: RewriteSearchState,
+  private def getConclusionsByState(graph: IRewriteRule.HyperGraph,
                                     halfFilledPatterns: Set[(mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]], Metadata)]) = {
     val nextHyperId: () => HyperTermId = {
-      val creator = Stream.from(if (state.graph.isEmpty) 0 else state.graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
+      val creator = Stream.from(if (graph.isEmpty) 0 else graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
       () => creator.next
     }
 
@@ -73,11 +69,11 @@ class RewriteRule(val premise: HyperPattern,
     })
   }
 
-  private def fillConclusions(state: RewriteSearchState, versioned: Boolean) = {
+  private def fillConclusions(graph: IRewriteRule.HyperGraph, versioned: Boolean) = {
     // Fill conditions - maybe subgraph matching instead of current temple
     val premiseReferencesMaps =
-      if (versioned) state.graph.findSubgraphVersioned[Int](subGraphPremise)
-      else state.graph.findSubgraph[Int](subGraphPremise)
+      if (versioned) graph.findSubgraphVersioned[Int](subGraphPremise)
+      else graph.findSubgraph[Int](subGraphPremise)
 
     val edgeToTarget = collection.mutable.HashMap.empty[(HyperTermIdentifier, Seq[HyperTermId]), HyperTermId]
 
@@ -93,7 +89,7 @@ class RewriteRule(val premise: HyperPattern,
         edgeToTarget.get((et, s)).map((t, _))
         if (edgeToTarget.contains((et, s))) Some((t, edgeToTarget((et, s))))
         else {
-          state.graph.findRegex[Int](HyperEdge(ReferenceTerm(t), ExplicitTerm(et), s.map(ExplicitTerm(_)), EmptyMetadata))
+          graph.findRegex[Int](HyperEdge(ReferenceTerm(t), ExplicitTerm(et), s.map(ExplicitTerm(_)), EmptyMetadata))
             .headOption.map(tup => {
             edgeToTarget((et, s)) = tup._2(t)
             (t, tup._2(t))
@@ -108,9 +104,9 @@ class RewriteRule(val premise: HyperPattern,
       // TODO: undo this. just want better runtime then listing the graph a million times.
       //      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
       val meta = metaCreator(m._1, m._2)
-      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(state.graph, meta, m._1, m._2), m)
+      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(graph, meta, m._1, m._2), m)
       val furtherFilling = fillKnownTargets(merged)
-      if (state.graph.findSubgraph[Int](furtherFilling).nonEmpty) None
+      if (graph.findSubgraph[Int](furtherFilling).nonEmpty) None
       else Some((furtherFilling, meta))
     })
     halfFilledPatterns
@@ -128,7 +124,7 @@ class RewriteRule(val premise: HyperPattern,
 
   def isExistential: Boolean = existentialHoles.nonEmpty
 
-  private def subGraphConclusion(graph: RewriteSearchState.HyperGraph, metadata: Metadata, idMap: Map[Int, HyperTermId], edgeMap: Map[Int, HyperTermIdentifier]): MutableHyperPattern = {
+  private def subGraphConclusion(graph: IRewriteRule.HyperGraph, metadata: Metadata, idMap: Map[Int, HyperTermId], edgeMap: Map[Int, HyperTermIdentifier]): MutableHyperPattern = {
     val withExist = conclusionMutable.clone()
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {
@@ -167,12 +163,12 @@ class RewriteRule(val premise: HyperPattern,
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
     * edges to the graph until all calculations of a step are done.
     *
-    * @param state     current state from which to do the initial calculations and create an operator
+    * @param graph     current graph from which to do the initial calculations and create an operator
     * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(state: RewriteSearchState, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
-    val graphsAndMetas = fillConclusions(state, versioned)
+  override def getStep(graph: IRewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+    val graphsAndMetas = fillConclusions(graph, versioned)
     var maxHole = 0
 
     def moveHoles(graph: mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
