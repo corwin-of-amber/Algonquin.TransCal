@@ -1,6 +1,7 @@
 package synthesis.search.action.operators.thesy
 
 import com.typesafe.scalalogging.LazyLogging
+import report.LazyTiming
 import synthesis.search.Operator
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import synthesis.search.action.ActionSearchState.HyperGraph
@@ -16,7 +17,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
                           searcher: SearchAction,
 //                          exampleDepthLimit: Int,
                           examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
-                          placeholderCount: Int) extends LazyLogging {
+                          placeholderCount: Int) extends LazyLogging with LazyTiming {
   //TODO: remove placeholder count and:
   // TODO: 1. Dynamically decide phC per type by arity of functions
   // TODO: 2. Generate expression using a pattern and a factory. See Issue 13
@@ -97,7 +98,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     new RewriteSearchState(res)
   }
 
-  def increaseDepth(): Unit = {
+  def increaseDepth(): Unit = timed {
     // TODO: Run new rules before inreasing depth
     // TODO: Keep same soes
     val op = new Operator[RewriteSearchState] {
@@ -122,7 +123,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     op(baseState)
   }
 
-  def inferConjectures(operators: Set[Operator[RewriteSearchState]]) = {
+  def inferConjectures(operators: Set[Operator[RewriteSearchState]]) = timed {
     val soes = vocab.datatypes.map(d => new SOE(searcher, baseState, placeholders(d.asType).head, examples(d.asType)))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators.toSeq)))
     ObservationalEquivalence.mergeConclusions(baseState, idsToMerge.toSeq)

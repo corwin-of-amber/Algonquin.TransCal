@@ -1,6 +1,7 @@
 package synthesis.search.action.operators.thesy
 
 import com.typesafe.scalalogging.LazyLogging
+import report.LazyTiming
 import synthesis.Programs
 import synthesis.search.Operator
 import synthesis.search.action.operators.{LetAction, SearchAction}
@@ -10,7 +11,8 @@ import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalPars
 
 import scala.collection.mutable
 
-class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operator[RewriteSearchState]]) extends LazyLogging {
+class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operator[RewriteSearchState]])
+    extends LazyLogging with LazyTiming {
   import Prover._
 
   private var failedProofs = 0
@@ -66,7 +68,7 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Operat
     })
   }
 
-  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = {
+  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = timed {
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 

@@ -44,7 +44,7 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
                               splitDepthOption: Option[Int] = None,
                               preRunDepth: Option[Int] = None,
                               placeholderCountOption: Option[Int] = None,
-                              reprove: Boolean = true) extends Action {
+                              reprove: Boolean = false) extends Action {
   assert(examples.values.map(_.size).toSet.size == 1)
   var termCount = 0
   var failedProofs = 0
@@ -79,6 +79,7 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
     */
   private class ProverCheckerBundle(state: ActionSearchState) {
     val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules) {
+      override protected def watchName: String = "Prover"
       override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
         super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
     }

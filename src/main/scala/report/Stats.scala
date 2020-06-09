@@ -14,7 +14,8 @@ class Stats {
   def dumpToFile(filename: String = "stats.out") {
     val out = new OutputStreamWriter(new FileOutputStream(filename))
     try {
-      out.write(ruleUsage.dump.toString())
+      out.write(s"${ruleUsage.dump}\n\n")
+      out.write(s"${Timing.dump}\n\n■ ${Timing.end}")
     }
     finally { out.close() }
   }
@@ -52,11 +53,19 @@ object Stats {
 
     def dump =
       new Table(counts.map { case (rule, e) => List(rule.termString, e.times, e.edges) } .toList)
-        .withTotals(Seq(1, 2), _.map(_.asInstanceOf[Int]).sum)
+        .withTotals(Seq(1, 2), Table.sumInts[Int])
   }
 
   object RuleUsage {
     class Entry { var times = 0; var edges = 0 }
+  }
+
+  object Timing {
+    def dump =
+      new Table((for ((k, v) <- StopWatch.factory) yield List(k, v.elapsed)).toList)
+        .withTotals(Seq(1), Table.sumInts[Long])
+
+    def end = s"finished  @  ${StopWatch.instance.now}"
   }
 
   /**
@@ -83,6 +92,10 @@ object Stats {
       val row = (0 to cols.max).map(sums.get).toList
       new Table[T](data :+ row)
     }
+  }
+
+  object Table {
+    def sumInts[T](d: Seq[Any])(implicit num: Numeric[T]) = d.map(_.asInstanceOf[T]).sum
   }
 
   lazy val instance = new Stats

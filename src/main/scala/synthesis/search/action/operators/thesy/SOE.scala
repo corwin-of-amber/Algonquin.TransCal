@@ -1,5 +1,7 @@
 package synthesis.search.action.operators.thesy
 
+import com.typesafe.scalalogging.LazyLogging
+import report.LazyTiming
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.Operator
 import synthesis.search.action.ActionSearchState
@@ -10,11 +12,12 @@ import synthesis.search.rewrite.operators.RewriteRule
 import synthesis.search.rewrite.operators.Template.ReferenceTerm
 import transcallang.{AnnotatedTree, Identifier}
 
-class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree]) {
+class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
+    extends LazyLogging with LazyTiming {
   private val anchorPrefix = "SOE_"
   val marker = inputMarker.copy(annotation = None)
 
-  private val tupeledState: RewriteSearchState = {
+  private val tupeledState: RewriteSearchState = timed {
     // TODO: Add disjoint append to rewrite graph and simplify this
     // Need to shift all edges on graph because we want to prevent one changed value from affecting parts of other
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
@@ -42,7 +45,7 @@ class SOE(searcher: SearchAction, rewriteSearchState: RewriteSearchState, inputM
     new RewriteSearchState(resGraph)
   }
 
-  private def getTupledConclusions(rewriteSearchState: RewriteSearchState): Set[Set[HyperTermId]] = {
+  private def getTupledConclusions(rewriteSearchState: RewriteSearchState): Set[Set[HyperTermId]] = timed {
     val prefixes = valuations.indices.map(i => s"${
       i
     }_$anchorPrefix")

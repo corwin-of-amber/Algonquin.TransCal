@@ -1,7 +1,7 @@
 package synthesis.search.action.operators.thesy
 
 import com.typesafe.scalalogging.LazyLogging
-import report.StopWatch
+import report.{LazyTiming, StopWatch}
 import synthesis.Programs
 import synthesis.search.{Operator, action}
 import synthesis.search.action.ActionSearchState
@@ -11,7 +11,8 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
 
-class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogging {
+class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogging with LazyTiming {
+  //override protected def watchName: String = "ConjectureChecker"
 
   private val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
   private implicit val smallestGeneraliestOrdering: Ordering[AnnotatedTree] = new Ordering[AnnotatedTree] {
@@ -61,7 +62,7 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction) extends LazyLogg
     * @param conjectures equality classes from soe
     * @return All proved rules
     */
-  def checkConjectures(conjectures: Set[Set[AnnotatedTree]]): Set[AnnotatedTree] = {
+  def checkConjectures(conjectures: Set[Set[AnnotatedTree]]): Set[AnnotatedTree] = timed {
     // First order the equality classes by smallest most general representative
     conjectures.toSeq.sortBy(_.min).collect({
       case terms if terms.size > 1 =>
