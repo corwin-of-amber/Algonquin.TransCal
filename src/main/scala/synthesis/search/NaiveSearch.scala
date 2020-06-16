@@ -34,7 +34,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
           //        "y::x::nil",
           //        "reverse(snoc(nil, ?z))",
           //        "reverse(snoc(x::nil, ?z))",
-          //        "reverse(snoc(y::x::nil, ?z))"
+          //        "?x :: ?xs ||| ?y :+ ?y"
         ).map(s => (s, parser.parseExpression(s) cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
       }
 

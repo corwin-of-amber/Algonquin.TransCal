@@ -3,7 +3,7 @@ package report
 import java.io.{FileOutputStream, OutputStreamWriter}
 
 import scala.collection.mutable
-import synthesis.search.rewrite.operators.RewriteRule
+import synthesis.search.rewrites.RewriteRule
 
 
 class Stats {

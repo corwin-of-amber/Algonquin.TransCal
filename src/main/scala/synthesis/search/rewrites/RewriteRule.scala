@@ -40,8 +40,8 @@ class RewriteRule(val premise: HyperPattern,
     * @param state state on which to run operator
     * @return (new state after update, next relevant version)
     */
-  override def apply(state: IRewriteRule.HyperGraph): Unit = apply(state, false)
-  override def applyVersioned(state: IRewriteRule.HyperGraph): Unit = apply(state, true)
+  override def apply(state: IRewriteRule.HyperGraph): Unit = innerApply(state, false)
+  override def applyVersioned(state: IRewriteRule.HyperGraph): Unit = innerApply(state, true)
 
   // Add metadata creator
   def innerApply(graph: IRewriteRule.HyperGraph, versioned: Boolean): Unit = {

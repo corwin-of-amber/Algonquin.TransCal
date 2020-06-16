@@ -132,7 +132,7 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule
   }
 
   def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
-    new LetAction(AnnotatedTree.withoutAnnotations(Language.letId, Seq(lhs, rhs)),
+    new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(lhs, rhs)),
                   allowExistential = false).rules
 }
 

@@ -226,7 +226,6 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("Cant proove x::xs == rev(xs) :+ x") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(4), termDepthOption = Some(3))
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
