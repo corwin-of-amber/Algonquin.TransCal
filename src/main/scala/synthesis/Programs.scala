@@ -572,7 +572,7 @@ object Programs extends LazyLogging {
     val anchoredGraphs = edges.zipWithIndex.map({ case ((target, graphEdges), i) =>
       val anchorEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
         target, anchorCreator(i), Seq.empty, NonConstructableMetadata)
-      immutable.CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
+      mutable.CompactHyperGraph(graphEdges.toSeq :+ anchorEdge: _*)
     })
 
     val mergingVarHoles = anchoredGraphs.map(g => varHoles.foldLeft(g)({ case (graph, (identifier, hole)) =>

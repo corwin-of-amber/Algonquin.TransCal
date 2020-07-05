@@ -1,6 +1,5 @@
 package synthesis.search.actions
 
-import structures.immutable.HyperGraph
 import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.{ActionSearchState, NaiveSearch}
@@ -19,7 +18,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = None) extends Action {
   /** To be used during the BFS rewrite search
     *
-    * @param state the current state
+    * @param graph the current state
     * @return is state final
     */
   protected def goalPredicate(graph: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean =
@@ -42,7 +41,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val destPattern = {
       val root = roots.head
       val (anchorPattern, anchorRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
-      HyperGraph(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
+      structures.generic.HyperGraph(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
     }
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */

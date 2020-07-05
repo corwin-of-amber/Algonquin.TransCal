@@ -20,7 +20,7 @@ package object operators {
 
   val hyperPatternGen: Gen[HyperPattern] = hyperGraphGen
     .map(graph => graph.map(edge => HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)))
-    .map(g => structures.immutable.HyperGraph(g.toSeq:_*))
+    .map(g => structures.generic.HyperGraph(g.toSeq:_*))
 
   val rewriteRuleGen: Gen[RewriteRule] = for {
     conditions <- hyperPatternGen

@@ -2,7 +2,6 @@ package synthesis.search.actions
 
 import java.io.PrintStream
 
-import structures.immutable.HyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.thesy.TheoryExplorationAction
@@ -85,7 +84,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
             logger.info("RHS is a symbol adding it to graph")
-            val res = new LocateAction(HyperTermIdentifier(t.root), HyperGraph(
+            val res = new LocateAction(HyperTermIdentifier(t.root), structures.generic.HyperGraph(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
                 ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
               ): _*), maxSearchDepth = lim).apply(tempState)

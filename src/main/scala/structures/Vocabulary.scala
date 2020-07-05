@@ -1,7 +1,7 @@
 package structures
 
 import structures.VocabularyLike.Word
-import structures.immutable.Trie
+import structures.Vocabulary
 
 import scala.collection.immutable.Set
 
@@ -18,7 +18,7 @@ trait Vocabulary[Letter]
 }
 
 object Vocabulary {
-  def empty[Letter]: Vocabulary[Letter] = Trie.empty
+  def empty[Letter]: Vocabulary[Letter] = Vocabulary.empty
 
-  def apply[Letter](words: Set[Word[Letter]]): Vocabulary[Letter] = Trie(words)
+  def apply[Letter](words: Set[Word[Letter]]): Vocabulary[Letter] = Vocabulary(words)
 }

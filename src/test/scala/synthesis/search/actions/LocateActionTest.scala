@@ -2,7 +2,6 @@ package synthesis.search.actions
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{FunSuite, Matchers}
-import structures.immutable.VocabularyHyperGraph
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.actions.LocateAction.LocateMetadata
 import synthesis.search.rewrites.IRewriteRule
@@ -23,7 +22,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Language.letId)), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )
-    val template = VocabularyHyperGraph.empty.+(equalEdge)
+    val template = structures.generic.HyperGraph.empty.+(equalEdge)
     val newState = new LocateAction(HyperTermIdentifier(Identifier("anchor")), template)(state.deepCopy())
     val newEdges = newState.programs.queryGraph.edges.diff(state.programs.queryGraph.edges)
     newEdges.size should be (1)
@@ -41,7 +40,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
     val equalEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
       ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("⇒"))), Seq(ReferenceTerm(1), ReferenceTerm(2)), EmptyMetadata
     )
-    val template = VocabularyHyperGraph.empty.+(equalEdge)
+    val template = structures.generic.HyperGraph.empty.+(equalEdge)
     val newState = new LocateAction(HyperTermIdentifier(Identifier("anchor")), template)(state.deepCopy())
     val newEdges = newState.programs.queryGraph.edges.diff(state.programs.queryGraph.edges)
     newEdges.count(_.edgeType.identifier.literal == "anchor") should be (1)

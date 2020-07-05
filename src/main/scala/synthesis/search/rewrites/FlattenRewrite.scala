@@ -1,7 +1,6 @@
 package synthesis.search.rewrites
 
 import structures._
-import structures.immutable.HyperGraph
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Language
@@ -23,7 +22,7 @@ object FlattenRewrite extends IRewriteRule {
     rewrites.patternEdgeCreator(Hole(1), Hole(2), Seq(Repetition.rep0(Int.MaxValue, Stream.from(4, 2).map(Hole.apply)).get))
 
   private val applyFuncGraph: generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int] =
-    HyperGraph(Seq(outerApply, innerFunc): _*)
+    generic.HyperGraph(Seq(outerApply, innerFunc): _*)
 
   //  private def getApplyMaps(state: RewriteSearchState, versioned: Boolean): Set[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier])] = {
   //    val applyEdges = state.graph.findByEdgeType(HyperTermIdentifier(Language.applyId))

@@ -1,7 +1,7 @@
 package synthesis.search.rewrites
 
 import org.scalatest.{FunSuite, Matchers}
-import structures.immutable.VocabularyHyperGraph
+import structures.mutable.VocabularyHyperGraph
 import structures.{EmptyMetadata, HyperEdge, mutable}
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}

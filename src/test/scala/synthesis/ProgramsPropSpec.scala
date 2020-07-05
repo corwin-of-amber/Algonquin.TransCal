@@ -3,7 +3,6 @@ package synthesis
 import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, ParallelTestExecution, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import structures.immutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge, mutable}
 import synthesis.search.rewrites.Template.ReferenceTerm
 import transcallang.Language._

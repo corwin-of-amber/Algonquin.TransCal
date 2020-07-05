@@ -201,7 +201,7 @@ class RewriteRule(val premise: HyperPattern,
 object RewriteRule {
 
   /* --- Public --- */
-  type HyperPattern = immutable.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
+  type HyperPattern = generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
   type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
@@ -228,7 +228,7 @@ object RewriteRule {
     }
   }
 
-  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = immutable.HyperGraph(
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = generic.HyperGraph(
     templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq: _*
   )
 

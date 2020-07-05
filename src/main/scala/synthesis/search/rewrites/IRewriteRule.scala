@@ -1,7 +1,7 @@
 package synthesis.search.rewrites
 
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.{EmptyMetadata, HyperEdge, Metadata, generic, immutable, mutable}
+import structures.{EmptyMetadata, HyperEdge, Metadata, generic, mutable}
 import synthesis.search.rewrites.RewriteRule.CategoryMetadata.Value
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -19,7 +19,7 @@ trait IRewriteRule {
 
 object IRewriteRule {
   /* --- Public --- */
-  type HyperPattern = immutable.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
+  type HyperPattern = generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
   type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   // TODO: no reason this shouldn't be versioned
@@ -48,7 +48,7 @@ object IRewriteRule {
     }
   }
 
-  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = immutable.HyperGraph(
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = generic.HyperGraph(
     templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq: _*
   )
 
