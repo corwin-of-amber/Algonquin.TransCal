@@ -4,7 +4,7 @@ import structures.Metadata
 import structures.generic.HyperGraph
 import synthesis.search.actions.LetAction
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.search.rewrites.{IRewriteRule, RewriteRulesDB}
+import synthesis.search.rewrites.{RewriteRule, RewriteRulesDB}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.AnnotatedTree._
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
@@ -14,7 +14,7 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   require(terms.forall(_.root.annotation.nonEmpty))
   require(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
 
-  override lazy val rewriteRules: Set[IRewriteRule] = {
+  override lazy val rewriteRules: Set[RewriteRule] = {
     terms.flatMap({ t =>
       val typ = t.root.annotation.get
       // sources are all typed expressions needed

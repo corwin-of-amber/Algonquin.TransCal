@@ -2,7 +2,7 @@ package synthesis.search.actions
 
 import CaseSplitAction.SplitChooser
 import synthesis.{HyperTermId, HyperTermIdentifier}
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 
 class ObservationalEquivalenceWithCaseSplit(maxDepth: Int = 4,
                                             splitDepth: Option[Int] = None,

@@ -2,7 +2,7 @@ package synthesis.search.actions
 
 import structures.{IdMetadata, Uid}
 import synthesis.search.ActionSearchState
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 

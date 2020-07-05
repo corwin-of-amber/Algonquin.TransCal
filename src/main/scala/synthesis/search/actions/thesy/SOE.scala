@@ -5,7 +5,7 @@ import report.LazyTiming
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.search.actions.{Action, ObservationalEquivalence}
-import synthesis.search.rewrites.IRewriteRule
+import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
 import transcallang.{AnnotatedTree, Identifier}
@@ -56,7 +56,7 @@ class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, v
       ObservationalEquivalence.getIdsToMerge(p, state.programs.queryGraph.edges))).filter(_.nonEmpty)
   }
 
-  def findEquives(rules: Set[IRewriteRule]): Set[Set[HyperTermId]] = {
+  def findEquives(rules: Set[RewriteRule]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     tupeledState.addRules(rules)
     val res = searcher(tupeledState)

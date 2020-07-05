@@ -6,7 +6,7 @@ import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm}
-import synthesis.search.rewrites.{AssociativeRewriteRulesDB, IRewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrites.{AssociativeRewriteRulesDB, RewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
@@ -14,19 +14,19 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
 
   test("Bidirectional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat = ?xs :: ?xss ↦ xs ++ concat xss")
-    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty[IRewriteRule])
+    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty[RewriteRule])
     newState.rewriteRules.size shouldEqual 3
   }
 
   test("Directional let get correct amount of rewrites") {
     val letTerm = (new TranscalParser).apply("concat >> ?xs :: ?xss ↦ xs ++ concat xss")
-    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty[IRewriteRule])
+    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree.identifierOnly(Identifier("concat"))), Set.empty[RewriteRule])
     newState.rewriteRules.size shouldEqual 2
   }
 
   test("Simple let rewrite should match and reconstruct") {
     val letTerm = (new TranscalParser).apply("f ?x >> x + y")
-    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree(Identifier("f"), List(AnnotatedTree.identifierOnly(Identifier("z"))), Seq.empty)), Set.empty[IRewriteRule])
+    val newState = new LetAction(letTerm) apply new ActionSearchState(Programs(AnnotatedTree(Identifier("f"), List(AnnotatedTree.identifierOnly(Identifier("z"))), Seq.empty)), Set.empty[RewriteRule])
     newState.rewriteRules.size shouldEqual 1
     newState.updateGraph(g => newState.rewriteRules.head(g))
     val newEdges = newState.programs.queryGraph.findEdges(HyperTermIdentifier(Identifier("+")))
@@ -47,7 +47,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
         AnnotatedTree(Identifier("min"), List(AnnotatedTree.identifierOnly(a), AnnotatedTree.identifierOnly(b)), Seq.empty)
       ),
       Seq.empty)
-    ), Set.empty[IRewriteRule])
+    ), Set.empty[RewriteRule])
     newState.rewriteRules.size shouldEqual 1
     newState.updateGraph(g => newState.rewriteRules.head(g))
     val aEdge = newState.programs.queryGraph.findEdges(HyperTermIdentifier(a)).head

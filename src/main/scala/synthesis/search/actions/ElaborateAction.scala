@@ -2,7 +2,7 @@ package synthesis.search.actions
 
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.{ActionSearchState, NaiveSearch}
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 

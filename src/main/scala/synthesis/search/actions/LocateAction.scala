@@ -4,8 +4,8 @@ import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.{ActionSearchState, NaiveSearch}
 import LocateAction.LocateMetadata
-import synthesis.search.rewrites.RewriteRule
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -54,7 +54,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       LocateMetadata(newEdges)
     }
 
-    val locateRule = new RewriteRule(goal, destPattern, locateDataCreator)
+    val locateRule = new PatternRewriteRule(goal, destPattern, locateDataCreator)
 
     // Rewrite search
     val rewriteSearch = new NaiveSearch(isGoal = goalPredicate)

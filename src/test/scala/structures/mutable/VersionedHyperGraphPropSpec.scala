@@ -7,7 +7,7 @@ import structures.generic.VersionedHyperGraphLikeTest
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.{DefAction, OperatorRunAction}
-import synthesis.search.rewrites.IRewriteRule
+import synthesis.search.rewrites.RewriteRule
 import transcallang.TranscalParser
 
 
@@ -73,7 +73,7 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
 
   property("test versions using existential rule to verify only new edges are ran and all of them are ran") {
     val parser = new TranscalParser
-    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(new ActionSearchState(Programs.empty, Set.empty[IRewriteRule]))
+    val stateWithExistentialRule = new DefAction(parser apply "f ?x >> f ?y")(new ActionSearchState(Programs.empty, Set.empty[RewriteRule]))
     val newState = new OperatorRunAction(maxSearchDepth = 3)(stateWithExistentialRule)
     newState.programs.queryGraph.size shouldEqual 8
   }

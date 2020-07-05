@@ -1,14 +1,14 @@
 package synthesis.search.actions
 
 import structures.{EmptyMetadata, HyperEdge}
-import synthesis.search.rewrites.IRewriteRule
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.RewriteRule
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.search.{ActionSearchState, NaiveSearch}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
-class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[IRewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false) extends Action {
-  private val predicate = goalPredicate.getOrElse((_: IRewriteRule.HyperGraph) => false)
+class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false) extends Action {
+  private val predicate = goalPredicate.getOrElse((_: RewriteRule.HyperGraph) => false)
   private val searchAction = new NaiveSearch(startVersioned = startVersioned, predicate)
 
   private def run(state: ActionSearchState) = {
@@ -32,9 +32,9 @@ class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[IRewriteRule.
 object OperatorRunAction {
   def GenerateGoalPredicate(anchor: HyperTermIdentifier,
                             goal: HyperPattern,
-                            goalRoot: TemplateTerm[HyperTermId]): IRewriteRule.HyperGraph => Boolean = {
+                            goalRoot: TemplateTerm[HyperTermId]): RewriteRule.HyperGraph => Boolean = {
     val updatedGoal = goal.+(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
-    graph: IRewriteRule.HyperGraph => graph.findSubgraph[Int](updatedGoal).nonEmpty
+    graph: RewriteRule.HyperGraph => graph.findSubgraph[Int](updatedGoal).nonEmpty
   }
 
   def GenerateImmutableGoalPredicate(anchor: HyperTermIdentifier,

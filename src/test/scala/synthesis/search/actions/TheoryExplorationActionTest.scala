@@ -7,7 +7,7 @@ import synthesis._
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.search.actions.thesy.{Prover, SyGuERewriteRules, TheoryExplorationAction}
-import synthesis.search.rewrites.{AssociativeRewriteRulesDB, IRewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
+import synthesis.search.rewrites.{AssociativeRewriteRulesDB, RewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
 
 class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {
@@ -139,7 +139,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
 
   test("test find that filter p (filter p l) == filter p l") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepthOption = Some(6), splitDepthOption = Some(1))
-    var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(new ActionSearchState(Programs.empty, Set.empty[IRewriteRule]))
+    var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(new ActionSearchState(Programs.empty, Set.empty[RewriteRule]))
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()

@@ -3,7 +3,7 @@ package report
 import java.io.{FileOutputStream, OutputStreamWriter}
 
 import scala.collection.mutable
-import synthesis.search.rewrites.RewriteRule
+import synthesis.search.rewrites.PatternRewriteRule
 
 
 class Stats {
@@ -39,14 +39,14 @@ object Stats {
 
   class RuleUsage {
     import RuleUsage._
-    val counts = new mutable.HashMap[RewriteRule, Entry] {
-      override def default(key: RewriteRule) = new RuleUsage.Entry
-      override def apply(key: RewriteRule) = get(key) match {
+    val counts = new mutable.HashMap[PatternRewriteRule, Entry] {
+      override def default(key: PatternRewriteRule) = new RuleUsage.Entry
+      override def apply(key: PatternRewriteRule) = get(key) match {
         case Some(v) => v
         case None => val v = default(key); put(key, v); v
       }
     }
-    def inc(rule: RewriteRule, numEdges: Int) {
+    def inc(rule: PatternRewriteRule, numEdges: Int) {
       val e = counts(rule)
       e.times += 1; e.edges += numEdges
     }

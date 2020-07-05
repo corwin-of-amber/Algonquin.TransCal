@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import report.{LazyTiming, StopWatch}
 import synthesis.Programs
 import synthesis.search.actions.{Action, ObservationalEquivalence}
-import synthesis.search.rewrites.IRewriteRule
+import synthesis.search.rewrites.RewriteRule
 import synthesis.search.{ActionSearchState, Operator}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
@@ -26,7 +26,7 @@ class ConjectureChecker(prover: Prover, searcher: Action) extends LazyLogging wi
       else 0
   }
 
-  private val foundRules = mutable.Set.empty[IRewriteRule]
+  private val foundRules = mutable.Set.empty[RewriteRule]
   private val failedAttempts = mutable.Buffer.empty[(AnnotatedTree, AnnotatedTree)]
   private var retriedProofs = 0
 

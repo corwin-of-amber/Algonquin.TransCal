@@ -14,13 +14,13 @@ trait RewriteRulesDB extends LazyLogging {
 
   protected def metadata: Metadata
 
-  private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[RewriteRule] = new LetAction(ruleTemplate).rules
+  private def ruleTemplatesToRewriteRules(ruleTemplate: AnnotatedTree): Set[PatternRewriteRule] = new LetAction(ruleTemplate).rules
 
-  lazy val rewriteRules: Set[IRewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
+  lazy val rewriteRules: Set[RewriteRule] = ruleTemplates.flatMap(ruleTemplatesToRewriteRules)
 }
 
 object SystemRewriteRulesDB extends RewriteRulesDB {
-  override lazy val rewriteRules: Set[IRewriteRule] = Set[IRewriteRule](FlattenRewrite)
+  override lazy val rewriteRules: Set[RewriteRule] = Set[RewriteRule](FlattenRewrite)
 
   override protected def ruleTemplates: Set[AnnotatedTree] = throw new NotImplementedError()
 

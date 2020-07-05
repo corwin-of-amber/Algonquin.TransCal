@@ -5,7 +5,7 @@ import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures._
 import structures.mutable.CompactHyperGraph
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.rewrites.operators._
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
@@ -15,15 +15,15 @@ import transcallang.Identifier
   * @author tomer
   * @since 12/18/18
   */
-class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
+class PatternRewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
   private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
-  private implicit val hyperPatternCreator: Arbitrary[RewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
-  private implicit val rewriteRuleCreator: Arbitrary[RewriteRule] = Arbitrary(rewriteRuleGen)
-  private implicit val rewriteSearchStateCreator: Arbitrary[IRewriteRule.HyperGraph] = Arbitrary(hyperGraphGen)
+  private implicit val hyperPatternCreator: Arbitrary[PatternRewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
+  private implicit val rewriteRuleCreator: Arbitrary[PatternRewriteRule] = Arbitrary(rewriteRuleGen)
+  private implicit val rewriteSearchStateCreator: Arbitrary[RewriteRule.HyperGraph] = Arbitrary(hyperGraphGen)
 
   property("Every state keep old edges") {
     // Not necessarily true because of compaction
-    forAll { (rewriteRule: RewriteRule, state: IRewriteRule.HyperGraph) =>
+    forAll { (rewriteRule: PatternRewriteRule, state: RewriteRule.HyperGraph) =>
       val oldState = state.clone
       rewriteRule.apply(state)
       (oldState.edges -- state.edges).isEmpty
@@ -80,8 +80,8 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
         val filledConditions = generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, (Map.empty, Map.empty), () => HyperTermId(-1))
 
-        val rewriteRule = new RewriteRule(conditions, generic.HyperGraph(destination), (_, _) => EmptyMetadata)
-        val state = new IRewriteRule.HyperGraph() ++= filledConditions
+        val rewriteRule = new PatternRewriteRule(conditions, generic.HyperGraph(destination), (_, _) => EmptyMetadata)
+        val state = new RewriteRule.HyperGraph() ++= filledConditions
         val tempProgs = Programs(state.clone)
         rewriteRule.apply(state)
 
@@ -92,11 +92,11 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
   }
 
   property("Can use repetition in conclusion") {
-    forAll{(state: IRewriteRule.HyperGraph) => whenever(state.nonEmpty) {
+    forAll{(state: RewriteRule.HyperGraph) => whenever(state.nonEmpty) {
       val edge = HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](ReferenceTerm[HyperTermId](0), ReferenceTerm(1), Seq(Repetition.rep0(10, Stream.from(2).map(ReferenceTerm(_))).get), EmptyMetadata)
       val premise = CompactHyperGraph(edge)
       val conclusion = CompactHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edge.copy(edgeType = ExplicitTerm(HyperTermIdentifier(Identifier("00500")))))
-      val rule = new RewriteRule(premise.clone, conclusion.clone, (_, _) => EmptyMetadata)
+      val rule = new PatternRewriteRule(premise.clone, conclusion.clone, (_, _) => EmptyMetadata)
       val origSize = state.size
       rule(state)
       state.edges.size should be >= (origSize + state.edges.map(_.sources.size).toSet.size)
@@ -104,7 +104,7 @@ class RewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Ma
   }
 }
 
-object RewriteRulePropSpec {
+object PatternRewriteRulePropSpec {
   def mapper[T <: HyperTerm](creator: Iterator[T]): TemplateTerm[T] => T = {
     val intToT = scala.collection.mutable.Map.empty[Int, T]
 

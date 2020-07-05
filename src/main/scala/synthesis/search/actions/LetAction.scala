@@ -2,8 +2,8 @@ package synthesis.search.actions
 
 import structures._
 import synthesis.search.ActionSearchState
-import synthesis.search.rewrites.RewriteRule
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, RepetitionTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -21,7 +21,7 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
 
   assert((Language.builtinDefinitions :+ Language.trueCondBuilderId :+ Language.andCondBuilderId :+ Language.limitedAndCondBuilderId) contains term.root)
 
-  private def createRuleWithNameFromLambda(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[RewriteRule], AnnotatedTree) = {
+  private def createRuleWithNameFromLambda(args: AnnotatedTree, body: AnnotatedTree, funcName: Identifier): (Set[PatternRewriteRule], AnnotatedTree) = {
     val (innerRewrites, newTerm) = createRewrites(body)
 
     val params = if (args.root == Language.tupleId) args.subtrees else List(args)
@@ -40,14 +40,14 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
     val premise = pattern
 
     // TODO: Add non existantial double directed rewrites for matches
-    val newRewrite = new RewriteRule(premise, conclusion, metadataCreator(funcName), Programs.termToString(term))
+    val newRewrite = new PatternRewriteRule(premise, conclusion, metadataCreator(funcName), Programs.termToString(term))
     if (newRewrite.isExistential) logger.info(s"Created Existential rule: ${Programs.termToString(condTerm)} >> ${Programs.termToString(newTerm)}")
     (innerRewrites + newRewrite, AnnotatedTree.identifierOnly(funcName))
   }
 
   // Start by naming lambdas and removing the bodies into rewrites.
   // I can give temporary name and later override them by using merge nodes
-  private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[RewriteRule], AnnotatedTree) = {
+  private def createRewrites(t: AnnotatedTree, optName: Option[Identifier] = None): (Set[PatternRewriteRule], AnnotatedTree) = {
     t.root match {
       case i: Identifier if Language.builtinDefinitions.contains(i) =>
         val results = t.subtrees map (s => createRewrites(s, Some(t.subtrees(0).root)))
@@ -63,17 +63,17 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
           (temp.head, temp.last)
         }
 
-        val newRules: Set[RewriteRule] = {
-          val optionalRule: Set[RewriteRule] =
+        val newRules: Set[PatternRewriteRule] = {
+          val optionalRule: Set[PatternRewriteRule] =
             if (Language.builtinDirectedDefinitions.contains(i)) Set.empty
             else {
               val toUsePremise = if (!premiseIsSingle) premise
                                 else Programs.destructPatterns(Seq(AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(0)._2)), results(1)._2), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).head
-              Set(new RewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root), Programs.termToString(t)))
+              Set(new PatternRewriteRule(conclusion, toUsePremise, metadataCreator(t.subtrees(1).root), Programs.termToString(t)))
             }
           val toUseConclusion = if (!conclusionIsSingle) conclusion
                                 else Programs.destructPatterns(Seq(results(0)._2, AnnotatedTree.withoutAnnotations(Language.idId, Seq(results(1)._2))), mergeRoots = !Language.builtinLimitedDefinitions.contains(i)).last
-          val requiredRule = Set(new RewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
+          val requiredRule = Set(new PatternRewriteRule(premise, toUseConclusion, metadataCreator(t.subtrees.head.root), Programs.termToString(t)))
           Set(optionalRule, requiredRule).filter(allowExistential || _.forall(!_.isExistential)).flatten
         }
         if (newRules.exists(_.isExistential)) logger.info(s"Created Existential rule ${Programs.termToString(results.head._2)} ${t.root} ${Programs.termToString(results(1)._2)}")
@@ -98,7 +98,7 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
   }
 
   protected val (rewrites, updatedTerm) = createRewrites(term)
-  val rules: Set[RewriteRule] = rewrites
+  val rules: Set[PatternRewriteRule] = rewrites
 
   def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
     (_: Map[Int, HyperTermId], _: Map[Int, HyperTermIdentifier]) => LetAction.LetMetadata(funcName)

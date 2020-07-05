@@ -5,12 +5,12 @@ import report.LazyTiming
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.{Action, LetAction}
-import synthesis.search.rewrites.{IRewriteRule, RewriteRule}
+import synthesis.search.rewrites.{RewriteRule, PatternRewriteRule}
 import transcallang._
 
 import scala.collection.mutable
 
-class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule])
+class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[RewriteRule])
     extends LazyLogging with LazyTiming {
   import Prover._
 
@@ -20,9 +20,9 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule
   private val ltwfTransivity = new LetAction(new TranscalParser()("ltwf(?x, ?y) ||| ltwf(?z, x) >> ltwf(z, y)")).rules
 
   // TODO: bad design change this
-  def knownRules: Set[IRewriteRule] = mutableRules.toSet
+  def knownRules: Set[RewriteRule] = mutableRules.toSet
 
-  private def ltwfRules(datatype: Datatype): Set[RewriteRule] = {
+  private def ltwfRules(datatype: Datatype): Set[PatternRewriteRule] = {
     val contructorRules = datatype.constructors.flatMap({ c =>
       val holesAndIgnores = c.annotation.get.subtrees.dropRight(1).zipWithIndex.map({
         // TODO: Once we support dependant types or enumerationg polymorphic types instantiantions we need to change this
@@ -51,7 +51,7 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule
 
   private def createHypothesis(term1: AnnotatedTree,
                                term2: AnnotatedTree,
-                               inductionPh: Identifier): Seq[RewriteRule] = {
+                               inductionPh: Identifier): Seq[PatternRewriteRule] = {
     // TODO: why is somevar name needed?
     val hypothIndcVar = "?SomeVar"
     val (cleanTerm1, cleanTerm2) = (term1.map(identMapper(_, inductionPh, hypothIndcVar)),
@@ -67,7 +67,7 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[IRewriteRule
     })
   }
 
-  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: IRewriteRule] = timed {
+  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = timed {
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 

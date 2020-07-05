@@ -5,8 +5,8 @@ import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.Programs.NonConstructableMetadata
-import synthesis.search.rewrites.IRewriteRule
-import synthesis.search.rewrites.RewriteRule.HyperPattern
+import synthesis.search.rewrites.RewriteRule
+import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -21,7 +21,7 @@ class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[Action] =
   val uniquePrefix: String = UUID.randomUUID().toString
 
   protected def createSearchAction(oPattern: Option[HyperPattern]): Action = {
-    new OperatorRunAction(maxDepth, oPattern.map(p => (r: IRewriteRule.HyperGraph) => r.findSubgraph[Int](p).nonEmpty))
+    new OperatorRunAction(maxDepth, oPattern.map(p => (r: RewriteRule.HyperGraph) => r.findSubgraph[Int](p).nonEmpty))
   }
 
   def getEquives(actionSearchState: ActionSearchState): (ActionSearchState, Set[Set[HyperTermId]]) = {
@@ -42,7 +42,7 @@ class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[Action] =
     newState
   }
 
-  def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[IRewriteRule]): Set[Set[AnnotatedTree]] = {
+  def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[RewriteRule]): Set[Set[AnnotatedTree]] = {
     // TODO: fix id to term to be able to deal with moving term targets
     // TODO: insert common subterms once
     // TODO: use programs terms constructor (more efficient)

@@ -3,10 +3,10 @@ package synthesis.search.actions
 import structures.{IdMetadata, Uid}
 import synthesis.Programs
 import CaseSplitAction.SplitChooser
-import synthesis.search.rewrites.IRewriteRule
+import synthesis.search.rewrites.RewriteRule
 import synthesis.search.{ActionSearchState, Operator}
 
-class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[IRewriteRule.HyperGraph => Boolean] = None,
+class OperatorRunWithCaseSplit(maxSearchDepth: Int, goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None,
                                preRunDepth: Option[Int] = None, splitDepth: Option[Int] = None, chooser: Option[SplitChooser] = None, startVersioned: Boolean=false)
   extends Action {
   private val opRun = new OperatorRunAction(preRunDepth.getOrElse(2), goalPredicate, startVersioned=startVersioned)

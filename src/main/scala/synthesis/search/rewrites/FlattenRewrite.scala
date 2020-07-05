@@ -9,7 +9,7 @@ import transcallang.Language
   * under the lower apply. We should flatten the applies to a single one. Secondly, if we have an apply which has a
   * first parameter that isn't an apply, the function that will be used, so we should flatten it into a single function.
   */
-object FlattenRewrite extends IRewriteRule {
+object FlattenRewrite extends RewriteRule {
 
   object FlattenMetadata extends Metadata {
     override protected def toStr: String = "FlattenMetadata"
@@ -35,13 +35,13 @@ object FlattenRewrite extends IRewriteRule {
   //    }
   //  }
 
-  override def apply(graph: IRewriteRule.HyperGraph): Unit = {
+  override def apply(graph: RewriteRule.HyperGraph): Unit = {
     // Change apply to function
     val newFuncEdges = getNewEdges(graph, false)
     graph ++= newFuncEdges
   }
 
-  private def getNewEdges(graph: IRewriteRule.HyperGraph, versioned: Boolean) = {
+  private def getNewEdges(graph: RewriteRule.HyperGraph, versioned: Boolean) = {
     val applyEdges = graph.findByEdgeType(HyperTermIdentifier(Language.applyId))
     val appliedOn = applyEdges.map(e => (e.sources.head, graph.findByTarget(e.sources.head))).toMap
     val versionCheck =
@@ -62,7 +62,7 @@ object FlattenRewrite extends IRewriteRule {
     * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(graph: IRewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+  override def getStep(graph: RewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
     val newFuncEdges = getNewEdges(graph, versioned)
     newFuncEdges.map(e => e.copy(target = Explicit(e.target), edgeType = Explicit(e.edgeType), sources = e.sources.map(Explicit(_))))
   }
@@ -73,7 +73,7 @@ object FlattenRewrite extends IRewriteRule {
     * @param graph state on which to run operator
     * @return (new state after update, next relevant version)
     */
-  override def applyVersioned(graph: IRewriteRule.HyperGraph): Unit = {
+  override def applyVersioned(graph: RewriteRule.HyperGraph): Unit = {
     val newFuncEdges = getNewEdges(graph, true)
     graph ++= newFuncEdges
   }

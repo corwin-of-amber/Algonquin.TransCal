@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.{FunSuite, Matchers}
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.actions.LocateAction.LocateMetadata
-import synthesis.search.rewrites.IRewriteRule
+import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -13,7 +13,7 @@ import transcallang.{Identifier, Language, TranscalParser}
 class LocateActionTest extends FunSuite with Matchers with LazyLogging {
 
   test("can locate the whole term") {
-    val rules: Set[IRewriteRule] = Set.empty
+    val rules: Set[RewriteRule] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat ?l = l match ((⟨⟩ => ⟨⟩) / (?xs :: ?xss => xs ++ concat xss))   [++]")
@@ -31,7 +31,7 @@ class LocateActionTest extends FunSuite with Matchers with LazyLogging {
   }
 
   test("locate two out of two (rewrite rule should return all possibilities after one apply)") {
-    val rules: Set[IRewriteRule] = Set.empty
+    val rules: Set[RewriteRule] = Set.empty
     logger.info("Using these rewrite rules:")
     logger.info(rules.mkString("\n"))
     val mainTerm = (new TranscalParser).apply("concat ?l = l match ((⟨⟩ => ⟨⟩) / (?xs :: ?xss => xs ++ concat xss))   [++]")

@@ -3,7 +3,7 @@ package synthesis.search.actions.thesy
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
 import synthesis.search.actions.{Action, ObservationalEquivalence}
-import synthesis.search.rewrites.{FunctionArgumentsAndReturnTypeRewrite, IRewriteRule, RewriteRule}
+import synthesis.search.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, PatternRewriteRule}
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.{HyperTermId, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -76,7 +76,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     SyGuERewriteRules(
       (vocab.allSymbols.toSet).filter(isFunctionType)
         .map(t => t.copy(subtrees = Seq.empty))
-    ).rewriteRules.map(_.asInstanceOf[RewriteRule])
+    ).rewriteRules.map(_.asInstanceOf[PatternRewriteRule])
   }
 
   // TODO: It would be way better if this was a state
@@ -105,7 +105,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
         () => creator.next
       })
 
-      val res = sygusRules.par.map((r: RewriteRule) => r.getStep(graph, versioned = false))
+      val res = sygusRules.par.map((r: PatternRewriteRule) => r.getStep(graph, versioned = false))
       val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
       logger.debug(s"Found ${newEdges.size} new edges using sygus")
       graph.addAllKeepVersion(newEdges)
@@ -118,7 +118,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     op(baseGraph)
   }
 
-  def inferConjectures(operators: Set[IRewriteRule]) = timed {
+  def inferConjectures(operators: Set[RewriteRule]) = timed {
     val state = new ActionSearchState(baseGraph, operators)
     val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators)))

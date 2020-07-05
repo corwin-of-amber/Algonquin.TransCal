@@ -15,7 +15,7 @@ class FunctionArgumentsAndReturnTypeRewriteTest extends PropSpec with Matchers {
     val programs = Programs(term)
     val graph = programs.queryGraph
 
-    val newGraph = new IRewriteRule.HyperGraph() ++= graph.edges
+    val newGraph = new RewriteRule.HyperGraph() ++= graph.edges
     FunctionArgumentsAndReturnTypeRewrite(newGraph)
     val actualNewEdges = newGraph.edges -- graph.edges
 
@@ -28,7 +28,7 @@ class FunctionArgumentsAndReturnTypeRewriteTest extends PropSpec with Matchers {
     val programs = Programs(term)
     val graph = programs.queryGraph
 
-    val newGraph = new IRewriteRule.HyperGraph() ++= graph.edges
+    val newGraph = new RewriteRule.HyperGraph() ++= graph.edges
     FunctionArgumentsAndReturnTypeRewrite(newGraph)
     val actualNewEdges = newGraph.edges -- graph.edges
 

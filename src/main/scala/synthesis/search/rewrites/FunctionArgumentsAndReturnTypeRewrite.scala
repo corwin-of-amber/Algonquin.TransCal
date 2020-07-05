@@ -7,7 +7,7 @@ import transcallang.Language
 
 /** This rewrite rule finds functions return types by looking on their types.
   */
-object FunctionArgumentsAndReturnTypeRewrite extends IRewriteRule {
+object FunctionArgumentsAndReturnTypeRewrite extends RewriteRule {
 
   object ApplyTypeMetadata extends Metadata {
     override protected def toStr: String = "ApplyTypeMetadata"
@@ -37,13 +37,13 @@ object FunctionArgumentsAndReturnTypeRewrite extends IRewriteRule {
 
   private val funcTypeGraph = generic.HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
-  override def apply(graph: IRewriteRule.HyperGraph): Unit = {
+  override def apply(graph: RewriteRule.HyperGraph): Unit = {
     val newFuncEdges = getNewEdges(graph, false)
 
     graph.++=(newFuncEdges)
   }
 
-  private def getNewEdges(graph: IRewriteRule.HyperGraph, versioned: Boolean) = {
+  private def getNewEdges(graph: RewriteRule.HyperGraph, versioned: Boolean) = {
     val newFuncEdges =
       (if (versioned) graph.findSubgraphVersioned[Int](funcTypeGraph)
       else graph.findSubgraph[Int](funcTypeGraph))
@@ -65,7 +65,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends IRewriteRule {
     * @param graph state on which to run operator
     * @return (new state after update, next relevant version)
     */
-  override def applyVersioned(graph: IRewriteRule.HyperGraph): Unit = {
+  override def applyVersioned(graph: RewriteRule.HyperGraph): Unit = {
     val newFuncEdges = getNewEdges(graph, true)
 
     graph.++=(newFuncEdges)
@@ -78,7 +78,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends IRewriteRule {
     * @param versioned if this is a versioned step operator
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
-  override def getStep(graph: IRewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
+  override def getStep(graph: RewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
     val newFuncEdges = getNewEdges(graph, versioned)
 
     newFuncEdges.map(e => e.copy(target = Explicit(e.target), edgeType = Explicit(e.edgeType), sources = e.sources.map(Explicit(_))))

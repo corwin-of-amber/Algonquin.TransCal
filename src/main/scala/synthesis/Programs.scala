@@ -6,8 +6,8 @@ import structures._
 import structures.generic.{HyperGraph, WrapperHyperGraph}
 import synthesis.complexity.{AddComplexity, Complexity, ConstantComplexity, ContainerComplexity}
 import synthesis.search.actions.thesy.SyGuERewriteRules
-import synthesis.search.rewrites.RewriteRule
-import synthesis.search.rewrites.RewriteRule.{HyperPattern, RewriteRuleMetadata}
+import synthesis.search.rewrites.PatternRewriteRule
+import synthesis.search.rewrites.PatternRewriteRule.{HyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.search.ActionSearchState
 import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
@@ -130,7 +130,7 @@ class Programs(private val hyperGraph: ActionSearchState.HyperGraph) extends Laz
           .mergeNodes(ExplicitTerm(termRoot), timeComplexEdge.sources.head)
           .mergeNodes(ExplicitTerm(complexityRoot), timeComplexEdge.sources(1))
       }
-      RewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).toStream.flatMap {
+      PatternRewriteRule.fillPatterns(hyperGraph, Seq(basicConclusion, rewrite.premise)).toStream.flatMap {
         case Seq(fullConclusion, fullPremise) =>
           val fullRewrite = (fullConclusion ++ fullPremise).toSeq
           val leftHyperGraph = hyperGraph - bridgeEdge

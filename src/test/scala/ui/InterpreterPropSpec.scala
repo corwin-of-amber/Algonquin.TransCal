@@ -6,7 +6,7 @@ import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{Minutes, Span}
 import org.scalatest.{FunSuite, Matchers, ParallelTestExecution}
 import synthesis.search.ActionSearchState
-import synthesis.search.rewrites.RewriteRule
+import synthesis.search.rewrites.PatternRewriteRule
 import synthesis.search.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, TranscalParser}
@@ -43,7 +43,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
   test("FilterMap") {
     val fileName = "src/main/resources/examples/FilterMap.tc"
     val lastState = abstractTest(fileName)
-    lastState.rewriteRules.flatMap({case x: RewriteRule => Some(x); case _ => None})
+    lastState.rewriteRules.flatMap({case x: PatternRewriteRule => Some(x); case _ => None})
       .exists(
         _.premise.edgeTypes.flatMap({case x: ExplicitTerm[HyperTermIdentifier] => Some(x) ; case _ => None})
           .exists(_.value.identifier.literal == "f2")
