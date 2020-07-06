@@ -4,6 +4,8 @@ import com.typesafe.scalalogging.LazyLogging
 import report.Stats
 import structures.HyperGraphLike.HyperEdgePattern
 import structures._
+import structures.generic.HyperGraph
+import structures.generic.HyperGraph.Match
 import synthesis.search.rewrites.PatternRewriteRule.{HyperPattern, MutableHyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
@@ -18,9 +20,9 @@ import scala.annotation.tailrec
   */
 class PatternRewriteRule(val premise: HyperPattern,
                          val conclusion: HyperPattern,
-                         val metaCreator: (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata,
+                         val metaCreator: HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int] => Metadata,
                          val termString: String = null,
-                         val postProcessors: Seq[(Map[Int, HyperTermId], Map[Int, HyperTermIdentifier], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends RewriteRule with LazyLogging {
+                         val postProcessors: Seq[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends RewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 
@@ -71,7 +73,7 @@ class PatternRewriteRule(val premise: HyperPattern,
 
   private def fillConclusions(graph: RewriteRule.HyperGraph, versioned: Boolean) = {
     // Fill conditions - maybe subgraph matching instead of current temple
-    val premiseReferencesMaps =
+    val premiseMatches =
       if (versioned) graph.findSubgraphVersioned[Int](subGraphPremise)
       else graph.findSubgraph[Int](subGraphPremise)
 
@@ -90,21 +92,21 @@ class PatternRewriteRule(val premise: HyperPattern,
         if (edgeToTarget.contains((et, s))) Some((t, edgeToTarget((et, s))))
         else {
           graph.findRegex[Int](HyperEdge(ReferenceTerm(t), ExplicitTerm(et), s.map(ExplicitTerm(_)), EmptyMetadata))
-            .headOption.map(tup => {
-            edgeToTarget((et, s)) = tup._2(t)
-            (t, tup._2(t))
+            .headOption.map(matched => {
+            edgeToTarget((et, s)) = matched.nodeMap(t)
+            (t, matched.nodeMap(t))
           })
         }
       }).toMap
       if (fillValues.isEmpty) halfFilled
-      else fillKnownTargets(mutable.HyperGraph.mergeMap(halfFilled, (fillValues, Map.empty)))
+      else fillKnownTargets(mutable.HyperGraph.mergeMatch(halfFilled, Match(Set.empty, fillValues, Map.empty)))
     }
 
-    val halfFilledPatterns = premiseReferencesMaps.flatMap(m => {
+    val halfFilledPatterns = premiseMatches.flatMap(m => {
       // TODO: undo this. just want better runtime then listing the graph a million times.
       //      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
-      val meta = metaCreator(m._1, m._2)
-      val merged = mutable.HyperGraph.mergeMap(subGraphConclusion(graph, meta, m._1, m._2), m)
+      val meta = metaCreator(m)
+      val merged = mutable.HyperGraph.mergeMatch(subGraphConclusion(graph, meta, m), m)
       val furtherFilling = fillKnownTargets(merged)
       if (graph.findSubgraph[Int](furtherFilling).nonEmpty) None
       else Some((furtherFilling, meta))
@@ -124,7 +126,7 @@ class PatternRewriteRule(val premise: HyperPattern,
 
   def isExistential: Boolean = existentialHoles.nonEmpty
 
-  private def subGraphConclusion(graph: RewriteRule.HyperGraph, metadata: Metadata, idMap: Map[Int, HyperTermId], edgeMap: Map[Int, HyperTermIdentifier]): MutableHyperPattern = {
+  private def subGraphConclusion(graph: RewriteRule.HyperGraph, metadata: Metadata, matched: HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int]): MutableHyperPattern = {
     val withExist = conclusionMutable.clone()
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {
@@ -149,7 +151,7 @@ class PatternRewriteRule(val premise: HyperPattern,
           assert(start.forall(item => (!item.isInstanceOf[RepetitionTerm[HyperTermId]]) && !item.isInstanceOf[Ignored[HyperTermId, Int]]))
           start.toSeq ++ rep.drop(min).takeWhile({
             case ExplicitTerm(_) => true
-            case ReferenceTerm(id) => idMap.contains(id)
+            case ReferenceTerm(id) => matched.nodeMap.contains(id)
             case Repetition(_, _, _) => throw new IllegalArgumentException("Can't have nested repetitions")
             case Ignored() => throw new IllegalArgumentException("Can't have Ignored in conclusions")
           })
@@ -157,7 +159,7 @@ class PatternRewriteRule(val premise: HyperPattern,
       }))
       withExist.-=(re).+=(newEdge)
     }
-    postProcessors.foldLeft(withExist)({case (g, pp) => pp(idMap, edgeMap, g)})
+    postProcessors.foldLeft(withExist)({case (g, pp) => pp(matched, g)})
   }
 
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding
@@ -222,7 +224,7 @@ object PatternRewriteRule {
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
             val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMap(_, maps)))
+            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMatch(_, maps)))
               .map(a => fullPattern +: a)
         }
     }

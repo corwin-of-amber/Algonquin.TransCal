@@ -21,14 +21,13 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
   override def newBuilder[A, B]: collection.mutable.Builder[HyperEdge[A, B], HyperGraph[A, B]] =
     VocabularyHyperGraph.newBuilder
 
-  def mergeMap[Node, EdgeType, Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]], maps: (Map[Id, Node], Map[Id, EdgeType])): HyperGraph[Item[Node, Id], Item[EdgeType, Id]] = {
-    val (nodeMap, edgeMap) = maps
-    val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
+  def mergeMatch[Node, EdgeType, Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]], matched: structures.generic.HyperGraph.Match[Node, EdgeType, Id]): HyperGraph[Item[Node, Id], Item[EdgeType, Id]] = {
+    val mergedNodes = matched.nodeMap.foldLeft(hyperPattern)((graph, kv) => {
       // From each map create new edges from the destination graph
       graph.mergeNodesInPlace(Explicit[Node, Id](kv._2), Hole[Node, Id](kv._1))
     })
 
-    val mergedAll = edgeMap.foldLeft(mergedNodes)((graph, kv) => {
+    val mergedAll = matched.edgeMap.foldLeft(mergedNodes)((graph, kv) => {
       // From each map create new edges from the destination graph
       graph.mergeEdgeTypesInPlace(Explicit[EdgeType, Id](kv._2), Hole[EdgeType, Id](kv._1))
     })

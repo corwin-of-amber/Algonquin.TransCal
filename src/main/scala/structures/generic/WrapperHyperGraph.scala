@@ -19,9 +19,9 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
 
   override def size: Int = wrapped.size
 
-  override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(HyperEdge[Node, EdgeType], Map[Id, Node], Map[Id, EdgeType])] = wrapped.findRegex(pattern)
+  override def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperGraph.Match[Node, EdgeType, Id]] = wrapped.findRegex(pattern)
 
-  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraph(hyperPattern)
+  override def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[HyperGraph.Match[Node, EdgeType, Id]] = wrapped.findSubgraph(hyperPattern)
 
   override def findInSources(n: Node): Set[HyperEdge[Node, EdgeType]] = wrapped.findInSources(n)
 

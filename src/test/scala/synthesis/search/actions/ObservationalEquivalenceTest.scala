@@ -29,7 +29,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
     val programs = Programs.empty.addTerm(AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, terms))
     val ids = terms.map(t => {
       val (graph, root) = Programs.destructPatternWithRoot(t)
-      programs.queryGraph.findSubgraph[Int](graph).head._1(root.id)
+      programs.queryGraph.findSubgraph[Int](graph).head.nodeMap(root.id)
     }).toSeq
     val res = new ObservationalEquivalence(5).getEquives(new ActionSearchState(programs, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
     Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res._2.map(_.filter(ids.contains)).filter(_.nonEmpty)

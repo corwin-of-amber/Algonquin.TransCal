@@ -61,7 +61,7 @@ object SyGuERewriteRules {
     .head.sources.head.asInstanceOf[ReferenceTerm[HyperTermId]]
 
   def getSygusCreatedNodes(graph: HyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperTermId] = {
-    graph.findSubgraph[Int](createdSearchGraph).map(_._1(sygusCreatedSearchHole.id))
+    graph.findSubgraph[Int](createdSearchGraph).map(_.nodeMap(sygusCreatedSearchHole.id))
   }
 
   object SyGuSMetadata extends Metadata {

@@ -19,8 +19,8 @@ trait VocabularyLike[Letter, +This <: VocabularyLike[Letter, This] with collecti
     * @tparam Id A reference type to show repetition connection in the pattern.
     * @return The matching words.
     */
-  def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])]
-  def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_._1)
+  def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[Vocabulary.Match[Letter, Id]]
+  def findRegexWords[Id](pattern: WordRegex[Letter, Id]): Set[Word[Letter]] = findRegex(pattern).map(_.word)
   override def contains(elem: Word[Letter]): Boolean = findRegex(elem.map(Explicit(_))).nonEmpty
   def longestWord: Int
   def allByIndexedValue(value: Letter, index: Int): Set[Word[Letter]]

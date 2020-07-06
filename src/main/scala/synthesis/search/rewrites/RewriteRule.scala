@@ -42,7 +42,7 @@ object RewriteRule {
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
             val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMap(_, maps)))
+            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMatch(_, maps)))
               .map(a => fullPattern +: a)
         }
     }

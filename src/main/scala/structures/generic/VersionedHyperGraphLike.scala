@@ -15,7 +15,7 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
   protected def swapEdgeType(hyperEdge: HyperEdge[Node, EdgeType], keep: EdgeType, change: EdgeType): HyperEdge[Node, EdgeType] =
     hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
 
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = {
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[HyperGraph.Match[Node, EdgeType, Id]] = {
     (for (
       edgePattern <- hyperPattern;
       edge <- getLastVersion.findRegexHyperEdges(edgePattern)
@@ -24,8 +24,9 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
       val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
       val nodesMap = Item.itemsValueToMap(nodes)
       val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-      val g = structures.generic.HyperGraph.mergeMap(hyperPattern, (nodesMap, edgeTypeMap))
-      getHyperGraph.findSubgraph[Id](g).map { case (foundNodes: Map[Id, Node], foundEdgeType: Map[Id, EdgeType]) => (foundNodes ++ nodesMap, foundEdgeType ++ edgeTypeMap) }
+      val matched = HyperGraph.Match(Set(edge), nodesMap, edgeTypeMap)
+      val g = structures.generic.HyperGraph.mergeMatch(hyperPattern, matched)
+      getHyperGraph.findSubgraph[Id](g).map { m => m.merge(matched) }
     }).flatten.toSet
   }
 

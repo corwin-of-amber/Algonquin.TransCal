@@ -234,7 +234,7 @@ trait HyperGraphLikeTest[Node,
               HyperEdge(Hole(0), Ignored(), Seq(Repetition.rep0[Node, Int](Int.MaxValue, Stream.continually(Ignored())).get), EmptyMetadata),
               HyperEdge(Ignored(), Ignored(), e.sources.zipWithIndex.map(si => if (si._2 == i) Hole(0) else Ignored()), EmptyMetadata)
             ))
-            val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).map(_._1)
+            val results = g.findSubgraph[Int, Pattern](pg.asInstanceOf[Pattern]).map(_.nodeMap)
             results.nonEmpty && results.exists(m => m(0) == e.sources(i))
           }
         }) shouldEqual true
@@ -257,8 +257,8 @@ trait HyperGraphLikeTest[Node,
         val maps = graph.findSubgraph[Int, Pattern](pattern)
         val holes = pattern.nodes.collect({case e: Hole[Node, Int] => e})
         holes.forall(h => {
-          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
-            val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+          maps.groupBy(_.nodeMap(h.id)).forall(vAndMaps => {
+            val updatedMaps = vAndMaps._2.map(mm => (mm.copy(nodeMap = mm.nodeMap.filter(_._1 != h.id))))
             updatedMaps subsetOf graph.findSubgraph[Int, Pattern](pattern.mergeNodes(Explicit[Node, Int](vAndMaps._1), h))
           })
         }) shouldEqual true

@@ -43,17 +43,17 @@ object FunctionArgumentsAndReturnTypeRewrite extends RewriteRule {
     graph.++=(newFuncEdges)
   }
 
-  private def getNewEdges(graph: RewriteRule.HyperGraph, versioned: Boolean) = {
+  private def getNewEdges(graph: RewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
     val newFuncEdges =
       (if (versioned) graph.findSubgraphVersioned[Int](funcTypeGraph)
       else graph.findSubgraph[Int](funcTypeGraph))
-      .flatMap { case (idMap, _) =>
-        val argumentsHyperEdges = for (pairs <- idMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
+      .flatMap { case matched =>
+        val argumentsHyperEdges = for (pairs <- matched.nodeMap.filterKeys(LARGEST_STATIC_HOLE <= _).groupBy(_._1 / 2).values) yield {
           val argumentType = pairs.filterKeys(_ % 2 == 0).values.head
           val argument = pairs.filterKeys(_ % 2 == 1).values.head
-          HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(argument, argumentType), ArgumentsTypeMetadata)
+          HyperEdge(matched.nodeMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(argument, argumentType), ArgumentsTypeMetadata)
         }
-        val returnHyperEdge = HyperEdge(idMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(idMap(functionApplicationHole.id), idMap(functionReturnTypeHole.id)), ApplyTypeMetadata)
+        val returnHyperEdge = HyperEdge(matched.nodeMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(matched.nodeMap(functionApplicationHole.id), matched.nodeMap(functionReturnTypeHole.id)), ApplyTypeMetadata)
         argumentsHyperEdges.toSet + returnHyperEdge
       }
     newFuncEdges

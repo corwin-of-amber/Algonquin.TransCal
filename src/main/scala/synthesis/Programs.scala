@@ -40,7 +40,7 @@ class Programs(private val hyperGraph: ActionSearchState.HyperGraph) extends Laz
     */
   def findTree(annotatedTree: AnnotatedTree): Set[HyperTermId] = {
     val (pattern, root) = destructPatternWithRoot(annotatedTree)
-    hyperGraph.findSubgraphVersioned[Int](pattern).map(_._1(root.id))
+    hyperGraph.findSubgraphVersioned[Int](pattern).map(_.nodeMap(root.id))
   }
 
 
@@ -413,10 +413,10 @@ object Programs extends LazyLogging {
   def reconstructPatternWithRoot(hyperGraph: HyperGraph[HyperTermId, HyperTermIdentifier],
                                  pattern: HyperPattern,
                                  patternRoot: ReferenceTerm[HyperTermId]): Set[(HyperTermId, Stream[AnnotatedTree])] = {
-    hyperGraph.findSubgraph[Int](pattern).map(ms => {
-      assert(ms._1.contains(patternRoot.id))
+    hyperGraph.findSubgraph[Int](pattern).map(matched => {
+      assert(matched.nodeMap.contains(patternRoot.id))
       //      val newPattern = HyperGraph.mergeMap(pattern, ms)
-      val newRoot = ms._1(patternRoot.id)
+      val newRoot = matched.nodeMap(patternRoot.id)
       (newRoot, reconstruct(hyperGraph, newRoot))
     })
   }

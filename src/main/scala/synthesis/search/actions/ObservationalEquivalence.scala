@@ -52,7 +52,7 @@ class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[Action] =
     })
     val termToEdges = (for (t <- terms) yield {
       val (pattern, root) = Programs.destructPatternWithRoot(t)
-      (t, graph.findSubgraph[Int](pattern).head._1(root.id))
+      (t, graph.findSubgraph[Int](pattern).head.nodeMap(root.id))
     }).toMap
     val idToTerm = termToEdges.map({case (term, id) => (id, term)})
     val res = getEquives(new ActionSearchState(graph, rewriteRules))

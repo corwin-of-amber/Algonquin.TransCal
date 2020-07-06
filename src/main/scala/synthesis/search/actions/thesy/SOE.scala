@@ -30,7 +30,7 @@ class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, v
       val example = valuations(i)
       currentGraph ++= Programs.destruct(example cleanTypes, maxId = currentGraph.nodes.maxBy(_.id))
       val (pattern, root) = Programs.destructPatternWithRoot(example cleanTypes)
-      val id = currentGraph.findSubgraph[Int](pattern).head._1(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
+      val id = currentGraph.findSubgraph[Int](pattern).head.nodeMap(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
       currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(marker)).head.target, id)
       currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(marker))
     })

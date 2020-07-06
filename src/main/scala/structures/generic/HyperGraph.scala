@@ -14,7 +14,7 @@ trait HyperGraph[Node, EdgeType]
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched references.
     */
-  def findSubgraph[Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[(Map[Id, Node], Map[Id, EdgeType])] =
+  def findSubgraph[Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]]): Set[HyperGraph.Match[Node, EdgeType, Id]] =
     findSubgraph[Id, HyperGraph[Item[Node, Id], Item[EdgeType, Id]]](hyperPattern)
 }
 
@@ -32,5 +32,13 @@ object HyperGraph extends HyperGraphLikeGenericCompanion[HyperGraph] {
   val graphFormat: OFormat[JsonGraph] = {
     implicit val edgeFormat: OFormat[HyperEdge.JsonEdge] = HyperEdge.edgeFormat
     Json.format[JsonGraph]
+  }
+
+  case class Match[Node, EdgeType, Id](edges: Set[HyperEdge[Node, EdgeType]], nodeMap: Map[Id, Node], edgeMap: Map[Id, EdgeType]) {
+    def merge(other: Match[Node, EdgeType, Id]): Match[Node, EdgeType, Id] = Match(edges ++ other.edges, nodeMap ++ other.nodeMap, edgeMap ++ other.edgeMap)
+  }
+
+  object Match {
+    def empty[Node, EdgeType, Id]: Match[Node, EdgeType, Id] = Match(Set.empty, Map.empty, Map.empty)
   }
 }

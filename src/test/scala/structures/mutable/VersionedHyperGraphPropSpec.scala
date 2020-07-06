@@ -64,8 +64,8 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
 
     val maps = graph.findSubgraph[Int](pattern)
     asHoles.forall(vh => {
-      maps.groupBy(_._1(vh._2)).forall(vAndMaps => {
-        val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
+      maps.groupBy(_.nodeMap(vh._2)).forall(vAndMaps => {
+        val updatedMaps = vAndMaps._2.map(mm =>  (mm.copy(nodeMap = mm.nodeMap.filter(_._1 != vh._2))))
         updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2)))
       })
     }) shouldEqual true

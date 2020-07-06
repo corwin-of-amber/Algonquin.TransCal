@@ -2,7 +2,7 @@ package structures.mutable
 
 import structures._
 import structures.generic.HyperGraph.{HyperGraphPattern, JsonGraph}
-import structures.generic.HyperGraphLikeGenericCompanion
+import structures.generic.{HyperGraph, HyperGraphLikeGenericCompanion}
 import synthesis.{HyperEdgeTargetOrdering, HyperTermId, HyperTermIdentifier}
 import transcallang.Language
 
@@ -26,7 +26,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   override def clone = new CompactHyperGraph(wrapped.clone)
 
   def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = wrapped.isLatest(hyperEdge)
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = wrapped.findSubgraphVersioned(hyperPattern)
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[generic.HyperGraph.Match[Node, EdgeType, Id]] = wrapped.findSubgraphVersioned(hyperPattern)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 

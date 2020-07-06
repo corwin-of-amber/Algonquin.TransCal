@@ -1,6 +1,7 @@
 package synthesis.search.actions
 
 import structures._
+import structures.generic.HyperGraph.Match
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.PatternRewriteRule
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
@@ -100,8 +101,8 @@ class LetAction(val typedTerm: AnnotatedTree, val allowExistential: Boolean = tr
   protected val (rewrites, updatedTerm) = createRewrites(term)
   val rules: Set[PatternRewriteRule] = rewrites
 
-  def metadataCreator(funcName: Identifier): (Map[Int, HyperTermId], Map[Int, HyperTermIdentifier]) => Metadata = {
-    (_: Map[Int, HyperTermId], _: Map[Int, HyperTermIdentifier]) => LetAction.LetMetadata(funcName)
+  def metadataCreator(funcName: Identifier): Match[HyperTermId, HyperTermIdentifier, Int] => Metadata = {
+    _: Match[HyperTermId, HyperTermIdentifier, Int] => LetAction.LetMetadata(funcName)
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {

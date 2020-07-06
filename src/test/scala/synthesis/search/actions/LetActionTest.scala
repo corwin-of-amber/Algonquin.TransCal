@@ -59,7 +59,7 @@ class LetActionTest extends FunSuite with Matchers with LazyLogging {
     val (graph, _) = Programs.destructWithRoot(term)
     val letAction = new LetAction(term)
     for (_ <- 0 to 4; r <- letAction.rules) r(graph)
-    val fRoot = graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head._1.target
+    val fRoot = graph.findRegex(HyperEdge(ReferenceTerm(0), ExplicitTerm(HyperTermIdentifier(Identifier("f"))), List(), EmptyMetadata)).head.edges.head.target
     graph.exists(e => e.target == fRoot && e.edgeType.identifier.literal.toString == "hello") shouldEqual true
   }
 

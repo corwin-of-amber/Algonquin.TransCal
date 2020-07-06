@@ -4,6 +4,7 @@ import structures.{HyperEdge, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.{ActionSearchState, NaiveSearch}
 import LocateAction.LocateMetadata
+import structures.generic.HyperGraph.Match
 import synthesis.search.rewrites.PatternRewriteRule
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
@@ -46,11 +47,11 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
     // Create new locator rule
-    def locateDataCreator(idMap: Map[Int, HyperTermId], identMap: Map[Int, HyperTermIdentifier]): Metadata = {
+    def locateDataCreator(matched: Match[HyperTermId, HyperTermIdentifier, Int]): Metadata = {
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = structures.generic.HyperGraph.fillPattern(goal, (idMap, identMap), hyperTermCreator)
+      val newEdges = structures.generic.HyperGraph.fillPattern(goal, matched, hyperTermCreator)
       LocateMetadata(newEdges)
     }
 

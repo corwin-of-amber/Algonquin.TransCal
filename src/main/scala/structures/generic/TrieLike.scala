@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Letter] with LazyLogging {
 
-  override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[(Word[Letter], Map[Id, Letter])] = {
+  override def findRegex[Id](pattern: WordRegex[Letter, Id]): Set[Vocabulary.Match[Letter, Id]] = {
     logger.trace("find pattern prefix")
     if (isEmpty) {
       Set.empty
@@ -39,7 +39,7 @@ trait TrieLike[Letter, +This <: TrieLike[Letter, This]] extends Vocabulary[Lette
         // create map from words
         val holeToIndex = mutable.HashMultiMap.empty[Id, Int]
         p.zipWithIndex.collect({case (Hole(id), i) => (id, i)}).foreach({case (id, i) => holeToIndex.addBinding(id, i)})
-        words.map(w => (w, holeToIndex.map({case (id, indexes) => (id, w(indexes.head))}).toMap))
+        words.map(w => Vocabulary.Match(w, holeToIndex.map({case (id, indexes) => (id, w(indexes.head))}).toMap))
       })
     }
   }

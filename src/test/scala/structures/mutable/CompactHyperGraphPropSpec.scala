@@ -3,6 +3,7 @@ package structures.mutable
 import org.scalacheck.Arbitrary
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.HyperGraphLike.HyperEdgePattern
+import structures.generic.HyperGraph.Match
 import synthesis.search.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language, TranscalParser}
@@ -69,8 +70,8 @@ class CompactHyperGraphPropSpec extends HyperGraphLikeTest[Int, Int, CompactHype
         val maps = graph.findSubgraph[Int](pattern)
         val holes = pattern.nodes.filter(_.isInstanceOf[Hole[Int, Int]]).map(_.asInstanceOf[Hole[Int, Int]])
         holes.forall(h => {
-          maps.groupBy(_._1(h.id)).forall(vAndMaps => {
-            val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != h.id), mm._2))
+          maps.groupBy(_.nodeMap(h.id)).forall(vAndMaps => {
+            val updatedMaps: Set[Match[Int, Int, Int]] = vAndMaps._2.map(matched => matched.copy(nodeMap = matched.nodeMap.filter(_._1 != h.id)))
             updatedMaps subsetOf graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), h))
           })
         }) shouldEqual true
@@ -92,10 +93,10 @@ class CompactHyperGraphPropSpec extends HyperGraphLikeTest[Int, Int, CompactHype
       HyperGraph(pEdges.toSeq: _*)
     }
 
-    val maps = graph.findSubgraph[Int](pattern)
+    val matches = graph.findSubgraph[Int](pattern)
     for (vh <- asHoles) {
-      for (vAndMaps <- maps.groupBy(_._1(vh._2))) {
-        val updatedMaps = vAndMaps._2.map(mm => (mm._1.filter(_._1 != vh._2), mm._2))
+      for (vAndMaps <- matches.groupBy(_.nodeMap(vh._2))) {
+        val updatedMaps = vAndMaps._2.map(mm => (mm.copy(nodeMap = mm.nodeMap.filter(_._1 != vh._2))))
         if (!updatedMaps.subsetOf(graph.findSubgraph[Int](pattern.mergeNodes(Explicit[Int, Int](vAndMaps._1), Hole[Int, Int](vh._2))))) {
           println(s"working on $vh with $vAndMaps")
           println(s"pattern is $pattern")

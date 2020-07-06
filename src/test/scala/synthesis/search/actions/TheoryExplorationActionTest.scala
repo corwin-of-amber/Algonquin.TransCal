@@ -104,8 +104,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val results2 = state2.programs.queryGraph.findSubgraph[Int](pattern2)
     results1 should not be empty
     results2 should not be empty
-    val results2Roots = results2.map(_._1(root2.id)).map(_.id)
-    val results1Roots = results1.map(_._1(root1.id)).map(_.id)
+    val results2Roots = results2.map(_.nodeMap(root2.id)).map(_.id)
+    val results1Roots = results1.map(_.nodeMap(root1.id)).map(_.id)
     results1Roots.diff(results2Roots) should not be empty
   }
 
@@ -186,8 +186,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val results2 = state2.programs.queryGraph.findSubgraph[Int](pattern2)
     results1 should not be empty
     results2 should not be empty
-    val results2Roots = results2.map(_._1(root2.id)).map(_.id)
-    val results1Roots = results1.map(_._1(root1.id)).map(_.id)
+    val results2Roots = results2.map(_.nodeMap(root2.id)).map(_.id)
+    val results1Roots = results1.map(_.nodeMap(root1.id)).map(_.id)
     results1Roots.diff(results2Roots) should not be empty
   }
 
@@ -202,9 +202,9 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     state2.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(Language.consId,
       Seq(AnnotatedTree.identifierOnly(intPh.copy(annotation = None)), AnnotatedTree.withoutAnnotations(reverse.root, Seq(AnnotatedTree.identifierOnly(listPh.copy(annotation = None)))))))).head
-    val correctId = state2.programs.queryGraph.findSubgraph[Int](pattern).head._1(root.id)
+    val correctId = state2.programs.queryGraph.findSubgraph[Int](pattern).head.nodeMap(root.id)
     state2.programs.queryGraph.findSubgraph[Int](pattern2) should not be empty
-    val correctId2 = state2.programs.queryGraph.findSubgraph[Int](pattern2).head._1(root2.id)
+    val correctId2 = state2.programs.queryGraph.findSubgraph[Int](pattern2).head.nodeMap(root2.id)
     //    state2.graph ++= state2.graph.nodes.map(n => ObservationalEquivalence.createAnchor(n))
     correctId shouldEqual correctId2
   }

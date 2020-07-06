@@ -42,14 +42,13 @@ abstract class HyperGraphLikeGenericCompanion[+G[N, E] <: HyperGraphLike[N, E, G
     }
   }
 
-  def mergeMap[Node, EdgeType, Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]], maps: (Map[Id, Node], Map[Id, EdgeType])): HyperGraph[Item[Node, Id], Item[EdgeType, Id]] = {
-    val (nodeMap, edgeMap) = maps
-    val mergedNodes = nodeMap.foldLeft(hyperPattern)((graph, kv) => {
+  def mergeMatch[Node, EdgeType, Id](hyperPattern: HyperGraph[Item[Node, Id], Item[EdgeType, Id]], matched: HyperGraph.Match[Node, EdgeType, Id]): HyperGraph[Item[Node, Id], Item[EdgeType, Id]] = {
+    val mergedNodes = matched.nodeMap.foldLeft(hyperPattern)((graph, kv) => {
       // From each map create new edges from the destination graph
       graph.mergeNodes(Explicit[Node, Id](kv._2), Hole[Node, Id](kv._1))
     })
 
-    val mergedAll = edgeMap.foldLeft(mergedNodes)((graph, kv) => {
+    val mergedAll = matched.edgeMap.foldLeft(mergedNodes)((graph, kv) => {
       // From each map create new edges from the destination graph
       graph.mergeEdgeTypes(Explicit[EdgeType, Id](kv._2), Hole[EdgeType, Id](kv._1))
     })
@@ -77,9 +76,9 @@ abstract class HyperGraphLikeGenericCompanion[+G[N, E] <: HyperGraphLike[N, E, G
     }).map(translateEdge).toSet
   }
 
-  def fillPattern[Node, EdgeType, Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], maps: (Map[Id, Node], Map[Id, EdgeType]), nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
+  def fillPattern[Node, EdgeType, Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id], matched: HyperGraph.Match[Node, EdgeType, Id], nodeCreator: () => Node): Set[HyperEdge[Node, EdgeType]] = {
     // Should crash if we still have holes as its a bug
-    val mergedAll = mergeMap(hyperPattern, maps)
+    val mergedAll = mergeMatch(hyperPattern, matched)
     fillWithNewHoles(mergedAll, nodeCreator)
   }
 }
