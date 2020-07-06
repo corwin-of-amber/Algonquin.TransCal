@@ -25,5 +25,5 @@ package object operators {
   val rewriteRuleGen: Gen[PatternRewriteRule] = for {
     conditions <- hyperPatternGen
     destination <- hyperPatternGen
-  } yield new PatternRewriteRule(conditions, destination, _ => EmptyMetadata)
+  } yield new PatternRewriteRule(conditions, destination)
 }

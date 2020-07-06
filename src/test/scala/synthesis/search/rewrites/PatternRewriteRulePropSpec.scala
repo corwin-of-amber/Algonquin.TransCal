@@ -81,7 +81,7 @@ class PatternRewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks 
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
         val filledConditions = generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, Match.empty, () => HyperTermId(-1))
 
-        val rewriteRule = new PatternRewriteRule(conditions, generic.HyperGraph(destination), _ => EmptyMetadata)
+        val rewriteRule = new PatternRewriteRule(conditions, generic.HyperGraph(destination))
         val state = new RewriteRule.HyperGraph() ++= filledConditions
         val tempProgs = Programs(state.clone)
         rewriteRule.apply(state)
@@ -97,7 +97,7 @@ class PatternRewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks 
       val edge = HyperEdge[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](ReferenceTerm[HyperTermId](0), ReferenceTerm(1), Seq(Repetition.rep0(10, Stream.from(2).map(ReferenceTerm(_))).get), EmptyMetadata)
       val premise = CompactHyperGraph(edge)
       val conclusion = CompactHyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]](edge.copy(edgeType = ExplicitTerm(HyperTermIdentifier(Identifier("00500")))))
-      val rule = new PatternRewriteRule(premise.clone, conclusion.clone, _ => EmptyMetadata)
+      val rule = new PatternRewriteRule(premise.clone, conclusion.clone)
       val origSize = state.size
       rule(state)
       state.edges.size should be >= (origSize + state.edges.map(_.sources.size).toSet.size)

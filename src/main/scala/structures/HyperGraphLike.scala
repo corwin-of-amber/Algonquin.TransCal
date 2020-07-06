@@ -108,6 +108,8 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     */
   def mergeEdgeTypes(keep: EdgeType, change: EdgeType): This
 
+  def updateMetadata(edge: HyperEdge[Node, EdgeType], metadata: Metadata): Unit
+
 //  /** Create a new builder from current data. When adding an edge to builder it should update the metadatastructure and
 //    * update the future vocabulary result.
 //    *

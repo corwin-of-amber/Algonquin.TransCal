@@ -55,7 +55,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       LocateMetadata(newEdges)
     }
 
-    val locateRule = new PatternRewriteRule(goal, destPattern, locateDataCreator)
+    val locateRule = new PatternRewriteRule(goal, destPattern).registerMetadataCreator(locateDataCreator)
 
     // Rewrite search
     val rewriteSearch = new NaiveSearch(isGoal = goalPredicate)

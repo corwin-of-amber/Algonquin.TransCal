@@ -54,7 +54,8 @@ object FunctionArgumentsAndReturnTypeRewrite extends RewriteRule {
           HyperEdge(matched.nodeMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(argument, argumentType), ArgumentsTypeMetadata)
         }
         val returnHyperEdge = HyperEdge(matched.nodeMap(trueIdHole.id), HyperTermIdentifier(Language.typeId), Seq(matched.nodeMap(functionApplicationHole.id), matched.nodeMap(functionReturnTypeHole.id)), ApplyTypeMetadata)
-        argumentsHyperEdges.toSet + returnHyperEdge
+        val meta = UnionMetadata(creators.map(_(matched)).toSet)
+        (argumentsHyperEdges.toSet + returnHyperEdge).map(e => e.copy(metadata = e.metadata.merge(meta)))
       }
     newFuncEdges
   }

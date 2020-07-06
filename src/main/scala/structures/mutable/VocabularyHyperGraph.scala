@@ -107,6 +107,11 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
     override def clear(): Unit = graph = VocabularyHyperGraph.empty
   }
+
+  override def updateMetadata(edge: HyperEdge[Node, EdgeType], metadata: Metadata): Unit = {
+    val meta = metadatas((edge.target, edge.edgeType, edge.sources))
+    metadatas((edge.target, edge.edgeType, edge.sources)) = meta.merge(metadata)
+  }
 }
 
 object VocabularyHyperGraph extends HyperGraphLikeGenericCompanion[VocabularyHyperGraph] {

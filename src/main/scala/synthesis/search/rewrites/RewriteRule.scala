@@ -1,6 +1,7 @@
 package synthesis.search.rewrites
 
 import structures.HyperGraphLike.HyperEdgePattern
+import structures.generic.HyperGraph.Match
 import structures.{EmptyMetadata, HyperEdge, Metadata, generic, mutable}
 import synthesis.search.rewrites.PatternRewriteRule.CategoryMetadata.Value
 import synthesis.search.rewrites.Template.TemplateTerm
@@ -15,6 +16,18 @@ trait RewriteRule {
   def isExistential: Boolean
 
   def getStep(graph: RewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]]
+
+  protected val creators = collection.mutable.Set.empty[Match[HyperTermId, HyperTermIdentifier, Int] => Metadata]
+
+  def registerMetadataCreator(creator: Match[HyperTermId, HyperTermIdentifier, Int] => Metadata): this.type = {
+    creators += creator
+    this
+  }
+
+  def unregisterMetadataCreator(creator: Match[HyperTermId, HyperTermIdentifier, Int] => Metadata): this.type  = {
+    creators -= creator
+    this
+  }
 }
 
 object RewriteRule {

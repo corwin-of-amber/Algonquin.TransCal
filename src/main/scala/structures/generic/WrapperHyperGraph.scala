@@ -1,7 +1,7 @@
 package structures.generic
 
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
-import structures.{HyperEdge, HyperGraphLike}
+import structures.{HyperEdge, HyperGraphLike, Metadata}
 
 abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node, EdgeType, This]] protected(wrapped: HyperGraph[Node, EdgeType])
   extends HyperGraph[Node, EdgeType]
@@ -36,4 +36,6 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   override def equals(obj: Any): Boolean = wrapped.equals(obj)
 
   override def contains(elem: HyperEdge[Node, EdgeType]): Boolean = wrapped.contains(elem)
+
+  override def updateMetadata(edge: HyperEdge[Node, EdgeType], metadata: Metadata): Unit = wrapped.updateMetadata(edge, metadata)
 }

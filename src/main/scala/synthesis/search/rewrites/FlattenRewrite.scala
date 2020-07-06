@@ -1,6 +1,7 @@
 package synthesis.search.rewrites
 
 import structures._
+import structures.generic.HyperGraph.Match
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Language
@@ -45,13 +46,14 @@ object FlattenRewrite extends RewriteRule {
     val applyEdges = graph.findByEdgeType(HyperTermIdentifier(Language.applyId))
     val appliedOn = applyEdges.map(e => (e.sources.head, graph.findByTarget(e.sources.head))).toMap
     val versionCheck =
-      if (versioned) (e1: HyperEdge[HyperTermId, HyperTermIdentifier], e2: HyperEdge[HyperTermId, HyperTermIdentifier]) => (graph.isLatest(e1) || graph.isLatest(e2))
+      if (versioned) (e1: HyperEdge[HyperTermId, HyperTermIdentifier], e2: HyperEdge[HyperTermId, HyperTermIdentifier]) => graph.isLatest(e1) || graph.isLatest(e2)
       else (e1: HyperEdge[HyperTermId, HyperTermIdentifier], e2: HyperEdge[HyperTermId, HyperTermIdentifier]) => true
     for (aEdge <- applyEdges if appliedOn.contains(aEdge.sources.head); innerEdge <- appliedOn(aEdge.sources.head) if (!innerEdge.edgeType.identifier.literal.toLowerCase.contains("anchor")) && versionCheck(aEdge, innerEdge)) yield {
+      val matched = Match[HyperTermId, HyperTermIdentifier, Int](Set(aEdge, innerEdge), Map.empty, Map.empty)
       HyperEdge[HyperTermId, HyperTermIdentifier](aEdge.target,
         innerEdge.edgeType,
         (innerEdge.sources ++ aEdge.sources.drop(1)).toList,
-        FlattenMetadata)
+        FlattenMetadata.merge(UnionMetadata(creators.map(_(matched)).toSet)))
     }
   }
 

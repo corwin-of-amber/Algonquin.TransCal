@@ -20,7 +20,6 @@ import scala.annotation.tailrec
   */
 class PatternRewriteRule(val premise: HyperPattern,
                          val conclusion: HyperPattern,
-                         val metaCreator: HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int] => Metadata,
                          val termString: String = null,
                          val postProcessors: Seq[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends RewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
@@ -34,7 +33,7 @@ class PatternRewriteRule(val premise: HyperPattern,
   private val conclusionExpansionNeeded = conclusion.nodes.exists(_.isInstanceOf[Repetition[HyperTermId, Int]])
   private val conclusionMutable = mutable.CompactHyperGraph(conclusion.toSeq: _*).asInstanceOf[PatternRewriteRule.MutableHyperPattern]
 
-  def withTermString(termString: String) = new PatternRewriteRule(premise, conclusion, metaCreator, termString)
+  def withTermString(termString: String) = new PatternRewriteRule(premise, conclusion, termString)
 
   /** Return state after applying operator and next relevant version to run operator (should be currentVersion + 1)
     * unless operator is existential
@@ -59,15 +58,14 @@ class PatternRewriteRule(val premise: HyperPattern,
   /* --- Privates --- */
 
   private def getConclusionsByState(graph: RewriteRule.HyperGraph,
-                                    halfFilledPatterns: Set[(mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]], Metadata)]) = {
+                                    halfFilledPatterns: Set[mutable.HyperGraph[Item[HyperTermId, Int], Item[HyperTermIdentifier, Int]]]) = {
     val nextHyperId: () => HyperTermId = {
       val creator = Stream.from(if (graph.isEmpty) 0 else graph.nodes.map(_.id).max + 1).map(HyperTermId).iterator
       () => creator.next
     }
 
-    halfFilledPatterns.flatMap({
-      case (p, meta) =>
-        mutable.HyperGraph.fillWithNewHoles(p, nextHyperId).map(e => e.copy(metadata = e.metadata.merge(meta)))
+    halfFilledPatterns.flatMap({ case p =>
+        mutable.HyperGraph.fillWithNewHoles(p, nextHyperId)
     })
   }
 
@@ -105,11 +103,11 @@ class PatternRewriteRule(val premise: HyperPattern,
     val halfFilledPatterns = premiseMatches.flatMap(m => {
       // TODO: undo this. just want better runtime then listing the graph a million times.
       //      val meta = metaCreator(m._1, m._2).merge(metadataCreator(mutable.HyperGraph.mergeMap(mutablePremise.clone(), m)))
-      val meta = metaCreator(m)
+      val meta = UnionMetadata(creators.map(_(m)).toSet)
       val merged = mutable.HyperGraph.mergeMatch(subGraphConclusion(graph, meta, m), m)
       val furtherFilling = fillKnownTargets(merged)
       if (graph.findSubgraph[Int](furtherFilling).nonEmpty) None
-      else Some((furtherFilling, meta))
+      else Some(furtherFilling)
     })
     halfFilledPatterns
   }
@@ -159,6 +157,7 @@ class PatternRewriteRule(val premise: HyperPattern,
       }))
       withExist.-=(re).+=(newEdge)
     }
+    withExist.foreach(e => withExist.updateMetadata(e, metadata))
     postProcessors.foldLeft(withExist)({case (g, pp) => pp(matched, g)})
   }
 
@@ -170,7 +169,7 @@ class PatternRewriteRule(val premise: HyperPattern,
     * @return an operator to later on be applied on the state. NOTICE - some operators might need state to not change.
     */
   override def getStep(graph: RewriteRule.HyperGraph, versioned: Boolean): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
-    val graphsAndMetas = fillConclusions(graph, versioned)
+    val graphs = fillConclusions(graph, versioned)
     var maxHole = 0
 
     def moveHoles(graph: mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]): Set[HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]] = {
@@ -187,8 +186,8 @@ class PatternRewriteRule(val premise: HyperPattern,
       case _ => 0
     }
 
-    val res = graphsAndMetas.filter(_._1.nonEmpty).flatMap({ case (g, m) =>
-      val moved = moveHoles(g).map(e => e.copy(metadata = e.metadata.merge(m)))
+    val res = graphs.filter(_.nonEmpty).flatMap({ case g =>
+      val moved = moveHoles(g)
       maxHole = Math.max(maxHole, moved.map(e => (Seq(toId(e.target), toId(e.edgeType)) ++ e.sources.map(toId[HyperTermId])).max).max)
       moved
     })
