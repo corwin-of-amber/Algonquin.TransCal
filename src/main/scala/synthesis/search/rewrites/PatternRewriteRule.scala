@@ -21,7 +21,8 @@ import scala.annotation.tailrec
 class PatternRewriteRule(val premise: HyperPattern,
                          val conclusion: HyperPattern,
                          val termString: String = null,
-                         val postProcessors: Seq[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = Seq.empty) extends RewriteRule with LazyLogging {
+                         val postProcessors: Seq[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = Seq.empty)
+  extends RewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
 

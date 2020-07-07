@@ -4,12 +4,12 @@ import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
-import synthesis.search.{ActionSearchState, NaiveSearch}
+import synthesis.search.{ActionSearchState, DepthAwareSearch, NaiveSearch}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
-class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false) extends Action {
+class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false, edgeDepth: Option[Int] = None) extends Action {
   private val predicate = goalPredicate.getOrElse((_: RewriteRule.HyperGraph) => false)
-  private val searchAction = new NaiveSearch(startVersioned = startVersioned, predicate)
+  private val searchAction = new DepthAwareSearch(maxSearchDepth, edgeDepth, startVersioned, predicate)
 
   private def run(state: ActionSearchState) = {
     logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as $goalPredicate")

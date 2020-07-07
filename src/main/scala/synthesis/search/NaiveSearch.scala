@@ -13,6 +13,8 @@ import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean)
   extends SearchAction with LazyLogging {
 
+  protected def postProcessors: Set[Set[HyperEdge[HyperTermId, HyperTermIdentifier]] => Set[HyperEdge[HyperTermId, HyperTermIdentifier]]] = Set.empty
+
   /* --- Search Impl. --- */
   override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
     state.updateGraph(graph => {
@@ -67,7 +69,8 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
         // TODO: fix after fixing rewrite rule traits
         val steps = operators.map(r => r.getStep(graph, versioned))
         val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
-        graph ++= newEdges.flatten
+        val afterUpdate = postProcessors.foldLeft(newEdges.flatten)((es, f) => f(es))
+        graph ++= afterUpdate
         i += 1
 
         logger.info(s"Done a round robin. Graph size is: ${graph.size}")
