@@ -58,10 +58,8 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   }
 
   // TODO: Should be private, change tests
-  val searcher = {
-    val randomChooser = CaseSplitAction.randomChooser(equivDepth, splitDepth)
-    new OperatorRunWithCaseSplit(equivDepth, splitDepth = Some(splitDepth), chooser = Some(randomChooser), preRunDepth = preRunDepth)
-  }
+  val searcher =
+    new CaseSplitAction(searcher = new OperatorRunAction(equivDepth), None, None, splitDepthOption = Some(splitDepth))
 
   // TODO: fix tests and make this private
   val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
@@ -77,7 +75,7 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
       override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
         super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
     }
-    val checker = new ConjectureChecker(prover, searcher)
+    val checker = new ConjectureChecker(prover, searcher, equivDepth)
 
     def toTuple = (prover, checker)
   }

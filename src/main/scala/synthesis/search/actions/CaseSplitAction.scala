@@ -17,34 +17,35 @@ import transcallang.Identifier
   * Input graph should contain an edge of type possibleSplit where the target is SplitTrue and the first source is the
   * variable to change and possible values are the rest of the sources.
   */
-class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
-                      splitDepthOption: Option[Int],
-                      maxDepthOption: Option[Int],
-                      preProcessDepth: Option[Int] = None,
-                      startVersioned: Boolean = false) extends Action {
+class CaseSplitAction(searcher: SearchAction,
+                      preprocessorOption: Option[SearchAction],
+                      splitterChooser: Option[CaseSplitAction.SplitChooser],
+                      splitDepthOption: Option[Int]) extends SearchAction {
   private val splitDepth = splitDepthOption.getOrElse(1)
-  private val maxDepth = maxDepthOption.getOrElse(4)
-  private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(maxDepth, splitDepth))
-  private val preProcessor = new OperatorRunAction(preProcessDepth.getOrElse(2), startVersioned = startVersioned)
+  private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(splitDepth))
 
-  def this(splitters: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
-           maxDepthOption: Option[Int]) =
-    this(Some(CaseSplitAction.specificChooser(splitters)), Some(splitters.length), maxDepthOption, None)
+  def this(searchAction: SearchAction) = this(searchAction, None, None, None)
 
-  def this(splitter: HyperEdge[HyperTermId, HyperTermIdentifier],
-           maxDepthOption: Option[Int]) =
-    this(Seq(splitter), maxDepthOption)
+  def this(searchAction: SearchAction, preprocessor: SearchAction) = this(searchAction, Some(preprocessor), None, None)
 
-  val equivRun = new OperatorRunAction(maxDepth)
+  def this(searchAction: SearchAction, splitters: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]) =
+    this(searchAction, None, splitterChooser = Some(CaseSplitAction.specificChooser(splitters)), splitDepthOption = Some(splitters.length))
+
+  def this(searchAction: SearchAction, splitter: HyperEdge[HyperTermId, HyperTermIdentifier]) =
+    this(searchAction, Seq(splitter))
+
   val caseSplitPrefix = "Case_Depth_"
 
+  protected val preprocessor: SearchAction = preprocessorOption.getOrElse(searcher)
+
   private def innerGetFoundConclusions(state: ActionSearchState,
-                                                       chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]])
+                                       chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
+                                       depth: Double, preprocessorDepth: Option[Double])
   : ActionSearchState = {
-    val newState = preProcessor(state)
-    val splitters = chooser(state, chosen).toSeq
+    val newState = preprocessor(state, preprocessorDepth.getOrElse(depth/2))
+    val splitters = chooser(newState, chosen).toSeq
     if (chosen.length >= splitDepth || splitters.isEmpty) {
-      equivRun(state)
+      searcher(newState, depth)
     } else {
       val currentPrefix = caseSplitPrefix + chosen.length.toString + "_"
       // TODO: remove this deep copy if possible
@@ -68,7 +69,7 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
           tempState.updateGraph(g => g -= splitter)
           tempState.updateGraph(g => g.mergeNodesInPlace(source, t))
           // 3. Recursion
-          innerGetFoundConclusions(tempState, chosen :+ splitter)
+          innerGetFoundConclusions(tempState, chosen :+ splitter, depth, preprocessorDepth)
         }).seq
         // 3b. Merge recursion results
 
@@ -80,12 +81,12 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
     }
   }
 
-  def getFoundConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = {
+  def getFoundConclusions(state: ActionSearchState, depth: Double, preprocessorDepth: Option[Double]=None): Set[Set[HyperTermId]] = {
     val anchors = state.programs.queryGraph.nodes.map(n => ObservationalEquivalence.createAnchor(caseSplitPrefix, n))
     state.updateGraph(graph => {
       graph ++= anchors
     })
-    val newState = innerGetFoundConclusions(state, Seq.empty)
+    val newState = innerGetFoundConclusions(state, Seq.empty, depth, preprocessorDepth)
     val res = ObservationalEquivalence.getIdsToMerge(caseSplitPrefix, newState.programs.queryGraph.edges)
     newState.updateGraph(graph => anchors.foreach(a => {
       graph --= graph.findByEdgeType(a.edgeType)
@@ -94,7 +95,17 @@ class CaseSplitAction(splitterChooser: Option[CaseSplitAction.SplitChooser],
   }
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    val toMerge = getFoundConclusions(state).toSeq
+    apply(state, Double.PositiveInfinity)
+  }
+
+  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
+    val toMerge = getFoundConclusions(state, depth, None).toSeq
+    val newState = ObservationalEquivalence.mergeConclusions(state, toMerge)
+    newState
+  }
+
+  def apply(state: ActionSearchState, depth: Double, preprocessorDepth: Double): ActionSearchState = {
+    val toMerge = getFoundConclusions(state, depth, Some(preprocessorDepth)).toSeq
     val newState = ObservationalEquivalence.mergeConclusions(state, toMerge)
     newState
   }
@@ -113,7 +124,7 @@ object CaseSplitAction {
     }
   }
 
-  def randomChooser(depth: Int, splitDepth: Int): SplitChooser = {
+  def randomChooser(splitDepth: Int): SplitChooser = {
     val depthUids = (0 to splitDepth).map(_ => IdMetadata(new Uid))
     (state: ActionSearchState, chose: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]) => {
       //      val uidsAbove = depthUids.take(chose.length)

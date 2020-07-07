@@ -21,7 +21,7 @@ class OperatorRunWithCaseSplitTest extends FunSuite with Matchers {
       state.rewriteRules
     )
     res.programs.reconstruct(res.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a1"))).head.target) exists (_.root.literal == "5") shouldEqual false
-    val res2 = new OperatorRunWithCaseSplit(4, Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root)))(splitableState)
+    val res2 = new CaseSplitAction(new OperatorRunAction(4, Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root))))(splitableState)
     state should not equal res2
     res2.programs.reconstruct(res2.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a1"))).head.target) exists  (_.root.literal == "5") shouldEqual true
   }

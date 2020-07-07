@@ -110,7 +110,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("test find that l == reverse reverse l") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(6))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(8))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
@@ -242,6 +242,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("fold can be found to equal sum") {
+    val searcher = new OperatorRunAction(9)
+
     var state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs)))").cleanTypes)(state)
     state = new LetAction(parser("fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(i,x)) xs))").cleanTypes)(state)
@@ -251,30 +253,33 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     state = new LetAction(parser("?x + ?y >> pl ?x ?y").cleanTypes)(state)
     state = new LetAction(parser("zero = 0"))(state)
 
-    val equivs1 = new ObservationalEquivalence(9).fromTerms(
+    val equivs1 = new ObservationalEquivalence(searcher).fromTerms(
       Seq(
         parser.parseExpression("fold pl zero nil"),
         parser.parseExpression("sum nil")
       ),
-      state.rewriteRules
+      state.rewriteRules,
+      6
     )
     equivs1.size shouldEqual 1
 
-    val equivs2 = new ObservationalEquivalence(9).fromTerms(
+    val equivs2 = new ObservationalEquivalence(searcher).fromTerms(
       Seq(
         parser.parseExpression("fold pl zero (x::nil)"),
         parser.parseExpression("sum (x::nil)")
       ),
-      state.rewriteRules
+      state.rewriteRules,
+      6
     )
     equivs2.size shouldEqual 1
 
-    val equivs3 = new ObservationalEquivalence(9).fromTerms(
+    val equivs3 = new ObservationalEquivalence(searcher).fromTerms(
       Seq(
         parser.parseExpression("fold pl zero (y::x::nil)"),
         parser.parseExpression("sum (y::x::nil)")
       ),
-      state.rewriteRules
+      state.rewriteRules,
+      6
     )
     equivs3.size shouldEqual 1
 

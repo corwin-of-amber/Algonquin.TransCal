@@ -11,13 +11,14 @@ import transcallang.{Identifier, TranscalParser}
 class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecution {
   val parser = new TranscalParser
   val normalRules = SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules
+  val searcher = new OperatorRunAction(3)
 
   test("test splitting in depth returns only known ids") {
     val tree = parser parseExpression "(splitTrue ||| possibleSplit(x, 2, 2) ||| possibleSplit(y, ⟨⟩, ⟨⟩)) |||| x :: y |||| 2 :: ⟨⟩"
     val progs = Programs(tree)
-    val res = new CaseSplitAction(None, Some(2), None).getFoundConclusions(new ActionSearchState(progs, normalRules))
+    val res = new CaseSplitAction(searcher).getFoundConclusions(new ActionSearchState(progs, normalRules), 6)
     res.flatten shouldEqual progs.queryGraph.nodes
-    val mutableRes = new CaseSplitAction(None, Some(2), None).getFoundConclusions(new ActionSearchState(progs, normalRules))
+    val mutableRes = new CaseSplitAction(searcher).getFoundConclusions(new ActionSearchState(progs, normalRules), 6)
     mutableRes.flatten shouldEqual progs.queryGraph.nodes
   }
 
@@ -33,7 +34,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
       state.programs.addTerm(parser parseExpression s"${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}(z, true, false)"),
       state.rewriteRules
     )
-    val res2 = new CaseSplitAction(splitableState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head, None).getFoundConclusions(splitableState)
+    val res2 = new CaseSplitAction(searcher, splitableState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(CaseSplitAction.possibleSplitId)).head).getFoundConclusions(splitableState, 6)
     val newState = ObservationalEquivalence.mergeConclusions(splitableState, res2.toSeq)
     newState.programs.queryGraph.findSubgraph[Int](Programs.destructPattern(parser parseExpression "whatever z ||| 5" cleanTypes)).nonEmpty shouldBe true
   }
@@ -52,7 +53,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     xNilResState should not equal (xNilState)
     val yxNilState = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "a1 ||| reverse((y::x::⟨⟩) :+ z)").addTerm(parser parseExpression "z :: reverse(y::x:::⟨⟩)"), rules)
     val (yxNilPattern, yxNilRoot) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "z :: reverse(y::x::⟨⟩)")).head
-    val yxNilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), yxNilPattern, yxNilRoot, maxSearchDepth = Some(8))(nilState)
+    val yxNilResState = new ElaborateAction(HyperTermIdentifier(Identifier("a1")), yxNilPattern, yxNilRoot, maxSearchDepth = Some(12))(yxNilState.deepCopy())
     yxNilResState should not equal (yxNilState)
 
     // Now run casesplit and check all cases are matching
@@ -61,7 +62,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
       .addTerm(parser parseExpression "a1 ||| reverse(l :+ z)")
       .addTerm(parser parseExpression "a2 ||| z :: reverse(l)")
       .addTerm(parser parseExpression "possibleSplit(l, ⟨⟩, x::⟨⟩, y::x::⟨⟩)"), rules)
-    val conclusions = new CaseSplitAction(None, None, Some(6)).getFoundConclusions(splitterState)
+    val conclusions = new CaseSplitAction(new OperatorRunAction(10), new OperatorRunAction(10)).getFoundConclusions(splitterState, 6)
     val correctId1 = splitterState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a1"))).head.target
     val correctId2 = splitterState.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a2"))).head.target
     conclusions.find(_.contains(correctId1)).get should contain (correctId2)
@@ -72,7 +73,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
       SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules))
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
-    val res = new ObservationalEquivalenceWithCaseSplit(8, splitDepth = Some(3)).getEquives(state)
+    val res = new ObservationalEquivalence(new CaseSplitAction(new OperatorRunAction(10), None, None, Some(3))).getEquives(state, 5)
 //    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(3), maxDepthOption = Some(8))
 //      .getFoundConclusions(state)
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter p (x :: y :: ⟨⟩))" cleanTypes)).head
@@ -92,9 +93,8 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
     state = new DefAction(parser apply "filter p (filter q (x :: y :: ⟨⟩)) = filter p (filter q l)")(state)
     state = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(state)
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
-    state = new OperatorRunAction(maxSearchDepth = 2)(state)
-    val res = new CaseSplitAction(splitterChooser = None, splitDepthOption = Some(4), maxDepthOption = Some(4))
-      .getFoundConclusions(state)
+    val res = new CaseSplitAction(new OperatorRunAction(9), None, None, Some(4))
+      .getFoundConclusions(state, 3, Some(2))
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser parseExpression "filter p (filter q (x :: y :: ⟨⟩))" cleanTypes)).head
     val patternResults = state.programs.queryGraph.findSubgraph[Int](pattern)
     patternResults should not be empty
@@ -109,7 +109,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
   test("test can't split on same edge twice") {
     class Chooser() {
       var called: Int = 0
-      val chooser = CaseSplitAction.randomChooser(2, 2)
+      val chooser = CaseSplitAction.randomChooser(2)
       def choose(state: ActionSearchState, chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]]):
         Set[HyperEdge[HyperTermId, HyperTermIdentifier]] = {
         val res = chooser(state, chosen)
@@ -120,7 +120,7 @@ class CaseSplitActionTest extends FunSuite with Matchers with ParallelTestExecut
       }
     }
     val chooser = new Chooser()
-    val caseSplitAction = new CaseSplitAction(Some(chooser.choose), Some(2), Some(1))
+    val caseSplitAction = new CaseSplitAction(searcher, None, Some(chooser.choose), Some(2))
     val state = new ActionSearchState(Programs.empty.addTerm(parser parseExpression "possibleSplit(true, true, false)"),
       SystemRewriteRulesDB.rewriteRules ++ AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules)
     caseSplitAction(state)

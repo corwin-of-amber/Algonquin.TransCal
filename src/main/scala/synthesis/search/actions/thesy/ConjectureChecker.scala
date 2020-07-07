@@ -3,14 +3,14 @@ package synthesis.search.actions.thesy
 import com.typesafe.scalalogging.LazyLogging
 import report.{LazyTiming, StopWatch}
 import synthesis.Programs
-import synthesis.search.actions.{Action, ObservationalEquivalence}
+import synthesis.search.actions.{Action, ObservationalEquivalence, SearchAction}
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.{ActionSearchState, Operator}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
 
-class ConjectureChecker(prover: Prover, searcher: Action) extends LazyLogging with LazyTiming {
+class ConjectureChecker(prover: Prover, searcher: SearchAction, maxDepth: Double) extends LazyLogging with LazyTiming {
   //override protected def watchName: String = "ConjectureChecker"
 
   private val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
@@ -67,7 +67,7 @@ class ConjectureChecker(prover: Prover, searcher: Action) extends LazyLogging wi
       case terms if terms.size > 1 =>
         // refine equivalence relation using searcher
         logger.info("Filtering terms that don't need induction using observational equivalence")
-        val finerEquives = new ObservationalEquivalence(searchAction = Some(searcher)).fromTerms(terms.toSeq, prover.knownRules)
+        val finerEquives = new ObservationalEquivalence(searchAction = searcher).fromTerms(terms.toSeq, prover.knownRules, maxDepth)
         // Take smallest of each set as heuristic to maximize knowledge gained from each theorem
         val representatives = finerEquives.map(_.minBy(_.size)).toSeq
         representatives.combinations(2).toSeq.flatMap(it => {

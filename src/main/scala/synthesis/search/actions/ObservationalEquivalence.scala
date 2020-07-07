@@ -15,34 +15,28 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 
-class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[Action] = None) extends Action with LazyLogging {
+class ObservationalEquivalence(searchAction: SearchAction) extends SearchAction with LazyLogging {
   // TODO: Make search action a must
   // TODO: add end pattern api to search action
   val uniquePrefix: String = UUID.randomUUID().toString
 
-  protected def createSearchAction(oPattern: Option[HyperPattern]): Action = {
-    new OperatorRunAction(maxDepth, oPattern.map(p => (r: RewriteRule.HyperGraph) => r.findSubgraph[Int](p).nonEmpty))
-  }
-
-  def getEquives(actionSearchState: ActionSearchState): (ActionSearchState, Set[Set[HyperTermId]]) = {
+  def getEquives(actionSearchState: ActionSearchState, depth: Double): (ActionSearchState, Set[Set[HyperTermId]]) = {
     val allAnchors = actionSearchState.programs.queryGraph.nodes.map(n => ObservationalEquivalence.createAnchor(uniquePrefix, n))
     actionSearchState.updateGraph(graph => graph ++= allAnchors)
-    val opAction =
-      searchAction.getOrElse(createSearchAction(Some(ObservationalEquivalence.createEndPattern(allAnchors))))
-    val newState = opAction(actionSearchState)
+    val newState = searchAction(actionSearchState, depth)
     val merged: Set[Set[HyperTermId]] = ObservationalEquivalence.getIdsToMerge(uniquePrefix, newState.programs.queryGraph.edges)
     val toRemove = allAnchors.flatMap(e => actionSearchState.programs.queryGraph.findByEdgeType(e.edgeType))
     actionSearchState.updateGraph(graph => graph --= toRemove)
     (newState, merged)
   }
 
-  override def apply(state: ActionSearchState): ActionSearchState = {
-    val equives = getEquives(state)._2.toSeq
+  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
+    val equives = getEquives(state, depth)._2.toSeq
     val newState = ObservationalEquivalence.mergeConclusions(state, equives)
     newState
   }
 
-  def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[RewriteRule]): Set[Set[AnnotatedTree]] = {
+  def fromTerms(terms: Seq[AnnotatedTree], rewriteRules: Set[RewriteRule], depth: Double): Set[Set[AnnotatedTree]] = {
     // TODO: fix id to term to be able to deal with moving term targets
     // TODO: insert common subterms once
     // TODO: use programs terms constructor (more efficient)
@@ -55,7 +49,7 @@ class ObservationalEquivalence(maxDepth: Int = 4, searchAction: Option[Action] =
       (t, graph.findSubgraph[Int](pattern).head.nodeMap(root.id))
     }).toMap
     val idToTerm = termToEdges.map({case (term, id) => (id, term)})
-    val res = getEquives(new ActionSearchState(graph, rewriteRules))
+    val res = getEquives(new ActionSearchState(graph, rewriteRules), depth)
     res._2.filter(_.exists(idToTerm.contains)).map(s => s.filter(idToTerm.contains).map(id => idToTerm(id)))
   }
 }
