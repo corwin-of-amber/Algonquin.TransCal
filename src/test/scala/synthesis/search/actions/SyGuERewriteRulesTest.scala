@@ -8,8 +8,8 @@ import transcallang.{AnnotatedTree, TranscalParser}
 class SyGuERewriteRulesTest extends FunSuite with Matchers {
   private val parser = new TranscalParser()
   private val basicGraph = Set("true ||| sygusCreated (var1 : int)",
-    s"true ||| ${SyGuERewriteRules.sygusCreatedId.literal} (var2 : string)",
-    s"true |||  ${SyGuERewriteRules.sygusCreatedId.literal} (var3 : list int)")
+    s"true ||| ${SyGuERewriteRules.sygueCreatedId.literal} (var2 : string)",
+    s"true |||  ${SyGuERewriteRules.sygueCreatedId.literal} (var3 : list int)")
     .map(parser.parseExpression)
     .map(x => Programs.destruct(x)).reduce(_ ++ _)
   private val badBasicGraph = Set("(var1 : int)",

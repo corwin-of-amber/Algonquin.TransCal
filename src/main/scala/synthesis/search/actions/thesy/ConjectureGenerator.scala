@@ -2,10 +2,11 @@ package synthesis.search.actions.thesy
 
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
+import synthesis.search.actions.thesy.SyGuERewriteRules.{SyGuEMetadata, SyGuEMetadataLeaf}
 import synthesis.search.actions.{Action, ObservationalEquivalence}
-import synthesis.search.rewrites.{FunctionArgumentsAndReturnTypeRewrite, RewriteRule, PatternRewriteRule}
+import synthesis.search.rewrites.{FunctionArgumentsAndReturnTypeRewrite, PatternRewriteRule, RewriteRule}
 import synthesis.search.{ActionSearchState, Operator}
-import synthesis.{HyperTermId, Programs}
+import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
 import scala.collection.mutable
@@ -71,7 +72,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
   //    (d.asType, all.flatten)
   //  }).toMap
 
-  private val sygusRules = {
+  private val sygueRules = {
     // Need to use vocab as the function name is needed
     SyGuERewriteRules(
       (vocab.allSymbols.toSet).filter(isFunctionType)
@@ -84,7 +85,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     val symbols = vocab.allSymbols ++ placeholders.values.flatMap(ps => ps.map(AnnotatedTree.identifierOnly))
     val symbolsToUse = symbols.map(t => AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, Seq(
       AnnotatedTree.identifierOnly(Language.trueId),
-      AnnotatedTree.withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(t))
+      AnnotatedTree.withoutAnnotations(SyGuERewriteRules.sygueCreatedId, Seq(t))
     )))
     val tree = if (symbols.size > 1)
       AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse)
@@ -93,34 +94,53 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     val res =
       if (typed) Programs.destruct(tree)
       else Programs.destruct(tree.cleanTypes)
+    res.findByEdgeType(HyperTermIdentifier(SyGuERewriteRules.sygueCreatedId)).foreach(e =>
+      res.updateMetadata(e,
+        SyGuEMetadataLeaf(HyperTermIdentifier(Programs.reconstruct(res, e.sources.head).find(_.depth == 0).get.root))
+      ))
     res
   }
+
+//  private val soes = vocab.datatypes.map(d => new SOE(searcher, baseGraph, placeholders(d.asType).head, examples(d.asType)))
 
   def increaseDepth(): Unit = timed {
     // TODO: Run new rules before inreasing depth
     // TODO: Keep same soes
     def op(graph: ActionSearchState.HyperGraph): Unit = {
-      val hyperTermIds: Seq[() => HyperTermId] = 0 until (sygusRules.size + 1) map (i => {
-        val creator = Stream.from(if (graph.isEmpty) i else graph.nodes.map(_.id).max + 1 + i, sygusRules.size).map(HyperTermId).iterator
+//      sygueRules.foreach(r => r.registerMetadataCreator(soes.head.iterationCreator))
+      val hyperTermIds: Seq[() => HyperTermId] = 0 until (sygueRules.size + 1) map (i => {
+        val creator = Stream.from(if (graph.isEmpty) i else graph.nodes.map(_.id).max + 1 + i, sygueRules.size).map(HyperTermId).iterator
         () => creator.next
       })
 
-      val res = sygusRules.par.map((r: PatternRewriteRule) => r.getStep(graph, versioned = false))
+      val res = sygueRules.par.map((r: PatternRewriteRule) => r.getStep(graph, versioned = false))
       val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
       logger.debug(s"Found ${newEdges.size} new edges using sygus")
       graph.addAllKeepVersion(newEdges)
       val funcInferStep = FunctionArgumentsAndReturnTypeRewrite.getStep(graph, versioned = false)
+//      sygueRules.foreach(r => r.unregisterMetadataCreator(soes.head.iterationCreator))
       graph.addAllKeepVersion(structures.generic.HyperGraph.fillWithNewHoles(funcInferStep, hyperTermIds.last))
     }
     //    for (soe <- soes) {
     //      soe.updateGraph(op)
     //    }
     op(baseGraph)
+//    sygueRules.foreach(r => r.registerPostprocessor(soes.head.iterationPostprocessor))
+//    soes.foreach(soe => soe.updateGraph(op))
+//    sygueRules.foreach(r => r.unregisterPostprocessor(soes.head.iterationPostprocessor))
   }
 
-  def inferConjectures(operators: Set[RewriteRule]) = timed {
+  def inferConjectures(operators: Set[RewriteRule]): ActionSearchState = timed {
     val state = new ActionSearchState(baseGraph, operators)
-    val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
+//    val conclusions = soes.map(_.findEquives(operators))
+//    val sygueMetadataToMerge = ObservationalEquivalence.flattenUnionConclusions(conclusions)
+//    val idsToMerge = {
+//      val metadataToId = baseGraph.findByEdgeType(HyperTermIdentifier(SyGuERewriteRules.sygueCreatedId)).map(e => {
+//          (e.metadata.find(m => m.isInstanceOf[SyGuEMetadata]).get, e)
+//      }).toMap
+//      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
+//    }
+val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators)))
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }

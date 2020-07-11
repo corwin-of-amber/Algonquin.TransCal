@@ -2,9 +2,14 @@ package synthesis.search.actions.thesy
 
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
-import structures.{EmptyMetadata, HyperEdge}
+import structures.generic.HyperGraph
+import structures.generic.HyperGraph.Match
+import structures.mutable.CompactHyperGraph
+import structures.{EmptyMetadata, HyperEdge, Metadata, UnionMetadata}
+import synthesis.search.actions.thesy.SyGuERewriteRules.SyGuEMetadata
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.search.actions.{Action, ObservationalEquivalence}
+import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
@@ -33,6 +38,8 @@ class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, v
       val id = currentGraph.findSubgraph[Int](pattern).head.nodeMap(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
       currentGraph.mergeNodesInPlace(currentGraph.findByEdgeType(HyperTermIdentifier(marker)).head.target, id)
       currentGraph --= currentGraph.findByEdgeType(HyperTermIdentifier(marker))
+//      currentGraph.foreach(e => currentGraph.updateMetadata(e, IterationMetadata(i)))
+//      currentGraph
     })
       currentState
     })
@@ -94,4 +101,8 @@ class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, v
 //      override def getClasses: Map[AnnotatedTree, Set[AnnotatedTree]] = classes
 //    }
 //  }
+}
+
+case class IterationMetadata(iteration: Int) extends Metadata {
+  override protected def toStr: String = s"IterationMetadata($iteration)"
 }

@@ -3,6 +3,7 @@ package synthesis.search.actions.thesy
 import structures.Metadata
 import structures.generic.HyperGraph
 import synthesis.search.actions.LetAction
+import synthesis.search.actions.thesy.SyGuERewriteRules.{SyGuEMetadata, SyGuEMetadataBranch}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm}
 import synthesis.search.rewrites.{RewriteRule, RewriteRulesDB}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -14,6 +15,13 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   require(terms.forall(_.root.annotation.nonEmpty))
   require(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
 
+  def metadataCreator(id: Int): HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int] => Metadata = m => {
+    SyGuEMetadataBranch(id, m.edges.flatMap(e => e.metadata.collect({
+      case m: SyGuEMetadata => Some(m)
+      case _ => None
+    }).flatten))
+  }
+
   override lazy val rewriteRules: Set[RewriteRule] = {
     terms.flatMap({ t =>
       val typ = t.root.annotation.get
@@ -22,7 +30,7 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
       val premisedParams = params.map(p =>
           withoutAnnotations(Language.andCondBuilderId, Seq(
             identifierOnly(Language.trueId),
-            withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(p)
+            withoutAnnotations(SyGuERewriteRules.sygueCreatedId, Seq(p)
           ))
         ))
       assert(params.nonEmpty)
@@ -34,14 +42,15 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
         val conclusion = withoutAnnotations(Language.limitedAndCondBuilderId, Seq(
           withoutAnnotations(Language.andCondBuilderId, Seq(
             identifierOnly(Language.trueId),
-            withoutAnnotations(SyGuERewriteRules.sygusCreatedId, Seq(withoutAnnotations(t.root, params)))
+            withoutAnnotations(SyGuERewriteRules.sygueCreatedId, Seq(withoutAnnotations(t.root, params)))
           ))
         ))
         withoutAnnotations(Language.limitedDirectedLetId, Seq(premise, conclusion))
       }
 
-      new LetAction(term, cleanTypes = false).rules
-        .map(_.withTermString(s"SyGuS[${t.root.literal}]"))
+      new LetAction(term, cleanTypes = false).rules.zipWithIndex
+        .map({case (r, i) => r.withTermString(s"SyGuS[${t.root.literal}]")})
+//        .map({case (r, i) => r.withTermString(s"SyGuS[${t.root.literal}]").registerMetadataCreator(metadataCreator(i))})
     })
   }
 
@@ -51,13 +60,20 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
 }
 
 object SyGuERewriteRules {
-  val sygusCreatedId = Identifier("sygusCreated")
+  val sygueCreatedId = Identifier("sygusCreated")
+
+  trait SyGuEMetadata extends Metadata {
+    override protected def toStr: String = "SyGuEMetadata"
+  }
+
+  case class SyGuEMetadataBranch(id: Int, params: Set[SyGuEMetadata]) extends SyGuEMetadata
+  case class SyGuEMetadataLeaf(id: HyperTermIdentifier) extends SyGuEMetadata
 
   private val createdSearchGraph = {
     val parser = new TranscalParser()
-    Programs.destructPattern(parser.parseExpression(s"${SyGuERewriteRules.sygusCreatedId.literal} ?x"))
+    Programs.destructPattern(parser.parseExpression(s"${SyGuERewriteRules.sygueCreatedId.literal} ?x"))
   }
-  private val sygusCreatedSearchHole = createdSearchGraph.findByEdgeType(ExplicitTerm(HyperTermIdentifier(SyGuERewriteRules.sygusCreatedId)))
+  private val sygusCreatedSearchHole = createdSearchGraph.findByEdgeType(ExplicitTerm(HyperTermIdentifier(SyGuERewriteRules.sygueCreatedId)))
     .head.sources.head.asInstanceOf[ReferenceTerm[HyperTermId]]
 
   def getSygusCreatedNodes(graph: HyperGraph[HyperTermId, HyperTermIdentifier]): Set[HyperTermId] = {

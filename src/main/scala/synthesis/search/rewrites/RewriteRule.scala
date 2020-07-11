@@ -1,9 +1,11 @@
 package synthesis.search.rewrites
 
 import structures.HyperGraphLike.HyperEdgePattern
+import structures.generic.HyperGraph
 import structures.generic.HyperGraph.Match
 import structures.{EmptyMetadata, HyperEdge, Metadata, generic, mutable}
 import synthesis.search.rewrites.PatternRewriteRule.CategoryMetadata.Value
+import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
@@ -26,6 +28,18 @@ trait RewriteRule {
 
   def unregisterMetadataCreator(creator: Match[HyperTermId, HyperTermIdentifier, Int] => Metadata): this.type  = {
     creators -= creator
+    this
+  }
+
+  protected val processors: collection.mutable.Buffer[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = collection.mutable.Buffer.empty
+
+  def registerPostprocessor(processor: (HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
+    processors += processor
+    this
+  }
+
+  def unregisterPostprocessor(processor: (HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
+    processors -= processor
     this
   }
 }

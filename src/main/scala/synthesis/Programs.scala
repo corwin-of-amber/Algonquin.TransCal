@@ -280,7 +280,7 @@ object Programs extends LazyLogging {
   }
 
   def reconstructAll(inputEdges: generic.HyperGraph[HyperTermId, HyperTermIdentifier], maxDepth: Int): Set[Entry] = {
-    val edges = inputEdges.edges.filterNot(e => e.metadata.exists(_ == NonConstructableMetadata) || e.edgeType.identifier == Language.typeId || SyGuERewriteRules.sygusCreatedId == e.edgeType.identifier)
+    val edges = inputEdges.edges.filterNot(e => e.metadata.exists(_ == NonConstructableMetadata) || e.edgeType.identifier == Language.typeId || SyGuERewriteRules.sygueCreatedId == e.edgeType.identifier)
     val idToType = inputEdges.filter(_.edgeType.identifier == Language.typeId).map(e => (e.sources(0), Programs.reconstruct(inputEdges, e.sources(1)).head)).toMap
     val knownTerms = collection.mutable.HashMultiMap.empty[HyperTermId, Entry]
     var lastLevel = for (e <- edges if e.sources.isEmpty) yield {

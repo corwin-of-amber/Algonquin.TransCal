@@ -20,8 +20,7 @@ import scala.annotation.tailrec
   */
 class PatternRewriteRule(val premise: HyperPattern,
                          val conclusion: HyperPattern,
-                         val termString: String = null,
-                         val postProcessors: Seq[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = Seq.empty)
+                         val termString: String = null)
   extends RewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"
@@ -159,7 +158,7 @@ class PatternRewriteRule(val premise: HyperPattern,
       withExist.-=(re).+=(newEdge)
     }
     withExist.foreach(e => withExist.updateMetadata(e, metadata))
-    postProcessors.foldLeft(withExist)({case (g, pp) => pp(matched, g)})
+    processors.foldLeft(withExist)({case (g, pp) => pp(matched, g)})
   }
 
   /** Create an operator that finishes the action of the step operator. This should be used as a way to hold off adding

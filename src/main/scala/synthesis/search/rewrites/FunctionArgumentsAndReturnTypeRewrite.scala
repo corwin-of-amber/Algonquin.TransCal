@@ -1,6 +1,9 @@
 package synthesis.search.rewrites
 
+import jdk.jshell.spi.ExecutionControl.NotImplementedException
 import structures._
+import structures.generic.HyperGraph.Match
+import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Language
@@ -86,4 +89,6 @@ object FunctionArgumentsAndReturnTypeRewrite extends RewriteRule {
   }
 
   override def isExistential: Boolean = false
+
+  override def registerPostprocessor(processor: (Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = throw new NotImplementedException("No supported for type inference")
 }
