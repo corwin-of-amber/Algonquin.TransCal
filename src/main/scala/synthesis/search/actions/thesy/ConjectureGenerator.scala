@@ -21,8 +21,8 @@ class ConjectureGenerator(vocab: SortedVocabulary,
   // TODO: 2. Generate expression using a pattern and a factory. See Issue 13
   val typed = true
 
-  private def isFunctionType(annotatedTree: AnnotatedTree) = annotatedTree.root.annotation match {
-    case Some(annotation) => annotation.root == Language.mapTypeId
+  private def isRecursiveType(identifier: Identifier) = identifier.annotation match {
+    case Some(annotation) => annotation.root == Language.mapTypeId && annotation.subtrees.dropRight(1).contains(annotation.subtrees.last)
     case None => false
   }
 
@@ -46,36 +46,36 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     }).map(t => (t, 0 until placeholderCount map (i => createPlaceholder(t, i)))).toMap
   logger.warn(s"Created total: ${placeholders.values.flatten.size}")
 
-  // TODO: Might want a better way of building then randomly taking previously built examples.
-  // TODO: I feel like beuilding all veriations will be very expensive but actually having reusing really helps
-  private val examples: Map[AnnotatedTree, Seq[AnnotatedTree]] = vocab.datatypes.map(d => {
-    val all: mutable.Buffer[Set[AnnotatedTree]] = mutable.Buffer.empty[Set[AnnotatedTree]]
-    all.append(d.constructors.filterNot(c => isFunctionType(c.annotation.get)).map(t => AnnotatedTree.identifierOnly(t)).toSet)
-    val functionConstructors = d.constructors.filter(c => isFunctionType(c.annotation.get))
-    for (i <- 1 to exampleDepthLimit) {
-      val exToUse = mutable.Set(all(i - 1).toSeq: _*)
-      val newExs = functionConstructors.map(c => {
-        AnnotatedTree.withoutAnnotations(c, c.annotation.get.subtrees.map({
-          case t if t == d.asType =>
-            if (exToUse.nonEmpty) {
-              val temp = exToUse.head
-              exToUse -= temp
-              temp
-            }
-            else all(i - 1).head
-          case t =>
-            createAutoVar(t)
-        }))
-      })
-      all.append(newExs.toSet)
-    }
-    (d.asType, all.flatten)
-  }).toMap
+  private val examples: Map[AnnotatedTree, Seq[AnnotatedTree]] = {
+    val rand = new scala.util.Random(1)
+    vocab.datatypes.map(d => {
+      val all: Seq[mutable.Set[AnnotatedTree]] = 0 until exampleDepthLimit map (_ => mutable.Set.empty[AnnotatedTree])
+      // This is important so the prover will be sound
+      all(0) ++= (d.constructors.filterNot(c => isRecursiveType(c)).map(t => AnnotatedTree.identifierOnly(t)).toSet)
+      // Need to take many variations so wont fall with stuff like reverse tree
+      val functionConstructors = d.constructors.filter(c => isRecursiveType(c))
+      def createExample(const: Identifier, depth: Int): AnnotatedTree = {
+        if (depth == 0) all(0).toSeq(rand.nextInt(all(0).size))
+        else {
+          val example = AnnotatedTree.withoutAnnotations(const, const.annotation.get.subtrees.dropRight(1).map({
+            case t if t == d.asType =>
+              createExample(functionConstructors(rand.nextInt(functionConstructors.size)), depth - 1)
+            case t =>
+              createAutoVar(t)
+          }))
+          all(depth - 1) += example
+          example
+        }
+      }
+      functionConstructors.foreach(createExample(_, exampleDepthLimit))
+      (d.asType, all.flatten)
+    }).toMap
+  }
 
   private val sygueRules = {
     // Need to use vocab as the function name is needed
     SyGuERewriteRules(
-      (vocab.allSymbols.toSet).filter(isFunctionType)
+      (vocab.allSymbols.toSet).filter(s => isRecursiveType(s.root))
         .map(t => t.copy(subtrees = Seq.empty))
     ).rewriteRules.map(_.asInstanceOf[PatternRewriteRule])
   }
