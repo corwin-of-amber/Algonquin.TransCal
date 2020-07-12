@@ -1,13 +1,14 @@
 package ui
 
-import java.io.{PrintStream, File}
+import java.io.{File, PrintStream}
 import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
+import lispparser.LispParser
+//import lispparser.{sexpressionLexer, sexpressionParser}
 import org.rogach.scallop.ScallopOption
 import report.Stats
-import synthesis._
-import transcallang.{AnnotatedTree, Language, TranscalParser}
+import transcallang.{AnnotatedTree, TranscalParser}
 
 import scala.io.Source
 
@@ -16,6 +17,7 @@ import scala.io.Source
   * @since 11/24/18
   */
 object Main extends App with LazyLogging {
+
   import org.rogach.scallop.ScallopConf
 
   println(s"Start time: ${Calendar.getInstance().getTime}")
@@ -24,6 +26,8 @@ object Main extends App with LazyLogging {
 
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
     val file: ScallopOption[File] = opt[File]()
+    val smtin: ScallopOption[Boolean] = opt[Boolean]()
+
     validateFileIsFile(file)
     validateFileExists(file)
     verify()
@@ -48,21 +52,28 @@ object Main extends App with LazyLogging {
   }
 
   val conf = new CommandLineConfiguration(args.toIndexedSeq)
-  val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_+ "\n").map(parser.apply)
-  val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readFile)
-  val userInput: Iterator[AnnotatedTree] = optionalFile.getOrElse(consolein)
-  val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+
+  if (conf.smtin.getOrElse(false)) {
+    val source = Source.fromFile(conf.file())
+    val res = new LispParser()(source.getLines().mkString("\n"))
+    source.close()
+    new SmtlibInterperter.apply(res)
+  } else {
+    val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)
+    val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readFile)
+    val userInput: Iterator[AnnotatedTree] =optionalFile.getOrElse(consolein)
+    val userOutput: PrintStream = Console.out // conf.file.map(name => new PrintStream(name + ".out")).getOrElse(Console.out)
+    val interpreter = new Interpreter(userInput, userOutput)
+    val lastState = interpreter.start()
+
+    val fullProgram = lastState.programs
+    val hyperGraph = fullProgram.queryGraph
+
+    println(f"size: $hyperGraph.size")
+    println(f"nodes: ${hyperGraph.nodes}")
+    println(f"number of nodes: ${hyperGraph.nodes.size}")
+    println(s"End time: ${Calendar.getInstance().getTime}")
+  }
 
   Stats.instance.dumpOnExit()
-
-  val interpreter = new Interpreter(userInput, userOutput)
-  val lastState = interpreter.start()
-
-  val fullProgram = lastState.programs
-  val hyperGraph = fullProgram.queryGraph
-
-  println(f"size: $hyperGraph.size")
-  println(f"nodes: ${hyperGraph.nodes}")
-  println(f"number of nodes: ${hyperGraph.nodes.size}")
-  println(s"End time: ${Calendar.getInstance().getTime}")
 }

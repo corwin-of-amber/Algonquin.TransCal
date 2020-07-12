@@ -79,7 +79,12 @@ object Language {
   val typeTrueId = Identifier("typeTrue")
   val spbeId = Identifier("SPBE")
 
-  val identifierRegex: Regex = "[?]?[\\w'`_]+".r
+  val datatypeId = Identifier("datatype")
+  val functionDeclId = Identifier("dec")
+  val numeralId = Identifier("numeral")
+  val assertId = Identifier("assert")
+
+  val identifierRegex: Regex = "[?]?[\\w'`_\\-+<>=]+".r
 
   val builtinConsts: Seq[Identifier] = Seq(nilId, trueId, falseId)
   val builtinNotOps: Seq[Identifier] = Seq(negId)
