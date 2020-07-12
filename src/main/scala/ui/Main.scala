@@ -57,7 +57,7 @@ object Main extends App with LazyLogging {
     val source = Source.fromFile(conf.file())
     val res = new LispParser()(source.getLines().mkString("\n"))
     source.close()
-    new SmtlibInterperter.apply(res)
+    new ui.SmtlibInterperter().apply(res)
   } else {
     val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)
     val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readFile)

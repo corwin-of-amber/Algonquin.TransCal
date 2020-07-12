@@ -20,8 +20,7 @@ import scala.collection.mutable
   * Filter trivial conjectures.
   * Prove conjectures.
   *
-  * @param typeBuilders           Constructors for types being inducted on
-  * @param grammar                Function symbols to use as syntax for SyGuE
+  * @param vocab                  A sorted vocabulary containing symbols representing the theory to explore.
   * @param examples               Should be replaced by automatic creation of :typeBuilder application
   * @param termDepthOption        Depth to create terms, the iterative deepening depth
   * @param equivDepthOption       Depth to run rewrite rules in both conjecture genreration and prover
@@ -30,15 +29,28 @@ import scala.collection.mutable
   * @param placeholderCountOption How many place holders to create
   * @param reprove                Once finished, check for rules that have become provable
   */
-class TheoryExplorationAction(typeBuilders: Set[Identifier],
-                              grammar: Set[AnnotatedTree],
+class TheoryExplorationAction(val vocab: SortedVocabulary,
                               examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
-                              termDepthOption: Option[Int] = None,
-                              equivDepthOption: Option[Int] = None,
-                              splitDepthOption: Option[Int] = None,
-                              preRunDepth: Option[Int] = None,
-                              placeholderCountOption: Option[Int] = None,
-                              reprove: Boolean = false) extends Action {
+                              termDepthOption: Option[Int],
+                              equivDepthOption: Option[Int],
+                              splitDepthOption: Option[Int],
+                              preRunDepth: Option[Int],
+                              placeholderCountOption: Option[Int],
+                              reprove: Boolean) extends Action {
+
+  def this(typeBuilders: Set[Identifier],
+           grammar: Set[AnnotatedTree],
+           examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
+           termDepthOption: Option[Int] = None,
+           equivDepthOption: Option[Int] = None,
+           splitDepthOption: Option[Int] = None,
+           preRunDepth: Option[Int] = None,
+           placeholderCountOption: Option[Int] = None,
+           reprove: Boolean = false) = this({
+    val baseType = typeBuilders.find(_.annotation.get.root != Language.mapTypeId).flatMap(_.annotation).get
+    SortedVocabulary(Seq(Datatype(baseType.root, baseType.subtrees, typeBuilders.toSeq)), grammar.toSeq)
+  }, examples, termDepthOption, equivDepthOption, splitDepthOption, preRunDepth, placeholderCountOption, reprove)
+
   assert(examples.values.map(_.size).toSet.size == 1)
   var termCount = 0
   var failedProofs = 0
@@ -50,19 +62,14 @@ class TheoryExplorationAction(typeBuilders: Set[Identifier],
   val termDepth = termDepthOption.getOrElse(2)
   val placeholderCount = placeholderCountOption.getOrElse(2)
 
-  // TODO: change input into sorted vocab
-  // TODO: Should be private, change tests
-  val vocab = {
-    val baseType = typeBuilders.find(_.annotation.get.root != Language.mapTypeId).flatMap(_.annotation).get
-    SortedVocabulary(Seq(Datatype(baseType.root, baseType.subtrees, typeBuilders.toSeq)), grammar.toSeq)
-  }
 
   // TODO: Should be private, change tests
   val searcher =
     new CaseSplitAction(searcher = new OperatorRunAction(equivDepth), None, None, splitDepthOption = Some(splitDepth))
 
   // TODO: fix tests and make this private
-  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
+//  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
+  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, 3, placeholderCount)
 
   /**
     * Auxiliary class for a Prover and a ConjectureChecker that are tightly coupled,

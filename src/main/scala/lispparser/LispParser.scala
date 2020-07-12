@@ -5,31 +5,17 @@ import com.typesafe.scalalogging.LazyLogging
 import lispparser.Lexer.{IDENTIFIER, LITERAL, ROUNDBRACETCLOSE, ROUNDBRACETOPEN, Token}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
+import scala.util.matching.Regex
 import scala.util.parsing.combinator.{Parsers, RegexParsers}
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[List[AnnotatedTree]] {
-  override type Elem = Token
-
-  class TokenReader(tokens: Seq[Token]) extends Reader[Token] {
-    override def first: Token = tokens.head
-
-    override def atEnd: Boolean = tokens.isEmpty
-
-    override def pos: Position = tokens.headOption.map(_.pos).getOrElse(NoPosition)
-
-    override def rest: Reader[Token] = new TokenReader(tokens.tail)
-
-    override def toString: String = s"WorkflowTokenReader(pos=${pos.column}, tokens=${tokens.mkString(", ")})"
-  }
+  protected override val whiteSpace: Regex = """(\s|;.*)+""".r
 
   override def log[T](p: => Parser[T])(name: String): Parser[T] = p
 
   def apply(programText: String): List[AnnotatedTree] = {
-    val tokens = Lexer.apply(programText)
-    if (tokens.isLeft) throw new RuntimeException(s"LEXER ERROR: ${tokens.left.get}")
-    val reader = new TokenReader(tokens.right.get)
-    program(reader) match {
+    parseAll(program, programText) match {
       case Success(matched, _) =>
         assert(!matched.forall(_.nodes.map(_.root.literal).contains("ite")))
         matched
@@ -42,10 +28,10 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
 
   val identifierGenerator: Iterator[Identifier] = Stream.from(0).map(i => Identifier(s"autovar$i")).toIterator
 
-  private val RBO = ROUNDBRACETOPEN()
-  private val RBC = ROUNDBRACETCLOSE()
+  private val RBO = "("
+  private val RBC = ")"
 
-  def program: Parser[List[AnnotatedTree]] = (((assertTerm | functionDecl) ^^ { a => List(a) } | functionDef | datatypes).* ~ assertTerm <~ RBO <~ IDENTIFIER("check-sat") <~ RBC) ^^ parseProgram
+  def program: Parser[List[AnnotatedTree]] = (((assertTerm | functionDecl) ^^ { a => List(a) } | functionDef | datatypes).* ~ assertTerm <~ RBO <~ "check-sat" <~ RBC) ^^ parseProgram
 
   def numeral: Parser[AnnotatedTree] = ("0" | "[1-9][0-9]*".r) ^^ parseNumeral
 
@@ -59,21 +45,29 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
     throw new RuntimeException("binary not supported yet")
   }
 
-  def string: Parser[AnnotatedTree] = accept("literal", {
-    case LITERAL(name) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(name))))
-  })
+  def literal: Parser[LITERAL] = positioned {
+    """"[^"]*"""".r ^^ { str =>
+      val content = str.substring(1, str.length - 1)
+      LITERAL(content)
+    }
+  }
+
+  def string: Parser[AnnotatedTree] = """"[^"]*"""".r ^^ {str => {
+    val content = str.substring(1, str.length - 1)
+    AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(content))))
+  }}
 
   def symbol: Parser[AnnotatedTree] = simple_symbol | ("\\|[^|\\\\]*|".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) })
 
   def keyword: Parser[AnnotatedTree] = ":" ~> simple_symbol
 
-  def datatype: Parser[AnnotatedTree] = (RBO ~> IDENTIFIER("declare-datatype") ~> symbol ~ datatypeDecl <~ RBC) ^^ parseDatatype
+  def datatype: Parser[AnnotatedTree] = (RBO ~> "declare-datatype" ~> symbol ~ datatypeDecl <~ RBC) ^^ parseDatatype
 
-  def datatypes: Parser[List[AnnotatedTree]] = (RBO ~> IDENTIFIER("declare-datatypes") ~> RBO ~> RBC ~> RBO ~> datatype.* <~ RBC <~ RBC)
+  def datatypes: Parser[List[AnnotatedTree]] = (RBO ~> "declare-datatypes" ~> RBO ~> RBC ~> RBO ~> datatype.* <~ RBC <~ RBC)
 
-  def functionDecl: Parser[AnnotatedTree] = (RBO ~> IDENTIFIER("declare-fun") ~> symbol ~ RBO ~ sort.* ~ RBC ~ sort <~ RBC) ^^ parseFunctionDecl
+  def functionDecl: Parser[AnnotatedTree] = (RBO ~> "declare-fun" ~> symbol ~ RBO ~ sort.* ~ RBC ~ sort <~ RBC) ^^ parseFunctionDecl
 
-  def functionDef: Parser[List[AnnotatedTree]] = (RBO ~> IDENTIFIER("define-fun") ~> symbol ~ RBO ~ sortedVar.* ~ RBC ~ sort ~ term <~ RBC) ^^ parseFunctionDef
+  def functionDef: Parser[List[AnnotatedTree]] = (RBO ~> "define-fun" ~> symbol ~ RBO ~ sortedVar.* ~ RBC ~ sort ~ term <~ RBC) ^^ parseFunctionDef
 
   def specConstant: Parser[AnnotatedTree] = numeral | decimal | hexdecimal | binary | string
 
@@ -87,7 +81,7 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
 
   def simple_symbol: Parser[AnnotatedTree] = "[a-zA-Z+\\-/*=%?!.$_̃ &ˆ<>@][0-9a-zA-Z+\\-/*=%?!.$_̃ &ˆ<>@]+".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) }
 
-  def qualIdentifier: Parser[AnnotatedTree] = identifier | ((RBO ~> IDENTIFIER("as") ~> identifier <~ sort <~ RBC)) //^^ parseQualIdent)
+  def qualIdentifier: Parser[AnnotatedTree] = identifier | ((RBO ~> "as" ~> identifier <~ sort <~ RBC)) //^^ parseQualIdent)
 
   def sortedVar: Parser[AnnotatedTree] = (RBO ~> symbol ~ sort <~ RBC) ^^ { case symbol ~ sort => symbol.copy(root = symbol.root.copy(annotation = Some(sort))) }
 
@@ -109,7 +103,7 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
     (RBO ~> "match" ~> term ~ RBO ~ matchCase.+ <~ RBC <~ RBC) ^^ parseMatch |
     (RBO ~> "!" ~> term <~ attribute.+ <~ RBC)
 
-  def assertTerm: Parser[AnnotatedTree] = (RBO ~> IDENTIFIER("assert") ~> term <~ RBC) ^^ parseAssert
+  def assertTerm: Parser[AnnotatedTree] = (RBO ~> "assert" ~> term <~ RBC) ^^ parseAssert
 
   def datatypeDecl: Parser[List[AnnotatedTree]] = (RBO ~> constructorDecl.+ <~ RBC)
 
@@ -172,25 +166,25 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
     case ident ~ sort => throw new NotImplementedError()
   }
 
-  def parseLet(matched: this.~[this.~[List[AnnotatedTree ~ AnnotatedTree], Elem], AnnotatedTree]): AnnotatedTree = matched match {
+  def parseLet(matched: this.~[this.~[List[AnnotatedTree ~ AnnotatedTree], String], AnnotatedTree]): AnnotatedTree = matched match {
     case binded ~ _ ~ term => term.replaceDescendants(binded.map({ case a ~ b => (a, b) }))
   }
 
-  def parseForall(matched: this.~[this.~[List[AnnotatedTree], Elem], AnnotatedTree]): AnnotatedTree = matched match {
+  def parseForall(matched: this.~[this.~[List[AnnotatedTree], String], AnnotatedTree]): AnnotatedTree = matched match {
     case params ~ _ ~ term => term.replaceDescendants(params.map({
       case a =>
         (a, AnnotatedTree.identifierOnly(identifierGenerator.next().copy(literal = "?" + a.root.literal, annotation = a.root.annotation)))
     }))
   }
 
-  def parseExists(matched: this.~[this.~[List[AnnotatedTree], Elem], AnnotatedTree]): AnnotatedTree = matched match {
+  def parseExists(matched: this.~[this.~[List[AnnotatedTree], String], AnnotatedTree]): AnnotatedTree = matched match {
     case params ~ _ ~ term => term.replaceDescendants(params.map({
       case a =>
         (a, AnnotatedTree.identifierOnly(identifierGenerator.next().copy(annotation = a.root.annotation)))
     }))
   }
 
-  def parseMatch(matched: AnnotatedTree ~ Elem ~ List[AnnotatedTree]): AnnotatedTree = {
+  def parseMatch(matched: AnnotatedTree ~ String ~ List[AnnotatedTree]): AnnotatedTree = {
     throw new NotImplementedError("Need to fix parameter scoping")
     matched match {
       case term ~ _ ~ guards => AnnotatedTree.withoutAnnotations(Language.matchId, term +: guards)
@@ -201,14 +195,14 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
     matched
   }
 
-  def parseFunctionDecl(matched: AnnotatedTree ~ Elem ~ List[AnnotatedTree] ~ Elem ~ AnnotatedTree): AnnotatedTree = matched match {
+  def parseFunctionDecl(matched: AnnotatedTree ~ String ~ List[AnnotatedTree] ~ String ~ AnnotatedTree): AnnotatedTree = matched match {
     case name ~ _ ~ params ~ _ ~ res =>
       AnnotatedTree.withoutAnnotations(Language.functionDeclId, List(name.copy(root = name.root.copy(annotation = Some(
         AnnotatedTree.withoutAnnotations(Language.mapTypeId, params :+ res)
       )))))
   }
 
-  def parseFunctionDef(matched: AnnotatedTree ~ Elem ~ List[AnnotatedTree] ~ Elem ~ AnnotatedTree ~ AnnotatedTree): List[AnnotatedTree] = matched match {
+  def parseFunctionDef(matched: AnnotatedTree ~ String ~ List[AnnotatedTree] ~ String ~ AnnotatedTree ~ AnnotatedTree): List[AnnotatedTree] = matched match {
     case x @ name ~ _ ~ params ~ _ ~ res ~ term =>
       List(
         parseFunctionDecl(x._1),

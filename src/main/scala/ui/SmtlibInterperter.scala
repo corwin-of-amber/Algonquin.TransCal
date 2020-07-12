@@ -4,10 +4,11 @@ import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.TheoryExplorationAction
+import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Language}
 
 class SmtlibInterperter {
-  val state = new ActionSearchState(Programs.empty, Set.empty)
+  val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
   val datatypes = collection.mutable.Set.empty[Datatype]
   val knownFunctions = collection.mutable.Set.empty[AnnotatedTree]
   var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
@@ -30,6 +31,7 @@ class SmtlibInterperter {
           throw new NotImplementedError("Need to apply theory exploration here")
 //          new TheoryExplorationAction(datatypes.flatMap(_.constructors).toSet, knownFunctions.toSet, )
           // TODO: TheSy should have support for stopping upon finding specific lemma
+        case _ => throw new NotImplementedError("Check this")
       }
     }
   }

@@ -13,8 +13,8 @@ import scala.collection.mutable
 
 class ConjectureGenerator(vocab: SortedVocabulary,
                           searcher: Action,
-                          //                          exampleDepthLimit: Int,
-                          examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
+                          exampleDepthLimit: Int,
+                          //                          examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
                           placeholderCount: Int) extends LazyLogging with LazyTiming {
   //TODO: remove placeholder count and:
   // TODO: 1. Dynamically decide phC per type by arity of functions
@@ -46,31 +46,31 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     }).map(t => (t, 0 until placeholderCount map (i => createPlaceholder(t, i)))).toMap
   logger.warn(s"Created total: ${placeholders.values.flatten.size}")
 
-  // TODO: enable this after finihing refactor
   // TODO: Might want a better way of building then randomly taking previously built examples.
-  // TODO: I feel like beuilding all veriations will be very expensive but actuall
-  //  private val examples: Map[AnnotatedTree, Seq[AnnotatedTree]] = vocab.datatypes.map(d => {
-  //    val all: mutable.Buffer[Set[AnnotatedTree]] = mutable.Buffer[Set[AnnotatedTree]]
-  //    all(0) = d.constructors.filterNot(c => isFunctionType(c._2)).map(t => AnnotatedTree.identifierOnly(t._1)).toSet
-  //    val functionConstructors = d.constructors.filter(c => isFunctionType(c._2))
-  //    for (i <- 1 to exampleDepthLimit; exToUse = mutable.Set(all(i - 1).toSeq: _*)) {
-  //      val newExs = functionConstructors.map(c => {
-  //        AnnotatedTree.withoutAnnotations(c._1, c._2.subtrees.map({
-  //          case d.asType =>
-  //            if (exToUse.nonEmpty) {
-  //              val temp = exToUse.head
-  //              exToUse -= temp
-  //              temp
-  //            }
-  //            else all(i - 1).head
-  //          case t =>
-  //            createAutoVar(t)
-  //        }))
-  //      })
-  //      all(i) = newExs.toSet
-  //    }
-  //    (d.asType, all.flatten)
-  //  }).toMap
+  // TODO: I feel like beuilding all veriations will be very expensive but actually having reusing really helps
+  private val examples: Map[AnnotatedTree, Seq[AnnotatedTree]] = vocab.datatypes.map(d => {
+    val all: mutable.Buffer[Set[AnnotatedTree]] = mutable.Buffer.empty[Set[AnnotatedTree]]
+    all.append(d.constructors.filterNot(c => isFunctionType(c.annotation.get)).map(t => AnnotatedTree.identifierOnly(t)).toSet)
+    val functionConstructors = d.constructors.filter(c => isFunctionType(c.annotation.get))
+    for (i <- 1 to exampleDepthLimit) {
+      val exToUse = mutable.Set(all(i - 1).toSeq: _*)
+      val newExs = functionConstructors.map(c => {
+        AnnotatedTree.withoutAnnotations(c, c.annotation.get.subtrees.map({
+          case t if t == d.asType =>
+            if (exToUse.nonEmpty) {
+              val temp = exToUse.head
+              exToUse -= temp
+              temp
+            }
+            else all(i - 1).head
+          case t =>
+            createAutoVar(t)
+        }))
+      })
+      all.append(newExs.toSet)
+    }
+    (d.asType, all.flatten)
+  }).toMap
 
   private val sygueRules = {
     // Need to use vocab as the function name is needed
@@ -101,13 +101,13 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     res
   }
 
-//  private val soes = vocab.datatypes.map(d => new SOE(searcher, baseGraph, placeholders(d.asType).head, examples(d.asType)))
+  //  private val soes = vocab.datatypes.map(d => new SOE(searcher, baseGraph, placeholders(d.asType).head, examples(d.asType)))
 
   def increaseDepth(): Unit = timed {
     // TODO: Run new rules before inreasing depth
     // TODO: Keep same soes
     def op(graph: ActionSearchState.HyperGraph): Unit = {
-//      sygueRules.foreach(r => r.registerMetadataCreator(soes.head.iterationCreator))
+      //      sygueRules.foreach(r => r.registerMetadataCreator(soes.head.iterationCreator))
       val hyperTermIds: Seq[() => HyperTermId] = 0 until (sygueRules.size + 1) map (i => {
         val creator = Stream.from(if (graph.isEmpty) i else graph.nodes.map(_.id).max + 1 + i, sygueRules.size).map(HyperTermId).iterator
         () => creator.next
@@ -118,29 +118,29 @@ class ConjectureGenerator(vocab: SortedVocabulary,
       logger.debug(s"Found ${newEdges.size} new edges using sygus")
       graph.addAllKeepVersion(newEdges)
       val funcInferStep = FunctionArgumentsAndReturnTypeRewrite.getStep(graph, versioned = false)
-//      sygueRules.foreach(r => r.unregisterMetadataCreator(soes.head.iterationCreator))
+      //      sygueRules.foreach(r => r.unregisterMetadataCreator(soes.head.iterationCreator))
       graph.addAllKeepVersion(structures.generic.HyperGraph.fillWithNewHoles(funcInferStep, hyperTermIds.last))
     }
     //    for (soe <- soes) {
     //      soe.updateGraph(op)
     //    }
     op(baseGraph)
-//    sygueRules.foreach(r => r.registerPostprocessor(soes.head.iterationPostprocessor))
-//    soes.foreach(soe => soe.updateGraph(op))
-//    sygueRules.foreach(r => r.unregisterPostprocessor(soes.head.iterationPostprocessor))
+    //    sygueRules.foreach(r => r.registerPostprocessor(soes.head.iterationPostprocessor))
+    //    soes.foreach(soe => soe.updateGraph(op))
+    //    sygueRules.foreach(r => r.unregisterPostprocessor(soes.head.iterationPostprocessor))
   }
 
   def inferConjectures(operators: Set[RewriteRule]): ActionSearchState = timed {
     val state = new ActionSearchState(baseGraph, operators)
-//    val conclusions = soes.map(_.findEquives(operators))
-//    val sygueMetadataToMerge = ObservationalEquivalence.flattenUnionConclusions(conclusions)
-//    val idsToMerge = {
-//      val metadataToId = baseGraph.findByEdgeType(HyperTermIdentifier(SyGuERewriteRules.sygueCreatedId)).map(e => {
-//          (e.metadata.find(m => m.isInstanceOf[SyGuEMetadata]).get, e)
-//      }).toMap
-//      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
-//    }
-val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
+    //    val conclusions = soes.map(_.findEquives(operators))
+    //    val sygueMetadataToMerge = ObservationalEquivalence.flattenUnionConclusions(conclusions)
+    //    val idsToMerge = {
+    //      val metadataToId = baseGraph.findByEdgeType(HyperTermIdentifier(SyGuERewriteRules.sygueCreatedId)).map(e => {
+    //          (e.metadata.find(m => m.isInstanceOf[SyGuEMetadata]).get, e)
+    //      }).toMap
+    //      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
+    //    }
+    val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators)))
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }
