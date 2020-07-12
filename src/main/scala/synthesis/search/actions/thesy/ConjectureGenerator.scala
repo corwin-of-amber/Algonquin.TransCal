@@ -63,11 +63,11 @@ class ConjectureGenerator(vocab: SortedVocabulary,
             case t =>
               createAutoVar(t)
           }))
-          all(depth - 1) += example
+          all(depth) += example
           example
         }
       }
-      functionConstructors.foreach(createExample(_, exampleDepthLimit))
+      functionConstructors.foreach(createExample(_, exampleDepthLimit - 1))
       (d.asType, all.flatten)
     }).toMap
   }
