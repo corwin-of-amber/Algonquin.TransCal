@@ -56,6 +56,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
   var failedProofs = 0
   var retriedProofs = 0
   val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
+  val goals: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
 
   val equivDepth = equivDepthOption.getOrElse(4)
   val splitDepth = splitDepthOption.getOrElse(1)
@@ -87,8 +88,24 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     def toTuple = (prover, checker)
   }
 
+  def addGoal(goal: (AnnotatedTree, AnnotatedTree)): Unit = {
+    goals.add(goal)
+  }
+
+  def checkGoals(state: ActionSearchState, prover: Prover): Boolean = {
+    if (goals.isEmpty) false
+    else {
+      for (g <- goals) {
+        val res = new ObservationalEquivalence(searcher).fromTerms(Seq(g._1, g._2), state.rewriteRules, equivDepth)
+        if (res.size == 1) goals.remove(g)
+      }
+      goals.isEmpty
+    }
+  }
+
   override def apply(state: ActionSearchState): ActionSearchState = {
     val (prover, conjectureChecker) = new ProverCheckerBundle(state).toTuple
+
     val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
     var newRules = Set.empty[AnnotatedTree]
 
@@ -118,6 +135,10 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
       logger.info(s"Found new lemmas in depth $i:")
       for (t <- foundRules.last)
         logger.info(s"  + ${Programs.termToString(conjectureChecker.prettify(t))}")
+      if(checkGoals(state, prover)) {
+        logger.info("Success - Proved all goals.")
+        return state
+      }
     }
 
     if (reprove) {
@@ -136,6 +157,10 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
           for (t <- foundRules.last)
             logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
           foundRules.last ++= newRules
+          if(newRules.nonEmpty && checkGoals(state, prover)) {
+            logger.info("Success - Proved all goals.")
+            return state
+          }
         } while (newRules.nonEmpty)
       }
     }

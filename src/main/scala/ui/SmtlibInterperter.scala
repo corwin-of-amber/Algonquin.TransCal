@@ -3,7 +3,7 @@ package ui
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.LetAction
-import synthesis.search.actions.thesy.TheoryExplorationAction
+import synthesis.search.actions.thesy.{SortedVocabulary, TheoryExplorationAction}
 import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Language}
 
@@ -27,10 +27,10 @@ class SmtlibInterperter {
         case Language.assertId =>
           assert(t.subtrees.head.root == Language.letId)
           goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
-          // TODO: use the code for automatic examples + move to using sorted vocab as input
-          throw new NotImplementedError("Need to apply theory exploration here")
-//          new TheoryExplorationAction(datatypes.flatMap(_.constructors).toSet, knownFunctions.toSet, )
-          // TODO: TheSy should have support for stopping upon finding specific lemma
+          val vocab = SortedVocabulary(datatypes.toSeq, knownFunctions.toSeq)
+          val thesy = new TheoryExplorationAction(vocab, Map.empty[AnnotatedTree, Seq[AnnotatedTree]], None, None, None, None, None, true)
+          thesy.addGoal(goal.get)
+          thesy(state)
         case _ => throw new NotImplementedError("Check this")
       }
     }
