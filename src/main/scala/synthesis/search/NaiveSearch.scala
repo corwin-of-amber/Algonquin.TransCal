@@ -16,7 +16,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
   protected def postProcessors: Set[Set[HyperEdge[HyperTermId, HyperTermIdentifier]] => Set[HyperEdge[HyperTermId, HyperTermIdentifier]]] = Set.empty
 
   /* --- Search Impl. --- */
-  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
+  override def apply(state: ActionSearchState, depth: Option[Double]): ActionSearchState = {
     state.updateGraph(graph => {
       logger.debug(s"Starting Naive Search. Graph size: ${graph.size}")
 
@@ -42,7 +42,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
 
 
       var prevGraph: Option[ActionSearchState.HyperGraph] = None
-      while (i < depth && !isGoal(graph) && !prevGraph.contains(graph)) {
+      while (i < depth.get && !isGoal(graph) && !prevGraph.contains(graph)) {
         val versioned = prevGraph.isDefined || startVersioned
         prevGraph = Some(graph.clone)
         for ((term, (pattern, patternRoot)) <- patterns) {

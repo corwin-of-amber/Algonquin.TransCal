@@ -3,12 +3,11 @@ package synthesis.search
 import structures.{HyperEdge, Metadata, SpecificMergeMetadata}
 import structures.generic.HyperGraph.Match
 import synthesis.search.DepthAwareSearch.DepthMetadata
+import synthesis.search.actions.SearchAction
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
-class DepthAwareSearch(maxDepth: Int, maxEdgeDepth: Option[Int] = None, startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean = _ => false)
-  extends NaiveSearch(startVersioned, isGoal) {
-
-  val edgeDepth = maxEdgeDepth.getOrElse(maxDepth)
+class DepthAwareSearch(edgeDepth: Int, startVersioned: Boolean = false, isGoal: ActionSearchState.HyperGraph => Boolean = _ => false)
+  extends NaiveSearch(startVersioned, isGoal) with SearchAction {
 
   override def postProcessors: Set[Set[HyperEdge[HyperTermId, HyperTermIdentifier]] => Set[HyperEdge[HyperTermId, HyperTermIdentifier]]] = {
     super.postProcessors + ((edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) =>
@@ -27,9 +26,9 @@ class DepthAwareSearch(maxDepth: Int, maxEdgeDepth: Option[Int] = None, startVer
     else DepthMetadata(metas.map(_.depth).max + 1)
   }
 
-  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
+  override def apply(state: ActionSearchState, depth: Option[Double]): ActionSearchState = {
     state.rewriteRules.foreach(_.registerMetadataCreator(creator))
-    val res = super.apply(state, depth)
+    val res = super.apply(state, Some(depth.getOrElse(edgeDepth)))
     state.rewriteRules.foreach(_.unregisterMetadataCreator(creator))
     res
   }

@@ -4,22 +4,24 @@ import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
 import synthesis.Programs
 import synthesis.search.ActionSearchState
-import synthesis.search.actions.{Action, LetAction}
-import synthesis.search.rewrites.{RewriteRule, PatternRewriteRule}
+import synthesis.search.actions.{Action, LetAction, SearchAction}
+import synthesis.search.rewrites.{PatternRewriteRule, RewriteRule}
 import transcallang._
 
 import scala.collection.mutable
 
-class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[RewriteRule])
+class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[RewriteRule])
     extends LazyLogging with LazyTiming {
   import Prover._
 
   private var failedProofs = 0
   private val mutableRules = mutable.Set.empty ++= rules
+  private val foundRules = mutable.Set.empty[AnnotatedTree]
   private val ltwfId = Identifier("ltwf")
   private val ltwfTransivity = new LetAction(new TranscalParser()("ltwf(?x, ?y) ||| ltwf(?z, x) >> ltwf(z, y)")).rules
 
   // TODO: bad design change this
+  def knownRulesTrees: Set[AnnotatedTree] = foundRules.toSet
   def knownRules: Set[RewriteRule] = mutableRules.toSet
 
   private def ltwfRules(datatype: Datatype): Set[PatternRewriteRule] = {
@@ -121,7 +123,7 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[RewriteRule]
       nextState.programs.queryGraph.findSubgraph[Int](pattern).nonEmpty
     })) {
       logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
-      val newRules = createRules(updatedTerm1, updatedTerm2)
+      val newRules = createRules(updatedTerm1, updatedTerm2, save = true) ++ createRules(updatedTerm2, updatedTerm1, save = true)
       mutableRules ++= newRules
       newRules
     } else {
@@ -131,9 +133,12 @@ class Prover(datatypes: Set[Datatype], searcher: Action, rules: Set[RewriteRule]
     }
   }
 
-  def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
-    new LetAction(AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(lhs, rhs)),
-                  allowExistential = false).rules
+  def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean = false) = {
+    val term = AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(lhs, rhs))
+    if (save) foundRules += term
+    new LetAction(term,
+      allowExistential = false).rules
+  }
 }
 
 object Prover {

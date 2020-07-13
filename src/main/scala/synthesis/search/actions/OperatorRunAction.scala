@@ -7,13 +7,13 @@ import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.search.{ActionSearchState, DepthAwareSearch, NaiveSearch}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
-class OperatorRunAction(maxSearchDepth: Int, goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false, edgeDepth: Option[Int] = None) extends SearchAction {
+class OperatorRunAction(goalPredicate: Option[RewriteRule.HyperGraph => Boolean] = None, startVersioned:Boolean = false, edgeDepth: Option[Int] = None) extends SearchAction {
   private val predicate = goalPredicate.getOrElse((_: RewriteRule.HyperGraph) => false)
-  private val searchAction = new DepthAwareSearch(maxSearchDepth, edgeDepth, startVersioned, predicate)
+  private val searchAction = new DepthAwareSearch(edgeDepth.getOrElse(Int.MaxValue), startVersioned, predicate)
 
   /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
-  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
-    logger.debug(s"Running naive search to depth of $maxSearchDepth with predicate as $goalPredicate")
+  override def apply(state: ActionSearchState, depth: Option[Double]): ActionSearchState = {
+    logger.debug(s"Running naive search to depth of ${depth.get} with predicate as $goalPredicate")
     val newState = searchAction(state, depth)
     // TODO: hells no! use query graph. This is temporary, only did it because it is still an action
     var res = false

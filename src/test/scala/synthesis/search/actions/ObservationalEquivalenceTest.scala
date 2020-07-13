@@ -19,7 +19,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       s"${Language.nilId.literal} ++ (x :: y :: ${Language.nilId.literal})",
       s"${Language.nilId.literal} ++ (x :: y :: ${Language.nilId.literal}) ++ ${Language.nilId.literal}"
     ).map(parser.parseExpression)
-    val res = new ObservationalEquivalence(new OperatorRunAction(3)).fromTerms(eqiuivalentTerms, normalRules, 3)
+    val res = new ObservationalEquivalence(new OperatorRunAction()).fromTerms(eqiuivalentTerms, normalRules, 3)
     val expected = Set(eqiuivalentTerms.take(2).toSet, eqiuivalentTerms.drop(2).toSet)
     expected shouldEqual res
   }
@@ -31,7 +31,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       val (graph, root) = Programs.destructPatternWithRoot(t)
       programs.queryGraph.findSubgraph[Int](graph).head.nodeMap(root.id)
     }).toSeq
-    val res = new ObservationalEquivalence(new OperatorRunAction(5)).getEquives(new ActionSearchState(programs, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules), 5)
+    val res = new ObservationalEquivalence(new OperatorRunAction()).getEquives(new ActionSearchState(programs, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules), Some(5))
     Set(Set(ids take 2: _*), Set(ids.slice(3, 5): _*), Set(ids(2))) shouldEqual res._2.map(_.filter(ids.contains)).filter(_.nonEmpty)
   }
 
@@ -92,7 +92,7 @@ class ObservationalEquivalenceTest extends FunSuite with ScalaCheckPropertyCheck
       .addTerm(parser.parseExpression("x :: l2"))
       .addTerm(parser.parseExpression("1 + z"))
     val updatedState = new ActionSearchState(graph, normalRules)
-    val equives = new ObservationalEquivalence(new OperatorRunAction(4)).getEquives(updatedState.deepCopy(), 4)
+    val equives = new ObservationalEquivalence(new OperatorRunAction()).getEquives(updatedState.deepCopy(), Some(4))
     equives._2.flatten shouldEqual updatedState.programs.queryGraph.nodes
   }
 }

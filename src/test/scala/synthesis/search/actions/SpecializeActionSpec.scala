@@ -22,7 +22,7 @@ class SpecializeActionSpec extends FunSuite with Matchers {
 
     newState.rewriteRules should have size 3
 
-    val result = new OperatorRunAction(3)(newState)
+    val result = new OperatorRunAction()(newState, Some(3))
     result.programs.queryGraph.size should be > programs.queryGraph.size
   }
 }

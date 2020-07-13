@@ -22,7 +22,7 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Rewrite search
-    val newState = new OperatorRunAction(maxSearchDepth.getOrElse(Int.MaxValue), Some(goalPredicate))(state)
+    val newState = new OperatorRunAction(Some(goalPredicate))(state, maxSearchDepth.map(_.toDouble))
     val success = goalPredicate(newState.programs.queryGraph)
 
     // Process result
@@ -42,10 +42,10 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 object ElaborateAction {
   def RunNaiveSearch(state: ActionSearchState,
                      predicate: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier] => Boolean,
-                     maxDepth: Double=Double.MaxValue): Option[ActionSearchState] = {
+                     maxDepth: Double): Option[ActionSearchState] = {
     // Rewrite search
     val searchAction = new NaiveSearch(isGoal = g => predicate(g))
-    val newState = searchAction(state, maxDepth)
+    val newState = searchAction(state, Some(maxDepth))
     if (predicate(newState.programs.queryGraph)) Some(newState) else None
   }
 }

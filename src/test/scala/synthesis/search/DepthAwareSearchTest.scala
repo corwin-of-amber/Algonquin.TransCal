@@ -15,7 +15,7 @@ class DepthAwareSearchTest extends PropSpec with Matchers {
 
   property("Appliying rules to depth increases depth") {
     val state = new ActionSearchState(graph.clone, rewrite)
-    val newState = new DepthAwareSearch(3).apply(state, 5)
+    val newState = new DepthAwareSearch(3).apply(state, Some(5))
     val depths = newState.programs.queryGraph.edges.flatMap(_.metadata.map({
       case DepthMetadata(x) => x
       case _ => 0
@@ -25,13 +25,13 @@ class DepthAwareSearchTest extends PropSpec with Matchers {
 
   property("Edges should be filtered by depth") {
     val state = new ActionSearchState(graph.clone, rewrite)
-    val newState = new DepthAwareSearch(2).apply(state, 4)
+    val newState = new DepthAwareSearch(2).apply(state, Some(4))
     newState.programs.queryGraph.edges.size should be < 50
   }
 
   property("Edges should only contain one depthmetadata") {
     val state = new ActionSearchState(graph.clone, rewrite)
-    val newState = new DepthAwareSearch(2).apply(state, 4)
+    val newState = new DepthAwareSearch(2).apply(state, Some(4))
     newState.programs.queryGraph.edges.exists(_.metadata.collect({
       case a @ DepthMetadata(x) => a
     }).size > 1) shouldEqual false

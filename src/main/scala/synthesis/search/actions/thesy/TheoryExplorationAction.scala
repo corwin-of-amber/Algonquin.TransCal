@@ -57,7 +57,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
   val allfailed: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
   val goals: mutable.Set[(AnnotatedTree, AnnotatedTree)] = mutable.Set.empty
 
-  val equivDepth = equivDepthOption.getOrElse(4)
+  val equivDepth = equivDepthOption.getOrElse(8)
   val splitDepth = splitDepthOption.getOrElse(1)
   val termDepth = termDepthOption.getOrElse(2)
   val placeholderCount = placeholderCountOption.getOrElse(2)
@@ -65,7 +65,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
 
   // TODO: Should be private, change tests
   val searcher =
-    new CaseSplitAction(searcher = new OperatorRunAction(equivDepth), None, None, splitDepthOption = Some(splitDepth))
+    new CaseSplitAction(searcher = new OperatorRunAction(), None, None, splitDepthOption = Some(splitDepth))
 
   // TODO: fix tests and make this private
 //  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
@@ -79,7 +79,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
   private class ProverCheckerBundle(state: ActionSearchState) {
     val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules) {
       override protected def watchName: String = "Prover"
-      override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree) =
+      override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean) =
         super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
     }
     val checker = new ConjectureChecker(prover, searcher, equivDepth)
@@ -102,11 +102,13 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     }
   }
 
+  private var lastProver: Option[Prover] = None
+
   override def apply(state: ActionSearchState): ActionSearchState = {
     val (prover, conjectureChecker) = new ProverCheckerBundle(state).toTuple
-
-    val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
+    lastProver = Some(prover)
     var newRules = Set.empty[AnnotatedTree]
+    val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
 
     for (i <- 1 to termDepth) {
       logger.warn(s"Running SPBE in depth ${i}  @  ${StopWatch.instance.now}")
@@ -119,7 +121,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
 
       logger.warn(s"Finished term creation depth ${i}  @  ${StopWatch.instance.now}")
       logger.info(s"Trying to merge terms")
-      val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules)
+      val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules, Some(equivDepth))
       logger.warn(s"Finished symbolic term evaluation depth ${i}  @  ${StopWatch.instance.now}")
       // Prove equivalence by induction.
       logger.info(s"Working on equivalences")
@@ -144,7 +146,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
       logger.info(s"Searching for rules that have become provable:")
       var continue = 0
       if (newRules.nonEmpty) {
-        val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules)
+        val equivalenceClasses = conjectureGenerator.inferConjectures(state.rewriteRules, Some(equivDepth))
         do {
           // Reset versioning to look only on results from new rules.
           val classes: Set[Set[AnnotatedTree]] = equivalenceClasses.programs.reconstructAll(termDepth)
@@ -178,4 +180,5 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     state
   }
 
+  def getFoundRules: Set[AnnotatedTree] = lastProver.get.knownRulesTrees
 }

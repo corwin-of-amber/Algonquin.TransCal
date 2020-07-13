@@ -16,7 +16,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = None) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = Some(20)) extends Action {
   /** To be used during the BFS rewrite search
     *
     * @param graph the current state
@@ -61,7 +61,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val rewriteSearch = new NaiveSearch(isGoal = goalPredicate)
     state.addRule(locateRule)
     // TODO: enable search depth in search actions
-    val newState = rewriteSearch(state)
+    val newState = rewriteSearch(state, maxSearchDepth.map(_.toDouble))
     val rewriteResult = goalPredicate(newState.programs.queryGraph)
     newState.removeRule(locateRule)
 

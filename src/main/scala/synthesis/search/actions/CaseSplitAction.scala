@@ -40,11 +40,13 @@ class CaseSplitAction(searcher: SearchAction,
 
   private def innerGetFoundConclusions(state: ActionSearchState,
                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
-                                       depth: Double, preprocessorDepth: Option[Double])
+                                       depth: Option[Double], preprocessorDepth: Option[Double])
   : ActionSearchState = {
-    val newState = preprocessor(state, preprocessorDepth.getOrElse(depth/2))
+    val newState = preprocessor(state, preprocessorDepth)
     val splitters = chooser(newState, chosen).toSeq
-    if (chosen.length >= splitDepth || splitters.isEmpty) {
+    if (splitters.isEmpty) {
+      searcher(newState, depth.map(_ - preprocessorDepth.getOrElse(depth.get/2)))
+    } else if(chosen.length >= splitDepth) {
       searcher(newState, depth)
     } else {
       val currentPrefix = caseSplitPrefix + chosen.length.toString + "_"
@@ -81,7 +83,7 @@ class CaseSplitAction(searcher: SearchAction,
     }
   }
 
-  def getFoundConclusions(state: ActionSearchState, depth: Double, preprocessorDepth: Option[Double]=None): Set[Set[HyperTermId]] = {
+  def getFoundConclusions(state: ActionSearchState, depth: Option[Double], preprocessorDepth: Option[Double]=None): Set[Set[HyperTermId]] = {
     val anchors = state.programs.queryGraph.nodes.map(n => ObservationalEquivalence.createAnchor(caseSplitPrefix, n))
     state.updateGraph(graph => {
       graph ++= anchors
@@ -94,18 +96,14 @@ class CaseSplitAction(searcher: SearchAction,
     res
   }
 
-  override def apply(state: ActionSearchState): ActionSearchState = {
-    apply(state, Double.PositiveInfinity)
-  }
-
-  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
-    val toMerge = getFoundConclusions(state, depth, None).toSeq
+  override def apply(state: ActionSearchState, depth: Option[Double]): ActionSearchState = {
+    val toMerge = getFoundConclusions(state, depth, depth.map(d => (d/2).ceil)).toSeq
     val newState = ObservationalEquivalence.mergeConclusions(state, toMerge)
     newState
   }
 
   def apply(state: ActionSearchState, depth: Double, preprocessorDepth: Double): ActionSearchState = {
-    val toMerge = getFoundConclusions(state, depth, Some(preprocessorDepth)).toSeq
+    val toMerge = getFoundConclusions(state, Some(depth), Some(preprocessorDepth)).toSeq
     val newState = ObservationalEquivalence.mergeConclusions(state, toMerge)
     newState
   }

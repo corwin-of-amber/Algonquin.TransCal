@@ -9,7 +9,7 @@ import synthesis.search.{ActionSearchState, Operator}
   */
 trait Action extends Operator[ActionSearchState] with LazyLogging
 trait SearchAction extends Action {
-  def apply(actionSearchState: ActionSearchState, depth: Double): ActionSearchState
+  def apply(actionSearchState: ActionSearchState, depth: Option[Double]): ActionSearchState
 
-  override def apply(state: ActionSearchState): ActionSearchState = apply(state, Double.PositiveInfinity)
+  override def apply(state: ActionSearchState): ActionSearchState = apply(state, None)
 }

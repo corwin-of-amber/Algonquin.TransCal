@@ -38,7 +38,7 @@ object HyperEdge {
   }
 }
 
-trait Metadata extends collection.immutable.Iterable[Metadata] {
+trait Metadata extends collection.immutable.Iterable[Metadata] with scala.Serializable {
   def merge(other: Metadata): Metadata = if (other == EmptyMetadata) this else UnionMetadata(other.toSet ++ this.toSet)
 
   override def iterator: Iterator[Metadata] = Iterator(this)

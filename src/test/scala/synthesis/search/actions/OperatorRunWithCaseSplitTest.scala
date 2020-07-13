@@ -15,13 +15,13 @@ class OperatorRunWithCaseSplitTest extends FunSuite with Matchers {
     val state = new search.ActionSearchState(state1.programs.addTerm(parser parseExpression "a1 ||| whatever z"), state1.rewriteRules)
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(parser.parseExpression("5"))).head
 
-    val res = new OperatorRunAction(4, Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root)))(state)
+    val res = new OperatorRunAction(Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root)))(state, Some(4))
     val splitableState = new ActionSearchState(
       state.programs.addTerm(parser parseExpression s"${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}(z, true, false)"),
       state.rewriteRules
     )
     res.programs.reconstruct(res.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a1"))).head.target) exists (_.root.literal == "5") shouldEqual false
-    val res2 = new CaseSplitAction(new OperatorRunAction(4, Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root))))(splitableState)
+    val res2 = new CaseSplitAction(new OperatorRunAction(Some(OperatorRunAction.GenerateGoalPredicate(HyperTermIdentifier(Identifier("a1")), pattern, root))))(splitableState, Some(4))
     state should not equal res2
     res2.programs.reconstruct(res2.programs.queryGraph.findByEdgeType(HyperTermIdentifier(Identifier("a1"))).head.target) exists  (_.root.literal == "5") shouldEqual true
   }

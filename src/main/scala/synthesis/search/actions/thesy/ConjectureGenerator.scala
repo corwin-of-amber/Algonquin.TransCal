@@ -3,7 +3,7 @@ package synthesis.search.actions.thesy
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
 import synthesis.search.actions.thesy.SyGuERewriteRules.{SyGuEMetadata, SyGuEMetadataLeaf}
-import synthesis.search.actions.{Action, ObservationalEquivalence}
+import synthesis.search.actions.{Action, ObservationalEquivalence, SearchAction}
 import synthesis.search.rewrites.{FunctionArgumentsAndReturnTypeRewrite, PatternRewriteRule, RewriteRule}
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -12,7 +12,7 @@ import transcallang.{AnnotatedTree, Identifier, Language}
 import scala.collection.mutable
 
 class ConjectureGenerator(vocab: SortedVocabulary,
-                          searcher: Action,
+                          searcher: SearchAction,
                           exampleDepthLimit: Int,
                           //                          examples: Map[AnnotatedTree, Seq[AnnotatedTree]],
                           placeholderCount: Int) extends LazyLogging with LazyTiming {
@@ -130,7 +130,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //    sygueRules.foreach(r => r.unregisterPostprocessor(soes.head.iterationPostprocessor))
   }
 
-  def inferConjectures(operators: Set[RewriteRule]): ActionSearchState = timed {
+  def inferConjectures(operators: Set[RewriteRule], compareDepth: Option[Double]): ActionSearchState = timed {
     val state = new ActionSearchState(baseGraph, operators)
     //    val conclusions = soes.map(_.findEquives(operators))
     //    val sygueMetadataToMerge = ObservationalEquivalence.flattenUnionConclusions(conclusions)
@@ -141,7 +141,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
     //    }
     val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
-    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators)))
+    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)))
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }
 }

@@ -18,9 +18,9 @@ import scala.annotation.tailrec
   * @author tomer
   * @since 11/18/18
   */
-class PatternRewriteRule(val premise: HyperPattern,
-                         val conclusion: HyperPattern,
-                         val termString: String = null)
+case class PatternRewriteRule(premise: HyperPattern,
+                         conclusion: HyperPattern,
+                         termString: String = null)
   extends RewriteRule with LazyLogging {
   /* --- Operator Impl. --- */
   override def toString: String = s"RewriteRule(${'"'}$termString${'"'}, $premise, $conclusion)"

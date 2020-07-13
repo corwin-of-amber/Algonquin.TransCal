@@ -8,14 +8,14 @@ import structures.mutable.CompactHyperGraph
 import structures.{EmptyMetadata, HyperEdge, Metadata, UnionMetadata}
 import synthesis.search.actions.thesy.SyGuERewriteRules.SyGuEMetadata
 import synthesis.search.{ActionSearchState, Operator}
-import synthesis.search.actions.{Action, ObservationalEquivalence}
+import synthesis.search.actions.{Action, ObservationalEquivalence, SearchAction}
 import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
 import transcallang.{AnnotatedTree, Identifier}
 
-class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
+class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
     extends LazyLogging with LazyTiming {
   private val anchorPrefix = "SOE_"
   val marker = inputMarker.copy(annotation = None)
@@ -63,10 +63,10 @@ class SOE(searcher: Action, state: ActionSearchState, inputMarker: Identifier, v
       ObservationalEquivalence.getIdsToMerge(p, state.programs.queryGraph.edges))).filter(_.nonEmpty)
   }
 
-  def findEquives(rules: Set[RewriteRule]): Set[Set[HyperTermId]] = {
+  def findEquives(rules: Set[RewriteRule], depth: Option[Double]): Set[Set[HyperTermId]] = {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     tupeledState.addRules(rules)
-    val res = searcher(tupeledState)
+    val res = searcher(tupeledState, depth)
     getTupledConclusions(res)
   }
 

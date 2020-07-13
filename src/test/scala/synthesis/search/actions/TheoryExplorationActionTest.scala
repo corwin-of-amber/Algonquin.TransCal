@@ -45,7 +45,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
       equivDepthOption = Some(0)
     )
     action.conjectureGenerator.increaseDepth()
-    val actionState = action.conjectureGenerator.inferConjectures(Set.empty)
+    val actionState = action.conjectureGenerator.inferConjectures(Set.empty, Some(0))
     logger.info(s"created base graph ${actionState.programs.queryGraph.size}")
     for (n <- SyGuERewriteRules.getSygusCreatedNodes(actionState.programs.queryGraph);
          t <- actionState.programs.reconstruct(n) if t.root != Language.typeId) {
@@ -54,7 +54,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     logger.info(s"finished reconstruct")
 
     action.conjectureGenerator.increaseDepth()
-    val state1 = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state1 = action.conjectureGenerator.inferConjectures(Set.empty, Some(0))
     val relevantNodes2 = SyGuERewriteRules.getSygusCreatedNodes(state1.programs.queryGraph)
     logger.info(s"created depth 2 ${state1.programs.queryGraph.size}")
     for (n <- relevantNodes2;
@@ -88,7 +88,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   test("testSygusStep can find reverse l") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
-    val state = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
     val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
     state.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
   }
@@ -97,7 +97,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
-    val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state2 = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))).head
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse (reverse _)"))).head
     val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
@@ -113,9 +113,9 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3, equivDepthOption = Some(8))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
-    val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state2 = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
+    val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules, Some(action.equivDepth))
     equives.programs.queryGraph should not be empty
     val programs = state2.programs
     val terms = equives.programs.queryGraph.nodes.map(id => programs.reconstruct(id))
@@ -131,7 +131,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
-    val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state2 = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("filter ?p (filter ?p ?l)"))).head
     val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
     results1 should not be empty
@@ -143,8 +143,8 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
-    val state = action.conjectureGenerator.inferConjectures(Set.empty)
-    val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules)
+    val state = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
+    val equives = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ aState.rewriteRules, Some(action.equivDepth))
     equives.programs.queryGraph should not be empty
     val programs = equives.programs
     val terms = equives.programs.queryGraph.nodes.map(id => programs.reconstruct(id).map(_.cleanTypes))
@@ -179,7 +179,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), AnnotatedTree.identifierOnly(typedCons)), exampleDepth = 3, equivDepthOption = Some(4))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
-    val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
+    val state2 = action.conjectureGenerator.inferConjectures(Set.empty, Some(action.equivDepth))
     val (pattern1, root1) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("reverse(_ :+ _)"))).head
     val (pattern2, root2) = Programs.destructPatternsWithRoots(Seq(new TranscalParser().parseExpression("_ :: (reverse _)"))).head
     val results1 = state2.programs.queryGraph.findSubgraph[Int](pattern1)
@@ -196,7 +196,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val reverseRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
-    val state2 = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
+    val state2 = action.conjectureGenerator.inferConjectures(AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules, Some(action.equivDepth))
     val (pattern, root) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.withoutAnnotations(reverse.root,
       Seq(AnnotatedTree.withoutAnnotations(Language.snocId, Seq(listPh.copy(annotation = None), intPh.copy(annotation = None)).map(AnnotatedTree.identifierOnly)))))).head
     state2.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
@@ -242,7 +242,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("fold can be found to equal sum") {
-    val searcher = new OperatorRunAction(9)
+    val searcher = new OperatorRunAction(edgeDepth = Some(9))
 
     var state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules)
     state = new LetAction(parser("sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs)))").cleanTypes)(state)

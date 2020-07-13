@@ -16,11 +16,10 @@ import scala.collection.mutable
 
 
 class ObservationalEquivalence(searchAction: SearchAction) extends SearchAction with LazyLogging {
-  // TODO: Make search action a must
   // TODO: add end pattern api to search action
   val uniquePrefix: String = UUID.randomUUID().toString
 
-  def getEquives(actionSearchState: ActionSearchState, depth: Double): (ActionSearchState, Set[Set[HyperTermId]]) = {
+  def getEquives(actionSearchState: ActionSearchState, depth: Option[Double]): (ActionSearchState, Set[Set[HyperTermId]]) = {
     val allAnchors = actionSearchState.programs.queryGraph.nodes.map(n => ObservationalEquivalence.createAnchor(uniquePrefix, n))
     actionSearchState.updateGraph(graph => graph ++= allAnchors)
     val newState = searchAction(actionSearchState, depth)
@@ -30,7 +29,7 @@ class ObservationalEquivalence(searchAction: SearchAction) extends SearchAction 
     (newState, merged)
   }
 
-  override def apply(state: ActionSearchState, depth: Double): ActionSearchState = {
+  override def apply(state: ActionSearchState, depth: Option[Double]): ActionSearchState = {
     val equives = getEquives(state, depth)._2.toSeq
     val newState = ObservationalEquivalence.mergeConclusions(state, equives)
     newState
@@ -49,7 +48,7 @@ class ObservationalEquivalence(searchAction: SearchAction) extends SearchAction 
       (t, graph.findSubgraph[Int](pattern).head.nodeMap(root.id))
     }).toMap
     val idToTerm = termToEdges.map({case (term, id) => (id, term)})
-    val res = getEquives(new ActionSearchState(graph, rewriteRules), depth)
+    val res = getEquives(new ActionSearchState(graph, rewriteRules), Some(depth))
     res._2.filter(_.exists(idToTerm.contains)).map(s => s.filter(idToTerm.contains).map(id => idToTerm(id)))
   }
 }
