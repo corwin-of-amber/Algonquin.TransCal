@@ -23,7 +23,7 @@ class SmtlibInterperter {
           // TODO: implement type parameters
           datatypes += Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
         case Language.letId =>
-          new LetAction(t)(state)
+          new LetAction(t, allowExistential = false)(state)
         case Language.assertId =>
           assert(t.subtrees.head.root == Language.letId)
           goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
