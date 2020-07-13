@@ -5,7 +5,7 @@ import synthesis.search.ActionSearchState
 import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.{SortedVocabulary, TheoryExplorationAction}
 import synthesis.search.rewrites.RewriteRule
-import transcallang.{AnnotatedTree, Datatype, Language}
+import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 class SmtlibInterperter {
   val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
@@ -28,7 +28,14 @@ class SmtlibInterperter {
           assert(t.subtrees.head.root == Language.letId)
           goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
           val vocab = SortedVocabulary(datatypes.toSeq, knownFunctions.toSeq)
-          val thesy = new TheoryExplorationAction(vocab, Map.empty[AnnotatedTree, Seq[AnnotatedTree]], None, None, None, None, None, true)
+          val thesy = new TheoryExplorationAction(vocab, 3, None, None, None, None, None, true)
+          thesy.addGoal(goal.get)
+          thesy(state)
+        case Identifier("not", annotation, namespace) if t.subtrees.head.root == Language.letId =>
+          assert(t.subtrees.head.root == Language.letId)
+          goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
+          val vocab = SortedVocabulary(datatypes.toSeq, knownFunctions.toSeq)
+          val thesy = new TheoryExplorationAction(vocab, 3, None, None, None, None, None, true)
           thesy.addGoal(goal.get)
           thesy(state)
         case x => throw new NotImplementedError("Check this")

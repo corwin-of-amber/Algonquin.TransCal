@@ -54,6 +54,16 @@ class Translator(text: String) {
 
   def transSortedVar(sortedVar: SortedVar): Identifier = transSSymbol(sortedVar.name).root.copy(annotation = Some(transSort(sortedVar.sort)))
 
+  def fixEqualityId(annotatedTree: AnnotatedTree): AnnotatedTree = {
+    if (annotatedTree.root == Language.letId)
+      annotatedTree.copy(subtrees = annotatedTree.subtrees.map(t =>
+        t.map(i => if(i== Language.letId) Language.equalityId else i)))
+    else if (annotatedTree.root.literal == "not" && annotatedTree.subtrees.size == 1 && annotatedTree.subtrees.head.root == Language.letId)
+      annotatedTree.copy(subtrees = List(annotatedTree.subtrees.head.copy(subtrees = annotatedTree.subtrees.head.subtrees.map(t =>
+        t.map(i => if(i== Language.letId) Language.equalityId else i)))))
+    else annotatedTree.map(i => if(i== Language.letId) Language.equalityId else i)
+  }
+
   def transTerm(term: Term): AnnotatedTree = term match {
     case Terms.Let(binding, bindings, term) =>
       transTerm(term).replaceDescendants((binding +: bindings).map(b => (transSSymbol(b.name), transTerm(b.term))))
@@ -91,24 +101,38 @@ class Translator(text: String) {
 
   val transcalScript: List[AnnotatedTree] = smtlibScript.flatMap({
     case Commands.Assert(term) =>
-      Seq(transTerm(term))
+      Seq(fixEqualityId(transTerm(term)))
     case Commands.CheckSat() => Seq.empty
     case Commands.CheckSatAssuming(propLiterals) => throw new NotImplementedError()
     case Commands.DeclareConst(name, sort) => throw new NotImplementedError()
     case Commands.DeclareFun(name, paramSorts, returnSort) => Seq(transFunDecl(name, paramSorts, returnSort))
     case Commands.DeclareSort(name, arity) => throw new NotImplementedError()
     case Commands.DefineFun(funDef) =>
+      val params = funDef.params.map(transSortedVar).map(AnnotatedTree.identifierOnly)
+      val replacers = params.map(m => {
+        val newIdent = identifierGenerator.next()
+        m.copy(root = m.root.copy(literal = "?" + newIdent.literal))
+      })
+      val tree = AnnotatedTree.withoutAnnotations(Language.letId, List(
+        AnnotatedTree.withoutAnnotations(transSSymbol(funDef.name).root, replacers),
+        transTerm(funDef.body).replaceDescendants(params.zip(replacers))
+          .map(i => if(i== Language.letId) Language.equalityId else i)
+      ))
       Seq(transFunDecl(funDef.name, funDef.params.map(_.sort), funDef.returnSort),
-        AnnotatedTree.withoutAnnotations(Language.letId, List(
-          AnnotatedTree.withoutAnnotations(transSSymbol(funDef.name).root, funDef.params.map(transSortedVar).map(AnnotatedTree.identifierOnly)),
-          transTerm(funDef.body)
-        )))
+        tree)
     case Commands.DefineFunRec(funDef) =>
+      val params = funDef.params.map(transSortedVar).map(AnnotatedTree.identifierOnly)
+      val replacers = params.map(m => {
+        val newIdent = identifierGenerator.next()
+        m.copy(root = m.root.copy(literal = "?" + newIdent.literal))
+      })
+      val tree = AnnotatedTree.withoutAnnotations(Language.letId, List(
+        AnnotatedTree.withoutAnnotations(transSSymbol(funDef.name).root, replacers),
+        transTerm(funDef.body).replaceDescendants(params.zip(replacers))
+          .map(i => if(i== Language.letId) Language.equalityId else i)
+      ))
       Seq(transFunDecl(funDef.name, funDef.params.map(_.sort), funDef.returnSort),
-        AnnotatedTree.withoutAnnotations(Language.letId, List(
-          AnnotatedTree.withoutAnnotations(transSSymbol(funDef.name).root, funDef.params.map(transSortedVar).map(AnnotatedTree.identifierOnly)),
-          transTerm(funDef.body)
-        )))
+        tree)
     case Commands.DefineFunsRec(funDecls, bodies) => throw new NotImplementedError()
     case Commands.DefineSort(name, params, sort) => throw new NotImplementedError()
     case Commands.Echo(value) => throw new NotImplementedError()
@@ -132,7 +156,12 @@ class Translator(text: String) {
     case extension: Commands.CommandExtension => extension match {
       case Commands.DeclareDatatypes(datatypes) => datatypes.map(d => {
         AnnotatedTree.withoutAnnotations(Language.datatypeId, transSSymbol(d._1) +: d._2.map(c => {
-          val funType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, c.fields.map(f => transSort(f._2)) :+ transSSymbol(d._1))
+          val funType = {
+            val params = c.fields.map(f => transSort(f._2))
+            val datatype = transSSymbol(d._1)
+            if (params.nonEmpty) AnnotatedTree.withoutAnnotations(Language.mapTypeId, params :+ datatype)
+            else datatype
+          }
           AnnotatedTree.identifierOnly(transSSymbol(c.sym).root.copy(annotation = Some(funType)))
         }))
       })

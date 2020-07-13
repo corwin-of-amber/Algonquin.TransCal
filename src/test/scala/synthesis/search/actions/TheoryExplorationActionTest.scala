@@ -31,7 +31,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   val concat = AnnotatedTree.identifierOnly(Identifier("concat", annotation = Some(listIntToListIntToListInt)))
   val tru = AnnotatedTree.identifierOnly(Language.trueId)
   val fals = AnnotatedTree.identifierOnly(Language.falseId)
-  val spbeAction = new TheoryExplorationAction(Set(nil.root, typedCons), grammar = Set(reverse, filter), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+  val spbeAction = new TheoryExplorationAction(Set(nil.root, typedCons), grammar = Set(reverse, filter), exampleDepth = 3)
   val listPh = thesy.inductionVar(listInt)
   val intPh = thesy.inductionVar(Language.typeInt)
   val predicatePh = thesy.inductionVar(predicate)
@@ -41,7 +41,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   test("sygus step doesnt create terms deeper then needed") {
     val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons),
       grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), concat),
-      examples = Map(listInt -> Seq(nil, xnil, xynil)),
+      exampleDepth = 3,
       equivDepthOption = Some(0)
     )
     action.conjectureGenerator.increaseDepth()
@@ -86,7 +86,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("testSygusStep can find reverse l") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
     val state = action.conjectureGenerator.inferConjectures(Set.empty)
     val pattern = Programs.destructPattern(new TranscalParser().parseExpression("(reverse: (list int) :> (list int)) _"))
@@ -94,7 +94,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("testSygusStep can find reverse reverse l") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
@@ -110,7 +110,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("test find that l == reverse reverse l") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(8))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse), exampleDepth = 3, equivDepthOption = Some(8))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
@@ -128,7 +128,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("testSygusStep can find filter p (filter p l)") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil, xynil)))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), exampleDepth = 3)
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
@@ -138,7 +138,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("test find that filter p (filter p l) == filter p l") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), examples = Map(listInt -> Seq(nil, xnil)), equivDepthOption = Some(6), splitDepthOption = Some(1))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(filter), exampleDepth = 2, equivDepthOption = Some(6), splitDepthOption = Some(1))
     var aState = new LetAction(parser("filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs))))"))(new ActionSearchState(Programs.empty, Set.empty[RewriteRule]))
     aState = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(aState)
     action.conjectureGenerator.increaseDepth()
@@ -166,7 +166,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     state = new LetAction(parser(s"filter ?p (?x::?xs) |>> ${CaseSplitAction.splitTrue.literal} ||| ${CaseSplitAction.possibleSplitId.literal}((p x), true, false)"))(state)
     val predicateType = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
     val typedFilter = AnnotatedTree.identifierOnly(Identifier("filter", Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(predicateType, listInt, listInt)))))
-    val spbeAction = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(typedFilter), examples = Map(listInt -> Seq(nil, xnil)), equivDepthOption = Some(6), termDepthOption = Some(2), splitDepthOption = Some(1))
+    val spbeAction = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(typedFilter), exampleDepth = 2, equivDepthOption = Some(6), termDepthOption = Some(2), splitDepthOption = Some(1))
     val predicate = thesy.inductionVar(predicateType)
     val list = thesy.inductionVar(listInt)
     val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
@@ -176,7 +176,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("testSygusStep can find reverse(l :+ x) and (x :: reverse(l))") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), AnnotatedTree.identifierOnly(typedCons)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(4))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), AnnotatedTree.identifierOnly(typedCons)), exampleDepth = 3, equivDepthOption = Some(4))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val state2 = action.conjectureGenerator.inferConjectures(Set.empty)
@@ -192,7 +192,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("test find that reverse(l :+ x) == (x :: reverse(l))") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), AnnotatedTree.identifierOnly(typedCons)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(4))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc), AnnotatedTree.identifierOnly(typedCons)), exampleDepth = 3, equivDepthOption = Some(4))
     action.conjectureGenerator.increaseDepth()
     action.conjectureGenerator.increaseDepth()
     val reverseRules = new LetAction(parser("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
@@ -210,7 +210,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
   }
 
   test("test induction steps proves reverse(l :+ x) == (x :: reverse(l))") {
-    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), examples = Map(listInt -> Seq(nil, xnil, xynil)), equivDepthOption = Some(4))
+    val action = new TheoryExplorationAction(typeBuilders = Set(nil.root, typedCons), grammar = Set(reverse, AnnotatedTree.identifierOnly(typedSnoc)), exampleDepth = 3, equivDepthOption = Some(4))
     val reverseRules = new LetAction(new TranscalParser()("reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))")).rules
     val state = new ActionSearchState(Programs.empty, AssociativeRewriteRulesDB.rewriteRules ++ SimpleRewriteRulesDB.rewriteRules ++ SystemRewriteRulesDB.rewriteRules ++ reverseRules)
     val term1 = AnnotatedTree.withoutAnnotations(typedCons, List(
