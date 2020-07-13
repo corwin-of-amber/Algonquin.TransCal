@@ -13,7 +13,7 @@ import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.RewriteRule
 import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
-import transcallang.{AnnotatedTree, Identifier}
+import transcallang.{AnnotatedTree, Identifier, Language}
 
 class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
     extends LazyLogging with LazyTiming {
@@ -26,10 +26,10 @@ class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identif
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
     val replacedGraphs = valuations.indices.map(i => {
       val itAnchorPrefix = s"${i}_$anchorPrefix"
-      //      val currentGraph = rewriteSearchState.graph.clone.filterNot(e => e.edgeType.identifier == Language.typeId
-      //        || e.edgeType.identifier == SyGuSRewriteRules.sygusCreatedId)
       val currentState = state.deepCopy()
       currentState.updateGraph(currentGraph => {
+      currentGraph --= currentGraph.filter(e => e.edgeType.identifier == Language.typeId
+        || e.edgeType.identifier == SyGuERewriteRules.sygueCreatedId)
       // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
       currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
       val example = valuations(i)
