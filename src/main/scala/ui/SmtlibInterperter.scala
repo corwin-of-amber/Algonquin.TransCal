@@ -31,7 +31,7 @@ class SmtlibInterperter {
           val thesy = new TheoryExplorationAction(vocab, Map.empty[AnnotatedTree, Seq[AnnotatedTree]], None, None, None, None, None, true)
           thesy.addGoal(goal.get)
           thesy(state)
-        case _ => throw new NotImplementedError("Check this")
+        case x => throw new NotImplementedError("Check this")
       }
     }
   }

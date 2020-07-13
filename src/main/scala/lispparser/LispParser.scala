@@ -10,9 +10,11 @@ import scala.util.parsing.combinator.{Parsers, RegexParsers}
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[List[AnnotatedTree]] {
-  protected override val whiteSpace: Regex = """(\s|;.*)+""".r
+  protected override val whiteSpace: Regex = """([ \t\r\f]+|;.*)+""".r
 
-  override def log[T](p: => Parser[T])(name: String): Parser[T] = p
+  override def skipWhitespace: Boolean = true
+
+//  override def log[T](p: => Parser[T])(name: String): Parser[T] = p
 
   def apply(programText: String): List[AnnotatedTree] = {
     parseAll(program, programText) match {
@@ -31,13 +33,15 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
   private val RBO = "("
   private val RBC = ")"
 
-  def program: Parser[List[AnnotatedTree]] = (((assertTerm | functionDecl) ^^ { a => List(a) } | functionDef | datatypes).* ~ assertTerm <~ RBO <~ "check-sat" <~ RBC) ^^ parseProgram
+  def toListParser[T](parser: Parser[T]): Parser[List[T]] = parser.map(List(_))
+
+  def program: Parser[List[AnnotatedTree]] = ((toListParser(assertTerm) | toListParser(functionDecl) | functionDef | datatypes).* ~ assertTerm <~ RBO <~ "check-sat" <~ RBC) ^^ parseProgram
 
   def numeral: Parser[AnnotatedTree] = ("0" | "[1-9][0-9]*".r) ^^ parseNumeral
 
   def decimal: Parser[AnnotatedTree] = numeral ~ "\\.0+".r ~ numeral ^^ parseDecimal
 
-  def hexdecimal: Parser[AnnotatedTree] = "#x" ~> "[a-fA-F1-9][a-fA-F0-9]*".r ^^ {
+  def hexdecimal: Parser[AnnotatedTree] = "#x".r ~> "[a-fA-F1-9][a-fA-F0-9]*".r ^^ {
     throw new RuntimeException("hex not supported yet")
   }
 
@@ -45,19 +49,12 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
     throw new RuntimeException("binary not supported yet")
   }
 
-  def literal: Parser[LITERAL] = positioned {
-    """"[^"]*"""".r ^^ { str =>
-      val content = str.substring(1, str.length - 1)
-      LITERAL(content)
-    }
-  }
-
   def string: Parser[AnnotatedTree] = """"[^"]*"""".r ^^ {str => {
     val content = str.substring(1, str.length - 1)
     AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(content))))
   }}
 
-  def symbol: Parser[AnnotatedTree] = simple_symbol | ("\\|[^|\\\\]*|".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) })
+  def symbol: Parser[AnnotatedTree] = log(simple_symbol | ("\\|[^|\\\\]*\\|".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) }))("symbol")
 
   def keyword: Parser[AnnotatedTree] = ":" ~> simple_symbol
 
@@ -75,11 +72,11 @@ class LispParser extends RegexParsers with LazyLogging with transcallang.Parser[
 
   def index: Parser[AnnotatedTree] = numeral | symbol
 
-  def identifier: Parser[AnnotatedTree] = symbol | (RBO ~> "_" ~> symbol ~ index.+ <~ RBC) ^^ parseIndexedIdentifier
+  def identifier: Parser[AnnotatedTree] = symbol | (RBO ~> "_" ~> symbol ~ index.+ <~ RBC).map(parseIndexedIdentifier)
 
-  def sort: Parser[AnnotatedTree] = identifier | (RBO ~> identifier ~ sort.+ <~ RBC) ^^ parseSort
+  def sort: Parser[AnnotatedTree] = log((RBO ~> identifier ~ sort.+ <~ RBC).map(parseSort))("sort with params") | log(identifier)("sort no params")
 
-  def simple_symbol: Parser[AnnotatedTree] = "[a-zA-Z+\\-/*=%?!.$_̃ &ˆ<>@][0-9a-zA-Z+\\-/*=%?!.$_̃ &ˆ<>@]+".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) }
+  def simple_symbol: Parser[AnnotatedTree] = "[a-zA-Z+/*=%?!.$_&ˆ<>@\\-][0-9a-zA-Z+/*=%?!.$_&ˆ<>@\\-]*".r ^^ { a => AnnotatedTree.identifierOnly(Identifier(a)) }
 
   def qualIdentifier: Parser[AnnotatedTree] = identifier | ((RBO ~> "as" ~> identifier <~ sort <~ RBC)) //^^ parseQualIdent)
 

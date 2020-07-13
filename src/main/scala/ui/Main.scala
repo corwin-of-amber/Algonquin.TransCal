@@ -4,7 +4,7 @@ import java.io.{File, PrintStream}
 import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
-import lispparser.LispParser
+import lispparser.{LispParser, Translator}
 //import lispparser.{sexpressionLexer, sexpressionParser}
 import org.rogach.scallop.ScallopOption
 import report.Stats
@@ -55,8 +55,9 @@ object Main extends App with LazyLogging {
 
   if (conf.smtin.getOrElse(false)) {
     val source = Source.fromFile(conf.file())
-    val res = new LispParser()(source.getLines().mkString("\n"))
+    val text = source.getLines().mkString("\n")
     source.close()
+    val res = new Translator(text).transcalScript
     new ui.SmtlibInterperter().apply(res)
   } else {
     val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)
