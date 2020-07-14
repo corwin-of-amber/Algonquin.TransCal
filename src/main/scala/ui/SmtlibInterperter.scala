@@ -12,6 +12,14 @@ import synthesis.search.rewrites.Template.TemplateTerm
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 class SmtlibInterperter {
+  val datatypes = collection.mutable.Set.empty[Datatype]
+  val knownFunctions = collection.mutable.Set.empty[AnnotatedTree]
+  var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
+  val knownDefs = collection.mutable.Set.empty[AnnotatedTree]
+  val knownFunctionsId = collection.mutable.Map.empty[Identifier, AnnotatedTree]
+  var datatypesId = collection.mutable.Map.empty[Identifier, Datatype]
+  var ctorsId = collection.mutable.Map.empty[Identifier, Datatype]
+
   def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], oosPath: String, previousResults: Set[RunResults]) = {
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(vocab.datatypes.toSet).isEmpty)
 
@@ -34,11 +42,6 @@ class SmtlibInterperter {
   }
 
   def toVocabAndGoals(terms: List[AnnotatedTree]): (SortedVocabulary, Set[AnnotatedTree], Set[(AnnotatedTree, AnnotatedTree)]) = {
-    val datatypes = collection.mutable.Set.empty[Datatype]
-    val knownFunctions = collection.mutable.Set.empty[AnnotatedTree]
-    var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
-    val knownDefs = collection.mutable.Set.empty[AnnotatedTree]
-
     def cleanAutovar(identifier: Identifier) =
       if (identifier.literal.startsWith("?autovar")) identifier.copy(literal = identifier.literal.drop(1))
       else identifier
@@ -47,10 +50,16 @@ class SmtlibInterperter {
       t.root match {
         case Language.functionDeclId =>
           // This is a typed identifier for a function type
-          knownFunctions += t.subtrees.head
+          val fsymbol = t.subtrees.head
+          knownFunctions += fsymbol
+          if (t.subtrees.head.isLeaf)
+            knownFunctionsId += fsymbol.cleanTypes.root -> fsymbol
         case Language.datatypeId =>
           // TODO: implement type parameters
-          datatypes += Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
+          val dt = Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
+          datatypes += dt
+          datatypesId += dt.name -> dt
+          for (ctor <- dt.constructors) ctorsId += ctor.copy(annotation = None) -> dt
         case Language.letId =>
           knownDefs += t
         case Language.assertId =>
@@ -65,12 +74,37 @@ class SmtlibInterperter {
           throw new NotImplementedError("Check this")
       }
     }
-    val vocab = SortedVocabulary(datatypes.toSeq, knownFunctions.toSeq)
+    val vocab = SortedVocabulary(usedDatatypes.toSeq, defdFunctions.toSeq)
+    assert(vocab.definitions.nonEmpty, "no function definitions found")
+    assert(vocab.datatypes.nonEmpty, "no relevant datatypes found")
+    println(vocab.prettyPrint)
     (vocab, knownDefs.toSet, Set(goal.get))
   }
 
   def apply(terms: List[AnnotatedTree], oos: String, previousResults: Set[RunResults] = Set.empty): RunResults = {
     val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
     runExploration(vocab, goals, funcDefs, oos, previousResults)
+  }
+
+  def defdFunctions =
+    knownDefs.flatMap(definesWhatFunctions).toSet
+
+  def usedDatatypes =
+    knownDefs.flatMap(usesWhatDatatypes).toSet
+
+  def definesWhatFunctions(t: AnnotatedTree) = {
+    t.root match {
+      case i: Identifier if Language.builtinDefinitions.contains(i) =>
+        t.nodes.map(_.root).flatMap(knownFunctionsId.get)
+      case _ => Seq.empty
+    }
+  }
+
+  def usesWhatDatatypes(t: AnnotatedTree): Stream[Datatype] = {
+    t.nodes.flatMap(s => ctorsId.get(s.root).toSeq ++ typeOf(s).toSeq)
+  }
+
+  def typeOf(t: AnnotatedTree) = {
+    t.getRetType.flatMap(ty => datatypesId.get(ty.root))
   }
 }

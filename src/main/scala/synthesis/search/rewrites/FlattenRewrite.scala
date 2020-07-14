@@ -1,6 +1,5 @@
 package synthesis.search.rewrites
 
-import jdk.jshell.spi.ExecutionControl.NotImplementedException
 import structures._
 import structures.generic.HyperGraph.Match
 import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
@@ -84,5 +83,5 @@ object FlattenRewrite extends RewriteRule {
 
   override def isExistential: Boolean = false
 
-  override def registerPostprocessor(processor: (Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): FlattenRewrite.this.type = throw new NotImplementedException("No supported for flatten")
+  override def registerPostprocessor(processor: (Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): FlattenRewrite.this.type = throw new NotImplementedError("No supported for flatten")
 }

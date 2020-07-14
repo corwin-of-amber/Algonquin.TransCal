@@ -10,6 +10,8 @@ case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, n
     case _ => false
   }
 
+  def cleanTypes: Identifier = copy(annotation = None)
+
   override def toString: String = "Identifier(\"" + s"$literal" + "\", " + s"$annotation, $namespace)"
 }
 
@@ -17,10 +19,11 @@ object Identifier {
   def apply(literal: String): Identifier = new Identifier(literal, None, None)
 }
 
-case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]) {
+case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]=Seq()) {
   def getType: Option[AnnotatedTree] = root.annotation
+  def getRetType: Option[AnnotatedTree] = root.annotation.map(AnnotatedTree.extractRetType)
 
-  def cleanTypes: AnnotatedTree = this.map(_.copy(annotation = None))
+  def cleanTypes: AnnotatedTree = this.map(_.cleanTypes)
 
   def isLeaf: Boolean = subtrees.isEmpty
 
@@ -55,4 +58,8 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
 object AnnotatedTree {
   def identifierOnly(root: Identifier): AnnotatedTree = new AnnotatedTree(root, Seq.empty, Seq.empty)
   def withoutAnnotations(root: Identifier, subtrees: Seq[AnnotatedTree]): AnnotatedTree = new AnnotatedTree(root, subtrees, Seq.empty)
+
+  def extractRetType(ty: AnnotatedTree): AnnotatedTree =
+    if (ty.root == Language.mapTypeId) extractRetType(ty.subtrees.last)
+    else ty
 }

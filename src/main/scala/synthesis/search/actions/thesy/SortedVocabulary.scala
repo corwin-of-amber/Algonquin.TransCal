@@ -14,4 +14,11 @@ case class SortedVocabulary(datatypes: Seq[Datatype], definitions: Seq[Annotated
 
   def allSymbols: Seq[AnnotatedTree] = datatypes.flatMap(_.constructors
     .map(c => AnnotatedTree.identifierOnly(c))) ++ definitions
+
+  def prettyPrint =
+    s"""${"-" * 60}
+       | Data types: ${datatypes.map(_.name.literal).mkString(" ")}
+       | Functions: ${definitions.map(_.root.literal).mkString(" ")}
+       |${"-" * 60}""".stripMargin
+
 }
