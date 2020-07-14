@@ -15,8 +15,12 @@ class SmtlibInterperter {
   val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
   val datatypes = collection.mutable.Set.empty[Datatype]
   val knownFunctions = collection.mutable.Set.empty[AnnotatedTree]
+  val knownFunctionsId = collection.mutable.Map.empty[Identifier, AnnotatedTree] // maps untyped id to typed version
   var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
   val knownDefs = collection.mutable.Set.empty[AnnotatedTree]
+
+  def defdFunctions =
+    knownDefs.flatMap(definesWhat).toSet
 
   //  val ois = new ObjectInputStream(new FileInputStream("temp"))
   //  var obj: AnyRef = null
@@ -34,6 +38,7 @@ class SmtlibInterperter {
   //  }
   def runExploration(t: AnnotatedTree, oosPath: String, previousResults: Set[RunResults]) = {
     assert(t.subtrees.head.root == Language.letId)
+    assert(defdFunctions.nonEmpty, "no function definitions found")
 
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(datatypes).isEmpty)
     for (rr <- relevantResults) {
@@ -45,7 +50,10 @@ class SmtlibInterperter {
       else identifier
 
     goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
-    val vocab = SortedVocabulary(datatypes.toSeq, knownFunctions.toSeq)
+    val vocab = SortedVocabulary(datatypes.toSeq, defdFunctions.toSeq)
+
+    println(vocab.prettyPrint)
+
     val exampleDepth = 3
     val distributer = Distributer(vocab, exampleDepth)
     distributer.runTasks(state)
@@ -65,7 +73,10 @@ class SmtlibInterperter {
       t.root match {
         case Language.functionDeclId =>
           // This is a typed identifier for a function type
-          knownFunctions += t.subtrees.head
+          val fsymbol = t.subtrees.head
+          knownFunctions += fsymbol
+          if (t.subtrees.head.isLeaf)
+            knownFunctionsId += fsymbol.root.cleanTypes -> fsymbol
         case Language.datatypeId =>
           // TODO: implement type parameters
           datatypes += Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
@@ -81,5 +92,13 @@ class SmtlibInterperter {
       }
     }
     res.get
+  }
+
+  def definesWhat(t: AnnotatedTree) = {
+    t.root match {
+      case i: Identifier if Language.builtinDefinitions.contains(i) =>
+        t.nodes.map(_.root).flatMap(knownFunctionsId.get)
+      case _ => Seq.empty
+    }
   }
 }

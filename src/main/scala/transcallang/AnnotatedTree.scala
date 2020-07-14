@@ -10,6 +10,8 @@ case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, n
     case _ => false
   }
 
+  def cleanTypes: Identifier = copy(annotation = None)
+
   override def toString: String = "Identifier(\"" + s"$literal" + "\", " + s"$annotation, $namespace)"
 }
 
@@ -17,10 +19,10 @@ object Identifier {
   def apply(literal: String): Identifier = new Identifier(literal, None, None)
 }
 
-case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]) {
+case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]=Seq()) {
   def getType: Option[AnnotatedTree] = root.annotation
 
-  def cleanTypes: AnnotatedTree = this.map(_.copy(annotation = None))
+  def cleanTypes: AnnotatedTree = this.map(_.cleanTypes)
 
   def isLeaf: Boolean = subtrees.isEmpty
 
