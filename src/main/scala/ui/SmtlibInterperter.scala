@@ -19,6 +19,7 @@ class SmtlibInterperter {
   var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
   val knownDefs = collection.mutable.Set.empty[AnnotatedTree]
 
+  var datatypesId = collection.mutable.Map.empty[Identifier, Datatype]
   var ctorsId = collection.mutable.Map.empty[Identifier, Datatype] // maps constructor to datatype containing it
 
   def defdFunctions =
@@ -43,7 +44,6 @@ class SmtlibInterperter {
   //  }
   def runExploration(t: AnnotatedTree, oosPath: String, previousResults: Set[RunResults]) = {
     assert(t.subtrees.head.root == Language.letId)
-    assert(defdFunctions.nonEmpty, "no function definitions found")
 
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(datatypes).isEmpty)
     for (rr <- relevantResults) {
@@ -56,6 +56,8 @@ class SmtlibInterperter {
 
     goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
     val vocab = SortedVocabulary(usedDatatypes.toSeq, defdFunctions.toSeq)
+    assert(vocab.definitions.nonEmpty, "no function definitions found")
+    assert(vocab.datatypes.nonEmpty, "no relevant datatypes found")
 
     println(vocab.prettyPrint)
 
@@ -86,6 +88,7 @@ class SmtlibInterperter {
           // TODO: implement type parameters
           val dt = Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
           datatypes += dt
+          datatypesId += dt.name -> dt
           for (ctor <- dt.constructors) ctorsId += ctor.cleanTypes -> dt
         case Language.letId =>
           knownDefs += t
@@ -109,7 +112,11 @@ class SmtlibInterperter {
     }
   }
 
-  def usesWhatDatatypes(t: AnnotatedTree) = {
-    t.nodes.flatMap(s => ctorsId.get(s.root))
+  def usesWhatDatatypes(t: AnnotatedTree): Stream[Datatype] = {
+    t.nodes.flatMap(s => ctorsId.get(s.root).toSeq ++ typeOf(s).toSeq)
+  }
+
+  def typeOf(t: AnnotatedTree) = {
+    t.getRetType.flatMap(ty => datatypesId.get(ty.root))
   }
 }

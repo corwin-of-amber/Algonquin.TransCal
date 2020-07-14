@@ -21,6 +21,7 @@ object Identifier {
 
 case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotations: Seq[AnnotatedTree]=Seq()) {
   def getType: Option[AnnotatedTree] = root.annotation
+  def getRetType: Option[AnnotatedTree] = root.annotation.map(AnnotatedTree.extractRetType)
 
   def cleanTypes: AnnotatedTree = this.map(_.cleanTypes)
 
@@ -57,4 +58,8 @@ case class AnnotatedTree(root: Identifier, subtrees: Seq[AnnotatedTree], annotat
 object AnnotatedTree {
   def identifierOnly(root: Identifier): AnnotatedTree = new AnnotatedTree(root, Seq.empty, Seq.empty)
   def withoutAnnotations(root: Identifier, subtrees: Seq[AnnotatedTree]): AnnotatedTree = new AnnotatedTree(root, subtrees, Seq.empty)
+
+  def extractRetType(ty: AnnotatedTree): AnnotatedTree =
+    if (ty.root == Language.mapTypeId) extractRetType(ty.subtrees.last)
+    else ty
 }
