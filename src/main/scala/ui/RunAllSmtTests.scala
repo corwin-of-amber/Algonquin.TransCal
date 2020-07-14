@@ -56,7 +56,7 @@ object RunAllSmtTests extends App with LazyLogging {
   val taskToGoal = (subTasks ++ tasks).map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
   taskToGoal.keys.toArray.sortBy(_._1.definitions.size).foreach({ case k@(vocab, ruleDefs) =>
     val f = taskToGoal(k).map(_._5).minBy(_.getAbsolutePath())
-    val oosPath = f.getAbsolutePath
+    val oosPath = if (f.getAbsolutePath.endsWith(".res")) f.getAbsolutePath else f.getAbsolutePath + ".res"
     var results = Set.empty[RunResults]
     Locker.synchronized({
       results = knowResults.values.toSet

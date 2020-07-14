@@ -140,8 +140,8 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //      }).toMap
     //      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
     //    }
-    val soes = vocab.datatypes.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
-    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)))
+    val soes = vocab.datatypes.par.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
+    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq)
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }
 }

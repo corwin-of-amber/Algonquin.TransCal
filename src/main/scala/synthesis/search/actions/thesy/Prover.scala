@@ -10,7 +10,7 @@ import transcallang._
 
 import scala.collection.mutable
 
-class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[RewriteRule])
+class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[RewriteRule], equivDepth: Int)
     extends LazyLogging with LazyTiming {
   import Prover._
 
@@ -77,60 +77,61 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Rewrit
     val term2 = tree2.cleanTypes
 
     // TODO: Once we support dependant types or enumerationg polymorphic types instantiantions we need to change this
-    // TODO: Try all knwon types
     val relevantTypes = datatypes.filter(d => tree1.nodes.map(_.root.annotation).contains(Some(d.asType))
       || tree2.nodes.map(_.root.annotation).contains(Some(d.asType)))
 
     if (relevantTypes.isEmpty) return Set.empty
 
-    assert(relevantTypes.size == 1)
-    val ourType = relevantTypes.head
+    val typesIt = relevantTypes.iterator
+    var res = Set.empty[PatternRewriteRule]
+    while (res.isEmpty && typesIt.hasNext) {
+      val ourType = typesIt.next()
+      // Create new rewrite rule for induction hypothesis
+      // Need to demand that the used hypothesis works only on structures smaller than new applied constructor
+      // For that i created the ltwf relation. The constructor rules will add the needed intial relations.
+      // So I will do directed let and add ltwf(?params from correct type, PH0) on the premise
+      val inductionPh = inductionVar(ourType.asType).copy(annotation = None)
+      if ((!term1.nodes.map(_.root).contains(inductionPh)) || (!term2.nodes.map(_.root).contains(inductionPh)))
+        return Set.empty
 
-    // Create new rewrite rule for induction hypothesis
-    // Need to demand that the used hypothesis works only on structures smaller than new applied constructor
-    // For that i created the ltwf relation. The constructor rules will add the needed intial relations.
-    // So I will do directed let and add ltwf(?params from correct type, PH0) on the premise
-    val inductionPh = inductionVar(ourType.asType).copy(annotation = None)
-    if ((!term1.nodes.map(_.root).contains(inductionPh)) || (!term2.nodes.map(_.root).contains(inductionPh)))
-      return Set.empty
+      logger.info(s"Trying to prove ${Programs.termToString(term1)} = ${Programs.termToString(term2)}")
 
-    logger.info(s"Trying to prove ${Programs.termToString(term1)} = ${Programs.termToString(term2)}")
+      val updatedTerm1 = term1.map(identMapper(_, inductionPh))
+      val updatedTerm2 = term2.map(identMapper(_, inductionPh))
 
-    val updatedTerm1 = term1.map(identMapper(_, inductionPh))
-    val updatedTerm2 = term2.map(identMapper(_, inductionPh))
+      val hypoths = createHypothesis(term1, term2, inductionPh)
 
-    val hypoths = createHypothesis(term1, term2, inductionPh)
+      val conses = ourType.constructors.filter(_.annotation.exists(_.root == Language.mapTypeId))
+      // TODO: move forall logic out of if condition
+      if (conses.forall({ c =>
+        // Replace inductionPh by inductionVar
+        // Create base graph where inductionPh ||| c(existentials: _*)
+        val constructedVal = AnnotatedTree.withoutAnnotations(c.copy(annotation = None),
+          c.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (_, i) =>
+            AnnotatedTree.identifierOnly(Identifier(s"param$i"))
+          })
+        )
+        val phToConstructed = createRules(
+          AnnotatedTree.identifierOnly(cleanVars(identMapper(inductionPh, inductionPh))),
+          constructedVal
+        )
 
-    val conses = ourType.constructors.filter(_.annotation.exists(_.root == Language.mapTypeId))
-    // TODO: move forall logic out of if condition
-    if (conses.forall({ c =>
-      // Replace inductionPh by inductionVar
-      // Create base graph where inductionPh ||| c(existentials: _*)
-      val constructedVal = AnnotatedTree.withoutAnnotations(c.copy(annotation = None),
-        c.annotation.get.subtrees.dropRight(1).zipWithIndex.map({ case (_, i) =>
-          AnnotatedTree.identifierOnly(Identifier(s"param$i"))
-        })
-      )
-      val phToConstructed = createRules(
-        AnnotatedTree.identifierOnly(cleanVars(identMapper(inductionPh, inductionPh))),
-        constructedVal
-      )
-
-      val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
-      val state = new ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), knownRules ++ hypoths ++ phToConstructed ++ ltwfRules(ourType))
-      val nextState = searcher(state)
-      val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
-      nextState.programs.queryGraph.findSubgraph[Int](pattern).nonEmpty
-    })) {
-      logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
-      val newRules = createRules(updatedTerm1, updatedTerm2, save = true) ++ createRules(updatedTerm2, updatedTerm1, save = true)
-      mutableRules ++= newRules
-      newRules
-    } else {
-      logger.info(s"Proof Failed")
-      failedProofs += 1
-      Set.empty
+        val cleanUpdatedTerms = Seq(updatedTerm1, updatedTerm2).map(_.map(cleanVars))
+        val state = new ActionSearchState(Programs(cleanUpdatedTerms.head).addTerm(cleanUpdatedTerms.last), knownRules ++ hypoths ++ phToConstructed ++ ltwfRules(ourType))
+        val nextState = searcher(state, Some(equivDepth))
+        val pattern = Programs.destructPattern(AnnotatedTree.withoutAnnotations(Language.andCondBuilderId, cleanUpdatedTerms))
+        nextState.programs.queryGraph.findSubgraph[Int](pattern).nonEmpty
+      })) {
+        logger.info(s"Found inductive rule: ${Programs.termToString(updatedTerm1)} = ${Programs.termToString(updatedTerm2)}")
+        val newRules = createRules(updatedTerm1, updatedTerm2, save = true) ++ createRules(updatedTerm2, updatedTerm1, save = true)
+        mutableRules ++= newRules
+        res = newRules
+      } else {
+        logger.info(s"Proof Failed")
+        failedProofs += 1
+      }
     }
+    res
   }
 
   def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean = false) = {

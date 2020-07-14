@@ -171,7 +171,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val list = thesy.inductionVar(listInt)
     val filterOnPhs = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(predicate, list).map(AnnotatedTree.identifierOnly))
     val filterfilter = AnnotatedTree.withoutAnnotations(typedFilter.root, Seq(AnnotatedTree.identifierOnly(predicate), filterOnPhs))
-    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules, 6)
     prover.inductionProof(filterfilter, filterOnPhs) should not be empty
   }
 
@@ -220,7 +220,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     val term2 = AnnotatedTree.withoutAnnotations(reverse.root, List(
       AnnotatedTree.withoutAnnotations(typedSnoc, List(listPh, intPh).map(AnnotatedTree.identifierOnly))
     ))
-    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules, 4)
     val newRules = prover.inductionProof(term1, term2)
     newRules should not be empty
   }
@@ -236,7 +236,7 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
       AnnotatedTree.withoutAnnotations(reverse.root, List(AnnotatedTree.identifierOnly(listPh))),
       AnnotatedTree.identifierOnly(intPh)
     ))
-    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules)
+    val prover = new Prover(spbeAction.vocab.datatypes.toSet, spbeAction.searcher, state.rewriteRules, 8)
     val newRules = prover.inductionProof(term1, term2)
     newRules shouldBe empty
   }

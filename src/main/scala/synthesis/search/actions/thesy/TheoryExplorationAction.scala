@@ -1,6 +1,6 @@
 package synthesis.search.actions.thesy
 
-import report.StopWatch
+import report.{LazyTiming, Stats, StopWatch}
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions._
@@ -77,7 +77,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     * @param state
     */
   private class ProverCheckerBundle(state: ActionSearchState) {
-    val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules) {
+    val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules, equivDepth * 2) {
       override protected def watchName: String = "Prover"
       override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean) =
         super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
@@ -141,6 +141,8 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
         return state
       }
     }
+
+    conjectureChecker.timed()
 
     if (reprove) {
       logger.info(s"Searching for rules that have become provable:")
