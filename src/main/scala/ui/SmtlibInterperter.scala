@@ -19,8 +19,13 @@ class SmtlibInterperter {
   var goal: Option[(AnnotatedTree, AnnotatedTree)] = None
   val knownDefs = collection.mutable.Set.empty[AnnotatedTree]
 
+  var ctorsId = collection.mutable.Map.empty[Identifier, Datatype] // maps constructor to datatype containing it
+
   def defdFunctions =
-    knownDefs.flatMap(definesWhat).toSet
+    knownDefs.flatMap(definesWhatFunctions).toSet
+
+  def usedDatatypes =
+    knownDefs.flatMap(usesWhatDatatypes).toSet
 
   //  val ois = new ObjectInputStream(new FileInputStream("temp"))
   //  var obj: AnyRef = null
@@ -50,7 +55,7 @@ class SmtlibInterperter {
       else identifier
 
     goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
-    val vocab = SortedVocabulary(datatypes.toSeq, defdFunctions.toSeq)
+    val vocab = SortedVocabulary(usedDatatypes.toSeq, defdFunctions.toSeq)
 
     println(vocab.prettyPrint)
 
@@ -79,7 +84,9 @@ class SmtlibInterperter {
             knownFunctionsId += fsymbol.root.cleanTypes -> fsymbol
         case Language.datatypeId =>
           // TODO: implement type parameters
-          datatypes += Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
+          val dt = Datatype(t.subtrees.head.root, Seq.empty, t.subtrees.tail.map(_.root))
+          datatypes += dt
+          for (ctor <- dt.constructors) ctorsId += ctor.cleanTypes -> dt
         case Language.letId =>
           knownDefs += t
           val letAction: LetAction = new LetAction(t, allowExistential = false)
@@ -94,11 +101,15 @@ class SmtlibInterperter {
     res.get
   }
 
-  def definesWhat(t: AnnotatedTree) = {
+  def definesWhatFunctions(t: AnnotatedTree) = {
     t.root match {
       case i: Identifier if Language.builtinDefinitions.contains(i) =>
         t.nodes.map(_.root).flatMap(knownFunctionsId.get)
       case _ => Seq.empty
     }
+  }
+
+  def usesWhatDatatypes(t: AnnotatedTree) = {
+    t.nodes.flatMap(s => ctorsId.get(s.root))
   }
 }
