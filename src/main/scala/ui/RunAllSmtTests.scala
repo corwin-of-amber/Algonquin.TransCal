@@ -4,6 +4,7 @@ import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, Obje
 
 import com.typesafe.scalalogging.LazyLogging
 import lispparser.Translator
+import report.Stats
 import synthesis.search.actions.thesy.Distributer
 import ui.Main.conf
 
@@ -13,7 +14,8 @@ import scala.io.Source
 
 object RunAllSmtTests extends App with LazyLogging {
   def readRunResults(file: File): RunResults = {
-    val ois = new ObjectInputStream(new FileInputStream(new File(file.getAbsolutePath + ".res")))
+    val fixedFile = if(file.getAbsolutePath.endsWith(".res")) file else new File(file.getAbsolutePath + ".res")
+    val ois = new ObjectInputStream(new FileInputStream(fixedFile))
     val res = ois.readObject().asInstanceOf[RunResults]
     ois.close()
     res
@@ -54,7 +56,7 @@ object RunAllSmtTests extends App with LazyLogging {
         else Some((newFile, phCount, (vocab, t._3._2, t._3._3)))
     }))
   val taskToGoal = (subTasks ++ tasks).map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
-  taskToGoal.keys.toArray.sortBy(_._1.definitions.size).foreach({ case k@(vocab, ruleDefs) =>
+  taskToGoal.keys.toArray.sortBy(_._1.definitions.size).map({ case k@(vocab, ruleDefs) =>
     val f = taskToGoal(k).map(_._5).minBy(_.getAbsolutePath())
     val oosPath = if (f.getAbsolutePath.endsWith(".res")) f.getAbsolutePath else f.getAbsolutePath + ".res"
     var results = Set.empty[RunResults]
@@ -66,6 +68,9 @@ object RunAllSmtTests extends App with LazyLogging {
     val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, phCount, oosPath, results)
     Locker.synchronized({
       knowResults(f.getName) = newRes
+      val timingOut = new ObjectOutputStream(new FileOutputStream("smt-timings.bin"))
+      timingOut.writeObject(Stats.Timing.dump)
+      timingOut.close()
     })
   })
 }

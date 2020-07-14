@@ -103,7 +103,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
 
   //  private val soes = vocab.datatypes.map(d => new SOE(searcher, baseGraph, placeholders(d.asType).head, examples(d.asType)))
 
-  def increaseDepth(): Unit = timed {
+  def increaseDepth(): Unit = timed("increaseDepth") {
     // TODO: Run new rules before inreasing depth
     // TODO: Keep same soes
     def op(graph: ActionSearchState.HyperGraph): Unit = {
@@ -130,7 +130,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //    sygueRules.foreach(r => r.unregisterPostprocessor(soes.head.iterationPostprocessor))
   }
 
-  def inferConjectures(operators: Set[RewriteRule], compareDepth: Option[Double]): ActionSearchState = timed {
+  def inferConjectures(operators: Set[RewriteRule], compareDepth: Option[Double]): ActionSearchState = timed("infer conjectures") {
     val state = new ActionSearchState(baseGraph, operators)
     //    val conclusions = soes.map(_.findEquives(operators))
     //    val sygueMetadataToMerge = ObservationalEquivalence.flattenUnionConclusions(conclusions)
@@ -141,6 +141,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
     //    }
     val soes = vocab.datatypes.par.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
+    soes.foreach(_.setTimingBasename(basename))
     val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq)
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }

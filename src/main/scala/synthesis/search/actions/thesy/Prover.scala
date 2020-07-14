@@ -69,7 +69,7 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Rewrit
     })
   }
 
-  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = timed {
+  def inductionProof(tree1: AnnotatedTree, tree2: AnnotatedTree): Set[_ <: RewriteRule] = timed ("induction proof") {
     // Each placeholder represents a value of a type.
     // To deal with multi param expressions some of the placeholders were duplicated ahead of time, so now just use 'em
 

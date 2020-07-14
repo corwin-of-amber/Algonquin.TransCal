@@ -2,6 +2,8 @@ package report
 
 import java.util.Date
 
+import com.sun.jdi.Mirror
+
 import scala.collection.mutable
 
 
@@ -25,11 +27,20 @@ class StopWatch {
     Instant(ctm - init, new Date(ctm))
   }
 
-  def start() { if (running == 0) from = nowMs; running += 1 }
-  def stop()  { running -= 1; if (running == 0) elapsed += (nowMs - from) }
+  def start() {
+    if (running == 0) from = nowMs; running += 1
+  }
+
+  def stop() {
+    running -= 1; if (running == 0) elapsed += (nowMs - from)
+  }
 
   def timed[T](op: => T): T =
-    try { start(); op } finally { stop() }
+    try {
+      start(); op
+    } finally {
+      stop()
+    }
 }
 
 
@@ -41,6 +52,7 @@ object StopWatch {
 
   lazy val instance = new StopWatch
 
+//  val factory: mutable.Map[String, StopWatch] = new collection.concurrent.TrieMap[String, StopWatch]().withDefault(k => new StopWatch)
   class FactoryMap[K,V] extends mutable.HashMap[K,V] {
     override def apply(key: K): V = {
       val result = findEntry(key)
@@ -55,9 +67,17 @@ object StopWatch {
 
 
 trait LazyTiming {
+  // TODO: use reflection for automatic timing of all public\private methods
+  // TODO: then put in github
   protected def watchName: String = getClass.getSimpleName
-  @transient
-  protected lazy val watch: StopWatch = StopWatch.factory(watchName)
 
-  def timed[T](op: => T): T = watch.timed(op)
+  protected def watch(name: String): StopWatch = StopWatch.factory(name)
+
+  protected def timed[T](op: => T): T = timed(watchName)(op)
+
+  protected def timed[T](name: String)(op: => T): T = watch(basename + name).timed(op)
+
+  def setTimingBasename(name: String): Unit = basename = name
+
+  protected var basename = ""
 }

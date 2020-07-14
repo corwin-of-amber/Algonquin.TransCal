@@ -73,7 +73,7 @@ object Stats {
     * @param data list of row data
     * @tparam T cell data type
     */
-  class Table[T](val data: List[List[Option[T]]]) {
+  class Table[T](val data: List[List[Option[T]]]) extends Serializable {
     def this(data: List[List[T]])(implicit dummy: DummyImplicit) = this(data.map(_.map(Some(_))))
 
     override def toString = if (data.isEmpty) "" else {

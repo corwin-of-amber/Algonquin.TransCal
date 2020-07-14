@@ -66,7 +66,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
   // TODO: Should be private, change tests
   val searcher =
     new CaseSplitAction(searcher = new OperatorRunAction(), None, None, splitDepthOption = Some(splitDepth))
-
+  searcher.setTimingBasename(timingBasename)
   // TODO: fix tests and make this private
 //  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
   val conjectureGenerator = new ConjectureGenerator(vocab, searcher, exampleDepth, placeholderCount)
@@ -106,6 +106,8 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     val (prover, conjectureChecker) = new ProverCheckerBundle(state).toTuple
+    prover.setTimingBasename(timingBasename)
+    conjectureChecker.setTimingBasename(timingBasename)
     lastProver = Some(prover)
     var newRules = Set.empty[AnnotatedTree]
     val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
@@ -141,8 +143,6 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
         return state
       }
     }
-
-    conjectureChecker.timed()
 
     if (reprove) {
       logger.info(s"Searching for rules that have become provable:")
@@ -183,4 +183,11 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
   }
 
   def getFoundRules: Set[AnnotatedTree] = lastProver.get.knownRulesTrees
+
+  // TODO: don't do this so ugly
+  private var timingBasename = ""
+  def setTimingBasename(name: String) = {
+    timingBasename = name
+    conjectureGenerator.setTimingBasename(name)
+  }
 }

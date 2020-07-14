@@ -1,6 +1,6 @@
 package ui
 
-import java.io.{FileOutputStream, ObjectOutputStream}
+import java.io.{File, FileOutputStream, ObjectOutputStream}
 
 import synthesis.Programs
 import synthesis.search.ActionSearchState
@@ -22,6 +22,7 @@ class SmtlibInterperter {
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
     val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, Some(phCount), true)
+    thesy.setTimingBasename(new File(oosPath).getName + "_")
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
     val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))

@@ -2,6 +2,7 @@ package synthesis.search.actions
 
 import structures.{HyperEdge, IdMetadata, Uid}
 import ObservationalEquivalence.{anchorStart, createAnchor}
+import report.LazyTiming
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.Identifier
@@ -20,7 +21,7 @@ import transcallang.Identifier
 class CaseSplitAction(searcher: SearchAction,
                       preprocessorOption: Option[SearchAction],
                       splitterChooser: Option[CaseSplitAction.SplitChooser],
-                      splitDepthOption: Option[Int]) extends SearchAction {
+                      splitDepthOption: Option[Int]) extends SearchAction with LazyTiming {
   private val splitDepth = splitDepthOption.getOrElse(1)
   private val chooser = splitterChooser.getOrElse(CaseSplitAction.randomChooser(splitDepth))
 
@@ -42,13 +43,13 @@ class CaseSplitAction(searcher: SearchAction,
                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
                                        depth: Option[Double], preprocessorDepth: Option[Double])
   : ActionSearchState = {
-    val newState = preprocessor(state, preprocessorDepth)
+    val newState = timed ("preprocessing") {preprocessor(state, preprocessorDepth)}
     val splitters = chooser(newState, chosen).toSeq
     if (splitters.isEmpty) {
-      searcher(newState, depth.map(_ - preprocessorDepth.getOrElse(depth.get/2)))
+      timed ("final run") {searcher(newState, depth.map(_ - preprocessorDepth.getOrElse(depth.get/2)))}
     } else if(chosen.length >= splitDepth) {
-      searcher(newState, depth)
-    } else {
+      timed ("final run") {searcher(newState, depth)}
+    } else timed ("casesplit") {
       val currentPrefix = caseSplitPrefix + chosen.length.toString + "_"
       // TODO: remove this deep copy if possible
       val withAnchors = newState.deepCopy()

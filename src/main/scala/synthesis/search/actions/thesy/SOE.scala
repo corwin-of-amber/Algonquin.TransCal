@@ -20,7 +20,7 @@ class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identif
   private val anchorPrefix = "SOE_"
   val marker = inputMarker.copy(annotation = None)
 
-  private val tupeledState: ActionSearchState = timed {
+  private lazy val tupeledState: ActionSearchState = timed("tupled graph creation") {
     // TODO: Add disjoint append to rewrite graph and simplify this
     // Need to shift all edges on graph because we want to prevent one changed value from affecting parts of other
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
@@ -63,7 +63,7 @@ class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identif
       ObservationalEquivalence.getIdsToMerge(p, state.programs.queryGraph.edges))).filter(_.nonEmpty)
   }
 
-  def findEquives(rules: Set[RewriteRule], depth: Option[Double]): Set[Set[HyperTermId]] = {
+  def findEquives(rules: Set[RewriteRule], depth: Option[Double]): Set[Set[HyperTermId]] = timed ("find equives") {
     // Copy of graph is needed because we do not want merges to change our anchored nodes here.
     tupeledState.addRules(rules)
     val res = searcher(tupeledState, depth)
