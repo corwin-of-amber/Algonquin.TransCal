@@ -33,7 +33,7 @@ object RunAllSmtTests extends App with LazyLogging {
   val tasks = files.flatMap(f => {
     val source = Source.fromFile(f)
     try {
-      val res = (f, new SmtlibInterperter().toVocabAndGoals(new Translator(source.getLines().mkString("\n")).transcalScript))
+      val res = (f, 2, new SmtlibInterperter().toVocabAndGoals(new Translator(source.getLines().mkString("\n")).transcalScript))
       source.close()
       Some(res)
     } catch {
@@ -42,27 +42,28 @@ object RunAllSmtTests extends App with LazyLogging {
         None
     }
   })
-  val subTasks = tasks.flatMap(t => Distributer(t._2._1, 3).getExplorationTasks.flatten
+  val subTasks = tasks.flatMap(t => Distributer(t._3._1, 3).getExplorationTasks.flatten
     .flatMap({
-      case (vocab, depth) =>
+      case (vocab, phCount) =>
         val newFileName = resourcePath + "/../" + "prerun_" + vocab.definitions.map(_.root.literal).sorted.mkString("_") + ".res"
         val newFile = new File(newFileName)
         if (newFile.exists()) {
           knowResults(newFileName) = readRunResults(newFile)
           None
         }
-        else Some((newFile, (vocab, t._2._2, t._2._3)))
+        else Some((newFile, phCount, (vocab, t._3._2, t._3._3)))
     }))
-  val taskToGoal = (subTasks ++ tasks).map(t => (t._2._1, t._2._2, t._2._3, t._1)).groupBy(t => (t._1, t._2))
+  val taskToGoal = (subTasks ++ tasks).map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
   taskToGoal.keys.toArray.sortBy(_._1.definitions.size).foreach({ case k@(vocab, ruleDefs) =>
-    val f = taskToGoal(k).map(_._4).min
+    val f = taskToGoal(k).map(_._5).min
     val oosPath = f.getAbsolutePath + ".res"
     var results = Set.empty[RunResults]
     Locker.synchronized({
       results = knowResults.values.toSet
     })
     val goals = taskToGoal(k).map(_._3)
-    val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, oosPath, results)
+    val phCount = taskToGoal(k).map(_._4).max
+    val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, phCount, oosPath, results)
     Locker.synchronized({
       knowResults(f.getName) = newRes
     })

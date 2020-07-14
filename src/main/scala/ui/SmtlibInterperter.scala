@@ -10,7 +10,7 @@ import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 class SmtlibInterperter {
-  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], oosPath: String, previousResults: Set[RunResults]) = {
+  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults]) = {
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(vocab.datatypes.toSet).isEmpty)
 
     val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
@@ -21,7 +21,7 @@ class SmtlibInterperter {
     val exampleDepth = 3
     val distributer = Distributer(vocab, exampleDepth)
     distributer.runTasks(state)
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, None, true)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, Some(phCount), true)
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
     val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, distributer.foundRules ++ thesy.getFoundRules, goals, goals.diff(thesy.goals))
@@ -86,7 +86,7 @@ class SmtlibInterperter {
 
   def apply(terms: List[AnnotatedTree], oos: String, previousResults: Set[RunResults] = Set.empty): RunResults = {
     val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
-    runExploration(vocab, goals, funcDefs, oos, previousResults)
+    runExploration(vocab, goals, funcDefs, 2, oos, previousResults)
   }
 
   def defdFunctions(funDecls: Set[AnnotatedTree], funDefs: Set[AnnotatedTree]): Set[AnnotatedTree] = {
