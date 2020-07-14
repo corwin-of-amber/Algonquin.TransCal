@@ -19,12 +19,12 @@ class SmtlibInterperter {
       state.addRules(rr.newRules.flatMap(new LetAction(_, allowExistential = false).rules))
     }
     val exampleDepth = 3
-    val distributer = Distributer(vocab, exampleDepth)
-    distributer.runTasks(state)
+//    val distributer = Distributer(vocab, exampleDepth)
+//    distributer.runTasks(state)
     val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, None, true)
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
-    val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, distributer.foundRules ++ thesy.getFoundRules, goals, goals.diff(thesy.goals))
+    val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
     val oos = new ObjectOutputStream(new FileOutputStream(oosPath))
     oos.writeObject(res)
     oos.close()
