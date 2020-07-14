@@ -65,7 +65,7 @@ class SmtlibInterperter {
           assert(t.subtrees.head.root == Language.letId)
           goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
         case Identifier("not", annotation, namespace) if t.subtrees.head.root != Language.letId =>
-          throw new IllegalArgumentException("Don't support stuff that isn't equality")
+          throw new IllegalArgumentException(s"Don't support stuff that isn't equality (${t.subtrees.head})")
         case x =>
           throw new NotImplementedError("Check this")
       }
@@ -77,6 +77,10 @@ class SmtlibInterperter {
     assert(vocab.definitions.nonEmpty, "no function definitions found")
     assert(vocab.datatypes.nonEmpty, "no relevant datatypes found")
     println(vocab.prettyPrint)
+
+    val splits = knownDefs.flatMap(guessCaseSplits)
+    for ((head, on, cases) <- splits)
+      println(s"${Programs.termToString(head)} ---> ${Programs.termToString(on)}\n   ${cases.map(Programs.termToString).mkString(" / ")}")
     (vocab, knownDefs.toSet, Set(goal.get))
   }
 
@@ -115,5 +119,29 @@ class SmtlibInterperter {
     // TODO: this seems stupid
     val datatypesIdsMap = datatypesId(datatypes)
     t.getRetType.flatMap(ty => datatypesIdsMap.get(ty.root))
+  }
+
+  def guessCaseSplits(t: AnnotatedTree) = {
+    t match {
+      case AnnotatedTree(i, Seq(lhs, rhs), _) if Language.builtinDefinitions.contains(i) =>
+        for ((on, cases) <- findItes(rhs)) yield (lhs, on, cases)
+        // @todo replace findItes with findMatches (pending transSExp)
+      case _ => Seq.empty
+    }
+  }
+
+  val BOOLEAN_CASES = Seq(Language.trueId, Language.falseId).map(AnnotatedTree.identifierOnly)
+
+  def findItes(t: AnnotatedTree) = {
+    t.nodes.flatMap(s =>
+      if (s.root.literal == "ite") Some(s.subtrees.head, BOOLEAN_CASES)
+      else None)
+  }
+
+  def findMatches(t: AnnotatedTree): Stream[(AnnotatedTree, Seq[Identifier])] = {
+    println(t)
+    t.nodes.flatMap(s =>
+      if (s.root == Language.matchId) Some(s.subtrees.head, Seq(???))
+      else None)
   }
 }
