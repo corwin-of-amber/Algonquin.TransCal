@@ -21,6 +21,11 @@ class ConjectureGenerator(vocab: SortedVocabulary,
   // TODO: 2. Generate expression using a pattern and a factory. See Issue 13
   val typed = true
 
+  def isFunction(identifier: Identifier) = identifier.annotation match {
+    case Some(annotation) => annotation.root == Language.mapTypeId
+    case None => false
+  }
+
   private def isRecursiveType(identifier: Identifier) = identifier.annotation match {
     case Some(annotation) => annotation.root == Language.mapTypeId && annotation.subtrees.dropRight(1).contains(annotation.subtrees.last)
     case None => false
@@ -75,7 +80,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
   private val sygueRules = {
     // Need to use vocab as the function name is needed
     SyGuERewriteRules(
-      (vocab.allSymbols.toSet).filter(s => isRecursiveType(s.root))
+      vocab.allSymbols.filter(s => isFunction(s.root))
         .map(t => t.copy(subtrees = Seq.empty))
     ).rewriteRules.map(_.asInstanceOf[PatternRewriteRule])
   }
