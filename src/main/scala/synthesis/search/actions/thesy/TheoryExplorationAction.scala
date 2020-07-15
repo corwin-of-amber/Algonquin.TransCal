@@ -64,8 +64,9 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
 
 
   // TODO: Should be private, change tests
+  // TODO: edge depth hacky
   val searcher =
-    new CaseSplitAction(searcher = new OperatorRunAction(), None, None, splitDepthOption = Some(splitDepth))
+    new CaseSplitAction(searcher = new OperatorRunAction(edgeDepth = Some(equivDepth + 3)), None, None, splitDepthOption = Some(splitDepth))
   searcher.setTimingBasename(timingBasename)
   // TODO: fix tests and make this private
 //  val conjectureGenerator = new ConjectureGenerator(vocab, searcher, examples, placeholderCount)
@@ -77,7 +78,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     * @param state
     */
   private class ProverCheckerBundle(state: ActionSearchState) {
-    val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules, equivDepth * 2) {
+    val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules, (equivDepth * 1.5).ceil.toInt) {
       override protected def watchName: String = "Prover"
       override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean) =
         super.createRules(lhs, rhs, save).map(_.withTermString(checker.stringForRule(lhs, rhs)))

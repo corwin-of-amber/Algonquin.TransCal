@@ -37,7 +37,7 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction, maxDepth: Double
     while (i < failedAttempts.length) {
       val (term1, term2) = failedAttempts.head
 
-      val newState = searcher(new ActionSearchState(Programs(term1).addTerm(term2), prover.knownRules))
+      val newState = searcher(new ActionSearchState(Programs(term1).addTerm(term2), prover.knownRules), Some(maxDepth))
       if (newState.programs.findTree(term1).intersect(newState.programs.findTree(term2)).nonEmpty) {
         failedAttempts.remove(i)
       } else {

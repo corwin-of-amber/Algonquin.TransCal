@@ -43,6 +43,7 @@ class CaseSplitAction(searcher: SearchAction,
                                        chosen: Seq[HyperEdge[HyperTermId, HyperTermIdentifier]],
                                        depth: Option[Double], preprocessorDepth: Option[Double])
   : ActionSearchState = {
+
     val newState = timed ("preprocessing") {preprocessor(state, preprocessorDepth)}
     val splitters = chooser(newState, chosen).toSeq
     if (splitters.isEmpty) {
