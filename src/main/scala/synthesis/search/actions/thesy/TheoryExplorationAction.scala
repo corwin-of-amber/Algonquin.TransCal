@@ -80,7 +80,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     val prover: Prover = new Prover(vocab.datatypes.toSet, searcher, state.rewriteRules, equivDepth * 2) {
       override protected def watchName: String = "Prover"
       override def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean) =
-        super.createRules(lhs, rhs).map(_.withTermString(checker.stringForRule(lhs, rhs)))
+        super.createRules(lhs, rhs, save).map(_.withTermString(checker.stringForRule(lhs, rhs)))
     }
     val checker = new ConjectureChecker(prover, searcher, equivDepth)
 
