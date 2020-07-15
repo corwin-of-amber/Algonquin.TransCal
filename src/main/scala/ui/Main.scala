@@ -1,10 +1,12 @@
 package ui
 
-import java.io.{File, FileOutputStream, ObjectOutputStream, PrintStream}
+import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, PrintStream}
 import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
 import lispparser.{LispParser, Translator}
+import synthesis.Programs
+import synthesis.search.actions.thesy.{Prover, TheoryExplorationAction}
 //import lispparser.{sexpressionLexer, sexpressionParser}
 import org.rogach.scallop.ScallopOption
 import report.Stats
@@ -27,6 +29,7 @@ object Main extends App with LazyLogging {
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
     val file: ScallopOption[File] = opt[File]()
     val smtin: ScallopOption[Boolean] = opt[Boolean]()
+    val justCheck: ScallopOption[Boolean] = opt[Boolean]()
 
     validateFileIsFile(file)
     validateFileExists(file)
@@ -58,7 +61,12 @@ object Main extends App with LazyLogging {
     val text = source.getLines().mkString("\n")
     source.close()
     val res = new Translator(text).transcalScript
-    new ui.SmtlibInterperter().apply(res, conf.file.apply().getAbsolutePath + ".res")
+    if (!conf.justCheck()) {
+      new ui.SmtlibInterperter().apply(res, conf.file.apply().getAbsolutePath + ".res")
+    }
+    else {
+      new ui.SmtlibInterperter().check(res, Seq(conf.file().getAbsolutePath + ".res"))
+    }
   } else {
     val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)
     val optionalFile: ScallopOption[Iterator[AnnotatedTree]] = conf.file.map(readFile)

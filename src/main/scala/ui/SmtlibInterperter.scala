@@ -1,6 +1,6 @@
 package ui
 
-import java.io.{File, FileOutputStream, ObjectOutputStream}
+import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 
 import synthesis.Programs
 import synthesis.search.ActionSearchState
@@ -8,9 +8,38 @@ import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.{Distributer, SortedVocabulary, TheoryExplorationAction}
 import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
+import ui.Main.conf
 
 class SmtlibInterperter {
   def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean = true) = {
+    val state = prepareState(vocab, knownDefs, previousResults)
+    val exampleDepth = 3
+    val termDepth = Some(2)
+//    val distributer = Distributer(vocab, exampleDepth)
+//    distributer.runTasks(state)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), reprove)
+    thesy.setTimingBasename(new File(oosPath).getName + "_")
+    goals.foreach(g => thesy.addGoal(g))
+    thesy(state)
+    goalReport(goals, thesy)
+
+    val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
+    val oos = new ObjectOutputStream(new FileOutputStream(oosPath))
+    oos.writeObject(res)
+    oos.close()
+    res
+  }
+
+  def justCheck(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], previousResults: Set[RunResults]) = {
+    val state = prepareState(vocab, knownDefs, previousResults)
+    val thesy = new TheoryExplorationAction(vocab, 3, Some(0), None, None, None, Some(1), true)
+    goals.foreach(g => thesy.addGoal(g))
+    thesy(state)
+    thesy.checkGoals(state, null)
+    goalReport(goals, thesy)
+  }
+
+  def prepareState(vocab: SortedVocabulary, knownDefs: Set[AnnotatedTree], previousResults: Set[RunResults]) = {
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(vocab.datatypes.toSet).isEmpty)
 
     val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
@@ -18,18 +47,16 @@ class SmtlibInterperter {
     for (rr <- relevantResults) {
       state.addRules(rr.newRules.flatMap(new LetAction(_, allowExistential = false).rules))
     }
-    val exampleDepth = 3
-//    val distributer = Distributer(vocab, exampleDepth)
-//    distributer.runTasks(state)
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, Some(phCount), reprove)
-    thesy.setTimingBasename(new File(oosPath).getName + "_")
-    goals.foreach(g => thesy.addGoal(g))
-    thesy(state)
-    val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
-    val oos = new ObjectOutputStream(new FileOutputStream(oosPath))
-    oos.writeObject(res)
-    oos.close()
-    res
+    state
+  }
+
+  def goalReport(goals: Set[(AnnotatedTree, AnnotatedTree)], thesy: TheoryExplorationAction): Unit = {
+    for ((x, y) <- goals -- thesy.goals)
+      println(s" ✓ ${Programs.termToString(x)} = ${Programs.termToString(y)}")
+    for ((x, y) <- thesy.goals)
+      println(s" ✗ ${Programs.termToString(x)} = ${Programs.termToString(y)}")
+
+    println(if (thesy.goals.isEmpty) "Proved all goals :)" else " Some goals remain :(")
   }
 
   def ctorsId(datatypes: Set[Datatype]): Map[Identifier, Datatype] = datatypes.flatMap(d => d.constructors.map(_.copy(annotation = None) -> d)).toMap
@@ -88,6 +115,26 @@ class SmtlibInterperter {
   def apply(terms: List[AnnotatedTree], oos: String, previousResults: Set[RunResults] = Set.empty): RunResults = {
     val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
     runExploration(vocab, goals, funcDefs, 2, oos, previousResults)
+  }
+
+  def check(terms: List[AnnotatedTree], previousFilenames: Seq[String]): Unit =
+    check(terms, readPreviousResults(previousFilenames))
+
+  def check(terms: List[AnnotatedTree], previousResults: Set[RunResults] = Set.empty): Unit = {
+    val (vocab, defs, goals) = toVocabAndGoals(terms)
+    for (rr <- previousResults; ruleDef <- rr.newRules)
+      println(s"  ${Programs.termToString(ruleDef)}")
+    for ((x, y) <- goals) {
+      println(s" → ${Programs.termToString(x)} =? ${Programs.termToString(y)}")
+    }
+    justCheck(vocab, goals, defs, previousResults)
+  }
+
+  def readPreviousResults(filenames: Seq[String]): Set[RunResults] = {
+    filenames.map(fn => {
+      val ois = new ObjectInputStream(new FileInputStream(fn))
+      try { ois.readObject().asInstanceOf[RunResults] } finally { ois.close() }
+    }).toSet
   }
 
   def defdFunctions(funDecls: Set[AnnotatedTree], funDefs: Set[AnnotatedTree]): Set[AnnotatedTree] = {
