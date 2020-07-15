@@ -38,7 +38,7 @@ object TaskPrerunner extends App {
   })
 
 
-  val funcToVocabAndDefs = {
+  val vocabAndDef = {
     val res = mutable.Map.empty[AnnotatedTree, Set[(SortedVocabulary, Set[AnnotatedTree])]].withDefault(k => Set.empty)
     vocabsAndDefs.foreach({case (vocab, defs, goals) =>
       val inter = new SmtlibInterperter()
@@ -49,10 +49,21 @@ object TaskPrerunner extends App {
         res(df) = res(df) ++ Set((filteredVocab, relevantDefs))
       })
     })
-    val updated = res.values.map(s => s.minBy(_._2.size)).toSet
-    updated.par.map({ case (vocab, defs) =>
-      val inter = new SmtlibInterperter()
-      inter.runExploration(vocab, Set.empty, defs, 3, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty)
-    })
+    res.mapValues(s => s.minBy(_._2.size))
   }
+
+  val singleRunRes = vocabAndDef.par.mapValues({ case (vocab, defs) =>
+    val inter = new SmtlibInterperter()
+    inter.runExploration(vocab, Set.empty, defs, 3, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty)
+  }).seq
+
+  val coupleRunRes = vocabAndDef.keys.toSeq.combinations(2).toSet.par
+    .filter(fs => vocabsAndDefs.exists({case (vocab, defs, goals) => fs.diff(vocab.definitions.toSeq).isEmpty}))
+    .map(fs => {
+      val vocabulary = SortedVocabulary(fs.flatMap(f => vocabAndDef(f)._1.datatypes).toSet,
+        fs.flatMap(f => vocabAndDef(f)._1.definitions).toSet)
+      val defs = fs.flatMap(f => vocabAndDef(f)._2).toSet
+      val inter = new SmtlibInterperter()
+      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", singleRunRes.values.toSet)
+    }).seq
 }
