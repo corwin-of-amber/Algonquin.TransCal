@@ -28,8 +28,9 @@ object RunAllSmtTests extends App with LazyLogging {
   // TODO: Add timeouts by surrounding the execution with a timer inside tasks of executioncontext
   val resourcePath = "src/main/resources/ind-problems/benchmarks-dt"
   val files = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("smt2")))
-  val knowResults: mutable.Map[(SortedVocabulary, Set[AnnotatedTree]), RunResults] = mutable.Map(files.collect({
-    case f if new File(f.getAbsolutePath + ".res").exists() =>
+  val resFiles = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("res")))
+  val knowResults: mutable.Map[(SortedVocabulary, Set[AnnotatedTree]), RunResults] = mutable.Map(resFiles.collect({
+    case f if f.exists() =>
       val results = readRunResults(f)
       ((new SortedVocabulary(results.knownTypes, results.knownRules), results.knownRulesDefs), results)
   }): _*)
@@ -50,9 +51,8 @@ object RunAllSmtTests extends App with LazyLogging {
     .flatMap({
       case (vocab, phCount) =>
         val newVocab = vocab.copy(new SmtlibInterperter().usedDatatypes(vocab.datatypes, t._3._2))
-        val newFileName = resourcePath + "/../" + "prerun_" + newVocab.definitions.head.root.literal + "_" +
-          newVocab.datatypes.map(_.name.literal).toSeq.sorted.mkString("_") +
-          "_" + t._3._2.size + ".res"
+        val newFileName = t._1.getAbsolutePath.dropRight(4) + "_prerun_" + newVocab.definitions.head.root.literal + "_" +
+          newVocab.datatypes.map(_.name.literal).toSeq.sorted.mkString("_") + ".res"
         val newFile = new File(newFileName)
         if (newFile.exists()) {
           knowResults((newVocab, t._3._2)) = readRunResults(newFile)
@@ -61,8 +61,9 @@ object RunAllSmtTests extends App with LazyLogging {
         else Some((newFile, phCount, (newVocab, t._3._2, t._3._3)))
     }))
 
-  val taskToGoal = (subTasks ++ tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
-  def runOne(vocab: SortedVocabulary, ruleDefs: Set[AnnotatedTree]) = {
+//  val taskToGoal = (subTasks ++ tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
+  val taskToGoal = (tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
+  def runOne(vocab: SortedVocabulary, ruleDefs: Set[AnnotatedTree], reprove: Boolean) = {
     val k = (vocab, ruleDefs)
     val f = taskToGoal(k).map(_._5).minBy(_.getAbsolutePath())
     println(s"started ${f.getAbsolutePath}")
@@ -83,10 +84,10 @@ object RunAllSmtTests extends App with LazyLogging {
   }
 
   taskToGoal.keys.filter(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
-    runOne(vocab, ruleDefs)
+    runOne(vocab, ruleDefs, false)
   }).seq
 
   taskToGoal.keys.filterNot(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
-    runOne(vocab, ruleDefs)
+    runOne(vocab, ruleDefs, true)
   }).seq
 }

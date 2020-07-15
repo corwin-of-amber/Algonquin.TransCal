@@ -10,7 +10,7 @@ import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 class SmtlibInterperter {
-  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults]) = {
+  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean = true) = {
     val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(vocab.datatypes.toSet).isEmpty)
 
     val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
@@ -21,7 +21,7 @@ class SmtlibInterperter {
     val exampleDepth = 3
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, Some(phCount), true)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, None, None, None, None, Some(phCount), reprove)
     thesy.setTimingBasename(new File(oosPath).getName + "_")
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
