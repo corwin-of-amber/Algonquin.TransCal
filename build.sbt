@@ -23,3 +23,7 @@ scalacOptions ++= Seq(
   "-explaintypes",
   "-feature",
 )
+
+// Required for deserialization to work when running through sbt
+// (ObjectInputStream + ClassLoader problem)
+fork in run := true
