@@ -30,6 +30,7 @@ object Main extends App with LazyLogging {
     val file: ScallopOption[File] = opt[File]()
     val smtin: ScallopOption[Boolean] = opt[Boolean]()
     val justCheck: ScallopOption[Boolean] = opt[Boolean]()
+    val previousResults: ScallopOption[List[String]] = opt[List[String]]()
 
     validateFileIsFile(file)
     validateFileExists(file)
@@ -62,10 +63,11 @@ object Main extends App with LazyLogging {
     source.close()
     val res = new Translator(text).transcalScript
     if (!conf.justCheck()) {
-      new ui.SmtlibInterperter().apply(res, conf.file.apply().getAbsolutePath + ".res")
+      val smtin = new ui.SmtlibInterperter()
+      smtin(res, conf.file.apply().getAbsolutePath + ".res", smtin.readPreviousResults(conf.previousResults()))
     }
     else {
-      new ui.SmtlibInterperter().check(res, Seq(conf.file().getAbsolutePath + ".res"))
+      new ui.SmtlibInterperter().check(res, Seq(conf.file().getAbsolutePath + ".res") ++ conf.previousResults())
     }
   } else {
     val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)

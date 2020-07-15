@@ -8,7 +8,6 @@ import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.{Distributer, SortedVocabulary, TheoryExplorationAction}
 import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
-import ui.Main.conf
 
 class SmtlibInterperter {
   def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean = true) = {
