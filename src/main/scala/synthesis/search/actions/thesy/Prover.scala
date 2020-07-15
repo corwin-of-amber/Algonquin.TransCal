@@ -134,12 +134,17 @@ class Prover(datatypes: Set[Datatype], searcher: SearchAction, rules: Set[Rewrit
     res
   }
 
-  def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean = false) = {
-    val term = AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(lhs, rhs))
-    if (save) foundRules += term
-    new LetAction(term,
-      allowExistential = false).rules
+  def createRules(lhs: AnnotatedTree, rhs: AnnotatedTree, save: Boolean = false): Set[PatternRewriteRule] = {
+    if (isCatchAll(lhs)) Set.empty
+    else {
+      val term = AnnotatedTree.withoutAnnotations(Language.directedLetId, Seq(lhs, rhs))
+      if (save) foundRules += term
+      new LetAction(term,
+        allowExistential = false).rules
+    }
   }
+
+  def isCatchAll(t: AnnotatedTree) = t.isLeaf && t.root.literal.startsWith("?")
 }
 
 object Prover {
