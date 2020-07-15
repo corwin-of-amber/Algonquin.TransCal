@@ -5,7 +5,8 @@ import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, Obje
 import com.typesafe.scalalogging.LazyLogging
 import lispparser.Translator
 import report.Stats
-import synthesis.search.actions.thesy.Distributer
+import synthesis.search.actions.thesy.{Distributer, SortedVocabulary}
+import transcallang.AnnotatedTree
 import ui.Main.conf
 
 import scala.collection.mutable
@@ -14,7 +15,7 @@ import scala.io.Source
 
 object RunAllSmtTests extends App with LazyLogging {
   def readRunResults(file: File): RunResults = {
-    val fixedFile = if(file.getAbsolutePath.endsWith(".res")) file else new File(file.getAbsolutePath + ".res")
+    val fixedFile = if (file.getAbsolutePath.endsWith(".res")) file else new File(file.getAbsolutePath + ".res")
     val ois = new ObjectInputStream(new FileInputStream(fixedFile))
     val res = ois.readObject().asInstanceOf[RunResults]
     ois.close()
@@ -26,12 +27,12 @@ object RunAllSmtTests extends App with LazyLogging {
 
   // TODO: Add timeouts by surrounding the execution with a timer inside tasks of executioncontext
   val resourcePath = "src/main/resources/ind-problems/benchmarks-dt"
-  val allFiles = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("smt2")))
-  val knowResults: mutable.Map[String, RunResults] = mutable.Map(allFiles.collect({
-    case f if new File(f.getAbsolutePath + ".res").exists() => (f.getName, readRunResults(f))
+  val files = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("smt2")))
+  val knowResults: mutable.Map[(SortedVocabulary, Set[AnnotatedTree]), RunResults] = mutable.Map(files.collect({
+    case f if new File(f.getAbsolutePath + ".res").exists() =>
+      val results = readRunResults(f)
+      ((new SortedVocabulary(results.knownTypes, results.knownRules), results.knownRulesDefs), results)
   }): _*)
-  val files = allFiles.filterNot(f => knowResults.get(f.getName).exists(rr => rr.successGoals == rr.goals))
-    .sortBy(_.getName.replace(".smt2", "").reverse.takeWhile(_.isDigit).reverse.toInt).par
   val tasks = files.flatMap(f => {
     val source = Source.fromFile(f)
     try {
@@ -43,21 +44,28 @@ object RunAllSmtTests extends App with LazyLogging {
         logger.warn(s"Skipping ${f.getAbsolutePath}, as it has a non equality assertion.")
         None
     }
-  })
+  }).filterNot(t => knowResults.contains(t._3._1, t._3._2))
+
   val subTasks = tasks.flatMap(t => Distributer(t._3._1, 3).getExplorationTasks.flatten
     .flatMap({
       case (vocab, phCount) =>
-        val newFileName = resourcePath + "/../" + "prerun_" + vocab.definitions.map(_.root.literal).sorted.mkString("_") + ".res"
+        val newVocab = vocab.copy(new SmtlibInterperter().usedDatatypes(vocab.datatypes, t._3._2))
+        val newFileName = resourcePath + "/../" + "prerun_" + newVocab.definitions.head.root.literal + "_" +
+          newVocab.datatypes.map(_.name.literal).toSeq.sorted.mkString("_") +
+          "_" + t._3._2.size + ".res"
         val newFile = new File(newFileName)
         if (newFile.exists()) {
-          knowResults(newFileName) = readRunResults(newFile)
+          knowResults((newVocab, t._3._2)) = readRunResults(newFile)
           None
         }
-        else Some((newFile, phCount, (vocab, t._3._2, t._3._3)))
+        else Some((newFile, phCount, (newVocab, t._3._2, t._3._3)))
     }))
-  val taskToGoal = (subTasks ++ tasks).map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
-  taskToGoal.keys.toArray.sortBy(_._1.definitions.size).map({ case k@(vocab, ruleDefs) =>
+
+  val taskToGoal = (subTasks ++ tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
+  def runOne(vocab: SortedVocabulary, ruleDefs: Set[AnnotatedTree]) = {
+    val k = (vocab, ruleDefs)
     val f = taskToGoal(k).map(_._5).minBy(_.getAbsolutePath())
+    println(s"started ${f.getAbsolutePath}")
     val oosPath = if (f.getAbsolutePath.endsWith(".res")) f.getAbsolutePath else f.getAbsolutePath + ".res"
     var results = Set.empty[RunResults]
     Locker.synchronized({
@@ -67,10 +75,18 @@ object RunAllSmtTests extends App with LazyLogging {
     val phCount = taskToGoal(k).map(_._4).max
     val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, phCount, oosPath, results)
     Locker.synchronized({
-      knowResults(f.getName) = newRes
+      knowResults((vocab, ruleDefs)) = newRes
       val timingOut = new ObjectOutputStream(new FileOutputStream("smt-timings.bin"))
       timingOut.writeObject(Stats.Timing.dump)
       timingOut.close()
     })
-  })
+  }
+
+  taskToGoal.keys.filter(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
+    runOne(vocab, ruleDefs)
+  }).seq
+
+  taskToGoal.keys.filterNot(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
+    runOne(vocab, ruleDefs)
+  }).seq
 }

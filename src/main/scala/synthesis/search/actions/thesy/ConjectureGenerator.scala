@@ -88,7 +88,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
       AnnotatedTree.withoutAnnotations(SyGuERewriteRules.sygueCreatedId, Seq(t))
     )))
     val tree = if (symbols.size > 1)
-      AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse)
+      AnnotatedTree.withoutAnnotations(Language.limitedAndCondBuilderId, symbolsToUse.toSeq)
     else
       symbolsToUse.head
     val res =
@@ -142,7 +142,7 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //    }
     val soes = vocab.datatypes.par.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
     soes.foreach(_.setTimingBasename(basename))
-    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq)
+    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq.toSeq)
     ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
   }
 }

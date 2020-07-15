@@ -48,7 +48,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
            placeholderCountOption: Option[Int] = None,
            reprove: Boolean = false) = this({
     val baseType = typeBuilders.find(_.annotation.get.root != Language.mapTypeId).flatMap(_.annotation).get
-    SortedVocabulary(Seq(Datatype(baseType.root, baseType.subtrees, typeBuilders.toSeq)), grammar.toSeq)
+    SortedVocabulary(Set(Datatype(baseType.root, baseType.subtrees, typeBuilders.toSeq)), grammar)
   }, exampleDepth, termDepthOption, equivDepthOption, splitDepthOption, preRunDepth, placeholderCountOption, reprove)
 
   var termCount = 0

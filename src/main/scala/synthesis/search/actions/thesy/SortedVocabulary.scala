@@ -8,11 +8,11 @@ import transcallang.{AnnotatedTree, Datatype}
   * @param datatypes
   * @param definitions function symbols
   */
-case class SortedVocabulary(datatypes: Seq[Datatype], definitions: Seq[AnnotatedTree]) {
+case class SortedVocabulary(datatypes: Set[Datatype], definitions: Set[AnnotatedTree]) {
   assert(definitions.forall(_.getType.nonEmpty))
-  assert(datatypes.length + definitions.length > 0)
+  assert(datatypes.size + definitions.size > 0)
 
-  def allSymbols: Seq[AnnotatedTree] = datatypes.flatMap(_.constructors
+  def allSymbols: Set[AnnotatedTree] = datatypes.flatMap(_.constructors
     .map(c => AnnotatedTree.identifierOnly(c))) ++ definitions
 
   def prettyPrint =

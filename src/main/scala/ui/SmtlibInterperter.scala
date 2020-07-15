@@ -73,8 +73,8 @@ class SmtlibInterperter {
     }
 
     val vocab = SortedVocabulary(
-      usedDatatypes(datatypes.toSet, knownDefs.toSet).toSeq,
-      defdFunctions(knownFunctions.toSet, knownDefs.toSet).toSeq)
+      usedDatatypes(datatypes.toSet, knownDefs.toSet),
+      defdFunctions(knownFunctions.toSet, knownDefs.toSet))
     assert(vocab.definitions.nonEmpty, "no function definitions found")
     assert(vocab.datatypes.nonEmpty, "no relevant datatypes found")
     println(vocab.prettyPrint)

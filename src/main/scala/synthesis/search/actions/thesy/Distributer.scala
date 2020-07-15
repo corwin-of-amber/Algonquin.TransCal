@@ -32,14 +32,14 @@ case class Distributer(vocabulary: SortedVocabulary, exampleDepth: Int) {
 
     val singles = vocabulary.definitions.filter(d => fToMaxCount(d) > 0).map(d => {
       val params = d.getType.get.subtrees.dropRight(1)
-      val singleVocab = SortedVocabulary(vocabulary.datatypes.filter(dt => params.contains(dt.asType)), Seq(d))
+      val singleVocab = SortedVocabulary(vocabulary.datatypes.filter(dt => params.contains(dt.asType)), Set(d))
       (singleVocab, fToMaxCount(d) + 1)
     }).toSet
 
-    val couples = vocabulary.definitions.combinations(2)
+    val couples = vocabulary.definitions.toSeq.combinations(2)
       .filter(ds => vocabulary.datatypes.exists(dt => dtToFToCount(dt)(ds(0)) > 1 && dtToFToCount(dt)(ds(1)) > 1))
       .map(ds => {
-      (SortedVocabulary(vocabulary.datatypes, ds), ds.map(fToMaxCount).max + 1)
+      (SortedVocabulary(vocabulary.datatypes, ds.toSet), ds.map(fToMaxCount).max + 1)
     }).toSet
 
 //    Seq(singles, couples)
