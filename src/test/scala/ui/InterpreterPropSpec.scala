@@ -74,6 +74,14 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     result should not be empty
   }
 
+  test("SPBENatPlus") {
+    val fileName = "src/main/resources/examples/RunSpbeNatSuc.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression(" plus x y ||| plus y x"))
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
   test("SPBEFilterFilter") {
     val fileName = "src/main/resources/examples/RunSpbeFilterFilter.tc"
     val lastState = abstractTest(fileName)
