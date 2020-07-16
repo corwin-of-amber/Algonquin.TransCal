@@ -54,17 +54,22 @@ object TaskPrerunner extends App {
     res.mapValues(s => s.minBy(_._2.size))
   }
 
-  val singleRunRes = vocabAndDef.toSeq.par.map({ case (k: AnnotatedTree, (vocab: SortedVocabulary, defs: Set[AnnotatedTree])) =>
-    val inter = new SmtlibInterperter()
-    println(vocab.definitions)
+  val singleRunRes = vocabAndDef.toSeq.flatMap({ case (k: AnnotatedTree, (vocab: SortedVocabulary, defs: Set[AnnotatedTree])) =>
     val oospath = s"$resourcePath/${vocab.definitions.head.root.literal}.res"
-    if (new File(oospath).exists()) k -> readRunResults(new File(oospath))
-    else {
-      println(s"starting $oospath")
-      val phCount = if(vocab.allSymbols.exists(_.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
-      k -> inter.runExploration(vocab, Set.empty, defs, phCount, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty)
-    }
-  }).seq.toMap
+    if (new File(oospath).exists()) Some(k -> readRunResults(new File(oospath)))
+    else None
+  }).toMap
+
+//  val singleRunRes = vocabAndDef.toSeq.par.map({ case (k: AnnotatedTree, (vocab: SortedVocabulary, defs: Set[AnnotatedTree])) =>
+//    val inter = new SmtlibInterperter()
+//    val oospath = s"$resourcePath/${vocab.definitions.head.root.literal}.res"
+//    if (new File(oospath).exists()) k -> readRunResults(new File(oospath))
+//    else {
+//      println(s"starting $oospath")
+//      val phCount = if(vocab.allSymbols.exists(_.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
+//      k -> inter.runExploration(vocab, Set.empty, defs, phCount, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty, false)
+//    }
+//  }).seq.toMap
 
   val coupleRunRes = vocabAndDef.keys.toSeq.combinations(2).toSet.par
     .filter(fs => allVocabsAndDefs.exists({case (vocab, defs, goals) => fs.diff(vocab.definitions.toSeq).isEmpty}))
@@ -77,7 +82,7 @@ object TaskPrerunner extends App {
       if (new File(oospath).exists()) readRunResults(new File(oospath))
       else {
         println(s"starting $oospath")
-        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, fs.flatMap(singleRunRes.get).toSet)
+        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, fs.flatMap(singleRunRes.get).toSet, true)
       }
 //      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", singleRunRes.values.toSet)
     }).seq

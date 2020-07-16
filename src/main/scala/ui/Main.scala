@@ -58,16 +58,35 @@ object Main extends App with LazyLogging {
   val conf = new CommandLineConfiguration(args.toIndexedSeq)
 
   if (conf.smtin.getOrElse(false)) {
-    val source = Source.fromFile(conf.file())
-    val text = source.getLines().mkString("\n")
-    source.close()
-    val res = new Translator(text).transcalScript
+
     val smtin = new ui.SmtlibInterperter()
-    val prevResults = conf.previousResults.map(l => smtin.readPreviousResults(l)).getOrElse(Set.empty[RunResults])
+//    val prevResults = conf.previousResults.map(l => smtin.readPreviousResults(l)).getOrElse(Set.empty[RunResults])
+    val prevResults = conf.file().getParentFile.listFiles(_.getName.endsWith(".res"))
     if (!conf.justCheck()) {
-      smtin(res, conf.file.apply().getAbsolutePath + ".res", prevResults)
+      val goals = conf.file().getParentFile.listFiles(_.getName.endsWith(".smt2"))
+      goals.filterNot(f => {
+        prevResults.exists(p => {
+          val res = p.getAbsolutePath.contains(f.getAbsolutePath) && {
+            val pr = smtin.readPreviousResults(Seq(p.getAbsolutePath))
+            pr.head.goals == pr.head.successGoals
+          }
+          if(res) println(s"Done with ${f.getName}")
+          res
+        })
+      }).par.map(g =>{
+        val source = Source.fromFile(g)
+        val text = source.getLines().mkString("\n")
+        source.close()
+        println(s"working on ${g.getName}")
+        val res = new Translator(text).transcalScript
+        smtin(res, g.getAbsolutePath + ".res", smtin.readPreviousResults(prevResults.map(f => f.getAbsolutePath)))
+      })
     }
     else {
+      val source = Source.fromFile(conf.file())
+      val text = source.getLines().mkString("\n")
+      source.close()
+      val res = new Translator(text).transcalScript
       smtin.check(res, Seq(conf.file().getAbsolutePath + ".res") ++ conf.previousResults.getOrElse(List.empty[String]))
     }
   } else {
