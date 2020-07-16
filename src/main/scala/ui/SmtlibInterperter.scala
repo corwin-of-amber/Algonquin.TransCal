@@ -48,7 +48,7 @@ class SmtlibInterperter {
   }
 
   def prepareState(vocab: SortedVocabulary, knownDefs: Set[AnnotatedTree], previousResults: Set[RunResults]) = {
-    val relevantResults = previousResults.filter(rr => rr.knownRulesDefs.diff(knownDefs).isEmpty && rr.knownTypes.diff(vocab.datatypes.toSet).isEmpty)
+    val relevantResults = previousResults
 
     val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
     knownDefs.foreach(t => new LetAction(t, allowExistential = false)(state))
