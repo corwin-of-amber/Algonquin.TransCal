@@ -96,10 +96,10 @@ class SmtlibInterperter {
           knownDefs += t
         case Language.assertId =>
           assert(t.subtrees.head.root == Language.letId)
-          goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
+          goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
         case Identifier("not", annotation, namespace) if t.subtrees.head.root == Language.letId =>
           assert(t.subtrees.head.root == Language.letId)
-          goal = Some((t.subtrees.head.subtrees(0).map(cleanAutovar), t.subtrees.head.subtrees(1).map(cleanAutovar)))
+          goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
         case Identifier("not", annotation, namespace) if t.subtrees.head.root != Language.letId =>
           throw new IllegalArgumentException(s"Don't support stuff that isn't equality (${t.subtrees.head})")
         case x =>
