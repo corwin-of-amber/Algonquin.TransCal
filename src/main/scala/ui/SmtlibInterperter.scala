@@ -17,6 +17,7 @@ class SmtlibInterperter {
     val termDepth = Some(2)
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
+
     val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), false)
 
     thesy.setTimingBasename(new File(oosPath).getName + "_")
@@ -25,7 +26,7 @@ class SmtlibInterperter {
     goalReport(goals, thesy)
 
     var res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
-    if (phCount > 3) {
+    if (phCount > 2) {
       val thesy2 = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(2), false)
       goals.foreach(g => thesy.addGoal(g))
       thesy2(state)

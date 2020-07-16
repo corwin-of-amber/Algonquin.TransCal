@@ -1,12 +1,14 @@
 package ui
 
 import java.io.{File, FileInputStream, ObjectInputStream}
+import java.util.Locale.LanguageRange
 
 import lispparser.Translator
 import synthesis.search.actions.thesy.{Distributer, SortedVocabulary}
-import transcallang.AnnotatedTree
+import transcallang.{AnnotatedTree, Language}
 
 import scala.collection.mutable
+import scala.collection.parallel.ForkJoinTaskSupport
 import scala.io.Source
 
 object TaskPrerunner extends App {
@@ -55,7 +57,13 @@ object TaskPrerunner extends App {
   val singleRunRes = vocabAndDef.toSeq.par.map({ case (k: AnnotatedTree, (vocab: SortedVocabulary, defs: Set[AnnotatedTree])) =>
     val inter = new SmtlibInterperter()
     println(vocab.definitions)
-    k -> inter.runExploration(vocab, Set.empty, defs, 3, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty)
+    val oospath = s"$resourcePath/${vocab.definitions.head.root.literal}.res"
+    if (new File(oospath).exists()) k -> readRunResults(new File(oospath))
+    else {
+      println(s"starting $oospath")
+      val phCount = if(vocab.allSymbols.exists(_.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
+      k -> inter.runExploration(vocab, Set.empty, defs, phCount, s"$resourcePath/${vocab.definitions.head.root.literal}.res", Set.empty)
+    }
   }).seq.toMap
 
   val coupleRunRes = vocabAndDef.keys.toSeq.combinations(2).toSet.par
@@ -66,7 +74,13 @@ object TaskPrerunner extends App {
       println(vocabulary.definitions)
       val defs = fs.flatMap(f => vocabAndDef(f)._2).toSet
       val inter = new SmtlibInterperter()
-      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", Set.empty)
+      val oospath = s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res"
+      if (new File(oospath).exists()) readRunResults(new File(oospath))
+      else {
+        println(s"starting $oospath")
+        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, Set.empty)
+      }
 //      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", singleRunRes.values.toSet)
     }).seq
+
 }
