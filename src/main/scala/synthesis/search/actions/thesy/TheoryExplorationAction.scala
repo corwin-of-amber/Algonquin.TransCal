@@ -4,9 +4,11 @@ import report.{LazyTiming, Stats, StopWatch}
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions._
+import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 import scala.collection.mutable
+import util.control.Breaks._
 
 /** Theory exploration powered by term rewriting
   *
@@ -92,14 +94,35 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     goals.add(goal)
   }
 
-  def checkGoals(state: ActionSearchState, prover: Prover): Boolean = {
-    if (goals.isEmpty) false
+  def checkGoals(state: ActionSearchState, prover: Prover): (Boolean, Set[(AnnotatedTree, Set[RewriteRule])]) = {
+    if (goals.isEmpty) (false, Set.empty)
     else {
+      val foundRules = mutable.Set.empty[(AnnotatedTree, Set[RewriteRule])]
       for (g <- goals) {
-        val res = new ObservationalEquivalence(searcher).fromTerms(Seq(g._1, g._2), state.rewriteRules, equivDepth)
+        val goal = Seq(g._1, g._2)
+        val res = new ObservationalEquivalence(searcher).fromTerms(goal.map(_.map(_.cleanReferences)), state.rewriteRules, equivDepth)
         if (res.size == 1) goals.remove(g)
+        else {
+          val common = g._1.terminals.filter(_.isReference).intersect(g._2.terminals)
+          var res = Set.empty[RewriteRule]
+          breakable { for(c <- common) {
+            def cleanExceptCommon(i: Identifier) = if (i == c) c else i.cleanReferences
+            val updatedGoal = goal.map(_.map(cleanExceptCommon))
+            val baseCases = vocab.datatypes.find(_.asType == c.annotation.get).get.constructors.filter(_.isFunction)
+            val baseGoals = baseCases.toSet.map((bc: Identifier) => updatedGoal.toSet.map((t: AnnotatedTree) => t.replaceDescendant((AnnotatedTree.identifierOnly(c), AnnotatedTree.identifierOnly(bc)))))
+            val baseRes = new ObservationalEquivalence(searcher).fromTerms(baseGoals.flatten.toSeq, state.rewriteRules, equivDepth)
+            if (baseGoals.forall(group1 => baseRes.exists(group2 => group1.diff(group2).isEmpty))) {
+              res = prover.inductionProof(updatedGoal.head, updatedGoal.last).toSet
+              foundRules ++= Set((AnnotatedTree.withoutAnnotations(Language.letId, goal), res))
+              if (res.nonEmpty) {
+                goals.remove(g)
+                break
+              }
+            }
+          }}
+        }
       }
-      goals.isEmpty
+      (goals.isEmpty, foundRules.toSet)
     }
   }
 
@@ -139,7 +162,10 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
       logger.info(s"Found new lemmas in depth $i:")
       for (t <- foundRules.last)
         logger.info(s"  + ${Programs.termToString(conjectureChecker.prettify(t))}")
-      if(checkGoals(state, prover)) {
+      val (goalsDone, newGoalRules) = checkGoals(state, prover)
+      state.addRules(newGoalRules.flatMap(_._2))
+      foundRules.last ++= newGoalRules.map(_._1)
+      if(goalsDone) {
         logger.info("Success - Proved all goals.")
         return state
       }
@@ -161,7 +187,10 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
           for (t <- foundRules.last)
             logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
           foundRules.last ++= newRules
-          if(newRules.nonEmpty && checkGoals(state, prover)) {
+          val (goalsDone, newGoalRules) = checkGoals(state, prover)
+          state.addRules(newGoalRules.flatMap(_._2))
+          foundRules.last ++= newGoalRules.map(_._1)
+          if(goalsDone) {
             logger.info("Success - Proved all goals.")
             return state
           }

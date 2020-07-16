@@ -62,12 +62,13 @@ object Main extends App with LazyLogging {
     val text = source.getLines().mkString("\n")
     source.close()
     val res = new Translator(text).transcalScript
+    val smtin = new ui.SmtlibInterperter()
+    val prevResults = conf.previousResults.map(l => smtin.readPreviousResults(l)).getOrElse(Set.empty[RunResults])
     if (!conf.justCheck()) {
-      val smtin = new ui.SmtlibInterperter()
-      smtin(res, conf.file.apply().getAbsolutePath + ".res", smtin.readPreviousResults(conf.previousResults()))
+      smtin(res, conf.file.apply().getAbsolutePath + ".res", prevResults)
     }
     else {
-      new ui.SmtlibInterperter().check(res, Seq(conf.file().getAbsolutePath + ".res") ++ conf.previousResults())
+      smtin.check(res, Seq(conf.file().getAbsolutePath + ".res") ++ conf.previousResults.getOrElse(List.empty[String]))
     }
   } else {
     val consolein = Source.createBufferedSource(System.in).getLines().filter(_ != "").map(_ + "\n").map(parser.apply)
