@@ -2,17 +2,35 @@ package ui
 
 import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 
+import structures.{EmptyMetadata, Metadata}
 import synthesis.Programs
 import synthesis.search.ActionSearchState
 import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.{Distributer, SortedVocabulary, TheoryExplorationAction}
-import synthesis.search.rewrites.RewriteRule
-import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
+import synthesis.search.rewrites.{RewriteRule, RewriteRulesDB, SystemRewriteRulesDB}
+import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalParser}
+
+object BaseTheoryRulesDb extends RewriteRulesDB {
+  val parser = new TranscalParser
+  override protected def ruleTemplates: Set[AnnotatedTree] = Set(
+    "ite ?b ?x ?y |>> splitTrue ||| possibleSplit(b, true, false)",
+    "ite true ?x ?y >> x",
+    "ite false ?x ?y >> y",
+    "and ?x ?y = ite x (ite y true false) false",
+    "and ?x ?y >> and y x",
+    "or ?x ?y = ite x true (ite y true false)",
+    "or ?x ?y >> and y x",
+    "not ?x = ite x false true",
+    "implication ?x ?y = or y (not x)"
+    ).map(s => parser.apply(s))
+
+  override protected def metadata: Metadata = EmptyMetadata
+}
 
 class SmtlibInterperter {
   def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean) = {
     val state = prepareState(vocab, knownDefs, previousResults)
-    val exampleDepth = 3
+    val exampleDepth = if(knownDefs.exists(t => t.nodes.exists(n => n.root.literal == "ite"))) 2 else 3
     val termDepth = Some(2)
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
@@ -50,7 +68,7 @@ class SmtlibInterperter {
   def prepareState(vocab: SortedVocabulary, knownDefs: Set[AnnotatedTree], previousResults: Set[RunResults]) = {
     val relevantResults = previousResults
 
-    val state = new ActionSearchState(Programs.empty, Set.empty[RewriteRule])
+    val state = new ActionSearchState(Programs.empty, SystemRewriteRulesDB.rewriteRules ++ BaseTheoryRulesDb.rewriteRules)
     knownDefs.foreach(t => new LetAction(t, allowExistential = false)(state))
     for (rr <- relevantResults) {
       state.addRules(rr.newRules.flatMap(new LetAction(_, allowExistential = false).rules))

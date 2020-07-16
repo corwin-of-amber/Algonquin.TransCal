@@ -28,11 +28,13 @@ object Main extends App with LazyLogging {
 
   class CommandLineConfiguration(arguments: Seq[String]) extends ScallopConf(arguments) {
     val file: ScallopOption[File] = opt[File]()
+    val dir: ScallopOption[File] = opt[File]()
     val smtin: ScallopOption[Boolean] = opt[Boolean]()
     val justCheck: ScallopOption[Boolean] = opt[Boolean]()
     val previousResults: ScallopOption[List[String]] = opt[List[String]](default = Some(List()))
 
     validateFileIsFile(file)
+    validateFileIsDirectory(dir)
     validateFileExists(file)
     verify()
   }
@@ -61,9 +63,9 @@ object Main extends App with LazyLogging {
 
     val smtin = new ui.SmtlibInterperter()
 //    val prevResults = conf.previousResults.map(l => smtin.readPreviousResults(l)).getOrElse(Set.empty[RunResults])
-    val prevResults = conf.file().getParentFile.listFiles(_.getName.endsWith(".res"))
+    val prevResults = conf.dir.map(_.listFiles(_.getName.endsWith(".res"))).getOrElse(Array(new File(conf.file().getCanonicalPath + ".res")).filter(_.exists()))
     if (!conf.justCheck()) {
-      val goals = conf.file().getParentFile.listFiles(_.getName.endsWith(".smt2"))
+      val goals = conf.dir.map(_.listFiles(_.getName.endsWith(".smt2"))).getOrElse(Array(conf.file()))
       goals.filterNot(f => {
         prevResults.exists(p => {
           val res = p.getAbsolutePath.contains(f.getAbsolutePath) && {
