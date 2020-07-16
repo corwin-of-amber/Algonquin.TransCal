@@ -10,14 +10,14 @@ import synthesis.search.rewrites.RewriteRule
 import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 class SmtlibInterperter {
-  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean = true) = {
+  def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean) = {
     val state = prepareState(vocab, knownDefs, previousResults)
     val exampleDepth = 3
     val termDepth = Some(2)
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
 
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), false)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), reprove)
 
     thesy.setTimingBasename(new File(oosPath).getName + "_")
     goals.foreach(g => thesy.addGoal(g))
@@ -26,8 +26,8 @@ class SmtlibInterperter {
 
     var res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
     if (phCount > 2) {
-      val thesy2 = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(2), false)
-      goals.foreach(g => thesy.addGoal(g))
+      val thesy2 = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(2), reprove)
+      goals.foreach(g => thesy2.addGoal(g))
       thesy2(state)
       res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules ++ thesy2.getFoundRules, goals, goals.diff(thesy2.goals))
     }
@@ -43,7 +43,7 @@ class SmtlibInterperter {
     val thesy = new TheoryExplorationAction(vocab, 3, Some(0), None, None, None, Some(1), true)
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
-    thesy.checkGoals(state, null)
+    thesy.checkGoals(state, thesy.lastProver.get)
     goalReport(goals, thesy)
   }
 
@@ -123,7 +123,7 @@ class SmtlibInterperter {
 
   def apply(terms: List[AnnotatedTree], oos: String, previousResults: Set[RunResults] = Set.empty): RunResults = {
     val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
-    runExploration(vocab, goals, funcDefs, 2, oos, previousResults)
+    runExploration(vocab, goals, funcDefs, 2, oos, previousResults, true)
   }
 
   def check(terms: List[AnnotatedTree], previousFilenames: Seq[String]): Unit =

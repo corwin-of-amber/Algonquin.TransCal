@@ -114,7 +114,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
           val common = g._1.terminals.filter(_.isReference).intersect(g._2.terminals)
           var res = Set.empty[RewriteRule]
           breakable { for(c <- common) {
-            def cleanExceptCommon(i: Identifier) = if (i == c) thesy.inductionVar(i.annotation.get) else i.cleanReferences
+            def cleanExceptCommon(i: Identifier) = if (i == c) thesy.inductionVar(i.annotation.get) else i
             val updatedGoal = goal.map(_.map(cleanExceptCommon))
             val baseCases = vocab.datatypes.find(_.asType == c.annotation.get).get.constructors.filterNot(_.isFunction)
             val baseGoals = baseCases.toSet.map((bc: Identifier) => updatedGoal.toSet.map((t: AnnotatedTree) => t.replaceDescendant((AnnotatedTree.identifierOnly(thesy.inductionVar(c.annotation.get)), AnnotatedTree.identifierOnly(bc)))))
@@ -134,7 +134,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     }
   }
 
-  private var lastProver: Option[Prover] = None
+  var lastProver: Option[Prover] = None
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     val (prover, conjectureChecker) = new ProverCheckerBundle(state).toTuple
@@ -147,7 +147,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     val (goalsDone1, newGoalRules1) = checkGoals(state, prover)
     state.addRules(newGoalRules1.flatMap(_._2))
     foundRules += mutable.Buffer.empty
-    foundRules.last ++= newGoalRules1.map(_._1)
+    foundRules.last ++= newGoalRules1.filter(_._2.nonEmpty).map(_._1)
     if(goalsDone1) {
       logger.info("Success - Proved all goals.")
       return state
@@ -181,7 +181,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
         logger.info(s"  + ${Programs.termToString(conjectureChecker.prettify(t))}")
       val (goalsDone, newGoalRules) = checkGoals(state, prover)
       state.addRules(newGoalRules.flatMap(_._2))
-      foundRules.last ++= newGoalRules.map(_._1)
+      foundRules.last ++= newGoalRules.filter(_._2.nonEmpty).map(_._1)
       if(goalsDone) {
         logger.info("Success - Proved all goals.")
         return state
@@ -206,7 +206,7 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
           foundRules.last ++= newRules
           val (goalsDone, newGoalRules) = checkGoals(state, prover)
           state.addRules(newGoalRules.flatMap(_._2))
-          foundRules.last ++= newGoalRules.map(_._1)
+          foundRules.last ++= newGoalRules.filter(_._2.nonEmpty).map(_._1)
           if(goalsDone) {
             logger.info("Success - Proved all goals.")
             return state
@@ -215,9 +215,11 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
       }
     }
     logger.info("Done searching for rules:")
-    for (t <- foundRules.flatten)
+    for (t <- foundRules.flatten) {
       logger.info(s"  ⦿ ${Programs.termToString(conjectureChecker.prettify(t))}")
-      //logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
+      logger.info(s"  ${Programs.termToString(t.subtrees.head)} = ${Programs.termToString(t.subtrees.last)}")
+    }
+
     //    }
 
     logger.info(s"Done SPBE  @  ${StopWatch.instance.now}")

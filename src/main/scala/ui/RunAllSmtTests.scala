@@ -28,7 +28,7 @@ object RunAllSmtTests extends App with LazyLogging {
   // TODO: Add timeouts by surrounding the execution with a timer inside tasks of executioncontext
   val resourcePath = "src/main/resources/ind-problems/benchmarks-dt/clam"
   val files = new File(resourcePath).listFiles(f => f.isFile && f.getName.endsWith("smt2"))
-    //.filter((f: File) => f.getName.dropRight(5).reverse.takeWhile(_.isDigit).reverse.toInt < 11)
+  //.filter((f: File) => f.getName.dropRight(5).reverse.takeWhile(_.isDigit).reverse.toInt < 11)
   val resFiles = new File(resourcePath).listFiles(f => f.isFile && f.getName.endsWith("res"))
   val knowResults: mutable.Map[(SortedVocabulary, Set[AnnotatedTree]), RunResults] = mutable.Map(resFiles.collect({
     case f if f.exists() =>
@@ -48,24 +48,28 @@ object RunAllSmtTests extends App with LazyLogging {
     }
   }).filterNot(t => knowResults.contains(t._3._1, t._3._2))
 
-  val subTasks = tasks.flatMap(t => Distributer(t._3._1, 3).getExplorationTasks.flatten
-    .flatMap({
-      case (vocab, phCount) =>
-        val newVocab = vocab.copy(new SmtlibInterperter().usedDatatypes(vocab.datatypes, t._3._2))
-        val newFileName = t._1.getAbsolutePath.dropRight(4) + "_prerun_" + newVocab.definitions.head.root.literal + "_" +
-          newVocab.datatypes.map(_.name.literal).toSeq.sorted.mkString("_") + ".res"
-        val newFile = new File(newFileName)
-        if (newFile.exists()) {
-          knowResults((newVocab, t._3._2)) = readRunResults(newFile)
-          None
-        }
-        else Some((newFile, phCount, (newVocab, t._3._2, t._3._3)))
-    }))
+  //  val subTasks = tasks.flatMap(t => Distributer(t._3._1, 3).getExplorationTasks.flatten
+  //    .flatMap({
+  //      case (vocab, phCount) =>
+  //        val newVocab = vocab.copy(new SmtlibInterperter().usedDatatypes(vocab.datatypes, t._3._2))
+  //        val newFileName = t._1.getAbsolutePath.dropRight(4) + "_prerun_" + newVocab.definitions.head.root.literal + "_" +
+  //          newVocab.datatypes.map(_.name.literal).toSeq.sorted.mkString("_") + ".res"
+  //        val newFile = new File(newFileName)
+  //        if (newFile.exists()) {
+  //          knowResults((newVocab, t._3._2)) = readRunResults(newFile)
+  //          None
+  //        }
+  //        else Some((newFile, phCount, (newVocab, t._3._2, t._3._3)))
+  //    }))
 
-//  val taskToGoal = (subTasks ++ tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
-  val taskToGoal = (tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
+  //  val taskToGoal = (subTasks ++ tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => (t._1, t._2))
+  var taskToGoal = (tasks).seq.map(t => (t._3._1, t._3._2, t._3._3, t._2, t._1)).groupBy(t => t._1)
+//  taskToGoal = taskToGoal.filterNot({ case (vocab, data) =>
+//    taskToGoal.keys.exists(vocab1 => (vocab.allSymbols -- vocab1.allSymbols).isEmpty)
+//  })
+
   def runOne(vocab: SortedVocabulary, ruleDefs: Set[AnnotatedTree], reprove: Boolean) = {
-    val k = (vocab, ruleDefs)
+    val k = vocab
     val f = taskToGoal(k).map(_._5).minBy(_.getAbsolutePath())
     println(s"started ${f.getAbsolutePath}")
     val oosPath = if (f.getAbsolutePath.endsWith(".res")) f.getAbsolutePath else f.getAbsolutePath + ".res"
@@ -75,7 +79,7 @@ object RunAllSmtTests extends App with LazyLogging {
     })
     val goals = taskToGoal(k).map(_._3)
     val phCount = taskToGoal(k).map(_._4).max
-    val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, phCount, oosPath, results)
+    val newRes = new ui.SmtlibInterperter().runExploration(vocab, goals.seq.flatten.toSet, ruleDefs, phCount, oosPath, results, true)
     Locker.synchronized({
       knowResults((vocab, ruleDefs)) = newRes
       val timingOut = new ObjectOutputStream(new FileOutputStream("smt-timings.bin"))
@@ -84,11 +88,11 @@ object RunAllSmtTests extends App with LazyLogging {
     })
   }
 
-  taskToGoal.keys.filter(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
-    runOne(vocab, ruleDefs, false)
+  taskToGoal.keys.filter(_.definitions.size == 1).par.map({ case k@(vocab) =>
+    runOne(vocab, taskToGoal(vocab).flatMap(_._2).toSet, false)
   }).seq
 
-  taskToGoal.keys.filterNot(_._1.definitions.size == 1).par.map({ case k@(vocab, ruleDefs) =>
-    runOne(vocab, ruleDefs, true)
+  taskToGoal.keys.filterNot(_.definitions.size == 1).par.map({ case k@(vocab) =>
+    runOne(vocab, taskToGoal(vocab).flatMap(_._2).toSet, true)
   }).seq
 }

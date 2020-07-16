@@ -78,29 +78,26 @@ object TaskPrerunner extends App {
       else if (conf.singles()) {
         println(s"==  ${k.root.literal}  ==")
         val phCount = if (vocab.allSymbols.exists(_.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
-        val res = inter.runExploration(vocab, Set.empty, defs, phCount, oosfile.getCanonicalPath, Set.empty)
+        val res = inter.runExploration(vocab, Set.empty, defs, phCount, oosfile.getCanonicalPath, Set.empty, reprove = false)
         println(s"saved $oosfile")
         Some(k -> res)
       }
       else None
     }).seq.toMap
 
-  val coupleRunRes = if (conf.couples()) {
-     vocabAndDef.keys.toSeq.combinations(2).toSet.par
-      .filter(fs => allVocabsAndDefs.exists({ case (vocab, defs, goals) => fs.diff(vocab.definitions.toSeq).isEmpty }))
-      .map(fs => {
-        val vocabulary = SortedVocabulary(fs.flatMap(f => vocabAndDef(f)._1.datatypes).toSet,
-          fs.flatMap(f => vocabAndDef(f)._1.definitions).toSet)
-        val defs = fs.flatMap(f => vocabAndDef(f)._2).toSet
-        val inter = new SmtlibInterperter()
-        val oospath = s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res"
-        if (new File(oospath).exists()) readRunResults(new File(oospath))
-        else {
-          println(s"starting $oospath")
-          inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, fs.flatMap(singleRunRes.get).toSet)
-        }
-        //      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", singleRunRes.values.toSet)
-      }).seq
-  }
-
+  val coupleRunRes = if (conf.couples()) vocabAndDef.keys.toSeq.combinations(2).toSet.par
+    .filter(fs => allVocabsAndDefs.exists({case (vocab, defs, goals) => fs.diff(vocab.definitions.toSeq).isEmpty}))
+    .map(fs => {
+      val vocabulary = SortedVocabulary(fs.flatMap(f => vocabAndDef(f)._1.datatypes).toSet,
+        fs.flatMap(f => vocabAndDef(f)._1.definitions).toSet)
+      val defs = fs.flatMap(f => vocabAndDef(f)._2).toSet
+      val inter = new SmtlibInterperter()
+      val oospath = s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res"
+      if (new File(oospath).exists()) readRunResults(new File(oospath))
+      else {
+        println(s"starting $oospath")
+        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath,
+          fs.flatMap(singleRunRes.get).toSet, true)
+      }
+    }).seq
 }
