@@ -6,12 +6,16 @@ import structures.Hole
 import synthesis._
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.Template.ReferenceTerm
-import synthesis.search.actions.thesy.{Prover, SyGuERewriteRules, TheoryExplorationAction}
+import synthesis.search.actions.thesy.{Prover, SortedVocabulary, SyGuERewriteRules, TheoryExplorationAction}
 import synthesis.search.rewrites.{AssociativeRewriteRulesDB, RewriteRule, SimpleRewriteRulesDB, SystemRewriteRulesDB}
-import transcallang.{AnnotatedTree, Identifier, Language, TranscalParser}
+import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalParser}
 
 class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTestExecution with LazyLogging {
   val parser = new TranscalParser
+
+  val natType = AnnotatedTree.identifierOnly(Identifier("nat"))
+  val nat = Datatype(natType.root, Seq.empty, Seq(Identifier("zero", annotation = Some(natType)), Identifier("succ", annotation = Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(natType, natType))))))
+  val plus = AnnotatedTree.identifierOnly(Identifier("plus", annotation = Some(AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(natType, natType, natType)))))
   val predicate = AnnotatedTree.withoutAnnotations(Language.mapTypeId, Seq(Language.typeInt, Language.typeBoolean))
   val x = AnnotatedTree.identifierOnly(Identifier("x", Some(Language.typeInt)))
   val y = AnnotatedTree.identifierOnly(Identifier("y", Some(Language.typeInt)))
@@ -83,6 +87,16 @@ class TheoryExplorationActionTest extends FunSuite with Matchers with ParallelTe
     //    }
     //    logger.info(s"finished reconstruct")
 
+  }
+
+  test("testSygusStep can find x + y and y + x") {
+    val action = new TheoryExplorationAction(SortedVocabulary(Set(nat), Set(plus)), 3, None, None, None, None, Some(3), false)
+    action.conjectureGenerator.increaseDepth()
+    val state = action.conjectureGenerator.inferConjectures(Set.empty, Some(1))
+    val iv = thesy.inductionVar(natType).literal
+    val ov = thesy.createPlaceholder(natType, 2).literal
+    val pattern = Programs.destructPattern(new TranscalParser().parseExpression(s"(plus $ov $iv) |||| (plus $iv $ov)"))
+    state.programs.queryGraph.findSubgraph[Int](pattern) should not be empty
   }
 
   test("testSygusStep can find reverse l") {
