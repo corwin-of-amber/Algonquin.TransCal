@@ -30,7 +30,7 @@ object Main extends App with LazyLogging {
     val file: ScallopOption[File] = opt[File]()
     val smtin: ScallopOption[Boolean] = opt[Boolean]()
     val justCheck: ScallopOption[Boolean] = opt[Boolean]()
-    val previousResults: ScallopOption[List[String]] = opt[List[String]]()
+    val previousResults: ScallopOption[List[String]] = opt[List[String]](default = Some(List()))
 
     validateFileIsFile(file)
     validateFileExists(file)
