@@ -17,13 +17,21 @@ class SmtlibInterperter {
     val termDepth = Some(2)
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), reprove)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), false)
+
     thesy.setTimingBasename(new File(oosPath).getName + "_")
     goals.foreach(g => thesy.addGoal(g))
     thesy(state)
     goalReport(goals, thesy)
 
-    val res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
+    var res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
+    if (phCount > 3) {
+      val thesy2 = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(2), false)
+      goals.foreach(g => thesy.addGoal(g))
+      thesy2(state)
+      res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules ++ thesy2.getFoundRules, goals, goals.diff(thesy2.goals))
+    }
+
     val oos = new ObjectOutputStream(new FileOutputStream(oosPath))
     oos.writeObject(res)
     oos.close()

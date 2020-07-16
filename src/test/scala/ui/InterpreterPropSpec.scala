@@ -66,18 +66,18 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
 //    result should not be empty
 //  }
 
-  test("ReverseReverse") {
-    val fileName = "src/main/resources/examples/ReverseReverse.tc"
-    val lastState = abstractTest(fileName)
-    val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩").cleanTypes)
-    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
-    result should not be empty
-  }
-
   test("SPBENatPlus") {
     val fileName = "src/main/resources/examples/RunSpbeNatSuc.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression(" plus x y ||| plus y x"))
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
+  test("ReverseReverse") {
+    val fileName = "src/main/resources/examples/ReverseReverse.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(x :: y :: ⟨⟩)) ||| x :: y :: ⟨⟩").cleanTypes)
     val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
