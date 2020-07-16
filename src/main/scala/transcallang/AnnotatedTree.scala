@@ -12,12 +12,6 @@ case class Identifier(literal: String, annotation: Option[AnnotatedTree]=None, n
 
   def cleanTypes: Identifier = copy(annotation = None)
 
-  def isReference: Boolean = literal.startsWith("?")
-
-  def cleanReferences: Identifier = if(isReference) copy(literal = literal.drop(1)) else this
-
-  def isFunction: Boolean = annotation.get.root == Language.mapTypeId
-
   override def toString: String = "Identifier(\"" + s"$literal" + "\", " + s"$annotation, $namespace)"
 }
 

@@ -94,6 +94,14 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     goals.add(goal)
   }
 
+  implicit class IdentifierUtil(id: Identifier) {
+    def isReference: Boolean = id.literal.startsWith("?")
+
+    def cleanReferences: Identifier = if(isReference) id.copy(literal = id.literal.drop(1)) else id
+
+    def isFunction: Boolean = id.annotation.get.root == Language.mapTypeId
+  }
+
   def checkGoals(state: ActionSearchState, prover: Prover): (Boolean, Set[(AnnotatedTree, Set[RewriteRule])]) = {
     if (goals.isEmpty) (false, Set.empty)
     else {
@@ -106,10 +114,10 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
           val common = g._1.terminals.filter(_.isReference).intersect(g._2.terminals)
           var res = Set.empty[RewriteRule]
           breakable { for(c <- common) {
-            def cleanExceptCommon(i: Identifier) = if (i == c) c else i.cleanReferences
+            def cleanExceptCommon(i: Identifier) = if (i == c) thesy.inductionVar(i.annotation.get) else i.cleanReferences
             val updatedGoal = goal.map(_.map(cleanExceptCommon))
-            val baseCases = vocab.datatypes.find(_.asType == c.annotation.get).get.constructors.filter(_.isFunction)
-            val baseGoals = baseCases.toSet.map((bc: Identifier) => updatedGoal.toSet.map((t: AnnotatedTree) => t.replaceDescendant((AnnotatedTree.identifierOnly(c), AnnotatedTree.identifierOnly(bc)))))
+            val baseCases = vocab.datatypes.find(_.asType == c.annotation.get).get.constructors.filterNot(_.isFunction)
+            val baseGoals = baseCases.toSet.map((bc: Identifier) => updatedGoal.toSet.map((t: AnnotatedTree) => t.replaceDescendant((AnnotatedTree.identifierOnly(thesy.inductionVar(c.annotation.get)), AnnotatedTree.identifierOnly(bc)))))
             val baseRes = new ObservationalEquivalence(searcher).fromTerms(baseGoals.flatten.toSeq, state.rewriteRules, equivDepth)
             if (baseGoals.forall(group1 => baseRes.exists(group2 => group1.diff(group2).isEmpty))) {
               res = prover.inductionProof(updatedGoal.head, updatedGoal.last).toSet
@@ -135,6 +143,15 @@ class TheoryExplorationAction(val vocab: SortedVocabulary,
     lastProver = Some(prover)
     var newRules = Set.empty[AnnotatedTree]
     val foundRules = mutable.Buffer.empty[mutable.Buffer[AnnotatedTree]]
+
+    val (goalsDone1, newGoalRules1) = checkGoals(state, prover)
+    state.addRules(newGoalRules1.flatMap(_._2))
+    foundRules += mutable.Buffer.empty
+    foundRules.last ++= newGoalRules1.map(_._1)
+    if(goalsDone1) {
+      logger.info("Success - Proved all goals.")
+      return state
+    }
 
     for (i <- 1 to termDepth) {
       logger.warn(s"Running SPBE in depth ${i}  @  ${StopWatch.instance.now}")

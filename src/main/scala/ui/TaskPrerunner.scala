@@ -71,14 +71,13 @@ object TaskPrerunner extends App {
     .map(fs => {
       val vocabulary = SortedVocabulary(fs.flatMap(f => vocabAndDef(f)._1.datatypes).toSet,
         fs.flatMap(f => vocabAndDef(f)._1.definitions).toSet)
-      println(vocabulary.definitions)
       val defs = fs.flatMap(f => vocabAndDef(f)._2).toSet
       val inter = new SmtlibInterperter()
       val oospath = s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res"
       if (new File(oospath).exists()) readRunResults(new File(oospath))
       else {
         println(s"starting $oospath")
-        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, Set.empty)
+        inter.runExploration(vocabulary, Set.empty, defs, 2, oospath, fs.flatMap(singleRunRes.get).toSet)
       }
 //      inter.runExploration(vocabulary, Set.empty, defs, 2, s"$resourcePath/${vocabulary.definitions.map(_.root.literal).mkString("_")}.res", singleRunRes.values.toSet)
     }).seq

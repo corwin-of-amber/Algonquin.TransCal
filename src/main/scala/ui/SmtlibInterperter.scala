@@ -54,6 +54,7 @@ class SmtlibInterperter {
     knownDefs.foreach(t => new LetAction(t, allowExistential = false)(state))
     for (rr <- relevantResults) {
       state.addRules(rr.newRules.flatMap(new LetAction(_, allowExistential = false).rules))
+      println(s"Added rule from previous result: \n${rr.newRules.map(Programs.termToString).mkString("\n")}")
     }
     state
   }

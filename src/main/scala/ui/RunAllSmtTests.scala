@@ -26,9 +26,10 @@ object RunAllSmtTests extends App with LazyLogging {
 
 
   // TODO: Add timeouts by surrounding the execution with a timer inside tasks of executioncontext
-  val resourcePath = "src/main/resources/ind-problems/benchmarks-dt"
-  val files = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("smt2")))
-  val resFiles = new File(resourcePath).listFiles(_.isDirectory).flatMap(d => d.listFiles(f => f.isFile && f.getName.endsWith("res")))
+  val resourcePath = "src/main/resources/ind-problems/benchmarks-dt/clam"
+  val files = new File(resourcePath).listFiles(f => f.isFile && f.getName.endsWith("smt2"))
+    //.filter((f: File) => f.getName.dropRight(5).reverse.takeWhile(_.isDigit).reverse.toInt < 11)
+  val resFiles = new File(resourcePath).listFiles(f => f.isFile && f.getName.endsWith("res"))
   val knowResults: mutable.Map[(SortedVocabulary, Set[AnnotatedTree]), RunResults] = mutable.Map(resFiles.collect({
     case f if f.exists() =>
       val results = readRunResults(f)
