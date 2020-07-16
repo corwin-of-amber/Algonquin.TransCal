@@ -31,6 +31,9 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
         import transcallang.TranscalParser
         val parser = new TranscalParser
         Seq[String](
+//          "plus Placeholder_0_type_nat ?y",
+//          "plus ?y Placeholder_0_type_nat",
+//          "plus Placeholder_0_type_nat ?y ||| plus ?y Placeholder_0_type_nat"
           //        "filter ?p (?x :: ?xs)",
           //        "x::nil",
           //        "y::x::nil",
@@ -50,7 +53,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
           if (reconstructed.nonEmpty) {
             logger.info(term)
             for ((id, rTerms) <- reconstructed) {
-              logger.info(s"$id: ${rTerms.toList.map(Programs.termToString).mkString("  ---  ")}")
+              logger.info(s"$id: ${rTerms.toSeq.sortBy(_.size).map(Programs.termToString).take(5).mkString("  ---  ")}")
             }
           }
         }
