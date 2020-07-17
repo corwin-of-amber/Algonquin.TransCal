@@ -30,12 +30,14 @@ object BaseTheoryRulesDb extends RewriteRulesDB {
 class SmtlibInterperter {
   def runExploration(vocab: SortedVocabulary, goals: Set[(AnnotatedTree, AnnotatedTree)], knownDefs: Set[AnnotatedTree], phCount: Int, oosPath: String, previousResults: Set[RunResults], reprove: Boolean) = {
     val state = prepareState(vocab, knownDefs, previousResults)
-    val exampleDepth = if(knownDefs.exists(t => t.nodes.exists(n => n.root.literal == "ite"))) 2 else 3
+    val needsSpliting = knownDefs.exists(t => t.nodes.exists(n => n.root.literal == "ite"))
+    val exampleDepth = if(needsSpliting) 2 else 3
+    val fixedPhCount = if(needsSpliting && phCount > 2) 2 else phCount
     val termDepth = Some(2)
 //    val distributer = Distributer(vocab, exampleDepth)
 //    distributer.runTasks(state)
 
-    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(phCount), reprove)
+    val thesy = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(fixedPhCount), reprove)
 
     thesy.setTimingBasename(new File(oosPath).getName + "_")
     goals.foreach(g => thesy.addGoal(g))
@@ -43,7 +45,7 @@ class SmtlibInterperter {
     goalReport(goals, thesy)
 
     var res = RunResults(vocab.datatypes.toSet, vocab.definitions.toSet, knownDefs.toSet, thesy.getFoundRules, goals, goals.diff(thesy.goals))
-    if (phCount > 2) {
+    if (fixedPhCount > 2) {
       val thesy2 = new TheoryExplorationAction(vocab, exampleDepth, termDepth, None, None, None, Some(2), reprove)
       goals.foreach(g => thesy2.addGoal(g))
       thesy2(state)
