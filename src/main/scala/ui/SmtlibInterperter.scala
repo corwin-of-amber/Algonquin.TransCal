@@ -19,7 +19,7 @@ object BaseTheoryRulesDb extends RewriteRulesDB {
     "and ?x ?y = ite x (ite y true false) false",
     "and ?x ?y >> and y x",
     "or ?x ?y = ite x true (ite y true false)",
-    "or ?x ?y >> and y x",
+    "or ?x ?y >> or y x",
     "not ?x = ite x false true",
     "implication ?x ?y = or y (not x)"
     ).map(s => parser.apply(s))
@@ -100,7 +100,7 @@ class SmtlibInterperter {
       if (identifier.literal.startsWith("?autovar")) identifier.copy(literal = identifier.literal.drop(1))
       else identifier
 
-    for (t <- terms) {
+    for ((t, i) <- (terms.dropRight(1) :+ AnnotatedTree.withoutAnnotations(Language.assertId, List(terms.last))).zipWithIndex) {
       t.root match {
         case Language.functionDeclId =>
           // This is a typed identifier for a function type
@@ -114,15 +114,21 @@ class SmtlibInterperter {
         case Language.letId =>
           knownDefs += t
         case Language.assertId =>
+          assert(t.subtrees.head.root.literal == "not")
+          val goalT = t.subtrees.head.subtrees.head
+          if (goalT.root == Language.letId)
+            goal = Some((goalT.subtrees(0), goalT.subtrees(1)))
+          else
+            goal = Some((AnnotatedTree.identifierOnly(Language.trueId), goalT))
+        case Identifier("not", annotation, namespace) if t.subtrees.head.root == Language.letId && i == terms.length - 1 =>
           assert(t.subtrees.head.root == Language.letId)
           goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
-        case Identifier("not", annotation, namespace) if t.subtrees.head.root == Language.letId =>
-          assert(t.subtrees.head.root == Language.letId)
-          goal = Some((t.subtrees.head.subtrees(0), t.subtrees.head.subtrees(1)))
-        case Identifier("not", annotation, namespace) if t.subtrees.head.root != Language.letId =>
-          throw new IllegalArgumentException(s"Don't support stuff that isn't equality (${t.subtrees.head})")
         case x =>
-          throw new NotImplementedError("Check this")
+          val term = AnnotatedTree.withoutAnnotations(Language.letId, List(AnnotatedTree.identifierOnly(Language.trueId), t))
+          println(s"warning! CHECK THIS TERM!!! ${Programs.termToString(term)}")
+          knownDefs += term
+        case x =>
+          throw new NotImplementedError(s"Check this $x")
       }
     }
 
@@ -140,8 +146,13 @@ class SmtlibInterperter {
   }
 
   def apply(terms: List[AnnotatedTree], oos: String, previousResults: Set[RunResults] = Set.empty): RunResults = {
-    val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
-    runExploration(vocab, goals, funcDefs, 2, oos, previousResults, true)
+    try {
+      val (vocab, funcDefs, goals) = toVocabAndGoals(terms)
+      runExploration(vocab, goals, funcDefs, 2, oos, previousResults, true)
+    } catch {
+      case e => println(s"***** ERROR IN $oos - $e *****")
+        throw e
+    }
   }
 
   def check(terms: List[AnnotatedTree], previousFilenames: Seq[String]): Unit =
