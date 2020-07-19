@@ -86,8 +86,8 @@ class ConjectureChecker(prover: Prover, searcher: SearchAction, maxDepth: Double
           }
           checkCache(t)._2
         }).toSet
-        // TODO: remove once I see it holds
-        assert(graphs.toSeq.combinations(2).forall({ x: Seq[HyperGraph] => x.head.edges != x.last.edges }))
+
+//        assert(graphs.toSeq.combinations(2).forall({ x: Seq[HyperGraph] => x.head.edges != x.last.edges }))
 
         def moveEdge(n: Int, hyperEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =
           hyperEdge.copy(target = hyperEdge.target.copy(hyperEdge.target.id + n), sources = hyperEdge.sources.map(s => s.copy(s.id + n)))
