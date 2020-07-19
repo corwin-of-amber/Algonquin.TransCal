@@ -11,7 +11,7 @@ pl ?x ?y >> ?x + ?y [typedlet]
 reverse (?xs :+ ?x) = x :: (reverse xs)
 reverse(reverse(?l)) >> id l
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) (0, 1, (pl : int :> int :> int), (reverse : list int :> list int), (snoc : list int :> int :> list int), (len : list int :> int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 8 0
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) (0, 1, (pl : int :> int :> int), (reverse : list int :> list int), (snoc : list int :> int :> list int), (len : list int :> int)) 3 8 0
 
 reverse(len(t)) = reverse(len(l)) [++]
 

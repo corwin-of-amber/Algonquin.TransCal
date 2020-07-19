@@ -27,8 +27,8 @@ filter (And ?p ?q) (cons ?x ?xs) |>> splitTrue ||| possibleSplit(((p x), (q x)),
 
 filter ?p (cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 4 2 2 2
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((And: predicate :> predicate :> predicate), (filter : predicate :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 4 4
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : predicate :> list int :> list int),) 2 4 2 2 2
+SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((And: predicate :> predicate :> predicate), (filter : predicate :> list int :> list int),) 2 4 4
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 

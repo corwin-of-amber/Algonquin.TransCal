@@ -7,5 +7,5 @@ snoc ?l ?x = concat l (cons x nil) [typedlet]
 
 // concat(concat(?P0, ?P2), ?P1) = concat(?P0, concat(?P2, ?P1))
 
-SPBE ( nil , (cons : int :> list int :> list int) ) (nil, (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int)) ((list int, (nil, (cons x nil), (cons y (cons x nil)))),) 8 0 1 2 3
-//SPBE ( Nil , (cons : int :> list int :> list int) ) ((Nil: list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (Nil, (cons x Nil), (cons y (cons x Nil)))),) 5 0
+SPBE ( nil , (cons : int :> list int :> list int) ) (nil, (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int)) 3 8 0 1 2 3
+//SPBE ( Nil , (cons : int :> list int :> list int) ) ((Nil: list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int), (concat : list int :> list int :> list int)) 3 5 0

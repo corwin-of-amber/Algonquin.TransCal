@@ -8,8 +8,8 @@ snoc ?l ?x = l ++ cons(x, ⟨⟩) [typedlet]
 concat ⟨⟩ ?l2 >> id l2
 concat (cons(?x, ?xs)) ?l2 = cons(x, (concat xs l2))
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) (⟨⟩ ,(cons : int :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 6 0 1 2 3
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (reverse : list int :> list int)) ((list int, (⟨⟩, x::⟨⟩, y::x::⟨⟩)),) 8 0
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) (⟨⟩ ,(cons : int :> list int :> list int), (concat : list int :> list int :> list int)) 3 6 0 1 2 3
+SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (reverse : list int :> list int)) 3 8 0
 
 reverse(l1 ++ l2) = reverse(t1 ++ t2) [++]
 

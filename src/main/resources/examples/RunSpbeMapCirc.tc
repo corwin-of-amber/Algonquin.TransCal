@@ -9,4 +9,4 @@ circ ?f ?g ?x = f(g(x))
 ttt = map (circ f1 g1) (e::w::nil) [++]
 map (circ f1 g1) (e::w::nil) -> (f1(g1(e)))::(f1(g1(w)))::nil
 
-SPBE (nil , (cons : int :> list int :> list int)) ((map : func :> list int :> list int), (circ : func :> func :> func)) ((list int, (nil, x::nil, y::x::nil)),) 5 0
+SPBE (nil , (cons : int :> list int :> list int)) ((map : func :> list int :> list int), (circ : func :> func :> func)) 3 5 0

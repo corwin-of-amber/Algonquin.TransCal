@@ -22,4 +22,4 @@ identity ?x >> id x
 
 // tnil, (Tree x tnil tnil), (Tree y tnil tnil), (Tree z tnil (Tree x tnil tnil)), (Tree z (Tree y tnil tnil) tnil), (Tree z (Tree y tnil tnil) (Tree x tnil tnil))
 
-SPBE ((tnil: tree int) , (Tree : int :> tree int :> tree int :> tree int)) ((tmap : (int :> int) :> tree int :> tree int), (identity : int :> int), (toList: tree int :> list int), (reverse: list int :> list int), (switch: tree int :> tree int)) ((tree int, (tnil, (Tree x tnil tnil), (Tree y tnil tnil), (Tree z tnil (Tree x tnil tnil)), (Tree z (Tree y tnil tnil) tnil), (Tree z (Tree y tnil tnil) (Tree x tnil tnil)))),) 14 0
+SPBE ((tnil: tree int) , (Tree : int :> tree int :> tree int :> tree int)) ((tmap : (int :> int) :> tree int :> tree int), (identity : int :> int), (toList: tree int :> list int), (reverse: list int :> list int), (switch: tree int :> tree int)) 3 14 0
