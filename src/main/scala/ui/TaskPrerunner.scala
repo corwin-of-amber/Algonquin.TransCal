@@ -48,7 +48,9 @@ object TaskPrerunner extends App {
     val res = try {
       Some(new SmtlibInterperter().toVocabAndGoals(new Translator(source.getLines().mkString("\n")).transcalScript))
     } catch {
-      case _ => None
+      case e =>
+        println(s"error reading file $e")
+        None
     }
     source.close()
     res
@@ -77,7 +79,8 @@ object TaskPrerunner extends App {
       if (oosfile.exists()) Some(k -> readRunResults(oosfile))
       else if (conf.singles()) {
         println(s"==  ${k.root.literal}  ==")
-        val phCount = if (vocab.allSymbols.exists(_.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
+        val phCount = if (vocab.allSymbols.exists(t => t.getType.exists(t => t.root == Language.mapTypeId && t.subtrees.length >= 4))) 2 else 3
+//        val phCount = 2
         val res = inter.runExploration(vocab, Set.empty, defs, phCount, oosfile.getCanonicalPath, Set.empty, reprove = false)
         println(s"saved $oosfile")
         Some(k -> res)

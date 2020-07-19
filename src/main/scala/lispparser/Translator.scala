@@ -31,12 +31,12 @@ class Translator(text: String) {
     case Terms.SList(sexprs) =>
       val subExps = sexprs.map(transSExp)
       if (subExps.isEmpty) AnnotatedTree.identifierOnly(Language.tupleId)
-      else if (subExps.head.root.literal == "ite")
-        AnnotatedTree.withoutAnnotations(Language.matchId, List(
-          subExps(1),
-          AnnotatedTree.withoutAnnotations(Language.guardedId, List(AnnotatedTree.identifierOnly(Language.trueId), subExps(2))),
-          AnnotatedTree.withoutAnnotations(Language.guardedId, List(AnnotatedTree.identifierOnly(Language.falseId), subExps(3)))
-        ))
+//      else if (subExps.head.root.literal == "ite")
+//        AnnotatedTree.withoutAnnotations(Language.matchId, List(
+//          subExps(1),
+//          AnnotatedTree.withoutAnnotations(Language.guardedId, List(AnnotatedTree.identifierOnly(Language.trueId), subExps(2))),
+//          AnnotatedTree.withoutAnnotations(Language.guardedId, List(AnnotatedTree.identifierOnly(Language.falseId), subExps(3)))
+//        ))
       else if (subExps.head.subtrees.isEmpty) AnnotatedTree.withoutAnnotations(subExps.head.root, subExps.tail)
       else AnnotatedTree.withoutAnnotations(Language.applyId, subExps)
     case Terms.SKeyword(name) => AnnotatedTree.identifierOnly(Identifier(name))
@@ -47,7 +47,11 @@ class Translator(text: String) {
   }
 
   def transIdentifier(ident: Terms.Identifier): Identifier = {
-    Identifier(ident.symbol.name + ident.indices.mkString("_"))
+    def translateName(name: String) = name match {
+      case "=>" => "implication"
+      case x => x
+    }
+    Identifier(translateName(ident.symbol.name) + ident.indices.mkString("_"))
   }
 
   def transSort(sort: Sort): AnnotatedTree = AnnotatedTree.withoutAnnotations(transIdentifier(sort.id), sort.subSorts.map(transSort))

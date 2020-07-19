@@ -60,7 +60,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
 
         val hyperTermIds: Seq[() => HyperTermId] = {
           val graphEmpty = graph.isEmpty
-          val maxId = graph.nodes.map(_.id).max
+          val maxId = if(graphEmpty) 0 else graph.nodes.map(_.id).max
           0 until operators.size map (j => {
             val creator =
               Stream.from(if (graphEmpty) j else maxId + 1 + j, operators.size)
