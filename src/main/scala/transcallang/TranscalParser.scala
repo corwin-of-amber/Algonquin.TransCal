@@ -2,6 +2,7 @@ package transcallang
 
 import com.typesafe.scalalogging.LazyLogging
 import synthesis.Programs
+import synthesis.search.actions.LetAction
 import transcallang.Language._
 import transcallang.Tokens.{GE, GT, LE, LT, SETDISJOINT, SETIN, SETNOTIN, WorkflowToken, _}
 
@@ -121,7 +122,11 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def statementSpecialAction: Parser[AnnotatedTree] = thesyStatement
 
-  def statement: Parser[AnnotatedTree] = (statementSpecialAction | statementDefinition | statementCommand) ^^ parseStatement
+  def statementDatastructure: Parser[AnnotatedTree] = DT() ~> identifierLiteral.+ ~ tuple ^^ parseStatementDatastructure
+
+  def statementFunctionDecl: Parser[AnnotatedTree] = (DEC() ~> identifier) ^^ parseStatementFunctionDecleration
+
+  def statement: Parser[AnnotatedTree] = (statementDatastructure | statementFunctionDecl | statementSpecialAction | statementDefinition | statementCommand) ^^ parseStatement
 
   private def parseStatementCommand(x: AnnotatedTree ~ Elem ~ AnnotatedTree ~ Option[AnnotatedTree]): AnnotatedTree = {
     logger.trace(s"statement expr - $x")
@@ -132,7 +137,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }
   }
 
-  def thesyStatement: Parser[AnnotatedTree] = log(IDENTIFIER(spbeId.literal) ~! tuple ~ tuple ~ number ~ number.*)("SPBE - Three tuples") ^^ parseThesyStatement
+  def thesyStatement: Parser[AnnotatedTree] = log(IDENTIFIER(thesyId.literal) ~! tuple ~ tuple ~ number ~ number.*)("thesy - Two tuples") ^^ parseThesyStatement
 
   def command: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ parseCommand
 
@@ -262,7 +267,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     logger.trace(s"statement SPBE - $t")
     t match {
       case id ~ typeBuilders ~ grammar ~ examples ~ numbers =>
-        AnnotatedTree.withoutAnnotations(spbeId, Seq(typeBuilders, grammar, examples) ++ numbers)
+        AnnotatedTree.withoutAnnotations(thesyId, Seq(typeBuilders, grammar, examples) ++ numbers)
     }
   }
 
@@ -299,7 +304,7 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
       }
 
       t.root match {
-        case Language.spbeId =>
+        case Language.`thesyId` =>
           t
         case Language.letId | Language.directedLetId =>
           val newParams = t.subtrees(0).terminals.filter(_.literal.toString.startsWith("?"))
@@ -377,5 +382,17 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
       case LEFTARROW() => "->"
       case SBO ~ SBC | SQUARE() => "[]"
     }))), Seq.empty)
+  }
+
+  private def parseStatementDatastructure(x: List[AnnotatedTree] ~ AnnotatedTree) = {
+    assert(x._2.subtrees.nonEmpty)
+    assert(x._2.subtrees.forall(_.root.annotation.nonEmpty))
+    assert(x._2.subtrees.forall(_.subtrees.isEmpty))
+    AnnotatedTree.withoutAnnotations(Language.datatypeId, x._1.head.copy(subtrees = x._1.tail) +: x._2.subtrees)
+  }
+
+  private def parseStatementFunctionDecleration(x: AnnotatedTree): AnnotatedTree = {
+    assert(x.root.annotation.nonEmpty)
+    AnnotatedTree.withoutAnnotations(Language.functionDeclId, List(x))
   }
 }

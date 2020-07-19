@@ -77,7 +77,7 @@ object Language {
   val timeComplexId = Identifier("timecomplex")
   val timeComplexTrueId = Identifier("timecomplexTrue")
   val typeTrueId = Identifier("typeTrue")
-  val spbeId = Identifier("SPBE")
+  val thesyId = Identifier("thesy")
 
   val datatypeId = Identifier("datatype")
   val functionDeclId = Identifier("dec")

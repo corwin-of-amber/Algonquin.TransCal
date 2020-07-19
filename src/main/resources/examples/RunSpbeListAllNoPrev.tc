@@ -18,5 +18,5 @@ reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x)) [
 
 circ ?f ?g ?x = f(g(x))
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 8 0
-//SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((len : list int :> int), (pl : int :> int :> int), (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 6 0
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 8 0
+//thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((len : list int :> int), (pl : int :> int :> int), (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 6 0

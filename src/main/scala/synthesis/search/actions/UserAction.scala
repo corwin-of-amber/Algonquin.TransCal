@@ -8,7 +8,7 @@ import synthesis.search.actions.thesy.TheoryExplorationAction
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.rewrites.AssociativeRewriteRulesDB
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{AnnotatedTree, Language}
+import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
 
 import scala.collection.mutable
 
@@ -23,6 +23,8 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   private val stateStack = new mutable.ArrayStack[ActionSearchState]
   private val savedStates = new mutable.ListBuffer[ActionSearchState]
+  private val knownFuncs = mutable.Set.empty[Identifier]
+  private val knownTypes = mutable.Set.empty[Datatype]
 
   /* --- Public --- */
 
@@ -109,17 +111,17 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         term.subtrees(0).root.literal match {
           case "[]" =>
             logger.info("Saving state")
-            savedStates += state
+            savedStates += state.deepCopy()
             state
           case "<-" =>
             logger.info("Adding state to stack")
-            stateStack.push(state)
+            stateStack.push(state.deepCopy())
             state
           case "->" =>
             logger.info("Popping state from stack")
             stateStack.pop()
         }
-      case Language.spbeId =>
+      case Language.`thesyId` =>
         // should be tuples
         val typeBuilders = term.subtrees(0).subtrees.toSet
         val grammar = term.subtrees(1).subtrees.toSet
@@ -130,6 +132,14 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val termDepth = if (term.subtrees.length > 6) Some(term.subtrees(6).root.literal.toInt) else None
         val placeholderCount = if (term.subtrees.length > 7) Some(term.subtrees(7).root.literal.toInt) else None
         new TheoryExplorationAction(typeBuilders.map(_.root), grammar, exampleDepth, termDepthOption=termDepth, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth, placeholderCountOption = placeholderCount)(state)
+      case Language.functionDeclId =>
+        knownFuncs += term.root
+        state.updateGraph(g => g.addAllKeepVersion(Programs.destruct(term)))
+        state
+      case Language.datatypeId =>
+        assert(term.subtrees.forall(_.isLeaf))
+        knownTypes += Datatype(term.subtrees.head.root, term.subtrees.head.subtrees, term.subtrees.tail.map(_.root))
+        state
     }
 
     logger.info(seperator)

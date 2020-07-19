@@ -6,8 +6,8 @@ concat cons(?x, ?xs) ?l2 >> cons(x, (concat xs l2))
 snoc ?l ?x >> concat l (cons x Nil)
 concat l (cons x Nil) >> snoc ?l ?x
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int)) 3 6 0
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (concat : list int :> list int :> list int)) 3 6 0
+thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (snoc : list int :> int :> list int), (cons : int :> list int :> list int)) 3 6 0
+thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((reverse : list int :> list int), (concat : list int :> list int :> list int)) 3 6 0
 
 reverse(reverse(f(t))) = reverse(reverse(l)) [++]
 

@@ -10,7 +10,7 @@ cons ?x ?l >> x :: l [typedlet]
 drop ?i (?x :: ?xs) |>> splitTrue ||| possibleSplit(i, zero, (suc ?j)) [notypes]
 take ?i (?x :: ?xs) |>> splitTrue ||| possibleSplit(i, zero, (suc ?j)) [notypes]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((concat : list int :> list int :> list int), (drop: int :> list int :> list int), (take: int :> list int :> list int)) 2 4 2 1 2 1
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((concat : list int :> list int :> list int), (drop: int :> list int :> list int), (take: int :> list int :> list int)) 2 4 2 1 2 1
 
 f = take l i ++ drop l i [++]
 f >> l

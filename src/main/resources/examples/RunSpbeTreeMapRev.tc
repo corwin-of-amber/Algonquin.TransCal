@@ -27,5 +27,5 @@ reverse(concat(?l, ?ll)) = concat(reverse(ll), reverse(l))
 map ?f ?l = l match (⟨⟩ => ⟨⟩) / ((cons ?x ?xs) => cons (f x) (map f xs))
 map f (concat ?l ?ll) = concat (map f l) (map f ll)
 
-// SPBE (nil , (cons : int :> list int :> list int)) ((concat : list int :> list int :> list int), (map : (int :> int) :> list int :> list int), (reverse : list int :> list int), (switch : tree int :> tree int), (tolist : tree int :> list int), (tmap : (int :> int) :> tree int :> tree int), (identity : int :> int)) 3 8 0
-SPBE ((tnil: tree int) , (Tree : int :> tree int :> tree int :> tree int)) ((switch : tree int :> tree int), (tmap : (int :> int) :> tree int :> tree int), (identity : int :> int)) 3 8 0
+// thesy (nil , (cons : int :> list int :> list int)) ((concat : list int :> list int :> list int), (map : (int :> int) :> list int :> list int), (reverse : list int :> list int), (switch : tree int :> tree int), (tolist : tree int :> list int), (tmap : (int :> int) :> tree int :> tree int), (identity : int :> int)) 3 8 0
+thesy ((tnil: tree int) , (Tree : int :> tree int :> tree int :> tree int)) ((switch : tree int :> tree int), (tmap : (int :> int) :> tree int :> tree int), (identity : int :> int)) 3 8 0

@@ -42,6 +42,8 @@ object Tokens {
   case class EQUALS() extends WorkflowToken {override val toIdentifier: Identifier = Language.equalityId} // ==
   case class COMMA() extends WorkflowToken {override val toIdentifier: Identifier = I(",")} // ,
   case class TYPE() extends WorkflowToken{override val toIdentifier: Identifier = Language.typeId}
+  case class DT() extends WorkflowToken{override val toIdentifier: Identifier = Language.datatypeId}
+  case class DEC() extends WorkflowToken{override val toIdentifier: Identifier = Language.functionDeclId}
 
   case class MAPTYPE() extends WorkflowToken {override val toIdentifier: Identifier = Language.mapTypeId} // :>
   case class POLYMORPHIC() extends WorkflowToken {override val toIdentifier: Identifier = I("polymorphic")}

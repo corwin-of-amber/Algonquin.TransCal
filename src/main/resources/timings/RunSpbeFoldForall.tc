@@ -22,4 +22,4 @@ or true ?x >> true
 // or ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
 // and ?x ?y |>> splitTrue ||| possibleSplit(x, true, false) [typedlet]
 
-SPBE( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, (forall : list boolean :> boolean), (and : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) 3 8 0
+thesy( ⟨⟩ , (cons : boolean :> list boolean :> list boolean) ) (true, (forall : list boolean :> boolean), (and : boolean :> boolean :> boolean), (fold : (boolean :> boolean :> boolean) :> boolean :> (list boolean) :> boolean)) 3 8 0

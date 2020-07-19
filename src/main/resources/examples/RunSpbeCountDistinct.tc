@@ -28,6 +28,6 @@ first (countunique emptytuple (y :: x :: nil)) = gggg [++]
 union (setcreate y) (first (countunique emptytuple (x :: nil))) = fffff [++]
 first (countunique emptytuple (y :: x :: nil)) -> union (setcreate y) (first (countunique emptytuple (x::nil))) [notypes]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((emptytuple: (set, int)), (union : set :> set :> set), (countunique : (set, int) :> list int :> set), (first : (set, int) :> set), (setcreate: int :> set), (cons : int :> list int :> list int)) 2 40 40 1 3 1
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int)) 2 10 2 1
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int), (cons : int :> list int :> list int), (union : int :> set :> set)) 2
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((emptytuple: (set, int)), (union : set :> set :> set), (countunique : (set, int) :> list int :> set), (first : (set, int) :> set), (setcreate: int :> set), (cons : int :> list int :> list int)) 2 40 40 1 3 1
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int)) 2 10 2 1
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((setsize : set :> int), (uniquefromlist : list int :> set), (uniquecountfromlist : list int :> int), (cons : int :> list int :> list int), (union : int :> set :> set)) 2

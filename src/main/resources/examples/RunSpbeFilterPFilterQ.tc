@@ -5,7 +5,7 @@ cons ?x ?l >> x :: l [typedlet]
 
 filter ?p (cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
 
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) 2 4 2 2 2
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) 2 4 2 2 2
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 

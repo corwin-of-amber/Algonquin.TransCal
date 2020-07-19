@@ -9,5 +9,5 @@ zero = 0
 
 // (?f: associative |||| (f(?x, f(?y, ?t)) ||| ?z) |>> z ||| f(f(x, y), t) [typedlet]
 
-//SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
-SPBE( ⟨⟩ , (cons : int :> list int :> list int) ) ((zero : int), (sum : list int :> int), (fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
+//thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
+thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((zero : int), (sum : list int :> int), (fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0

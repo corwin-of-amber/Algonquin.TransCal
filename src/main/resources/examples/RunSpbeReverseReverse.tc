@@ -5,7 +5,7 @@ cons ?x ?l >> x :: l
 snoc ?l ?x >> l :+ x
 ?l :+ ?x >> snoc ?l ?x [notypes]
 
-SPBE ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (reverse : list int :> list int), (snoc : list int :> int :> list int)) 3 8 0
+thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (reverse : list int :> list int), (snoc : list int :> int :> list int)) 3 8 0
 
 reverse(reverse(f(t))) = reverse(reverse(l)) [++]
 

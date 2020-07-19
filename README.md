@@ -19,7 +19,7 @@ The user guided search is enabled by [Actions](src/main/scala/synthesis/actions)
 by using other actions or by running a [rewrite search](src/main/scala/synthesis/search/action/operators/OperatorRunAction.scala)
 which is an implementation of congruence closure over our data structure.   
 In addition, some special actions are added which are the core of the research done by our team.
-Currently focusing on TheSy, which is a theory exploration system in an action named SPBE.
+Currently focusing on TheSy, which is a theory exploration system in an action named thesy.
 
 ## The Language
 We are working on passing AST's and types from COQ. 

@@ -11,6 +11,6 @@ rmul ?z (radd ?x ?y) = radd (rmul z x) (rmul z y)
 
 vectoradd (vcons ?x ?xs) ?v2 |>> splitTrue ||| possibleSplit(v2, vnil, vcons r1 v2s) [typedlet]
 
-SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vectoradd : vec :> vec :> vec),) 2 4 2 1 2 3
-SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) (  (vectoradd : vec :> vec :> vec),) 3 4 2 1 2 2
-SPBE ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vcons : real :> vec :> vec), (vectoradd : vec :> vec :> vec), (vectorscalar : real :> vec :> vec)) 3
+thesy ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vectoradd : vec :> vec :> vec),) 2 4 2 1 2 3
+thesy ( (vnil : vec) , (vcons : real :> vec :> vec) ) (  (vectoradd : vec :> vec :> vec),) 3 4 2 1 2 2
+thesy ( (vnil : vec) , (vcons : real :> vec :> vec) ) ((vcons : real :> vec :> vec), (vectoradd : vec :> vec :> vec), (vectorscalar : real :> vec :> vec)) 3
