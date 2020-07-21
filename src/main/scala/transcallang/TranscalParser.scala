@@ -92,13 +92,17 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   private def number: Parser[AnnotatedTree] = accept("number", { case NUMBER(x) => AnnotatedTree.identifierOnly(Identifier(x.toString, annotation = Some(AnnotatedTree.identifierOnly(Identifier("int"))))) })
 
-  def identifier: Parser[AnnotatedTree] = identifierLiteral | (RBO ~> identifierLiteral ~ log((COLON() ~> expression).?)("type def") <~ RBC) ^^ parseIdentifier
+  def identifier: Parser[AnnotatedTree] = (identifierLiteral ~ (COLON() ~! log(expression)("type def")).?) ^^ parseIdentifier ||| identifierLiteral
 
   def consts: Parser[AnnotatedTree] = (NIL() | TRUE() | FALSE()) ^^ parseConsts
 
-  def tuple: Parser[AnnotatedTree] = ((RBO ~> COMMA() <~ RBC) | (RBO ~> (expression <~ COMMA()).+ ~ expression.? <~ RBC)) ^^ parseTuple
+  def stringLiteral: Parser[AnnotatedTree] = accept("literal", {
+    case LITERAL(x) => AnnotatedTree.withoutAnnotations(Language.stringLiteralId, List(AnnotatedTree.identifierOnly(Identifier(x))))
+  })
 
-  def exprValuesAndParens: Parser[AnnotatedTree] = (tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC) | number | consts | identifier) ^^ parseValueExpression
+  def tuple: Parser[AnnotatedTree] = ((RBO ~> COMMA() <~ RBC) ||| (RBO ~> (expression <~ COMMA()).+ ~ expression.? <~ RBC)) ^^ parseTuple
+
+  def exprValuesAndParens: Parser[AnnotatedTree] = (number | consts | log(identifier)("trying ident") | tuple | (RBO ~> expression <~ RBC) | (CBO ~ expression ~ CBC)) ^^ parseValueExpression
 
   def exprApply: Parser[AnnotatedTree] = rep1(exprValuesAndParens) ^^ parseApplication
 
@@ -122,9 +126,9 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def statementSpecialAction: Parser[AnnotatedTree] = thesyStatement
 
-  def statementDatastructure: Parser[AnnotatedTree] = DT() ~> identifierLiteral.+ ~ tuple ^^ parseStatementDatastructure
+  def statementDatastructure: Parser[AnnotatedTree] = (DT() ~! identifierLiteral.+ ~ log(tuple)("datatype constructors")) ^^ parseStatementDatastructure
 
-  def statementFunctionDecl: Parser[AnnotatedTree] = (DEC() ~> identifier) ^^ parseStatementFunctionDecleration
+  def statementFunctionDecl: Parser[AnnotatedTree] = (DEC() ~! identifierLiteral ~ COLON() ~ expression) ^^ parseStatementFunctionDecleration
 
   def statement: Parser[AnnotatedTree] = (statementDatastructure | statementFunctionDecl | statementSpecialAction | statementDefinition | statementCommand) ^^ parseStatement
 
@@ -141,8 +145,14 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def command: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ parseCommand
 
-  def program: Parser[AnnotatedTree] = phrase(SEMICOLON().* ~> (statement | command) ~ rep(SEMICOLON().+ ~> (statement | command).?)) ^^ {
-    case sc ~ scCommaList => scCommaList.filter(_.nonEmpty).map(_.get).foldLeft(sc)((t1, t2) => AnnotatedTree.withoutAnnotations(semicolonId, List(t1, t2)))
+  def include: Parser[AnnotatedTree] = INCLUDE() ~> stringLiteral ^^ (x => AnnotatedTree(Language.includeId, List(x)))
+
+  def program: Parser[AnnotatedTree] = phrase((include ~ SEMICOLON().+).* ~ SEMICOLON().* ~ (statement | command) ~ rep(SEMICOLON().+ ~> (statement | command).?)) ^^ {
+    case incList ~ _ ~ sc ~ scCommaList =>
+      val temp = scCommaList
+        .filter(_.nonEmpty).map(_.get)
+        .foldLeft(sc)((t1, t2) => AnnotatedTree.withoutAnnotations(semicolonId, List(t1, t2)))
+      temp.copy(subtrees = incList.map(_._1) ++ temp.subtrees)
   }
 
   /** The known left operators at the moment */
@@ -166,17 +176,17 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
   override def build(lefters: Map[Int, Set[WorkflowToken]], righters: Map[Int, Set[WorkflowToken]]): TermInfixer =
     throw new NotImplementedError()
 
+  private def flattenRightSide(t: AnnotatedTree): AnnotatedTree = {
+    val updated = t.copy(subtrees = t.subtrees.map(flattenRightSide))
+    if (t.root == Language.mapTypeId && t.subtrees.last.root == Language.mapTypeId) updated.copy(subtrees = updated.subtrees.head +: updated.subtrees.last.subtrees)
+    else updated
+  }
+
   // ------------------ Parsing Functions --------------------------------
-  private def parseIdentifier(m: AnnotatedTree ~ Option[AnnotatedTree]): AnnotatedTree = m match {
+  private def parseIdentifier(m: AnnotatedTree ~ Option[Elem ~ AnnotatedTree]): AnnotatedTree = m match {
     case (x: AnnotatedTree) ~ None => x
     case (x: AnnotatedTree) ~ Some(z) =>
-      def flattenRightSide(t: AnnotatedTree): AnnotatedTree = {
-        val updated = t.copy(subtrees = t.subtrees.map(flattenRightSide))
-        if (t.root == Language.mapTypeId && t.subtrees.last.root == Language.mapTypeId) updated.copy(subtrees = updated.subtrees.head +: updated.subtrees.last.subtrees)
-        else updated
-      }
-
-      val res = x.copy(root = x.root.copy(annotation = Some(flattenRightSide(z))))
+      val res = x.copy(root = x.root.copy(annotation = Some(flattenRightSide(z._2))))
       res
   }
 
@@ -384,15 +394,22 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
     }))), Seq.empty)
   }
 
-  private def parseStatementDatastructure(x: List[AnnotatedTree] ~ AnnotatedTree) = {
-    assert(x._2.subtrees.nonEmpty)
-    assert(x._2.subtrees.forall(_.root.annotation.nonEmpty))
-    assert(x._2.subtrees.forall(_.subtrees.isEmpty))
-    AnnotatedTree.withoutAnnotations(Language.datatypeId, x._1.head.copy(subtrees = x._1.tail) +: x._2.subtrees)
+  private def parseStatementDatastructure(x: Elem ~ List[AnnotatedTree] ~ AnnotatedTree) = {
+    x match {
+      case _ ~ typeIdents ~ constructors =>
+        assert(constructors.subtrees.nonEmpty)
+        assert(constructors.subtrees.forall(_.root.annotation.nonEmpty))
+        assert(constructors.subtrees.forall(_.subtrees.isEmpty))
+        AnnotatedTree.withoutAnnotations(Language.datatypeId, typeIdents.head.copy(subtrees = typeIdents.tail) +: constructors.subtrees)
+    }
   }
 
-  private def parseStatementFunctionDecleration(x: AnnotatedTree): AnnotatedTree = {
-    assert(x.root.annotation.nonEmpty)
-    AnnotatedTree.withoutAnnotations(Language.functionDeclId, List(x))
+  private def parseStatementFunctionDecleration(x: Elem ~ AnnotatedTree ~ Elem ~ AnnotatedTree): AnnotatedTree = {
+    x match {
+      case _ ~ ident ~ _ ~ types =>
+        AnnotatedTree.withoutAnnotations(Language.functionDeclId,
+          List(ident.copy(root = ident.root.copy(annotation = Some(flattenRightSide(types)))))
+        )
+    }
   }
 }

@@ -22,7 +22,7 @@ object Lexer extends RegexParsers {
 
   // Tokens is the main part of the lexer. Add your new token here!!!
   def tokens: Parser[Seq[WorkflowToken]] = {
-    phrase(rep1(matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
+    phrase(rep1(include | datatype | funcDecl | matchkeyword | polymorphickeyword | typekeyword | falsekeyword  | truekeyword | snoc |
       truecondbuilder | limitedandcondbuilder | andcondbuilder | limitedlet | limiteddirectedlet | doublecolon | maptype | comma | equals | semicolon | colon | nil | not | guarded
       | notequals | setdisjoint | plusplus | rightarrow | le | ge | and | or | leftarrow
       | backslash | lambda | let | plus | minus | union | directedlet | hole | setin | setnotin | lt | gt | annotation
@@ -56,6 +56,7 @@ object Lexer extends RegexParsers {
   def number: Parser[NUMBER] = positioned { "\\d+".r ^^ {x => NUMBER(x.toInt)}}
 
   def annotation: Parser[ANNOTATION] = positioned { "\\[.+?\\]".r ^^ ( x => ANNOTATION(x.substring(1, x.length - 1)) ) }
+  def include: Parser[INCLUDE] = positioned { INCLUDE().toIdentifier.literal ^^ (_ => INCLUDE() ) }
 
   def matchkeyword: Parser[MATCH] = positioned { "match" ^^ (_ => MATCH() ) }
   def colon: Parser[COLON] = positioned { ":" ^^ (_ => COLON() ) }
@@ -105,4 +106,6 @@ object Lexer extends RegexParsers {
   def gt: Parser[GT] = positioned { ">" ^^ ( _ => GT() ) }
   def and: Parser[AND] = positioned { ("/\\" | "∧") ^^ ( _ => AND() ) }
   def or: Parser[OR] = positioned { ("\\/" | "∨") ^^ ( _ => OR() ) }
+  def datatype: Parser[DT] = positioned(Language.datatypeId.literal ^^ (_ => DT()))
+  def funcDecl: Parser[DEC] = positioned(Language.functionDeclId.literal ^^ (_ => DEC()))
 }

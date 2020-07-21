@@ -4,11 +4,13 @@ import java.io.PrintStream
 
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.ActionSearchState
-import synthesis.search.actions.thesy.TheoryExplorationAction
+import synthesis.search.actions.thesy.{SortedVocabulary, TheoryExplorationAction}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.rewrites.AssociativeRewriteRulesDB
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
-import transcallang.{AnnotatedTree, Datatype, Identifier, Language}
+import transcallang.{AnnotatedTree, Datatype, Identifier, Language, TranscalParser}
+import ui.Main
+import ui.Main.splitByStatements
 
 import scala.collection.mutable
 
@@ -23,13 +25,15 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
 
   private val stateStack = new mutable.ArrayStack[ActionSearchState]
   private val savedStates = new mutable.ListBuffer[ActionSearchState]
-  private val knownFuncs = mutable.Set.empty[Identifier]
-  private val knownTypes = mutable.Set.empty[Datatype]
+  private val knownFuncs = mutable.Map.empty[String, AnnotatedTree]
+  private val knownTypes = mutable.Map.empty[Identifier, Datatype]
+
+  private var inWithInclude = in
 
   /* --- Public --- */
 
   override def apply(state: ActionSearchState): ActionSearchState = {
-    val baseTerm = in.next()
+    val baseTerm = inWithInclude.next()
     logger.info(seperator)
     logger.info(s"Got ${Programs.termToString(baseTerm)} from user")
     val (tempTerm, annotation) =
@@ -41,6 +45,9 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
       else tempTerm
 
     val newState = term.root match {
+      case Language.includeId =>
+        inWithInclude = Main.readFile(term.subtrees.head.subtrees.head.root.literal) ++ in
+        state
       case i if Language.builtinDefinitions.contains(i) =>
         // operator = in the main is Let (adding a new hyperterm)
         logger.info(s"Adding term ${Programs.termToString(term)} as rewrite")
@@ -123,22 +130,25 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         }
       case Language.`thesyId` =>
         // should be tuples
-        val typeBuilders = term.subtrees(0).subtrees.toSet
-        val grammar = term.subtrees(1).subtrees.toSet
+        val types = term.subtrees(0).subtrees.toSet.map((t: AnnotatedTree) => knownTypes(t.root))
+        val grammar = term.subtrees(1).subtrees.toSet.map((t: AnnotatedTree) => knownFuncs(t.root.literal))
         val exampleDepth = term.subtrees(2).root.literal.toInt
         val equivDepthOption = if (term.subtrees.length > 3) Some(term.subtrees(3).root.literal.toInt) else None
         val preRunDepth = if (term.subtrees.length > 4) Some(term.subtrees(4).root.literal.toInt) else None
         val splitDepth = if (term.subtrees.length > 5) Some(term.subtrees(5).root.literal.toInt) else None
         val termDepth = if (term.subtrees.length > 6) Some(term.subtrees(6).root.literal.toInt) else None
         val placeholderCount = if (term.subtrees.length > 7) Some(term.subtrees(7).root.literal.toInt) else None
-        new TheoryExplorationAction(typeBuilders.map(_.root), grammar, exampleDepth, termDepthOption=termDepth, equivDepthOption = equivDepthOption, preRunDepth = preRunDepth, splitDepthOption = splitDepth, placeholderCountOption = placeholderCount)(state)
+        new TheoryExplorationAction(SortedVocabulary(types, grammar), exampleDepth, termDepth, equivDepthOption, preRunDepth, splitDepth, placeholderCount, false)(state)
       case Language.functionDeclId =>
-        knownFuncs += term.root
-        state.updateGraph(g => g.addAllKeepVersion(Programs.destruct(term)))
+        assert(term.subtrees.size == 1)
+        assert(term.subtrees.head.root.annotation.nonEmpty)
+        assert(term.subtrees.head.subtrees.isEmpty)
+        knownFuncs(term.subtrees.head.root.literal) = term.subtrees.head
+        state.updateGraph(g => g.addAllKeepVersion(Programs.destruct(term.subtrees.head)))
         state
       case Language.datatypeId =>
-        assert(term.subtrees.forall(_.isLeaf))
-        knownTypes += Datatype(term.subtrees.head.root, term.subtrees.head.subtrees, term.subtrees.tail.map(_.root))
+        assert(term.subtrees.tail.forall(_.isLeaf))
+        knownTypes(term.subtrees.head.root) = Datatype(term.subtrees.head.root, term.subtrees.head.subtrees, term.subtrees.tail.map(_.root))
         state
     }
 

@@ -32,6 +32,7 @@ object Main extends App with LazyLogging {
     val smtin: ScallopOption[Boolean] = opt[Boolean]()
     val justCheck: ScallopOption[Boolean] = opt[Boolean]()
     val previousResults: ScallopOption[List[String]] = opt[List[String]](default = Some(List()))
+    val libraryLocations: ScallopOption[List[String]] = opt[List[String]](default = Some(List("src/main/resources/tc-lib/", "src/main/resources/examples/")))
 
     validateFileIsFile(file)
     validateFileIsDirectory(dir)
@@ -42,16 +43,19 @@ object Main extends App with LazyLogging {
   private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] =
     term.split(transcallang.Language.semicolonId).iterator
 
-  def readLines(lines: Iterator[String]) = {
-    val parser = new TranscalParser()
-    splitByStatements(parser(lines.mkString("\n")))
+  def readFile(name: String): Iterator[AnnotatedTree] = {
+    val updatedName = if(name.endsWith(".tc")) name else name + ".tc"
+    conf.libraryLocations()
+      .find(lib => new File(new File(lib), updatedName).exists())
+      .map(s => readFile(new File(new File(s), updatedName))).get
   }
 
   def readFile(file: File): Iterator[AnnotatedTree] = {
     logger.warn(s"file name - ${file.getName}")
     val source = Source.fromFile(file)
     try {
-      readLines(source.getLines())
+      val parser = new TranscalParser()
+      splitByStatements(parser(source.getLines().mkString("\n")))
     } finally {
       source.close()
     }

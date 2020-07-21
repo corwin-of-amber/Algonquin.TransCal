@@ -1,11 +1,15 @@
-reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))  [notypes]
+include "List"
 
-cons ?x ?l >> x :: l
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l
+?x :: ?l >> Cons ?x ?l [notypes]
 snoc ?l ?x >> l :+ x
 ?l :+ ?x >> snoc ?l ?x [notypes]
 
-thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (reverse : list int :> list int), (snoc : list int :> int :> list int)) 3 8 0
+reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))  [notypes]
+
+Nil = nil
+
+thesy (list,) (snoc, reverse) 3 8 0
 
 reverse(reverse(f(t))) = reverse(reverse(l)) [++]
 

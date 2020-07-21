@@ -83,6 +83,7 @@ object Language {
   val functionDeclId = Identifier("dec")
   val numeralId = Identifier("numeral")
   val assertId = Identifier("assert")
+  val includeId = Identifier("include")
 
   val identifierRegex: Regex = "[?]?[\\w'`_\\-+<>=]+".r
 

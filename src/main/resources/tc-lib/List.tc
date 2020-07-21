@@ -1,0 +1,3 @@
+datatype list a (Nil : (list a), Cons : (a :> list a :> list a))
+dec reverse : (list a :> list a)
+dec snoc : (list a :> a :> list a)
