@@ -1,0 +1,3 @@
+plus ?x ?y = x match (((zero) => id y) / ((succ ?t) => plus t (succ y)))
+even zero = true
+even (succ ?y) = ~(even y)

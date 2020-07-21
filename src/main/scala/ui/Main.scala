@@ -40,8 +40,9 @@ object Main extends App with LazyLogging {
     verify()
   }
 
-  private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] =
+  private def splitByStatements(term: AnnotatedTree): Iterator[AnnotatedTree] = {
     term.split(transcallang.Language.semicolonId).iterator
+  }
 
   def readFile(name: String): Iterator[AnnotatedTree] = {
     val updatedName = if(name.endsWith(".tc")) name else name + ".tc"

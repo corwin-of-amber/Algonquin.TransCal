@@ -3,8 +3,8 @@ fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs))
 concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
 ?l1 ++ ?l2 >> concat ?l1 ?l2 [typedlet]
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 snoc ?l ?x = l :+ x [typedlet]
 ?l :+ ?x >> snoc ?l ?x [notypes]
 map ?f nil >> nil [notypes]
@@ -17,5 +17,5 @@ len ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => 1 + len(xs)))  [notypes]
 
 reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x)) [notypes]
 
-thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 8 0
-//thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((len : list int :> int), (pl : int :> int :> int), (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), (reverse : list int :> list int)) 3 6 0
+thesy(list,) ((map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), snoc, (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), reverse) 3 8 0
+//thesy(list,) ((len : list int :> int), pl, (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), snoc, (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), reverse) 3 6 0

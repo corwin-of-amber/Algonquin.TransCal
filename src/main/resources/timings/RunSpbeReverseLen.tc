@@ -1,8 +1,8 @@
 reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))  [notypes]
 len ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => 1 + len(xs)))  [notypes]
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 snoc ?l ?x >> l :+ x [typedlet]
 ?l :+ ?x >> snoc ?l ?x [notypes]
 pl ?x ?y >> ?x + ?y [typedlet]
@@ -11,7 +11,7 @@ pl ?x ?y >> ?x + ?y [typedlet]
 reverse (?xs :+ ?x) = x :: (reverse xs)
 reverse(reverse(?l)) >> id l
 
-thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) (0, 1, (pl : int :> int :> int), (reverse : list int :> list int), (snoc : list int :> int :> list int), (len : list int :> int)) 3 8 0
+thesy (list,) (0, 1, pl, reverse, snoc, (len : list int :> int)) 3 8 0
 
 reverse(len(t)) = reverse(len(l)) [++]
 

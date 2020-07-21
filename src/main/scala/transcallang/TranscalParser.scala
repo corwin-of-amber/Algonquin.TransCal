@@ -145,14 +145,18 @@ class TranscalParser extends Parsers with LazyLogging with Parser[AnnotatedTree]
 
   def command: Parser[AnnotatedTree] = (RIGHTARROW() | LEFTARROW() | SBO ~ SBC | SQUARE()) ^^ parseCommand
 
-  def include: Parser[AnnotatedTree] = INCLUDE() ~> stringLiteral ^^ (x => AnnotatedTree(Language.includeId, List(x)))
+  def include: Parser[AnnotatedTree] = INCLUDE() ~! stringLiteral ^^ (x => AnnotatedTree(Language.includeId, List(x._2)))
 
   def program: Parser[AnnotatedTree] = phrase((include ~ SEMICOLON().+).* ~ SEMICOLON().* ~ (statement | command) ~ rep(SEMICOLON().+ ~> (statement | command).?)) ^^ {
     case incList ~ _ ~ sc ~ scCommaList =>
       val temp = scCommaList
         .filter(_.nonEmpty).map(_.get)
         .foldLeft(sc)((t1, t2) => AnnotatedTree.withoutAnnotations(semicolonId, List(t1, t2)))
-      temp.copy(subtrees = incList.map(_._1) ++ temp.subtrees)
+      val res =
+        if (temp.root == Language.semicolonId) temp.copy(subtrees = incList.map(_._1) ++ temp.subtrees)
+        else AnnotatedTree.withoutAnnotations(Language.semicolonId, incList.map(_._1) :+ temp)
+      if (res.subtrees.size == 1) res.subtrees.head
+      else res
   }
 
   /** The known left operators at the moment */

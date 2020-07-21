@@ -1,13 +1,13 @@
 reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 snoc ?l ?x = l :+ x [typedlet]
 ?l :+ ?x >> snoc ?l ?x [notypes]
 concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
 ?l1 ++ ?l2 >> concat ?l1 ?l2 [typedlet]
 
-thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((cons : int :> list int :> list int), (reverse : list int :> list int), (snoc : list int :> int :> list int), (concat : list int :> list int :> list int)) 3 8 0
+thesy (list,) ((cons : int :> list int :> list int), reverse, snoc, (concat : list int :> list int :> list int)) 3 8 0
 
 reverse(l1 ++ l2) = reverse(t1 ++ t2) [++]
 

@@ -8,7 +8,7 @@ cons ?x ?l >> x :: l
 
 filter ?p (?x :: ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
 
-thesy ( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3 1
+thesy (list,) ((filter : (int :> boolean) :> list int :> list int), (concat : list int :> list int :> list int)) ((list int, (⟨⟩, x::⟨⟩)),) 3 3 1
 
 concat (filter p l1) (filter p l2) = f l1 l2   [++]
 concat (filter p l1) (filter p l2) -> filter p (concat l1 l2)

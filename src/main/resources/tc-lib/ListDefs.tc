@@ -1,0 +1,8 @@
+reverse ?l = l match ((Nil => Nil) / ((Cons ?x ?xs) => snoc (reverse xs) x))
+map ?f ?l = l match (Nil => Nil) / ((Cons ?x ?xs) => Cons (f x) (map f xs))
+len ?l = l match ((Nil => zero) / ((Cons ?x ?xs) => succ(len(xs))))
+snoc ?l ?x = concat l (Cons x Nil)
+concat Nil ?l2 >> id l2
+concat (Cons(?x, ?xs)) ?l2 >> Cons(x, (concat xs l2))
+filter ?p ?l = l match ((Nil => Nil) / ((Cons ?x ?xs) => (p x) match ((true =>  Cons x (filter p xs)) / (false => filter p xs))))
+fold ?f ?i ?l = l match ((Nil => id i) / ((Cons ?x ?xs) => fold f (f x i) xs))

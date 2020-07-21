@@ -6,8 +6,8 @@ forall ?l = l match ((⟨⟩ => true) / ((?x :: ?xs) => and x (forall xs))) [not
 exists ?l = l match ((⟨⟩ => false) / ((?x :: ?xs) => or x (exists xs))) [notypes]
 fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs)) [notypes]
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 
 and ?x ?y >> and ?y ?x
 and ?x (and ?y ?z) = and (and ?x ?y) ?z

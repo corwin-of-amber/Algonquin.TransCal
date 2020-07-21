@@ -1,0 +1,2 @@
+dec identity : a :> a
+dec circ : (a :> a) :> (a :> a) :> (a :> a)

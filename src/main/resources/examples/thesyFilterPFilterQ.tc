@@ -1,0 +1,12 @@
+include "List"
+include "ListDefs"
+
+filter ?p (Cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
+
+thesy(list,) (filter,) 2 4 2 2 2
+
+filter p (filter q (t)) = filter p (filter q (l)) [++]
+
+filter p (filter q (l)) -> filter q (filter p l)
+
+filter p (filter q (l)) -> filter (And p q) l

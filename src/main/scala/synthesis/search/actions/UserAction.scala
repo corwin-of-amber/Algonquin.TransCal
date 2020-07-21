@@ -148,7 +148,11 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         state
       case Language.datatypeId =>
         assert(term.subtrees.tail.forall(_.isLeaf))
+        val dt = Datatype(term.subtrees.head.root, term.subtrees.head.subtrees, term.subtrees.tail.map(_.root))
         knownTypes(term.subtrees.head.root) = Datatype(term.subtrees.head.root, term.subtrees.head.subtrees, term.subtrees.tail.map(_.root))
+        dt.constructors.foreach(i => {
+          knownFuncs(i.literal) = AnnotatedTree.identifierOnly(i)
+        })
         state
     }
 

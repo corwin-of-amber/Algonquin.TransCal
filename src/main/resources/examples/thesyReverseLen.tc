@@ -1,0 +1,17 @@
+include "List"
+include "ListDefs"
+include "Nat"
+
+// reverse (snoc ?xs ?x) = Cons x (reverse xs)
+// reverse(reverse(?l)) >> id l
+
+pl ?x ?y = pl ?y ?x
+pl (pl ?x ?y) ?z = pl x (pl y z)
+pl zero ?x >> id x
+pl ?x zero >> id x
+
+thesy (list,) (pl, reverse, snoc, len) 3 8 0
+
+len(reverse(t)) = reverse(len(l)) [++]
+
+len(reverse(t)) -> len(t)

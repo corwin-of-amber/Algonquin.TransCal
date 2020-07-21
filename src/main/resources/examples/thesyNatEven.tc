@@ -1,18 +1,8 @@
-// plus ?x ?y = x match (((zero) => id y) / ((suc ?t) => plus t (suc y)))
-
-plus (suc ?t) ?y = suc (plus t y)
-plus zero ?y >> id y
-
-even zero >> true [typedlet]
-true >> even zero [notypes]
-even (suc ?y) >> ~(even y) [typedlet]
-~(even y) >> even (suc ?y) [notypes]
+include "Nat"
+include "NatDefs"
 
 not ?x >> ~x [typedlet]
 ~?x >> not ?x [notypes]
-
-one = suc zero
-two = suc one
 
 // previously discovered
 plus(?Placeholder0, zero) = ?Placeholder0
@@ -21,7 +11,10 @@ plus(suc(?Placeholder0), ?Placeholder2) = plus(?Placeholder0, suc(?Placeholder2)
 plus(plus(?Placeholder0, ?Placeholder2), ?Placeholder1) = plus(?Placeholder0, plus(?Placeholder2, ?Placeholder1))
 plus(?Placeholder2, ?Placeholder0) = plus(?Placeholder0, ?Placeholder2)
 
-thesy ((zero : nat) , (suc : nat :> nat)) (false, true, (suc : nat :> nat), (plus : nat :> nat :> nat), (even : nat :> boolean)) 3 5 0
+dec false : bool
+dec true : bool
+
+thesy (nat) (false, true, plus, even) 3 5 0
 
 even (plus x x) = f x [++]
 even (plus x x) -> ~false

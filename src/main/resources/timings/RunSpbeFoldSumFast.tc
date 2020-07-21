@@ -1,13 +1,13 @@
 sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs))) [notypes]
 fold ?f ?i ?l = l match ((⟨⟩ => id i) / ((?x :: ?xs) => fold f (f(x,i)) xs)) [notypes]
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 pl ?x ?y >> x + y [typedlet]
 ?x + ?y >> pl ?x ?y [notypes]
 zero = 0
 
 // (?f: associative |||| (f(?x, f(?y, ?t)) ||| ?z) |>> z ||| f(f(x, y), t) [typedlet]
 
-//thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
-thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((zero : int), (sum : list int :> int), (fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0 1 2 1
+//thesy(list,) ((fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
+thesy(list,) ((zero : int), (sum : list int :> int), (fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0 1 2 1

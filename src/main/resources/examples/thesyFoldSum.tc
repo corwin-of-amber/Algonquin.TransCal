@@ -1,0 +1,8 @@
+sum ?l = l match ((⟨⟩ => 0) / ((?x :: ?xs) => x + sum(xs)))
+
+dec sum : list int :> int
+
+// (?f: associative |||| (f(?x, f(?y, ?t)) ||| ?z) |>> z ||| f(f(x, y), t) [typedlet]
+
+//thesy(list,) ((fold : (int :> int :> int) :> int :> (list int) :> int), (pl : (int :> int :> int))) 3 8 0
+thesy(list,) (zero, sum, fold, pl) 3 8 0

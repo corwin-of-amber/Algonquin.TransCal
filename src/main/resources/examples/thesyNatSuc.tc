@@ -1,0 +1,11 @@
+include "Nat"
+include "NatDefs"
+
+//plus (suc ?t) ?y = suc (plus t y)
+//plus zero ?y >> id y
+
+thesy (nat,) (plus,) 3 8 0 1 2 3
+thesy (nat,) (plus,) 3 8 0 1 2 3
+
+plus x y = function x y [++]
+plus x y -> pl y x

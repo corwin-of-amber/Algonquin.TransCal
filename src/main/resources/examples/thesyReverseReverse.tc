@@ -1,15 +1,13 @@
 include "List"
+include "ListDefs"
 
 Cons ?x ?l >> x :: l
 ?x :: ?l >> Cons ?x ?l [notypes]
 snoc ?l ?x >> l :+ x
 ?l :+ ?x >> snoc ?l ?x [notypes]
-
-reverse ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (reverse xs) :+ x))  [notypes]
-
 Nil = nil
 
-thesy (list,) (snoc, reverse) 3 8 0
+thesy (list,) (snoc, reverse) 3 10 0
 
 reverse(reverse(f(t))) = reverse(reverse(l)) [++]
 

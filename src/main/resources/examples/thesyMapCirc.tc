@@ -1,0 +1,9 @@
+include "List"
+include "ListDefs"
+include "Utils"
+include "UtilsDefs"
+
+ttt = map (circ f1 g1) (e::w::nil) [++]
+map (circ f1 g1) (e::w::nil) -> (f1(g1(e)))::(f1(g1(w)))::nil
+
+thesy (list,) (map, circ) 3 5 0

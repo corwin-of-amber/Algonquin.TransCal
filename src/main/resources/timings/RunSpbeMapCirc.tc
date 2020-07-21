@@ -1,8 +1,8 @@
 map ?f nil >> nil [notypes]
 map ?f (?x::?xs) >> (f x)::(map f xs)
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 
 circ ?f ?g ?x = f(g(x))
 

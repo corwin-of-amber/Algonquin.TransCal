@@ -1,0 +1,21 @@
+include "List"
+include "ListDefs"
+include "Nat"
+
+Nil = nil
+succ ?x = 1 + x
+zero = 0
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
+snoc ?l ?x >> l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+pl ?x ?y >> ?x + ?y [typedlet]
+?x + ?y >> pl ?x ?y [notypes]
+concat ?x ?y = ?x ++ ?y
+
+
+thesy (list,) (pl, concat, len) 3 6 0
+
+(len(concat t1 t2)) = (len(concat l1 l2)) [++]
+
+len(concat t1 t2) -> (len t1) + (len t2)

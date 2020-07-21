@@ -1,3 +1,8 @@
 datatype list a (Nil : (list a), Cons : (a :> list a :> list a))
 dec reverse : (list a :> list a)
 dec snoc : (list a :> a :> list a)
+dec len : list a :> nat
+dec concat : list a :> list a :> list a
+dec filter : (a :> boolean) :> list a :> list a
+dec map : (a :> a) :> list a :> list a
+dec fold : (int :> int :> int) :> int :> (list int) :> int

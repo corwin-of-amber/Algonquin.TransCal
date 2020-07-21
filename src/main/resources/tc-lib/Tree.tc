@@ -1,0 +1,4 @@
+datatype tree a (tnil: tree a, Tree: a :> tree a :> tree a :> tree a)
+dec tmap : (a :> a) :> tree a :> tree a
+dec toList: tree a :> list a
+dec switch: tree a :> tree a

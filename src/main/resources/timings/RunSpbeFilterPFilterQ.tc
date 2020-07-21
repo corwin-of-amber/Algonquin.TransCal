@@ -1,11 +1,11 @@
 filter ?p ?l = l match ((⟨⟩ => ⟨⟩) / ((?x :: ?xs) => (p x) match ((true =>  x :: (filter p xs)) / (false => filter p xs)))) [notypes]
 
-cons ?x ?l >> x :: l [typedlet]
-?x :: ?l >> cons ?x ?l [notypes]
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
 
 filter ?p (cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
 
-thesy( ⟨⟩ , (cons : int :> list int :> list int) ) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 3 3 2 2
+thesy(list,) ((filter : (int :> boolean) :> list int :> list int),) ((list int, (⟨⟩, x::⟨⟩)),) 3 3 2 2
 
 filter p (filter q (t)) = filter p (filter q (l)) [++]
 

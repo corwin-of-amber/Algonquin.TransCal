@@ -1,0 +1,4 @@
+include "List"
+include "ListDefs"
+
+thesy (list,) (snoc, concat) 3 8 0 1 2 3

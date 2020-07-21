@@ -1,0 +1,17 @@
+include "List"
+include "ListDefs"
+
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
+snoc ?l ?x >> l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+concat ?l1 ?l2 >> l1 ++ l2 [typedlet]
+?l1 ++ ?l2 >> concat ?l1 ?l2 [notypes]
+
+concat(?l, Nil) >> id l
+concat(concat(?l, ?ll), ?lll) = concat(l, concat(ll, lll))
+
+filter ?p (Cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [typedlet]
+
+thesy (list,) (filter, concat, map) 2 3 3 1
+

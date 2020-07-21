@@ -1,0 +1,10 @@
+include "List"
+include "ListDefs"
+
+filter ?p (Cons ?x ?xs) |>> splitTrue ||| possibleSplit((p x), true, false) [notypes]
+
+thesy (list,) (filter,) 2 6
+
+filter pred (filter pred (t)) = filter pred (filter pred (l)) [++]
+
+filter pred (filter pred (l)) -> filter pred l

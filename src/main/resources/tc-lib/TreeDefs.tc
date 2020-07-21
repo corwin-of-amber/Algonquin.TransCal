@@ -1,0 +1,8 @@
+toList tnil >> Nil [typedlet]
+toList (Tree ?v ?l ?r) = concat (toList l) (Cons v (toList r))
+
+switch tnil = tnil
+switch (Tree ?v ?l ?r) = Tree v (switch r) (switch l)
+
+tmap ?f tnil >> tnil [notypes]
+tmap ?f (Tree ?v ?l ?r) >> Tree (f v) (tmap f l)  (tmap f r)

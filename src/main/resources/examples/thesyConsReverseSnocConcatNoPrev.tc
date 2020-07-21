@@ -1,0 +1,9 @@
+include "List"
+include "ListDefs"
+
+thesy (list,) (concat,) 3 6 0 1 2 3
+thesy (list,) (snoc, concat, reverse) 3 8 0
+
+reverse(l1 ++ l2) = reverse(t1 ++ t2) [++]
+
+reverse(l1 ++ l2) -> reverse(l2) ++ reverse(l1)

@@ -1,0 +1,2 @@
+identity ?x >> id x
+circ ?f ?g ?x = f(g(x))

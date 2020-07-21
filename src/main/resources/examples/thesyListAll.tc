@@ -1,0 +1,17 @@
+include "List"
+include "ListDefs"
+include "Nat"
+include "NatDefs"
+
+Cons ?x ?l >> x :: l [typedlet]
+?x :: ?l >> Cons ?x ?l [notypes]
+snoc ?l ?x = l :+ x [typedlet]
+?l :+ ?x >> snoc ?l ?x [notypes]
+Nil = nil
+
+plus ?x ?y >> ?x + ?y [typedlet]
+?x + ?y >> plus ?x ?y [notypes]
+
+
+thesy(list,) (map, snoc, concat, fold, reverse) 3 10 0
+//thesy(list,) ((len : list int :> int), pl, (map : (int :> int) :> list int :> list int), (cons : int :> list int :> list int), snoc, (concat : list int :> list int :> list int), (fold : (int :> int :> int) :> int :> (list int) :> int), reverse) 3 6 0
