@@ -58,6 +58,14 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     result should not be empty
   }
 
+  test("Plus Len two datatypes") {
+    val fileName = "src/main/resources/examples/thesyPlusLen.tc"
+    val lastState = abstractTest(fileName)
+    val pattern = Programs.destructPattern(parser.parseExpression("plus (len _) (len _)").subtrees(1))
+    val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
+    result should not be empty
+  }
+
 //  test("PrefixSum") {
 //    val fileName = "src/main/resources/examples/PrefixSum.tc"
 //    val lastState = abstractTest(fileName)

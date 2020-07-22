@@ -1,0 +1,9 @@
+include "Nat"
+include "NatDefs"
+include "List"
+include "ListDefs"
+
+thesy (list, nat) (len, plus, concat) 3 8 0
+
+len (concat l1 l2) = len (concat t1 t2)    [++]
+len (concat l1 l2) -> plus (len l1)  (len l2)
