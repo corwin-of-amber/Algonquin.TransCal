@@ -145,9 +145,12 @@ class ConjectureGenerator(vocab: SortedVocabulary,
     //      }).toMap
     //      sygueMetadataToMerge.map(_.flatMap(m => metadataToId.get(m).map(_.sources.head)))
     //    }
-    val soes = vocab.datatypes.par.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
-    soes.foreach(_.setTimingBasename(basename))
-    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq.toSeq)
-    ObservationalEquivalence.mergeConclusions(state, idsToMerge.toSeq)
+    val datatypeSeq = vocab.datatypes.toSeq
+    val soe = new SOE(searcher, state, datatypeSeq.map(d => placeholders(d.asType).head), datatypeSeq.map(d => examples(d.asType)))
+    soe.setTimingBasename(basename)
+//    val soes = vocab.datatypes.par.map(d => new SOE(searcher, state, placeholders(d.asType).head, examples(d.asType)))
+//    soes.foreach(_.setTimingBasename(basename))
+//    val idsToMerge = ObservationalEquivalence.flattenUnionConclusions(soes.map(_.findEquives(operators, compareDepth)).seq.toSeq)
+    ObservationalEquivalence.mergeConclusions(state, soe.findEquives(operators, compareDepth).toSeq)
   }
 }

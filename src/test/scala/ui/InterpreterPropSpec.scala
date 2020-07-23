@@ -61,7 +61,7 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
   test("Plus Len two datatypes") {
     val fileName = "src/main/resources/examples/thesyPlusLen.tc"
     val lastState = abstractTest(fileName)
-    val pattern = Programs.destructPattern(parser.parseExpression("plus (len _) (len _)").subtrees(1))
+    val pattern = Programs.destructPattern(parser.parseExpression("plus (len ?x) (len ?y) ||| len (concat x y)"))
     val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
@@ -74,8 +74,8 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
 //    result should not be empty
 //  }
 
-  test("SPBENatPlus") {
-    val fileName = "src/main/resources/examples/RunSpbeNatSuc.tc"
+  test("thesyNatPlus") {
+    val fileName = "src/main/resources/examples/thesyNatSuc.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression(" plus x y ||| plus y x"))
     val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
@@ -90,16 +90,16 @@ class InterpreterPropSpec extends FunSuite with Matchers with TimeLimitedTests w
     result should not be empty
   }
 
-  test("SPBEFilterFilter") {
-    val fileName = "src/main/resources/examples/RunSpbeFilterFilter.tc"
+  test("thesyFilterFilter") {
+    val fileName = "src/main/resources/examples/thesyFilterFilter.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("filter pred (filter pred (l)) ||| filter pred l"))
     val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)
     result should not be empty
   }
 
-  test("SPBEReverseReverse") {
-    val fileName = "src/main/resources/examples/RunSpbeReverseReverse.tc"
+  test("thesyReverseReverse") {
+    val fileName = "src/main/resources/examples/thesyReverseReverse.tc"
     val lastState = abstractTest(fileName)
     val pattern = Programs.destructPattern(parser.parseExpression("reverse(reverse(f(t))) ||| f(t)"))
     val result = lastState.programs.queryGraph.findSubgraph[Int](pattern)

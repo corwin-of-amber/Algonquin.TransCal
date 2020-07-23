@@ -11,10 +11,10 @@ plus(suc(?Placeholder0), ?Placeholder2) = plus(?Placeholder0, suc(?Placeholder2)
 plus(plus(?Placeholder0, ?Placeholder2), ?Placeholder1) = plus(?Placeholder0, plus(?Placeholder2, ?Placeholder1))
 plus(?Placeholder2, ?Placeholder0) = plus(?Placeholder0, ?Placeholder2)
 
-dec false : bool
-dec true : bool
+//dec false : bool
+//dec true : bool
 
-thesy (nat) (false, true, plus, even) 3 5 0
+thesy (nat,) (false, true, plus, even) 3 5 0
 
 even (plus x x) = f x [++]
 even (plus x x) -> ~false

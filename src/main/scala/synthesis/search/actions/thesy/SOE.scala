@@ -15,24 +15,28 @@ import synthesis.search.rewrites.Template.ReferenceTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs, search}
 import transcallang.{AnnotatedTree, Identifier, Language}
 
-class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree])
+class SOE(searcher: SearchAction, state: ActionSearchState, inputMarkers: Seq[Identifier], valuations: Seq[Seq[AnnotatedTree]])
     extends LazyLogging with LazyTiming {
+  def this(searcher: SearchAction, state: ActionSearchState, inputMarker: Identifier, valuations: Seq[AnnotatedTree]) =
+    this(searcher, state, Seq(inputMarker), Seq(valuations))
+
   private val anchorPrefix = "SOE_"
-  val marker = inputMarker.copy(annotation = None)
+  val markers = inputMarkers.map(_.copy(annotation = None))
 
   private lazy val tupeledState: ActionSearchState = timed("tupled graph creation") {
     // TODO: Add disjoint append to rewrite graph and simplify this
     // Need to shift all edges on graph because we want to prevent one changed value from affecting parts of other
     // values. Working on edges to prevent unwanted compaction until adding back anchors and adding new tuples.
-    val replacedGraphs = valuations.indices.map(i => {
-      val itAnchorPrefix = s"${i}_$anchorPrefix"
+
+    val replacedGraphs = markers.zipWithIndex.flatMap({case (marker, index) => valuations(index).indices.map(i => {
+      val itAnchorPrefix = s"${valuations.take(index).map(_.size).sum + i}_$anchorPrefix"
       val currentState = state.deepCopy()
       currentState.updateGraph(currentGraph => {
       currentGraph --= currentGraph.filter(e => e.edgeType.identifier == Language.typeId
         || e.edgeType.identifier == SyGuERewriteRules.sygueCreatedId)
       // DO NOT CHANGE GRAPH BEFORE ADDING ANCHORS. SEE getTupledConclusions
       currentGraph ++= currentGraph.edges.map(e => ObservationalEquivalence.createAnchor(itAnchorPrefix, e.target))
-      val example = valuations(i)
+      val example = valuations(index)(i)
       currentGraph ++= Programs.destruct(example cleanTypes, maxId = currentGraph.nodes.maxBy(_.id))
       val (pattern, root) = Programs.destructPatternWithRoot(example cleanTypes)
       val id = currentGraph.findSubgraph[Int](pattern).head.nodeMap(root.asInstanceOf[ReferenceTerm[HyperTermId]].id)
@@ -42,7 +46,7 @@ class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identif
 //      currentGraph
     })
       currentState
-    })
+    })})
     val resState = replacedGraphs.head
     var max = resState.programs.queryGraph.nodes.maxBy(_.id)
     resState.updateGraph(resGraph => {
@@ -55,12 +59,13 @@ class SOE(searcher: SearchAction, state: ActionSearchState, inputMarker: Identif
   }
 
   private def getTupledConclusions(state: ActionSearchState): Set[Set[HyperTermId]] = timed {
-    val prefixes = valuations.indices.map(i => s"${
-      i
-    }_$anchorPrefix")
+    val prefixes = valuations.zipWithIndex.map({case (valuation, index) => valuation.indices.map(i => s"${
+      valuations.take(index).map(_.size).sum + i
+    }_$anchorPrefix")})
     // This can work because when we create the tupled graph we do not change the graph when inserting different anchors
-    ObservationalEquivalence.flattenIntersectConclusions(prefixes.map(p =>
-      ObservationalEquivalence.getIdsToMerge(p, state.programs.queryGraph.edges))).filter(_.nonEmpty)
+    ObservationalEquivalence.flattenUnionConclusions(
+      prefixes.map(prefs => ObservationalEquivalence.flattenIntersectConclusions(prefs.map( p =>
+      ObservationalEquivalence.getIdsToMerge(p, state.programs.queryGraph.edges))))).filter(_.nonEmpty)
   }
 
   def findEquives(rules: Set[RewriteRule], depth: Option[Double]): Set[Set[HyperTermId]] = timed ("find equives") {
