@@ -38,4 +38,14 @@ abstract class WrapperHyperGraph[Node, EdgeType, +This <: WrapperHyperGraph[Node
   override def contains(elem: HyperEdge[Node, EdgeType]): Boolean = wrapped.contains(elem)
 
   override def updateMetadata(edge: HyperEdge[Node, EdgeType], metadata: Metadata): Unit = wrapped.updateMetadata(edge, metadata)
+
+  override def markNode(n: Node): HyperGraphLike.Marker[Node] = wrapped.markNode(n)
+
+  override def markEdgeType(e: EdgeType): HyperGraphLike.Marker[EdgeType] = wrapped.markEdgeType(e)
+
+  override def getMarkedNode(m: HyperGraphLike.Marker[Node]): Node = wrapped.getMarkedNode(m)
+
+  override def getMarkedEdgeType(m: HyperGraphLike.Marker[EdgeType]): EdgeType = wrapped.getMarkedEdgeType(m)
+
+  override def getMarkedHyperEdge(m: HyperGraphLike.Marker[HyperEdge[Node, EdgeType]]): HyperEdge[Node, EdgeType] = wrapped.getMarkedHyperEdge(m)
 }

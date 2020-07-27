@@ -1,6 +1,6 @@
 package structures
 
-import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
+import structures.HyperGraphLike.{HyperEdgeMarker, HyperEdgePattern, HyperGraphPattern, Marker}
 
 import scala.collection.{GenTraversableOnce, SetLike}
 
@@ -28,6 +28,18 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
   def findInNodes(n: Node): Set[HyperEdge[Node, EdgeType]] = findByTarget(n) ++ findInSources(n)
   def findByEdgeType(et: EdgeType): Set[HyperEdge[Node, EdgeType]]
 
+  def markNode(n: Node): Marker[Node]
+
+  def markEdgeType(e: EdgeType): Marker[EdgeType]
+
+  def markHyperEdge(e: HyperEdge[Node, EdgeType]): Marker[HyperEdge[Node, EdgeType]] =
+    HyperEdgeMarker[Node, EdgeType](markEdgeType(e.edgeType), markNode(e.target), e.sources.map(n => markNode(n)))
+
+  def getMarkedNode(m: Marker[Node]): Node
+
+  def getMarkedEdgeType(m: Marker[EdgeType]): EdgeType
+
+  def getMarkedHyperEdge(m: Marker[HyperEdge[Node, EdgeType]]): HyperEdge[Node, EdgeType]
 
   /** Finds all the edges with the EdgeType
     *
@@ -136,4 +148,13 @@ object HyperGraphLike {
   // Shortcuts
   type HyperEdgePattern[Node, EdgeType, Id] = HyperEdge[Item[Node, Id], Item[EdgeType, Id]]
   type HyperGraphPattern[Node, EdgeType, Id, +This <: HyperGraphPattern[Node, EdgeType, Id, This] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]] = HyperGraphLike[Item[Node, Id], Item[EdgeType, Id], This]
+
+  class Marker[T]
+
+//  case class EitherMarker[L, R](either: Either[Marker[L], Marker[R]]) extends Marker[Either[L, R]]
+//
+//  case class SequenceMarker[T](s: Seq[Marker[T]]) extends Marker[Seq[T]]
+
+  case class HyperEdgeMarker[N, ET](et: Marker[ET], target: Marker[N], sources: Seq[Marker[N]]) extends Marker[HyperEdge[N, ET]]
+
 }

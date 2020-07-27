@@ -1,8 +1,10 @@
 package structures.mutable
 
 import com.typesafe.scalalogging.LazyLogging
+import structures.HyperGraphLike.{HyperEdgeMarker, Marker}
 import structures._
 import structures.generic.HyperGraphLikeGenericCompanion
+import structures.mutable.VocabularyHyperGraph.MarkerManager
 
 import scala.collection.mutable
 
@@ -10,7 +12,8 @@ import scala.collection.mutable
   * @author tomer
   * @since 11/15/18
   */
-class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]], metadatas: mutable.Map[(Node, EdgeType, Seq[Node]), Metadata])
+class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either[Node, EdgeType]],
+                                                   metadatas: mutable.Map[(Node, EdgeType, Seq[Node]), Metadata])
   extends generic.VocabularyHyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]] with HyperGraph[Node, EdgeType]
     with HyperGraphLike[Node, EdgeType, VocabularyHyperGraph[Node, EdgeType]]
     with LazyLogging {
@@ -21,6 +24,10 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   override def empty: VocabularyHyperGraph[Node, EdgeType] = VocabularyHyperGraph.empty
 
+
+  val nodeMarkers: MarkerManager[Node] = new MarkerManager[Node]
+  val edgeTypeMarkers: MarkerManager[EdgeType]= new MarkerManager[EdgeType]
+
   def this(edges: Set[HyperEdge[Node, EdgeType]] = Set.empty[HyperEdge[Node, EdgeType]]) =
     this(
       Trie(edges.map(generic.VocabularyHyperGraphLike.hyperEdgeToWord[Node, EdgeType])),
@@ -29,7 +36,13 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
-  override def clone: VocabularyHyperGraph[Node, EdgeType] = new VocabularyHyperGraph(vocabulary.clone, mutable.Map(metadatas.toList: _*))
+  override def clone: VocabularyHyperGraph[Node, EdgeType] = {
+    val res = new VocabularyHyperGraph(vocabulary.clone, mutable.Map(metadatas.toList: _*))
+    edgeTypeMarkers.copyToOther(res.edgeTypeMarkers)
+    nodeMarkers.copyToOther(res.nodeMarkers)
+    res
+  }
+
   override def edgeTypes: Set[EdgeType] = vocabulary.letters.collect({case Right(edgeType) => edgeType})
   override def nodes: Set[Node] = vocabulary.letters.collect({case Left(node) => node})
 
@@ -86,10 +99,6 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
 
 
   /* --- IterableLike Impl. --- */
-
-  override def newBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
-    VocabularyHyperGraph.newBuilder
-
   override def copyBuilder: mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] =
   new mutable.Builder[HyperEdge[Node, EdgeType], VocabularyHyperGraph[Node, EdgeType]] {
     var graph = VocabularyHyperGraph.this.clone
@@ -112,16 +121,91 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
     val meta = metadatas((edge.target, edge.edgeType, edge.sources))
     metadatas((edge.target, edge.edgeType, edge.sources)) = meta.merge(metadata)
   }
+
+  override def markNode(n: Node): Marker[Node] = nodeMarkers.mark(n)
+
+  override def markEdgeType(e: EdgeType): HyperGraphLike.Marker[EdgeType] = edgeTypeMarkers.mark(e)
+
+  override def getMarkedNode(m: HyperGraphLike.Marker[Node]): Node = nodeMarkers.find(m)
+
+  override def getMarkedEdgeType(m: HyperGraphLike.Marker[EdgeType]): EdgeType = edgeTypeMarkers.find(m)
+
+  override def getMarkedHyperEdge(m: HyperGraphLike.Marker[HyperEdge[Node, EdgeType]]): HyperEdge[Node, EdgeType] = m match {
+    case HyperEdgeMarker(e, t, ss) =>
+      val edgeType = getMarkedEdgeType(e)
+      val target = getMarkedNode(t)
+      val sources = ss.map(getMarkedNode)
+      HyperEdge(target, edgeType, sources, metadatas((target, edgeType, sources)))
+    case _ => throw new RuntimeException("Bad marker type")
+  }
 }
 
 object VocabularyHyperGraph extends HyperGraphLikeGenericCompanion[VocabularyHyperGraph] {
-  /** The default builder for `$Coll` objects.
-    *
-    * @tparam A the type of the ${coll}'s elements
-    */
   override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
     parts => {
       new VocabularyHyperGraph(parts.toSet)
     }
   }
+
+  private class Node[T](var parentValue: Either[Node[T], T])
+
+  class MarkerManager[T] {
+    private val toMarkers: mutable.Map[T, Marker[T]] = mutable.Map.empty
+    private val fromMarkers: mutable.Map[Marker[T], Node[T]] = mutable.Map.empty
+
+    def copyToOther(other: MarkerManager[T]): Unit = {
+      val nodeCopyMap = mutable.Map.empty[Node[T], Node[T]]
+      def copyNode(n: Node[T]): Node[T] = {
+        if (nodeCopyMap.contains(n)) nodeCopyMap(n)
+        else if(n.parentValue.isRight) {
+          val res = new Node[T](n.parentValue)
+          nodeCopyMap(n) = res
+          res
+        }
+        else {
+          val recN = new Node[T](Left(copyNode(n.parentValue.left.get)))
+          nodeCopyMap(n.parentValue.left.get) = recN
+          recN
+        }
+      }
+
+      other.toMarkers ++= toMarkers
+      other.fromMarkers ++= fromMarkers.map({case (k, v) => (k, copyNode(v))})
+      other
+    }
+
+    def mark(n: T): Marker[T] = toMarkers.getOrElseUpdate(n, {
+      val res = new Marker[T]
+      fromMarkers(res) = new Node[T](Right(n))
+      res
+    })
+
+    private def innerFind(m: Marker[T]): Node[T] = {
+      val toUpdate = mutable.Set.empty[Node[T]]
+      var base = fromMarkers(m)
+      while(base.parentValue.isLeft) {
+        toUpdate.add(base)
+        base = base.parentValue.left.get
+      }
+      for (elem <- toUpdate) elem.parentValue = Left(base)
+      base
+    }
+
+    def find(m: Marker[T]): T = innerFind(m).parentValue.right.get
+
+    def merge(t1: T, t2: T): Unit = {
+      val marker1 = mark(t1)
+      val marker2 = mark(t2)
+      val n1 = innerFind(marker1)
+      val n2 = innerFind(marker2)
+      toMarkers(t2) = marker1
+      n2.parentValue = Left[Node[T], T](n1)
+    }
+  }
+
+  /** An empty collection of type `$Coll[A]`
+    *
+    * @tparam A the type of the ${coll}'s elements
+    */
+  override def empty[A, B]: VocabularyHyperGraph[A, B] = new VocabularyHyperGraph(Set.empty[HyperEdge[A, B]])
 }
