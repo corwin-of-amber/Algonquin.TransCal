@@ -5,7 +5,7 @@ import synthesis.{HyperTermId, HyperTermIdentifier}
 import transcallang.Identifier
 
 package object rewrites {
-  private[synthesis] type HyperPrefix = generic.HyperGraph[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)]
+  private[synthesis] type HyperPrefix = HyperGraph[Item[HyperTermId, Int], (Item[HyperTermIdentifier, Int], Boolean)]
 
   private[synthesis] def patternEdgeCreator(target: Item[HyperTermId, Int],
                                            edgeType: Item[HyperTermIdentifier, Int],

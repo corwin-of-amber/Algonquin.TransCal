@@ -1,7 +1,7 @@
 package synthesis.search
 
 import structures.{HyperEdge, Metadata, SpecificMergeMetadata}
-import structures.generic.HyperGraph.Match
+import structures.Match
 import synthesis.search.DepthAwareSearch.DepthMetadata
 import synthesis.search.actions.SearchAction
 import synthesis.{HyperTermId, HyperTermIdentifier}

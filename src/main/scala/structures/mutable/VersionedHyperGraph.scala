@@ -1,7 +1,7 @@
 package structures.mutable
 
-import structures._
-import structures.generic.{HyperGraphLikeGenericCompanion, VersionedHyperGraphLike}
+import structures.{HyperGraph, _}
+import structures.generic.VersionedHyperGraphLike
 
 import scala.collection.mutable
 
@@ -83,9 +83,9 @@ class  VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph
       }
     }
 
-  override protected def getHyperGraph: generic.HyperGraph[Node, EdgeType] = wrapped
+  override protected def getHyperGraph: HyperGraph[Node, EdgeType] = wrapped
 
-  override def getLastVersion: generic.HyperGraph[Node, EdgeType] = lastVersion
+  override def getLastVersion: structures.HyperGraph[Node, EdgeType] = lastVersion
 
   override def addKeepVersion(hyperEdge: HyperEdge[Node, EdgeType]): VersionedHyperGraph[Node, EdgeType] =
     clone.addKeepVersionInPlace(hyperEdge)
@@ -138,7 +138,7 @@ class  VersionedHyperGraph[Node, EdgeType] private(wrapped: VocabularyHyperGraph
   }
 }
 
-object VersionedHyperGraph extends HyperGraphLikeGenericCompanion[VersionedHyperGraph] {
+object VersionedHyperGraph extends HyperGraphCompanion[VersionedHyperGraph] {
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements

@@ -2,10 +2,9 @@ package synthesis.search.actions.thesy
 
 import com.typesafe.scalalogging.LazyLogging
 import report.LazyTiming
-import structures.generic.HyperGraph
-import structures.generic.HyperGraph.Match
+import structures.Match
 import structures.mutable.CompactHyperGraph
-import structures.{EmptyMetadata, HyperEdge, Metadata, UnionMetadata}
+import structures.{EmptyMetadata, HyperEdge, HyperGraph, Metadata, UnionMetadata}
 import synthesis.search.actions.thesy.SyGuERewriteRules.SyGuEMetadata
 import synthesis.search.{ActionSearchState, Operator}
 import synthesis.search.actions.{Action, ObservationalEquivalence, SearchAction}

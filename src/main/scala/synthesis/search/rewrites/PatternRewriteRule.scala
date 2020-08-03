@@ -3,9 +3,8 @@ package synthesis.search.rewrites
 import com.typesafe.scalalogging.LazyLogging
 import report.Stats
 import structures.HyperGraphLike.HyperEdgePattern
-import structures._
-import structures.generic.HyperGraph
-import structures.generic.HyperGraph.Match
+import structures.{HyperGraph, _}
+import structures.Match
 import synthesis.search.rewrites.PatternRewriteRule.{HyperPattern, MutableHyperPattern, RewriteRuleMetadata}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, RepetitionTerm, TemplateTerm}
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier}
@@ -124,7 +123,7 @@ case class PatternRewriteRule(premise: HyperPattern,
 
   def isExistential: Boolean = existentialHoles.nonEmpty
 
-  private def subGraphConclusion(graph: RewriteRule.HyperGraph, metadata: Metadata, matched: HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int]): MutableHyperPattern = {
+  private def subGraphConclusion(graph: RewriteRule.HyperGraph, metadata: Metadata, matched: structures.Match[HyperTermId, HyperTermIdentifier, Int]): MutableHyperPattern = {
     val withExist = conclusionMutable.clone()
     if (existentialHoles.nonEmpty) {
       val existentialsMax = {
@@ -202,7 +201,7 @@ case class PatternRewriteRule(premise: HyperPattern,
 object PatternRewriteRule {
 
   /* --- Public --- */
-  type HyperPattern = generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
+  type HyperPattern = HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
   type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
 
@@ -216,20 +215,20 @@ object PatternRewriteRule {
     override protected def toStr: String = this.getClass.getName
   }
 
-  def fillPatterns(hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[HyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
+  def fillPatterns(hyperGraph: mutable.HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[MutableHyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
     patterns match {
       case Nil => Iterator(Seq.empty)
       case pattern :: rest =>
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
-            val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMatch(_, maps)))
+            val fullPattern = mutable.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map(mutable.HyperGraph.mergeMatch(_, maps)))
               .map(a => fullPattern +: a)
         }
     }
   }
 
-  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = generic.HyperGraph(
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = mutable.HyperGraph(
     templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq: _*
   )
 

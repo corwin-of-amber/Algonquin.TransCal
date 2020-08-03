@@ -1,7 +1,7 @@
 package structures.generic
 
-import structures.generic.HyperGraph.HyperGraphPattern
-import structures.{HyperEdge, HyperGraphLike, Item}
+import structures.HyperGraph.HyperGraphPattern
+import structures.{HyperEdge, HyperGraph, HyperGraphLike, Item, Match, mutable}
 
 trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[Node, EdgeType, This] with scala.collection.Set[structures.HyperEdge[Node,EdgeType]]] extends HyperGraphLike[Node, EdgeType, This]{
   protected def getHyperGraph: HyperGraph[Node, EdgeType]
@@ -15,7 +15,11 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
   protected def swapEdgeType(hyperEdge: HyperEdge[Node, EdgeType], keep: EdgeType, change: EdgeType): HyperEdge[Node, EdgeType] =
     hyperEdge.copy(edgeType = if (hyperEdge.edgeType == change) keep else hyperEdge.edgeType)
 
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[HyperGraph.Match[Node, EdgeType, Id]] = {
+  def findSubgraphVersioned[Id](origHyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[Match[Node, EdgeType, Id]] = {
+    val hyperPattern: mutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]] = origHyperPattern match {
+      case graph: mutable.HyperGraph[Item[Node, Id], Item[EdgeType, Id]] => graph
+      case x => mutable.HyperGraph(x.edges.toSeq: _*)
+    }
     (for (
       edgePattern <- hyperPattern;
       edge <- getLastVersion.findRegexHyperEdges(edgePattern)
@@ -24,8 +28,8 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
       val edgeTypes = Seq((edgePattern.edgeType, edge.edgeType))
       val nodesMap = Item.itemsValueToMap(nodes)
       val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
-      val matched = HyperGraph.Match(Set(edge), nodesMap, edgeTypeMap)
-      val g = structures.generic.HyperGraph.mergeMatch(hyperPattern, matched)
+      val matched = structures.Match(Set(edge), nodesMap, edgeTypeMap)
+      val g = structures.mutable.HyperGraph.mergeMatch(hyperPattern.clone(), matched)
       getHyperGraph.findSubgraph[Id](g).map { m => m.merge(matched) }
     }).flatten.toSet
   }

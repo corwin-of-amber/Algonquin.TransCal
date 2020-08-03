@@ -1,7 +1,7 @@
 package synthesis.search.actions
 
 import structures._
-import structures.generic.HyperGraph.Match
+import structures.Match
 import synthesis.search.ActionSearchState
 import synthesis.search.rewrites.PatternRewriteRule
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern

@@ -18,7 +18,7 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     * @tparam Id A reference type to show a wanted connection in the pattern.
     * @return The matched edges
     */
-  def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[generic.HyperGraph.Match[Node, EdgeType, Id]]
+  def findRegex[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[Match[Node, EdgeType, Id]]
   def findRegexHyperEdges[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[HyperEdge[Node, EdgeType]] = findRegex(pattern).flatMap(_.edges)
   def findRegexMaps[Id](pattern: HyperEdgePattern[Node, EdgeType, Id]): Set[(Map[Id, Node], Map[Id, EdgeType])] = findRegex(pattern).map(t => (t.nodeMap, t.edgeMap))
   def contains(elem: HyperEdge[Node, EdgeType]): Boolean = findRegex(HyperEdge(Explicit(elem.target), Explicit(elem.edgeType), elem.sources.map(Explicit(_)), elem.metadata)).nonEmpty
@@ -55,7 +55,7 @@ trait HyperGraphLike[Node, EdgeType, +This <: HyperGraphLike[Node, EdgeType, Thi
     * @tparam Pattern The type of the pattern subgraph
     * @return The matched references.
     */
-  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[generic.HyperGraph.Match[Node, EdgeType, Id]]
+  def findSubgraph[Id, Pattern <: HyperGraphPattern[Node, EdgeType, Id, Pattern] with collection.Set[HyperEdgePattern[Node, EdgeType, Id]]](hyperPattern: Pattern): Set[Match[Node, EdgeType, Id]]
 
   /**
     * @return all the nodes in the hyper graph.

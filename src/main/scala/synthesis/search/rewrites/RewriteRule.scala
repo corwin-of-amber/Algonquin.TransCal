@@ -1,13 +1,11 @@
 package synthesis.search.rewrites
 
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.generic.HyperGraph
-import structures.generic.HyperGraph.Match
-import structures.{EmptyMetadata, HyperEdge, Metadata, generic, mutable}
-import synthesis.search.rewrites.PatternRewriteRule.CategoryMetadata.Value
+import structures._
 import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
+
 
 trait RewriteRule {
   // TODO: This doesn't have to be versioned, it is as we don't change implementation during refactoring
@@ -31,14 +29,14 @@ trait RewriteRule {
     this
   }
 
-  protected val processors: collection.mutable.Buffer[(HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = collection.mutable.Buffer.empty
+  protected val processors: collection.mutable.Buffer[(Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern] = collection.mutable.Buffer.empty
 
-  def registerPostprocessor(processor: (HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
+  def registerPostprocessor(processor: (Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
     processors += processor
     this
   }
 
-  def unregisterPostprocessor(processor: (HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
+  def unregisterPostprocessor(processor: (Match[HyperTermId, HyperTermIdentifier, Int], MutableHyperPattern) => MutableHyperPattern): this.type = {
     processors -= processor
     this
   }
@@ -46,7 +44,7 @@ trait RewriteRule {
 
 object RewriteRule {
   /* --- Public --- */
-  type HyperPattern = generic.HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
+  type HyperPattern = HyperGraph.HyperGraphPattern[HyperTermId, HyperTermIdentifier, Int]
   type MutableHyperPattern = mutable.HyperGraph[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   type HyperPatternEdge = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]]
   // TODO: no reason this shouldn't be versioned
@@ -62,20 +60,20 @@ object RewriteRule {
     override protected def toStr: String = this.getClass.getName
   }
 
-  def fillPatterns(hyperGraph: generic.HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[HyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
+  def fillPatterns(hyperGraph: structures.mutable.HyperGraph[HyperTermId, HyperTermIdentifier], patterns: Seq[MutableHyperPattern]): Iterator[Seq[Set[HyperEdge[HyperTermId, HyperTermIdentifier]]]] = {
     patterns match {
       case Nil => Iterator(Seq.empty)
       case pattern :: rest =>
         hyperGraph.findSubgraph[Int](pattern).iterator.flatMap {
           maps =>
-            val fullPattern = generic.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
-            fillPatterns(hyperGraph, rest.map(generic.HyperGraph.mergeMatch(_, maps)))
+            val fullPattern = mutable.HyperGraph.fillPattern(pattern, maps, () => throw new RuntimeException("unknown reason"))
+            fillPatterns(hyperGraph, rest.map( mutable.HyperGraph.mergeMatch(_, maps)))
               .map(a => fullPattern +: a)
         }
     }
   }
 
-  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = generic.HyperGraph(
+  def createHyperPatternFromTemplates(templates: Set[Template]): HyperPattern = mutable.HyperGraph(
     templates.map(pattern => HyperEdge(pattern.target, pattern.function, pattern.parameters, EmptyMetadata)).toSeq: _*
   )
 

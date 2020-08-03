@@ -1,7 +1,6 @@
 package synthesis.search.actions.thesy
 
-import structures.Metadata
-import structures.generic.HyperGraph
+import structures.{HyperGraph, Metadata}
 import synthesis.search.actions.LetAction
 import synthesis.search.actions.thesy.SyGuERewriteRules.{SyGuEMetadata, SyGuEMetadataBranch}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm}
@@ -15,7 +14,7 @@ case class SyGuERewriteRules(terms: Set[AnnotatedTree]) extends RewriteRulesDB {
   require(terms.forall(_.root.annotation.nonEmpty))
   require(terms.forall(_.root.annotation.get.root == Language.mapTypeId))
 
-  def metadataCreator(id: Int): HyperGraph.Match[HyperTermId, HyperTermIdentifier, Int] => Metadata = m => {
+  def metadataCreator(id: Int): structures.Match[HyperTermId, HyperTermIdentifier, Int] => Metadata = m => {
     SyGuEMetadataBranch(id, m.edges.flatMap(e => e.metadata.collect({
       case m: SyGuEMetadata => Some(m)
       case _ => None

@@ -4,9 +4,9 @@ import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import structures._
-import structures.generic.HyperGraph.Match
+import structures.Match
 import structures.mutable.CompactHyperGraph
-import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
+import synthesis.search.rewrites.PatternRewriteRule.{HyperPattern, MutableHyperPattern}
 import synthesis.search.rewrites.Template.{ExplicitTerm, ReferenceTerm, TemplateTerm}
 import synthesis.search.rewrites.operators._
 import synthesis.{HyperTerm, HyperTermId, HyperTermIdentifier, Programs}
@@ -19,6 +19,7 @@ import transcallang.Identifier
 class PatternRewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks with Matchers {
   private implicit val hyperEdgeCreator: Arbitrary[HyperEdge[HyperTermId, HyperTermIdentifier]] = Arbitrary(hyperGraphEdgeGen)
   private implicit val hyperPatternCreator: Arbitrary[PatternRewriteRule.HyperPattern] = Arbitrary(hyperPatternGen)
+  private implicit val mutableHyperPatternCreator: Arbitrary[PatternRewriteRule.MutableHyperPattern] = Arbitrary(mutableHyperPatternGen)
   private implicit val rewriteRuleCreator: Arbitrary[PatternRewriteRule] = Arbitrary(rewriteRuleGen)
   private implicit val rewriteSearchStateCreator: Arbitrary[RewriteRule.HyperGraph] = Arbitrary(hyperGraphGen)
 
@@ -72,16 +73,16 @@ class PatternRewriteRulePropSpec extends PropSpec with ScalaCheckPropertyChecks 
   //  }
 
   property("Every state adds an edge") {
-    forAll { (conditions: HyperPattern, destinationEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =>
+    forAll { (conditions: MutableHyperPattern, destinationEdge: HyperEdge[HyperTermId, HyperTermIdentifier]) =>
       // Cant have illegal conditions or conditions containing destination
       whenever(conditions.edges.forall(e1 => (conditions.edges.toSeq :+ destinationEdge).forall(e2 => e1 == e2 || (e1.edgeType != e2.edgeType || e1.sources != e2.sources))) &&
-        !generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, Match.empty, () => HyperTermId(-1)).contains(destinationEdge)) {
+        !mutable.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions.clone(), Match.empty, () => HyperTermId(-1)).contains(destinationEdge)) {
         val destination = HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(destinationEdge.target), ExplicitTerm(destinationEdge.edgeType), destinationEdge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)
         // At most one
         val willMerge = conditions.edges.find(e1 => e1.edgeType == destination.edgeType && e1.sources == destination.sources)
-        val filledConditions = generic.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions, Match.empty, () => HyperTermId(-1))
+        val filledConditions = mutable.HyperGraph.fillPattern[HyperTermId, HyperTermIdentifier, Int](conditions.clone(), Match.empty, () => HyperTermId(-1))
 
-        val rewriteRule = new PatternRewriteRule(conditions, generic.HyperGraph(destination))
+        val rewriteRule = new PatternRewriteRule(conditions, HyperGraph(destination))
         val state = new RewriteRule.HyperGraph() ++= filledConditions
         val tempProgs = Programs(state.clone)
         rewriteRule.apply(state)

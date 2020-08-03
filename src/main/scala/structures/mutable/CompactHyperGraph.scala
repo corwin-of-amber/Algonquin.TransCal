@@ -1,8 +1,7 @@
 package structures.mutable
 
 import structures._
-import structures.generic.HyperGraph.{HyperGraphPattern, JsonGraph}
-import structures.generic.{HyperGraph, HyperGraphLikeGenericCompanion}
+import structures.HyperGraph.{HyperGraphPattern, JsonGraph}
 import synthesis.{HyperEdgeTargetOrdering, HyperTermId, HyperTermIdentifier}
 import transcallang.Language
 
@@ -26,7 +25,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   override def clone = new CompactHyperGraph(wrapped.clone)
 
   def isLatest(hyperEdge: HyperEdge[Node, EdgeType]) = wrapped.isLatest(hyperEdge)
-  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[generic.HyperGraph.Match[Node, EdgeType, Id]] = wrapped.findSubgraphVersioned(hyperPattern)
+  def findSubgraphVersioned[Id](hyperPattern: HyperGraphPattern[Node, EdgeType, Id]): Set[Match[Node, EdgeType, Id]] = wrapped.findSubgraphVersioned(hyperPattern)
 
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
@@ -117,7 +116,7 @@ class CompactHyperGraph[Node, EdgeType] private(wrapped: VersionedHyperGraph[Nod
   }
 }
 
-object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGraph] {
+object CompactHyperGraph extends HyperGraphCompanion[CompactHyperGraph] {
   /** The default builder for `$Coll` objects.
     *
     * @tparam A the type of the ${coll}'s elements
@@ -133,7 +132,7 @@ object CompactHyperGraph extends HyperGraphLikeGenericCompanion[CompactHyperGrap
   def fromJsonGraph(graph: JsonGraph): CompactHyperGraph[HyperTermId, HyperTermIdentifier] =
     CompactHyperGraph(graph.edges.map(HyperEdge.toHyperEdge): _*)
 
-  implicit val jsonGraphFormat = generic.HyperGraph.graphFormat
+  implicit val jsonGraphFormat = structures.HyperGraph.graphFormat
 
   def toJson(graph: CompactHyperGraph[HyperTermId, HyperTermIdentifier]): String = {
     import play.api.libs.json._

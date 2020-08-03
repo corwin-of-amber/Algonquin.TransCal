@@ -3,7 +3,6 @@ package structures.mutable
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgeMarker, Marker}
 import structures._
-import structures.generic.HyperGraphLikeGenericCompanion
 import structures.mutable.VocabularyHyperGraph.MarkerManager
 
 import scala.collection.mutable
@@ -140,7 +139,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   }
 }
 
-object VocabularyHyperGraph extends HyperGraphLikeGenericCompanion[VocabularyHyperGraph] {
+object VocabularyHyperGraph extends HyperGraphCompanion[VocabularyHyperGraph] {
   override def newBuilder[A, B]: mutable.Builder[HyperEdge[A, B], VocabularyHyperGraph[A, B]] = new mutable.ListBuffer[HyperEdge[A, B]].mapResult {
     parts => {
       new VocabularyHyperGraph(parts.toSet)
@@ -171,7 +170,6 @@ object VocabularyHyperGraph extends HyperGraphLikeGenericCompanion[VocabularyHyp
 
       other.toMarkers ++= toMarkers
       other.fromMarkers ++= fromMarkers.map({case (k, v) => (k, copyNode(v))})
-      other
     }
 
     def mark(n: T): Marker[T] = toMarkers.getOrElseUpdate(n, {

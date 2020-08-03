@@ -57,9 +57,9 @@ class VersionedHyperGraphPropSpec extends VersionedHyperGraphLikeTest[Int, Int, 
       val creator = Stream.from(0).iterator
       subgraph.flatMap(e => e.target +: e.sources).map((_, creator.next())).toMap
     }
-    val pattern: structures.generic.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
+    val pattern: structures.HyperGraph[Item[Int, Int], Item[Int, Int]] = {
       val pEdges = subgraph.map(e => e.copy(Hole(asHoles(e.target)), Explicit(e.edgeType), e.sources.map(x => Hole(asHoles(x)))))
-      structures.generic.HyperGraph(pEdges.toSeq: _*)
+      structures.HyperGraph(pEdges.toSeq: _*)
     }
 
     val maps = graph.findSubgraph[Int](pattern)

@@ -119,12 +119,12 @@ class ConjectureGenerator(vocab: SortedVocabulary,
       })
 
       val res = sygueRules.par.map((r: PatternRewriteRule) => r.getStep(graph, versioned = false))
-      val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
+      val newEdges = res.zip(hyperTermIds).map({ case (es, idCreator) => structures.mutable.HyperGraph.fillWithNewHoles(es, idCreator) }).seq.flatten
       logger.debug(s"Found ${newEdges.size} new edges using sygus")
       graph.addAllKeepVersion(newEdges)
       val funcInferStep = FunctionArgumentsAndReturnTypeRewrite.getStep(graph, versioned = false)
       //      sygueRules.foreach(r => r.unregisterMetadataCreator(soes.head.iterationCreator))
-      graph.addAllKeepVersion(structures.generic.HyperGraph.fillWithNewHoles(funcInferStep, hyperTermIds.last))
+      graph.addAllKeepVersion(structures.mutable.HyperGraph.fillWithNewHoles(funcInferStep, hyperTermIds.last))
     }
     //    for (soe <- soes) {
     //      soe.updateGraph(op)

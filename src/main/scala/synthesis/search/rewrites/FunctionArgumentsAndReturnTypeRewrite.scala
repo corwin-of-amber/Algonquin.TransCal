@@ -1,7 +1,7 @@
 package synthesis.search.rewrites
 
 import structures._
-import structures.generic.HyperGraph.Match
+import structures.Match
 import synthesis.search.rewrites.PatternRewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier}
@@ -37,7 +37,7 @@ object FunctionArgumentsAndReturnTypeRewrite extends RewriteRule {
   private val functionReturnTypeEdge = rewrites.patternEdgeCreator(functionTypeIdHole, Language.mapTypeId, Seq(argumentTypesHoles, functionReturnTypeHole))
   private val functionApplicationEdge = rewrites.patternEdgeCreator(functionApplicationHole, functionIdentifierHole, Seq(argumentHoles))
 
-  private val funcTypeGraph = generic.HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
+  private val funcTypeGraph = mutable.HyperGraph(trueEdge, functionTypeEdge, functionIdEdge, functionReturnTypeEdge, functionApplicationEdge)
 
   override def apply(graph: RewriteRule.HyperGraph): Unit = {
     val newFuncEdges = getNewEdges(graph, false)

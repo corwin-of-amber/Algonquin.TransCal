@@ -1,8 +1,7 @@
 package synthesis.search
 
 import com.typesafe.scalalogging.LazyLogging
-import structures.HyperEdge
-import structures.generic.HyperGraph
+import structures.{HyperEdge, HyperGraph}
 import synthesis.search.actions.SearchAction
 import synthesis.search.rewrites.Template.TemplateTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
@@ -40,7 +39,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
           //        "reverse(snoc(nil, ?z))",
           //        "reverse(snoc(x::nil, ?z))",
           //        "?x :: ?xs ||| ?y :+ ?y"
-        ).map(s => (s, parser.parseExpression(s) cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
+        ).map(s => (s, parser.parseExpression(s).cleanTypes)).map({ case (s, t) => (s, Programs.destructPatternWithRoot(t)) })
       }
 
 
@@ -71,7 +70,7 @@ class NaiveSearch(startVersioned: Boolean = false, isGoal: ActionSearchState.Hyp
 
         // TODO: fix after fixing rewrite rule traits
         val steps = operators.map(r => r.getStep(graph, versioned))
-        val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.generic.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
+        val newEdges = steps.zip(hyperTermIds).map({ case (es, idCreator) => structures.mutable.HyperGraph.fillWithNewHoles(es, idCreator) }).seq
         val afterUpdate = postProcessors.foldLeft(newEdges.flatten)((es, f) => f(es))
         graph ++= afterUpdate
         i += 1

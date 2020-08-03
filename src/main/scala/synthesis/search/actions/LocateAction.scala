@@ -1,12 +1,13 @@
 package synthesis.search.actions
 
-import structures.{HyperEdge, Metadata}
+import structures.{HyperEdge, HyperGraph, Metadata}
 import synthesis.Programs.NonConstructableMetadata
 import synthesis.search.{ActionSearchState, NaiveSearch}
 import LocateAction.LocateMetadata
-import structures.generic.HyperGraph.Match
+import structures.Match
 import synthesis.search.rewrites.PatternRewriteRule
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
+import synthesis.search.rewrites.RewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{AnnotatedTree, Identifier, Language}
@@ -16,13 +17,13 @@ import transcallang.{AnnotatedTree, Identifier, Language}
   * @author tomer
   * @since 11/18/18
   */
-class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = Some(20)) extends Action {
+class LocateAction(anchor: HyperTermIdentifier, goal: MutableHyperPattern, goalRoot: Option[TemplateTerm[HyperTermId]] = None, maxSearchDepth: Option[Int] = Some(20)) extends Action {
   /** To be used during the BFS rewrite search
     *
     * @param graph the current state
     * @return is state final
     */
-  protected def goalPredicate(graph: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean =
+  protected def goalPredicate(graph: HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean =
     graph.findEdges(anchor).nonEmpty
 
   override def apply(state: ActionSearchState): ActionSearchState = {
@@ -42,7 +43,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
     val destPattern = {
       val root = roots.head
       val (anchorPattern, anchorRoot) = Programs.destructPatternsWithRoots(Seq(AnnotatedTree.identifierOnly(anchor.identifier))).head
-      structures.generic.HyperGraph(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
+      structures.mutable.HyperGraph(anchorPattern.mergeNodes(root, anchorRoot).map(e => e.copy(metadata = e.metadata.merge(NonConstructableMetadata))).toSeq: _*)
     }
 
     /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
@@ -51,7 +52,7 @@ class LocateAction(anchor: HyperTermIdentifier, goal: HyperPattern, goalRoot: Op
       val hyperTermCreator: () => HyperTermId = {
         () => throw new RuntimeException("there should not be any leftover holes")
       }
-      val newEdges = structures.generic.HyperGraph.fillPattern(goal, matched, hyperTermCreator)
+      val newEdges = structures.mutable.HyperGraph.fillPattern(goal.clone(), matched, hyperTermCreator)
       LocateMetadata(newEdges)
     }
 
@@ -83,7 +84,7 @@ object LocateAction {
     val anchors = Stream.from(0).map(i =>
       HyperTermIdentifier(Identifier(s"temp_anchor_$i"))
     ).iterator
-    anchors.next
+    (() => anchors.next())
   }
 
   case class LocateMetadata(edges: Set[HyperEdge[HyperTermId, HyperTermIdentifier]]) extends Metadata {

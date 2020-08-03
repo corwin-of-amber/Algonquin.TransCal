@@ -3,7 +3,7 @@ package structures.mutable
 import org.scalacheck.Arbitrary
 import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, Item}
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.generic.HyperGraph.Match
+import structures.Match
 import synthesis.search.rewrites.Template.ExplicitTerm
 import synthesis.{HyperTermId, HyperTermIdentifier, Programs}
 import transcallang.{Identifier, Language, TranscalParser}

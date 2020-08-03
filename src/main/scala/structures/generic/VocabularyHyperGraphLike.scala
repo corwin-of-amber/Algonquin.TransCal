@@ -3,8 +3,8 @@ package structures.generic
 import com.typesafe.scalalogging.LazyLogging
 import structures.HyperGraphLike.{HyperEdgePattern, HyperGraphPattern}
 import structures.VocabularyLike.Word
-import structures.generic.HyperGraph.Match
-import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
+import structures.Match
+import structures.{EmptyMetadata, Explicit, Hole, HyperEdge, HyperGraph, HyperGraphLike, Ignored, Item, Metadata, RegexOrdering, Repetition, Vocabulary}
 
 import scala.collection.mutable
 

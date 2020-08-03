@@ -5,6 +5,7 @@ import org.scalacheck.Gen._
 import structures.mutable._
 import structures.{EmptyMetadata, HyperEdge}
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
+import synthesis.search.rewrites.RewriteRule.MutableHyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
 import synthesis.{HyperTermId, HyperTermIdentifier}
 
@@ -20,7 +21,11 @@ package object operators {
 
   val hyperPatternGen: Gen[HyperPattern] = hyperGraphGen
     .map(graph => graph.map(edge => HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)))
-    .map(g => structures.generic.HyperGraph(g.toSeq:_*))
+    .map(g => structures.HyperGraph(g.toSeq:_*))
+
+  val mutableHyperPatternGen: Gen[MutableHyperPattern] = hyperGraphGen
+    .map(graph => graph.map(edge => HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](ExplicitTerm(edge.target), ExplicitTerm(edge.edgeType), edge.sources.map(ExplicitTerm[HyperTermId]), EmptyMetadata)))
+    .map(g => structures.mutable.HyperGraph(g.toSeq:_*))
 
   val rewriteRuleGen: Gen[PatternRewriteRule] = for {
     conditions <- hyperPatternGen

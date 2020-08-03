@@ -77,7 +77,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
         val foundId = tempState.programs.queryGraph.findEdges(anchor).headOption.map(_.target)
         val terms = {
           if (foundId.nonEmpty) {
-            val res = tempState.programs.reconstructWithPattern(foundId.get, lhs._1, Some(lhs._2))
+            val res = tempState.programs.reconstructWithPattern(foundId.get, structures.mutable.HyperGraph(lhs._1.toSeq: _*), Some(lhs._2))
             if (res.nonEmpty) res
             else tempState.programs.reconstruct(foundId.get)
           }
@@ -94,7 +94,7 @@ class UserAction(in: Iterator[AnnotatedTree], out: PrintStream) extends Action {
             // A symbol - We want to add an anchor with the right name to the graph
             // t.root is the anchor from the user
             logger.info("RHS is a symbol adding it to graph")
-            val res = new LocateAction(HyperTermIdentifier(t.root), structures.generic.HyperGraph(
+            val res = new LocateAction(HyperTermIdentifier(t.root), structures.mutable.HyperGraph(
               Seq(HyperEdge[TemplateTerm[HyperTermId], TemplateTerm[HyperTermIdentifier]](
                 ReferenceTerm(0), ExplicitTerm(anchor), Seq.empty, EmptyMetadata)
               ): _*), maxSearchDepth = lim).apply(tempState)

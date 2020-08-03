@@ -1,6 +1,6 @@
 package synthesis.search.actions
 
-import structures.{EmptyMetadata, HyperEdge}
+import structures.{EmptyMetadata, HyperEdge, HyperGraph}
 import synthesis.search.{ActionSearchState, NaiveSearch}
 import synthesis.search.rewrites.PatternRewriteRule.HyperPattern
 import synthesis.search.rewrites.Template.{ExplicitTerm, TemplateTerm}
@@ -18,7 +18,9 @@ class ElaborateAction(anchor: HyperTermIdentifier,
   /** Locate using a rewrite search until we use the new rewrite rule. Add the new edge to the new state. */
   private val updatedGoal = goal.+(HyperEdge(goalRoot, ExplicitTerm(anchor), List.empty, EmptyMetadata))
 
-  private def goalPredicate(state: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean = state.findSubgraph[Int](updatedGoal).nonEmpty
+  private val mutableGoal = structures.mutable.HyperGraph(goal.toSeq: _*)
+
+  private def goalPredicate(state: HyperGraph[HyperTermId, HyperTermIdentifier]): Boolean = state.findSubgraph[Int](updatedGoal).nonEmpty
 
   override def apply(state: ActionSearchState): ActionSearchState = {
     // Rewrite search
@@ -28,7 +30,7 @@ class ElaborateAction(anchor: HyperTermIdentifier,
     // Process result
     if (success) {
       val root = newState.programs.queryGraph.findByEdgeType(anchor).head.target
-      val terms = newState.programs.reconstructWithPattern(root, goal, Some(goalRoot))
+      val terms = newState.programs.reconstructWithPattern(root, mutableGoal, Some(goalRoot))
       if (terms.nonEmpty) logger.info(s"Elaborated term is '${Programs.termToString(terms.head)}'")
       else logger.info("Found term not constructable (probably a symbol)")
       newState
@@ -41,7 +43,7 @@ class ElaborateAction(anchor: HyperTermIdentifier,
 
 object ElaborateAction {
   def RunNaiveSearch(state: ActionSearchState,
-                     predicate: structures.generic.HyperGraph[HyperTermId, HyperTermIdentifier] => Boolean,
+                     predicate: HyperGraph[HyperTermId, HyperTermIdentifier] => Boolean,
                      maxDepth: Double): Option[ActionSearchState] = {
     // Rewrite search
     val searchAction = new NaiveSearch(isGoal = g => predicate(g))

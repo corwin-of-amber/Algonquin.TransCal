@@ -1,7 +1,7 @@
 package structures.generic
 
 import structures.HyperGraphLike.HyperEdgePattern
-import structures.{EmptyMetadata, Explicit, HyperEdge, HyperGraphLike, HyperGraphLikeTest, Item}
+import structures.{EmptyMetadata, Explicit, HyperEdge, HyperGraph, HyperGraphLike, HyperGraphLikeTest, Item}
 
 trait VersionedHyperGraphLikeTest[Node,
   EdgeType,
