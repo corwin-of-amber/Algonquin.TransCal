@@ -36,7 +36,7 @@ class VocabularyHyperGraph[Node, EdgeType] private(vocabulary: Vocabulary[Either
   /* --- HyperGraphManyWithOrderToOne Impl. --- */
 
   override def clone: VocabularyHyperGraph[Node, EdgeType] = {
-    val res = new VocabularyHyperGraph(vocabulary.clone, mutable.Map(metadatas.toList: _*))
+    val res = new VocabularyHyperGraph(vocabulary.clone, metadatas.clone())
     edgeTypeMarkers.copyToOther(res.edgeTypeMarkers)
     nodeMarkers.copyToOther(res.nodeMarkers)
     res

@@ -29,7 +29,8 @@ trait VersionedHyperGraphLike[Node, EdgeType, +This <: VersionedHyperGraphLike[N
       val nodesMap = Item.itemsValueToMap(nodes)
       val edgeTypeMap = Item.itemsValueToMap(edgeTypes)
       val matched = structures.Match(Set(edge), nodesMap, edgeTypeMap)
-      val g = structures.mutable.HyperGraph.mergeMatch(hyperPattern.clone(), matched)
+      val g = if (matched.nodeMap.isEmpty && matched.edgeMap.isEmpty) hyperPattern
+              else structures.mutable.HyperGraph.mergeMatch(hyperPattern.clone(), matched)
       getHyperGraph.findSubgraph[Id](g).map { m => m.merge(matched) }
     }).flatten.toSet
   }
