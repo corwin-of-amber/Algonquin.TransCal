@@ -35,7 +35,7 @@ fold 1 2 3 4
 fold 1 2 6 7
 @ 7 2 4 5
 
-compact (f)
+flatten (f)
 // @ (f) x y -> f x y
 @ 1 2 3 4
 (f) 2

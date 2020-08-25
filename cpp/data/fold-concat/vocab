@@ -12,12 +12,12 @@ ty 6 8
 
 fold_
 skel 7 1 4
-skel 7 2 5
-skel 7 3 6
 ty 8 4
-ty 9 5
 fun^2 8
+skel 7 2 5
+ty 9 5
 ls 9
+skel 7 3 6
 
 fold 10 1 2 3
 fold 11 4 5 6
