@@ -1,0 +1,44 @@
+
+Proof-theoretic approach to program synthesis
+
+Quest for the missing link between Theorem Proving and Constriant Solving
+
+ * Inductive and deductive reasoning (alternating)
+
+Deductive methods can be used to narrow and prune the search space for models, and
+hence, can assist in fast generation of models, as well as "coverage" in the presence
+of implications. A variety of "just the right" models can assist inductive reasoning,
+that is, generalization based on example instances. These, in turn, can be used to
+prune the space for proof search on the deductive end. This mode is inspired by CEGIS.
+
+ * Near-match lemma speculation
+ * Lemma discovery as a generalization of invariant inference
+ * Semi-eager theory propagation
+ * Lemma patching: strengthening proofs, repairing unsound proofs
+
+This is inspired by mathematicians first proving a simplified version of the desired
+property, then inspecting the proof to figure out "what would go wrong" in the more
+general case. Intermediate proofs are thus raw material for more proofs; this is a
+"white-box" approach, complementing the more basic use of lemmas in their exact forms,
+encapsulating their proofs (which can be thought of as "black-box"). In a similar manner,
+occasionally a lemma is too strong, such as if its conclusion is a conjunction, but it
+happens that a subset of the premises entails just one of the conjuncts.
+Moreover, during proof exploration (either human or mechanic) some incorrect proofs are
+encountered. These are characterized by assumptions that cannot be made soundly. In
+essense, leveraging such proofs and repairing them amounts to eliminating the spurious
+assumptions.
+
+ * Replacing heuristic unfolding of induction with TC
+
+Considering a subset of the available "true" statements as an analog to abstraction
+in model checking and abstract interpretation.
+
+ * Overcome the frame problem with frame properties
+ * “Enriching” a basic proof into a more sophisticated one
+
+For example: a DAG DFS can scan the entire DAG by recursively calling itself on 
+direct successors. A better one would avoid revisiting a visited node. The second
+version only has one additional "if" statements, but the proof (by induction) has
+to change quite considerably.
+
+

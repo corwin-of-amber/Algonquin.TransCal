@@ -88,7 +88,7 @@ rules.
 Still, sub-problems arising in the course of resolving the induction step can
 and should benefit from SAT capabilities.
 
-Another obstacle, which plagues both approaches, is the use of quantification
+Another obstacle, which hinders both approaches, is the use of quantification
 in assumptions and theorems.
 One generally wishes to take advantage of the inherent modularity in proving
 most kinds of properties, be those math theorems in algebra or combinatorics,
@@ -97,7 +97,7 @@ and definitely when it comes to correctness properties of computer programs.
 % moved to the main body
 Software is modular by nature, since modularity is what makes it possible
 for human programmers to cope with its ever-growing complexity.
-It is much desirable to adopt the same contributing factor to reasoning about
+It is very much desirable to adopt the same contributing factor to reasoning about
 these programs.
 This means that instead of constructing one monolithic proof of the ``ultimate
 theorem'', one identifies and proves \emph{lemmas} that abstract and generalize
@@ -266,10 +266,10 @@ programs with dynamic heaps.
 This logic is known as Separation Logic and is still the state-of-the-art in
 reasoning about heaps.
 
-\begin{figure}
+%\begin{figure}
 %\includegraphics[width=5cm]{standalone}
-\embedlatex[width=5cm]{standalone}
-\end{figure}
+%\embedlatex[width=5cm]{standalone}
+%\end{figure}
 
 We claim that transitive closure \emph{can} be made effective by harnessing
 \emph{frame properties} arising from the theory of transitive closure.
@@ -338,7 +338,7 @@ Mathematical proofs are seldom monolithic.
 Usually, there are some intermediate conjectures --- \emph{lemmas} --- that
 are proved one by one, gradually building toward the culmination of the main
 theorem.
-It is not done out of altruism towards the reader of the paper, though it can
+It is not done out of altruism towards potential readers of the paper, though it can
 certainly make a proof easier to understand.
 Mainly, it helps the author overcome the complexity of the proof development
 task: in a formal setting, even a seemingly benign logical step can have many
@@ -360,10 +360,28 @@ of Why3 \cite{}.
 
 \subsubsection{Near-match Lemma Speculation}
 
-Surely it has happened to everyone: you have a conjecture to prove, and there is
-a theorem that whose fits the conjecture, but the premises don't quite match
-with the assumptions in that particular context.
-As a simple example, suppose the conjecture is $n^*(x,z)$, where $n^*$ is the
+The following is a common scenario for anyone who has worked on formal proof development:
+you have a conjecture to prove, and there is
+a theorem whose conclusion seems to fit the conjecture, but does not \emph{quite} match.
+As a very simple example, suppose the conjecture is
+$\exists k.~ n = 2\cdot k$, and the preexisting theorem states:
+\begin{equation}\label{manna-divmod}
+  \forall i, j.~ i = \fdiv(i, j) \cdot j + \frem(i, j)
+\end{equation}
+
+(Inspired by Manna and Waldinger, 1980.)
+Strict syntactic unification would fail to apply (\ref{manna-divmod}) to the proof goal $n = 2\cdot \evar{k}$, since (\ref{manna-divmod}) has a $+$ operator on the right-hand side of the equality.
+(Here and in the sequel, we use $\evar{k}$ to designate a pattern variable that can be unified with anything.)
+However, an intelligent mathematician knows that according to the basic laws of arithmetic, $\forall x.~x + 0 = x$.
+It is possible to ``unblock'' the unification process if we equate $\frem(\cdot,\cdot) = 0$.
+Similarly, unifying $\fdiv(n,\evar{j})\cdot \evar{j}$ with $2\cdot \evar{k}$ would fail, since $2$ cannot be unified with $\fdiv(n,\evar{j})$.
+Again, by the law of commutativity, 
+$\fdiv(n,\evar{j})\cdot j = \evar{j} \cdot\fdiv(n,\evar{j})$,
+so we should be able to unify $\evar{j}$ with $2$ and $\fdiv(n, 2)$ with $\evar{k}$.
+
+This process of \emph{unification modulo equalities}, or \emph{E-unification}, has been explored in the past but never exploited for automation\citeneeded.
+
+{\color{gray}
 transitive closure (see above) of a unary function $n$.
 Transitivity dictates that this follows from $n^*(x,v), n^*(v,z)$ for some $v$,
 and there is an assumption, or a previously proven conjecture, $n^*(x,y)$;
@@ -373,7 +391,7 @@ This can be overcome by proving that $m^*(y,z) \Rightarrow n^*(y,z)$, as a
 separate lemma.
 To prove such a lemma, one may try to prove that $n=m$, or that $n^*=m^*$,
 or that $\forall u, n^*(y,u)\leftrightarrow m^*(y,u)$, or any other generalization
-of the missing implication.
+of the missing implication.}
 
 To mechanize the process, a prover is required to select a suitable version.
 Some alternatives can be vetted out using the model-based approach described
