@@ -126,11 +126,9 @@ natural numbers, and integer arithmetic.
 \ldots
 
 
-\section{Some later section}
+\section{Research Plan}
 
 \subsection{Inductive-Deductive Reasoning Hybrid}
-
-\subsubsection{...}
 
 Deductive reasoning is the practice of applying general rules or statements to
 individual, concrete cases; conversely, inductive reasoning is one of inferring,
@@ -178,11 +176,11 @@ It is thus desirable to identify ``pivot'' atomic formulas and keep around
 models for various subsets of them.
 
 
+\subsection{Unification Modulo Theories}
+
+\ldots
+
 \subsection{Feasible Induction Through Transitive Closure}
-
-\subsubsection{...}
-
-\subsubsection{A TC Solver}
 
 In the spirit of the mechanics of SMT solvers, where different \emph{theory solvers}
 can be combined using methods such as DPLL(T), CDCL(T), and Nelson-Oppen, we
@@ -190,9 +188,30 @@ propose an important module would be a solver specifically capable of reasoning
 about transitive closure properties.
 Particularly, this solver will be able to construct models of quantifier-free
 FO(TC) formulas.
-Atomic TC formulas of the form $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$ imply that
-the model would have to contain a path $s=x_0,x_1,\ldots,x_n=t$ with $\varphi(x,y)$
-holding between successive elements; this notion can be built into the solver
+FO(TC) is an extension of first-order logic with a new form of atomic formulas, $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$,
+whose semantics is the existence of a path $s=u_0,u_1,\ldots,u_n=t$, $n\geq 1$, with $\varphi[u_i/x,u_{i+1}/y]$
+holding between all pairs of successive elements.
+$x$ and $y$ are supposed free variables in $\varphi$, so $\varphi$ is commonly thought of as representing a binary relation, and $\big(\mathrm{TC}_{x,y}\varphi\big)$---the transitive closure of this relation.
+A commonly used variant is $\big(\mathrm{RTC}_{x,y}\varphi\big)$, with the only difference being that $n\geq 0$ (instead of $1$),
+which in turn induces the \emph{reflexive} transitive closure.
+Another extension allows relations of arbitrary even arities
+$\big(TC_{x_1,\ldots,x_k,y_1,\ldots,y_k}\varphi\big)$;
+this transitive closure can be thought of as a path between $k$-tuples, where $x_1,\ldots,x_k$ and $y_1,\ldots,y_k$ represent coordinates of adjacent tuples.
+In the sequel, we use the phrase ``transitive closure'' as an umbrella term for these closely related variants.
+
+The proposal is to ingrain the notion of transitive closure in the language and proof search procedures of automated theorem provers.
+The first expected benefit of this is that transitive closure enables clean, compact representation of data-related properties,
+making the logic easier to use and the resulting formalisms clearer.
+For example, the classical construction of the natural numbers from first principles involves a zero element and a successor operator.
+\[
+\begin{array}{ll}
+\textrm{Inductive}~\mathrm{nat}~\eqdef \\
+\quad |~0 : \tnat \\
+\quad |~S : \tnat \to\tnat
+\end{array}
+\]
+
+; this notion can be built into the solver
 while constructing the model, as is the core property of transitivity, or,
 more concretely, being a \emph{partial order}.
 Solvers for the theory of equality (EUF) employ congruence closure as a core
@@ -228,7 +247,7 @@ that a wellfounded order can be established.
 A prevalent difficulty of reasoning in logic is the \emph{frame problem}:
 a constant need to specify not only effects we are interested to reason about,
 but the entire environment surrounding it, which was not directly affected.
-In the context of reasoning about computer systems, a program me effect a change
+In the context of reasoning about computer systems, a program may effect a change
 by storing or removing some data, causing a change in the system's state.
 In order to prove properties of the system, and in particular, of such
 accumulated changes, logic dictates that we formulate precisely what has
