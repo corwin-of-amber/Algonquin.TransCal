@@ -121,7 +121,7 @@ cross-fertilization.
 Specifically, it is motivated by provers for the tasks of software verification
 and synthesis; these are characterized by relying almost exclusively on discrete
 mathematics, such as set theory, graphs, automata, the construction of
-natural numbers, and integer arithmetic.
+natural numbers, and various theories of integer arithmetic.
 
 \ldots
 
@@ -203,20 +203,88 @@ The proposal is to ingrain the notion of transitive closure in the language and 
 The first expected benefit of this is that transitive closure enables clean, compact representation of data-related properties,
 making the logic easier to use and the resulting formalisms clearer.
 For example, the classical construction of the natural numbers from first principles involves a zero element and a successor operator.
+Based on this definition, operations and relations over natural values, such as the order relation $\leq$, can be defined via induction/recursion.
 \[
-\begin{array}{ll}
-\textrm{Inductive}~\mathrm{nat}~\eqdef \\
+\begin{array}{l@{\hspace{4em}}l}
+\begin{array}[t]{l}
+\rInductive~\tnat~\eqdef \\
 \quad |~0 : \tnat \\
 \quad |~S : \tnat \to\tnat
 \end{array}
+&
+\begin{array}[t]{l}
+\rInductive~\fle : \tnat \to \tnat \to \tProp ~\eqdef \\
+\quad |~\fctorlen : \forall n:\tnat,~ \fle\,n\,n\\
+\quad |~\fctorleS : \forall (n\,m:\tnat),~ \fle\,n\,m\to\fle\,n\,(S\,m)
+\end{array}
+\end{array}
 \]
 
-; this notion can be built into the solver
-while constructing the model, as is the core property of transitivity, or,
-more concretely, being a \emph{partial order}.
-Solvers for the theory of equality (EUF) employ congruence closure as a core
-algorithm; this can be generalized to partial orders and applied to this
-context.
+The definition of $\fle$ is amongst the most basic ones in Type Theory; yet it commonly baffles newcomers and takes some time convincing that it indeed defines the familiar notion of $\leq$.
+Using transitive closure, however, offers a more compelling formulation:
+\[
+\fle\,x\,y ~\eqdef~ \big(\RTC{x,y}\,S\,x=y\big)(x,y)
+\]
+
+The above formula reads: $x\leq y$ iff $y$ can be obtained from $x$ by zero or more application of $S$, the successor function.
+This naturally aligns with our fundamental perception of ordering of natural numbers.
+In this sense, the transitive closure construct captures a recurring pattern in recursive definitions, one that seasoned TT users can identify at a glance, but which nevertheless adds some amount of unnecessary ``noise'' to the mix.
+This noise becomes more significant as definitions grow in complexity, and eventually encumbers proof search and development.
+In particular, chained application of a previously defined function or relation is so commonly useful, that it makes sense to define a designated notation for it:
+\[
+\fle\,x\,y ~\eqdef~ x[S^*]y \hspace{4em}
+\textit{where:}~
+\begin{array}[t]{l}
+  {} [f] : D\to D\to\tProp ~\eqdef~ \lambda x\,y, f\,x=y \\
+  {} [R^*] ~\eqdef~ \big(\RTC{x,y}\,R\,x\,y\big) \\
+  {} [f^*] ~\eqdef~ \big[[f]^*\big]  \qquad\textrm{\small(\textit{and analogously for} ${[]}^+$)}
+\end{array}
+\]
+
+The use of square brackets in notations occurring in this document helps to avoid ambiguous expressions, and also provides an opportunity for using binary relations as infix operators;
+\eg, we write $x[S^*]y$ as a more elegant alternative to $[S^*]\,x\,y$.
+
+\begin{figure}
+\centering
+\includegraphics[width=.8\textwidth]{img/topological-and-hamilton.png}
+\caption{Formal defintions of topological sort and Hamilton paths
+  for use in \autoref{plan:hamilton}.}
+\label{plan:hamilton-defs}
+\end{figure}
+
+We argue that the compact TC formulation allows for shorter proofs---which in turn lead, potentially, to easier proof derivation processes in both interactive and fully-automated settings.
+We use the following example to illustrate this point; it is a problem taken from an undergraduate class on algorithms.
+
+\begin{example}~\label{plan:hamilton}
+\begin{tabular}[t]{lp{10cm}}
+\textit{Given:} & A directed acyclic graph $G=\langle V,E\rangle$.
+\\
+\textit{Task:}  & Determine whether the graph contains a \emph{Hamilton path}; \ie, a (directed) path that visits every $u\in V$ exactly once.
+\end{tabular}
+
+\medskip
+This exercise is given following a lecture on DFS, BFS, and topological sort.
+This gives rise to a short solution:
+(1)~topologically sort the vertices of $G$;
+(2)~check whether the resulting array constitutes a path,
+ that is, every two consecutive elements are connected by a path.
+ 
+While the algorithm looks simple, it is not at all obvious that it is correct w.r.t. the requirements.
+Clearly, if it returns $\ftrue$, then it has correctly discovered a Hamilton path (even without considering any properties of topological sort).
+But when the outcome is $\ffalse$, some acute reasoning is required to show that there does not exist a \emph{different} ordering of $V$ that will indeed corresponds to a Hamilton path.
+To establish correctness, the student needs to formalize the definitions of topological sort and that of a Hamilton path
+(\autoref{plan:hamilton-defs}).
+Then the following proof goal must be accomplished:
+\begin{equation}\label{plan:hamilton-goal}
+\fH\,G\,a,~\fTS\,G\,a' ~\vdash~ a = a'
+\end{equation}
+
+That is, in a DAG containing a Hamilton path, there is exactly one possible topological sort, and that sort is identical to the order imposed by the Hamilton path.
+(Notice that a DAG may contain at most one Hamilton path; this property is obtained as a simple corrollary of (\ref{plan:hamilton-goal}).)
+
+An insight into the proof can be offered by considering the two binary relations $R_1^a$, $R_2^a$ occurring in the definitions of $\fTS$ and $\fH$.
+A keen observer can notice that: $R_1^a = [R_2^a]^+$.
+\end{example}
 
 
 \subsubsection{Using Implicit Induction}

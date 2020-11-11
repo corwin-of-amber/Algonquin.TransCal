@@ -1,0 +1,15 @@
+\usepackage{aliascnt}
+
+\newtheorem{ter}{Theorem}[section]
+
+\theoremstyle{plain}
+
+\newaliascnt{lemma}{ter}
+\newtheorem{lem}[lemma]{Lemma}
+\aliascntresetthe{lemma}
+\providecommand*{\lemmaautorefname}{Lemma}
+
+\theoremstyle{remark}
+
+\newtheorem{example}{Example}[section]
+\providecommand*{\exampleautorefname}{Example}
