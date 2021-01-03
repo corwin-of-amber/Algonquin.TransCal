@@ -1,6 +1,10 @@
 
-\section{Quest for the Missing Link}
+\section*{SMT and ATP: Quest for the Missing Link}
 
+\vspace{-.5em}
+\hrule
+
+\vspace{1.2em}
 Beginning with the 1980's, the computer science community has accepted
 that computer programs and logical proofs are made of the same fabric.
 They are both based on a rigorous formal language, characterized by a grammar,
@@ -49,7 +53,7 @@ SMT solvers take first-order formulas and attempt to find a first-order
 \emph{model} for them, that is consistent with and underlying theory --- the
 theory is built into the solver.
 The theories generally put no bound on the size of the models they admit
-(\eg numerical theories are typically defined over the domain of integers),
+(\eg, numerical theories are typically defined over the domain of integers),
 and as expected, the problem is generally undecidable.
 However, despite the inherent complexity of SAT and undecidability of SMT,
 solver technology as become extremely successful, especially in applications
@@ -178,7 +182,43 @@ models for various subsets of them.
 
 \subsection{Unification Modulo Theories}
 
-\ldots
+Theorem provers offer the flexibility that comes with customizing the logic used and its inference rules.
+This makes it possible to encode high-level strategies for problem decomposition, and incorporate domain knowledge for different classes of problems.
+What ATPs are not good at---in some cases, in fact, pretty bad---is
+handling many different cases requiring sub-proofs,
+as is the situation when, \emph{e.g.}, observing a computer program with several conditional statements.
+SMT solvers, on the other hand, evolved around the SAT problem and are therefore better equipped to cope with issues of Boolean structure.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\textwidth]{img/unification-modulo-theories.pdf}
+\caption{}
+\label{unification:example}
+\end{figure}
+
+To facilitate effective proof search in a tool that combines the strengths of both ATP and SMT,
+we propose a technique that involves dedicated theory solvers directly in the process, rather than having a narrow interface through which they communicate their results.
+A core mechanism in deductive inference is that of \emph{unification}, where formulas from the goal are checked against known sequents that were previously derived to see if these sequents can fill in some pending premises.
+Since both the goal and the pre-existing sequents may contain free variables, this procedure is not merely checking equality, but also provides substitution and renaming of variables when needed.
+The proposed development is to enhance the unifier with knownledge about background theories, such as the theory of equality, partial orders, group theory, and transitive closure (the latter described below in \todo{}).
+This would allow the unifier to not only detect syntactic matches, but also consider situations where an existing formula entails a given premise according to the theory,
+and also combine several facts to satisfy one such premise.
+
+An example illustrating how this may affect proof search is given in~\autoref{unification:example}.
+The current goal is
+$R(s_0,s_1), R(s_1,s_2),R^*(s_2,s) \Rightarrow
+n(i_1) = i_0$,
+and the pre-existing fact is
+$R(s_0,s_1), R(s_1,s_2) \Rightarrow n_2(i_1)=i_0$.
+A-priori, the sequents cannot be unified, because the goal has $n(i_1)$ on its right hand side, whereas the fact has $n_2(n_1)$.
+Instead of giving up on using the given fact at this point, the prover can then deduce that $n(i_1)=n_2(i_1)$, thus utilizing the theory of equality.
+Establishing $n(i_1)=n_2(i_1)$ itself requires some extra reasoning, since the given sequent in the prover's collection of known facts is, in this example,
+$R^*(s_2,s)\Rightarrow n(i_1)=n_2(i_1), i_2\leq_2 i_1$.
+The precondition $R^*(s_2,s)$ is already present, luckily, on the left-hand side of the current goal;
+however, the literal $i_2\leq_2 i_1$ must be eliminated before the equality can be utilized.
+This is a sub-task in which SMT solvers shine:
+the right-hand side of the fact is essentially a disjunction, and the solver can perform a case split and eventually discover that $i_2\leq_2 i_1$ contradicts other known properties, listed below in the figure.
+During this process of elimination, an acute role is played by the literals $i_2\leq_1 i_1$, $i_1<i_1$, $i_2=n_1(i_1)$ and the underlying theory of transitive closure.
 
 \subsection{Feasible Induction Through Transitive Closure}
 
@@ -188,7 +228,7 @@ propose an important module would be a solver specifically capable of reasoning
 about transitive closure properties.
 Particularly, this solver will be able to construct models of quantifier-free
 FO(TC) formulas.
-FO(TC) is an extension of first-order logic with a new form of atomic formulas, $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$,
+FO(TC) is an extension of first-order logic with the addition of atomic formulas of the form $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$,
 whose semantics is the existence of a path $s=u_0,u_1,\ldots,u_n=t$, $n\geq 1$, with $\varphi[u_i/x,u_{i+1}/y]$
 holding between all pairs of successive elements.
 $x$ and $y$ are supposed free variables in $\varphi$, so $\varphi$ is commonly thought of as representing a binary relation, and $\big(\mathrm{TC}_{x,y}\varphi\big)$---the transitive closure of this relation.
@@ -245,8 +285,10 @@ The use of square brackets in notations occurring in this document helps to avoi
 \eg, we write $x[S^*]y$ as a more elegant alternative to $[S^*]\,x\,y$.
 
 \begin{figure}
-\centering
+\begin{center}
 \includegraphics[width=.8\textwidth]{img/topological-and-hamilton.png}
+\end{center}
+\todo{typeset with $\fTS\,G\,a$ and $\fH\,G\,a$}
 \caption{Formal defintions of topological sort and Hamilton paths
   for use in \autoref{plan:hamilton}.}
 \label{plan:hamilton-defs}
@@ -272,7 +314,7 @@ This gives rise to a short solution:
 While the algorithm looks simple, it is not at all obvious that it is correct w.r.t. the requirements.
 Clearly, if it returns $\ftrue$, then it has correctly discovered a Hamilton path (even without considering any properties of topological sort).
 But when the outcome is $\ffalse$, some acute reasoning is required to show that there does not exist a \emph{different} ordering of $V$ that will indeed corresponds to a Hamilton path.
-To establish correctness, the student needs to formalize the definitions of topological sort and that of a Hamilton path
+To establish correctness, the student needs to formalize the definition of topological sort and that of a Hamilton path
 (\autoref{plan:hamilton-defs}).
 Then the following proof goal must be accomplished:
 \begin{equation}\label{plan:hamilton-goal}
@@ -284,8 +326,29 @@ That is, in a DAG containing a Hamilton path, there is exactly one possible topo
 
 An insight into the proof can be offered by considering the two binary relations $R_1^a$, $R_2^a$ occurring in the definitions of $\fTS$ and $\fH$.
 A keen observer can notice that: $R_1^a = [R_2^a]^+$.
+The implication would be that the topological sort ($R_1^a$) is uniquely determined by the Hamilton path ($R_2^a$) if the latter exists.
+From there, proving (\ref{plan:hamilton-goal}) is by no means routine, but it does follow from rather standard algebraic conjectures:
+\begin{enumerate}
+  \item $R_1^a$ is a \emph{total order} on $V=\{\ldots a\}$.
+  \item A total order is \emph{maximal w.r.t. set inclusion}
+    over all (partial) orders on the same set.
+  \item The mapping $a \mapsto R_1^a$ is \emph{injective}.
+\end{enumerate}
+
+Notably, the monotonicity of the transitive closure operator $^+$ (as of any closure operator) is utilized here to establish the relationship $R_1^a \subseteq R_1^{a'}$.
+In this small instance, it is completely reasonable to expect that an automated prover can infer the three auxiliary properties listed above, as well as construct their proofs, without the user's intervention.
+In more complex scenarios, the aspiration is toward the prover and the user working hand-in-hand, with the prover suggesting some conjectures that can progress the proof, and the user selecting the ones that make the most sense while also adding propositions that were not automatically discovered.
+The use of algebraic concepts here is deliberate: the phrases ``total order'', ``set inclusion'', ``injective mapping'' all encode knowledge previously gained from human experience in defining and solving mathematical problems.
 \end{example}
 
+\begin{figure}
+\begin{center}
+\includegraphics[width=.8\textwidth]{img/topological-and-hamilton-proof-sketch.png}
+\end{center}
+\todo{typeset with $\fTS\,G\,a$ and $\fH\,G\,a$}
+\caption{A sketch of the proof described in \autoref{plan:hamilton}.}
+\label{plan:hamilton-proof}
+\end{figure}
 
 \subsubsection{Using Implicit Induction}
 
@@ -301,6 +364,7 @@ This is much different from the way humans approach the problem: they may set
 out simplifying $P(k)$, realizing at some point that it may follow from $P(k-1)$,
 justifying such reasoning based on the natural numbers being a wellfounded set.
 
+\todo{this is the completely wrong setup. it has been shown to be effective already, it is no longer a conjecture.}
 We conjecture that this \emph{implicit} induction approach is suitable for
 automatic proof discovery as well.
 The formal implementation in this context is that of \emph{cyclic proof systems};
