@@ -1,5 +1,5 @@
 
-\section*{SMT and ATP: Quest for the Missing Link}
+\section*{Satisfiability Modulo Theories and Automated Theorem Proving:\\ Quest for the Missing Link}
 
 \vspace{-.5em}
 \hrule
@@ -10,24 +10,29 @@ that computer programs and logical proofs are made of the same fabric.
 They are both based on a rigorous formal language, characterized by a grammar,
 and they both rely heavily on tree-like structures for defining their semantics,
 via syntax-directed derivations.
-By now, it has become widely accepted that the task of writing a program can be
+By now, it has become widely accepted~\cite{curry-howard} that the task of writing a program can be
 reduced to that of finding a proof to a conjecture, and conversely, the task of
 proving a theorem can be reduced to producing a program with some specific
 characteristics.
 In addition to that, logic is at the core of software verification, as a basis
-for specifications, loop invariants, rely-guarantee properties, and more.
+for specifications~\cite{dafny,boogie,seahorn}, loop invariants~\cite{ic3,spacer,..}, rely-guarantee properties~\cite{relyguarantee1,..}, and more.
 The task of checking adherence to a program's specification is also reduced, in
 more than one way, to deciding the validity of a logical formula.
 
 This research is based on a fundamental understanding, that breaking existing
 barriers in automated theorem proving is a key ingredient that will lead to
 much more powerful software construction and certification mechanisms.
-By powerful we mean both scalable to the sizes of realistic software modules
+By powerful, we mean scalable to the sizes of realistic software modules,
+adpatable to arbitrarly complex properties,
 and requiring less user effort thanks to an increased level of automation.
+To achieve this goal, this research aims to bridge the gap between insofar prevalent logical reasoning techniques --- thereby constructing a unifying framework that can be more widely applicable.
+Such framework need not be constrained by the boundaries of some specific logic, such as first-order logic or linear integer arithmetic.
+Instead, careful parameterization will allow adaptive treatment of a wide spectrum of domains, where existing techniques are specialized to individual points in the space.
 
-Prominent reasoning techniques of our time are placed mostly in these two camps:
+\medskip
+Prominent reasoning techniques of our time are placed mostly in these two disciplines:
 
-\paragraph{Theorem Provers (TP)} A family of tools and techniques based on proof
+\paragraph{Autmoated Theorem Provers (ATP)} A family of tools and techniques based on proof
 theory of logical deduction.
 A logic in this setting is characterized by a vocabulary and a system of
 inference rules; provers are tasked with searching the space of proofs, which
@@ -41,8 +46,8 @@ While proof search can be a very costly process, due to the inherent complexity
 of the search space, checking a proof is usually swift and done with linear
 cost with respect to its size.
 
-\paragraph{SMT Solvers} A somewhat newer approach based on extending the
-Boolean satisfiability problem (SAT) with first-order theories, leading to
+\paragraph{Satisfiability-Modulo-Theory Solvers} A somewhat newer approach based on extending the
+Boolean satisfiability problem (SAT) with first-order theories and arithmetic, leading to
 Satisfiability Modulo Theory (SMT).
 SAT solvers accept Boolean formulas and construct a satisfying assignment, or
 declare that none exists.
@@ -50,13 +55,13 @@ Since SAT is NP-complete (in fact, usually referred to as \emph{the} canonical
 NP-complete problem), finding the solution may be time consuming, but eventual
 termination is guaranteed.
 SMT solvers take first-order formulas and attempt to find a first-order
-\emph{model} for them, that is consistent with and underlying theory --- the
+\emph{model} for them, that is consistent with an underlying theory --- where the
 theory is built into the solver.
 The theories generally put no bound on the size of the models they admit
 (\eg, numerical theories are typically defined over the domain of integers),
 and as expected, the problem is generally undecidable.
 However, despite the inherent complexity of SAT and undecidability of SMT,
-solver technology as become extremely successful, especially in applications
+solver technology has become extremely successful, especially in applications
 relating to software verification.
 In this context, proving a verification condition (``theorem'') $\varphi$
 amounts to finding its negation $\lnot\varphi$ unsatisfiable --- which is the root
@@ -65,6 +70,8 @@ For many software verification conditions, SMT solvers have been shown to be
 more effective in proving the validity of verification conditions than
 contemporary proof theory-based theorem provers.
 
+\begin{comment}
+\todo{remove this from here and put in background, it kills the flow}
 It is worth mentioning a third camp, that has, so far, received less
 attention from the programming languages and automated reasoning crowd.
 
@@ -75,6 +82,7 @@ numerical) constraints. The solutions can be useful for scheduling tasks,
 motion planning, \etc.
 CSP solvers excel at solving puzzles such as the $N$-queen problem or Sudoku.
 Their use in automated theorem proving is insofar limited.
+\end{comment}
 
 \medskip
 The primary goal of this research is to overcome the gap between the two camps,
@@ -86,8 +94,8 @@ This will allow to leverage the power of SMT into proving the more complex
 conjectures required for software verification and synthesis.
 When it comes to applying SMT, one major obstacle in many problem domains, is
 that SMT solvers are generally restricted to first-order logic; at the same time,
-the properties one wishes to prove require the use of induction.
-Theorem provers can more easily be equipped with induction-oriented inference
+the properties one wishes to prove require reasoning about composite structures (such as lists, maps, and streams), and, most often, the use of induction.
+Theorem provers can more easily be equipped with higher-order logic and induction-oriented inference
 rules.
 Still, sub-problems arising in the course of resolving the induction step can
 and should benefit from SAT capabilities.
@@ -95,10 +103,10 @@ and should benefit from SAT capabilities.
 Another obstacle, which hinders both approaches, is the use of quantification
 in assumptions and theorems.
 One generally wishes to take advantage of the inherent modularity in proving
-most kinds of properties, be those math theorems in algebra or combinatorics,
+most kinds of properties, be those mathematical theorems in algebra or combinatorics,
 and definitely when it comes to correctness properties of computer programs.
-% it is possible that the whole discussion of software modularity should be
-% moved to the main body
+\todo{it is possible that the whole discussion of software modularity should be
+ moved to the main body}
 Software is modular by nature, since modularity is what makes it possible
 for human programmers to cope with its ever-growing complexity.
 It is very much desirable to adopt the same contributing factor to reasoning about
@@ -111,13 +119,14 @@ This is definitely how it is done in academic papers, and, more recently, in
 large software verification projects.
 Going back to the challenge at hand, these auxiliary lemmas typically include
 quantified formulas, which are logic's way of expressing generalized conjectures.
-Applying these lemmas, \eg in the context of proving the next-step lemma,
+Applying these lemmas, \eg in the context of carrying out the next step of the proof,
 ultimately requires to instantiate universal quantifiers with logical terms.
 Since the space of available terms is large (or even infinite), this becomes
 a task that is daunting to automate and requires the employment of heuristics
 to select the right instances.
-We will move to consolidate instantiation strategies into one that more closely
+We will move to consolidate instantiation strategies into ones that more closely
 matches the search for proof --- thus being goal-directed rather then origin-directed.
+A primary aim is to make these strategies less heuristic and more predictable.
 
 As an ultimate artifact, this research will lay foundations for a new discipline
 in automated provers, by way of integrating the camps of TP and SMT and allowing
@@ -127,7 +136,20 @@ and synthesis; these are characterized by relying almost exclusively on discrete
 mathematics, such as set theory, graphs, automata, the construction of
 natural numbers, and various theories of integer arithmetic.
 
-\ldots
+
+\section{Background}
+
+\begin{paragraph}{Automated Theorem Provers}
+Proof theory is a branch of logic that has gained much traction in the 20th century with the advent of Hilbert~\cite{Book1928:Hilbert} and Gentzen~\cite{j1935:Gentzen},
+both of whom developed calcli for algorithmic formalization of proofs.
+As computers became available, it was natural that these notions be implemented as programs.
+As early as 1960~\cite{otter}, large automatic systems for theorem provers have been used by the research community for a variety of logical reasoning tasks.
+Most of these early systems were based on the resolution principle~\cite{robinson1965}, which continues to be popular today, in particular binary resolution.
+Term unification~\cite{robinson1965} is used to resolve first-order formulas.
+In the 1990's, superposition calculus~\cite{LPAR1992:Bachmair} emerged as the leading technique for equality reasoning.
+This led to several successful theorem provers, notably Vampire~\cite{JAR1995:Voronkov} and E prover~\cite{AIC2002:Schulz}.
+Today, most theorem provers rely in one way or another on term rewriting for the implementation of superposition, based on the Knuth-Bendix algorithm~\cite{knuth-bendix} for normalizing rewrites.
+\end{paragraph}
 
 
 \section{Research Plan}
@@ -289,7 +311,7 @@ The use of square brackets in notations occurring in this document helps to avoi
 \includegraphics[width=.8\textwidth]{img/topological-and-hamilton.png}
 \end{center}
 \todo{typeset with $\fTS\,G\,a$ and $\fH\,G\,a$}
-\caption{Formal defintions of topological sort and Hamilton paths
+\caption{Formal definitions of topological sort and Hamilton paths
   for use in \autoref{plan:hamilton}.}
 \label{plan:hamilton-defs}
 \end{figure}
@@ -341,6 +363,8 @@ In more complex scenarios, the aspiration is toward the prover and the user work
 The use of algebraic concepts here is deliberate: the phrases ``total order'', ``set inclusion'', ``injective mapping'' all encode knowledge previously gained from human experience in defining and solving mathematical problems.
 \end{example}
 
+\todo{describe the objective and how the transitive closure solver fits in the general scheme}
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=.8\textwidth]{img/topological-and-hamilton-proof-sketch.png}
@@ -365,14 +389,14 @@ out simplifying $P(k)$, realizing at some point that it may follow from $P(k-1)$
 justifying such reasoning based on the natural numbers being a wellfounded set.
 
 \todo{this is the completely wrong setup. it has been shown to be effective already, it is no longer a conjecture.}
-We conjecture that this \emph{implicit} induction approach is suitable for
+{\color{gray}We conjecture that this \emph{implicit} induction approach is suitable for
 automatic proof discovery as well.
 The formal implementation in this context is that of \emph{cyclic proof systems};
 the cyclic framework admits proofs where some premises are satisfied by
 conjectures occurring \emph{later} in the goal.
 Of course, for such proofs to be sound some side conditions are imposed to assure
 that a wellfounded order can be established.
-
+}
 
 \subsubsection{Overcome the Frame Problem with Frame Properties}
 
@@ -392,8 +416,8 @@ Such proofs are mundane and daunting, but there are many such properties
 popping up in the course of a proof and they may very well require more work to
 discharge than the ``insightful'' part.
 
-\begin{figure}
-\begin{lstlisting}
+\begin{figure} 
+\begin{lstlisting}[basicstyle=\linespread{1.36}\ttfamily\fontsize{10pt}{8pt}\selectfont]
 reverse(h) :=
   i := h; j := null;
   while (i != null) {
@@ -445,6 +469,14 @@ former list, are still reachable from it in the second list.
 This follows from the fact that the location of the modified pointer is not
 reachable from any of the nodes in question, so the link paths in that area of
 the list (the suffix) could not be affected.
+
+\todo{example for frame property(-ies) in TC}
+
+\begin{figure}
+\centering
+\includegraphics[width=10cm]{img/tc-frame-gen.pdf}
+\caption{Generic frame property for (reflexive) TC}
+\end{figure}
 
 By developing proof-support tools that ``guess'' specific frame properties
 % xref lemma speculation
@@ -609,7 +641,7 @@ This tactic is limited, however, since the theory solver only gets a glimpse
 of a narrow case each time it is involved, and cannot make global decisions
 based on the structure of the entire input problem.
 
-We propose a middle ground, and that middle ground involves the use of proofs.
+We propose a middle ground, and that middle ground involves a more holistic view of the proofs.
 In a combined setting where SAT, theories, and formal proof objects work
 together, intermediate proofs being explored provide ample subformulas to
 fertilize propagation.
@@ -628,20 +660,20 @@ and compare to existing heuristics.
 
 This semi-eager propagation of clauses from theories hold true potential for
 a breakthrough with respect to handling theories and quantified conjectures
-in unison, as challenged by Voronkov \cite{}.
+in unison, as challenged by Voronkov \citeneeded{}.
 
 
 \subsubsection{Lemma Patching}
 
 Again, this is inspired by the way mathematicians work, first proving a
 simplified version of a desired property as a lemma, then inspecting the proof
-to figure out ``what would go wrong'' in the more general case --- using that
-to prove a stronger lemma.
-Intermediate proofs are thus raw material for more proofs: it lends a
+to figure out ``what would go wrong'' in the more general case --- using that to guide insight toward
+proving a stronger lemma.
+Intermediate proofs are thus raw material for more proofs: this lends a
 ``white-box'' view of lemmas, complementing the more basic use of lemmas in
-their exact literal form, encapsulating their proofs (which can be seen as
+their closed form, encapsulating their proofs (which can be seen as
 ``black-box'').
-In a dual manner, occasionally a lemma is too strong: \eg if its conclusion is
+In a dual manner, occasionally a lemma is too strong: \eg, if its conclusion is
 a conjunction, but one is only interested in one of the conjuncts.
 It is possible that a subset of the premises is sufficient to prove that one
 conjunct.
@@ -653,6 +685,47 @@ incorrect, dead-end proofs are inevitably encountered.
 These are characterized, indeed identified, by assumptions that cannot be made
 soundly (\eg a proof branch that includes formulas that are not logically valid).
 Normally, a theorem prover simply discards these failed attempts and tries
-another.
+other directions.
 However, these too can be leveraged as raw material; repairing them amounts to
-eliminating the spurious assumptions.
+eliminating the spurious, invalid assumptions.
+
+\begin{figure}
+\centering
+\raisebox{-.33\height}{
+\includegraphics[width=7cm]{img/lemma-patching.pdf}}
+$\longrightarrow$~~
+\raisebox{-.33\height}{
+\includegraphics[width=7.5cm]{img/lemma-patching-abduct.pdf}
+}
+\caption{Example for lemma patching}
+\label{lemma-patching-example}
+\end{figure}
+
+\todo{refer to \autoref{lemma-patching-example}}
+
+
+\subsection{Extraploating to Software}
+
+As much as mechanical theorem proving is useful for formalizing mathematics, it has much wider and more exciting uses when it comes to reasoning about computer programs and their semantics.
+To date, the most popular text on interactive theorem proving in Coq is the Software Foundations series~\citeneeded{}, a collaborative community
+effort to formalize programming language concepts
+and verification problems.
+The example proofs and exercises in the textbook make some use of proof automation facilities existing in Coq.
+These are, however, far from what can be offerred by dedicated automated provers and solvers.
+This research aspires to bring such automated tools to a new level, in which they will be able to cope with these fundamental tasks naturally and directly.
+Most importantly, that they will be capable of handling such formal definitions as occur in~\citeneeded{(SF again)} naturally, without requiring the user to translate their claims into a restricted logical fragment.
+
+\subsubsection{Homotopy for Programs}
+
+Homotopy Type Theory~\citeneeded{} is an emerging field of study offering a fresh view on Martin-L\"of  Type Thoery, in which type judgements are given
+first-class-citizen status.
+Types can be declared isomorphic, allowing terms of one type to be interpreted as the other type.
+In the field of mathematics, homotopy is quite valuable, since it enables the transfer of knowledge (definitions and theorems) across related fields.
+We claim an insight, that homotopy is predominant in software as well.
+As such, it can be leveraged to many automated reasoning tasks revolving around computer programs.
+We point out two situation in which homotopy arises naturally in programming.
+
+\begin{paragraph}{Alternative representations}
+Oftentimes, the same data can be described in more than one way.
+This can arise from a discrepency between libraries, or an abstraction gap between specification and implementation levels.
+\end{paragraph}
