@@ -21,13 +21,15 @@ more than one way, to deciding the validity of a logical formula.
 
 This research is based on a fundamental understanding, that breaking existing
 barriers in automated theorem proving is a key ingredient that will lead to
-much more powerful software construction and certification mechanisms.
+much more powerful software construction and certification mechanisms. \todo{``certification'' appears first here}
 By powerful, we mean scalable to the sizes of realistic software modules,
 adpatable to arbitrarly complex properties,
 and requiring less user effort thanks to an increased level of automation.
 To achieve this goal, this research aims to bridge the gap between insofar prevalent logical reasoning techniques --- thereby constructing a unifying framework that can be more widely applicable.
 Such framework need not be constrained by the boundaries of some specific logic, such as first-order logic or linear integer arithmetic.
 Instead, careful parameterization will allow adaptive treatment of a wide spectrum of domains, where existing techniques are specialized to individual points in the space.
+
+\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
 
 \medskip
 Prominent reasoning techniques of our time are placed mostly in these two disciplines:
@@ -128,31 +130,140 @@ We will move to consolidate instantiation strategies into ones that more closely
 matches the search for proof --- thus being goal-directed rather then origin-directed.
 A primary aim is to make these strategies less heuristic and more predictable.
 
-As an ultimate artifact, this research will lay foundations for a new discipline
-in automated provers, by way of integrating the camps of TP and SMT and allowing
+As an overarching goal, this research will lay foundations for a new discipline
+in automated provers, by way of integrating the camps of ATP and SMT and allowing
 cross-fertilization.
 Specifically, it is motivated by provers for the tasks of software verification
 and synthesis; these are characterized by relying almost exclusively on discrete
-mathematics, such as set theory, graphs, automata, the construction of
+mathematics, such as set theory, graphs, automata, an algebraic construction of
 natural numbers, and various theories of integer arithmetic.
 
 
 \section{Background}
+
+\todo{The background should put an emphasis on what each tool is good at}
 
 \begin{paragraph}{Automated Theorem Provers}
 Proof theory is a branch of logic that has gained much traction in the 20th century with the advent of Hilbert~\cite{Book1928:Hilbert} and Gentzen~\cite{j1935:Gentzen},
 both of whom developed calcli for algorithmic formalization of proofs.
 As computers became available, it was natural that these notions be implemented as programs.
 As early as 1960~\cite{otter}, large automatic systems for theorem provers have been used by the research community for a variety of logical reasoning tasks.
-Most of these early systems were based on the resolution principle~\cite{robinson1965}, which continues to be popular today, in particular binary resolution.
+Most of these early systems were based on the resolution principle~\cite{robinson1965}, which continues to be popular today.
 Term unification~\cite{robinson1965} is used to resolve first-order formulas.
 In the 1990's, superposition calculus~\cite{LPAR1992:Bachmair} emerged as the leading technique for equality reasoning.
 This led to several successful theorem provers, notably Vampire~\cite{JAR1995:Voronkov} and E prover~\cite{AIC2002:Schulz}.
 Today, most theorem provers rely in one way or another on term rewriting for the implementation of superposition, based on the Knuth-Bendix algorithm~\cite{knuth-bendix} for normalizing rewrites.
+
+More recently, a lot of attention was directed towards \emph{cyclic proof systems}, a form of Gentzen-style calculus that natively admits proof by induction.
+Instead of the traditional induction scheme or induction rule, \eg (for $\mathbb{N}$) $P(0)\land \forall k.\,P(k)\to P(k+1) \vdash \forall n.\,P(n)$,
+cyclic proofs admit ancestor sequents as premises to a later inference steps --- thereby allowing the proofs to contain cycles.
+To avoid unsoundness caused by a self-referencing statement, cyclic proof systems impose a \emph{global trace condition} that ensure cycles cannot be unrolled \textit{ad infinitum}.
+This trace condition is carefully crafted for every cyclic system to enable a soundness proof for the system.
+In a way, whatever complexity is removed from the proof proper is shifted to the global trace condition;
+however, this allows for some pretty sophisticated trace conditions, such as those based on B\"uchi automata.
+In turn, these allow such systems to provide exetremely succinct and elegant proofs.
 \end{paragraph}
 
 
-\section{Research Plan}
+\section{Bridging the Automated Reasoning Gap}
+
+\todo{Be more specific about the problems and why they are important: e.g. "cope with Boolean constructs", "unavoidable in software verification" etc.; explain what gives rise to these instances}
+
+\begin{paragraph}{Objective 1: {\it Bridging induction}}~
+The success of SMT solvers with first-order reasoning led to their wide adoption in software verification.
+This gives rise to the challenge of representing unbounded state (\eg size of data structures) and unbounded time (\eg number of loop iterations).
+The proposed framework will try to generalize and unify the two leading frontiers for reasoning by induction.
+In the world of model checking and SMT, the IC3 algorithm and its variants~\todo{remember to cite them in the background} has proven to be the gold standard for automatic invariant inference.
+In proof theory and deductive reasoning, cyclic proof systems provide shorter proofs, which have good value for ATPs such as Cyclist, where proof search is severely limited by the depth of the proofs that can be feasibly explored.
+These two approaches to proof by induction are vastly different: IC3 is counterexample-driven; Cyclist is proof-driven.
+We plan to draw on the duality between reachability and invariant inference~\citeneeded{padon} to create a unified description of the two processes, where both aspects, inductive and deductive, will manifest.
+This new setting would allow the conclusions accumulated with the IC3 method to direct and guide the proof search, and intermediate conclusions from closed cycles in the pre-proof being constructed to inform the clause inference that is a core step of IC3.
+
+More broadly, IC3 can be seen as a process where a proposition is repeatedly \emph{strengthened} until it becomes inductive and can be used as an inductive loop invariant.
+Constructing a proof can also be seen as starting with a proof goal and strengthening it by choosing (a set of) subgoals that entail it.
+On the other hand, both processes have crucial elements of \emph{weakening} as well: in IC3, a single counterexample (represented as a \emph{cube}, \ie, a conjunction of literals) needs to be generalized in order to ``block'' an entire set of unreachable states.
+This is essential to IC3's good performance relative to more traditional model checking.
+In deductive proof search, \emph{cuts} are required to support the construction of proofs by case analysis.
+Each case represents a conjecture that is weaker than the general proposition, and knowing which  cases to create is known to be a pain point in automated deduction.
+We plan to use partial solutions from over-approximation of the set of reachable ``states'' (representing logical structures) to assist in pruning a deductive proof search process and as a way to suggest conjectures that can be used in case analysis.
+Conversely, sequents inferred during proof search can be used in generalizing counterexamples as part of the ``block'' phase of IC3, leading to more effective generalizations and better convergence properties.
+
+To allow seamless information exchange between these frameworks, we propose a method for putting them on a common mathematical foundation.
+We draw inspiration from~\cite{Book2003:Avron}, where it was shown that all instances of finitary induction, \ie, induction over countable domains, can be captured by FO(TC) --- first-order logic extended with \emph{transitive closure}.
+TC provides a good middle ground for combining induction strategies because
+(i) it naturally captures the notion of reachability around which IC3 is built, and
+(ii) it has been successfully formulated within the cyclic proof framework~\citeneeded{liron-tc-cyclic}.
+Moreover, the latter also facilitates coinduction, which allows proofs over infinite traces (\ie, non-terminating executions).
+This may give rise to a new adaptation of IC3 to coinduction, which has not been proposed until now.
+
+State-of-the-art software verification tools such as Spacer employ an intermediate representation of the verification task as a system of Constrained Horn Clauses (CHCs)\todo{make sure these are mentioned in the background} and apply IC3 in order to solve them.
+An interesting problem in CHC solving arises when clauses are \emph{non-linear}, that is, the body (left-hand side of the implication) of the rule contains more than one uninterpreted literal.
+A similar problem arises in reasoning with TC logic when trees (rather than chains, or sequences) are involved.
+Both require handling \emph{branching} paths during exploration.
+Combining partial results from both disciplines will provide a more complete solution to this problem,
+and improve our understanding and treatment of branching induction in proofs.
+
+\todo{say here: IC3 is good at finding invariants and the like, cyclic proofs are good at [other things], therefore...}
+solving Constrained Horn Clauses using IC3 (and its subsequent variants) while utilizing an underlying SMT solver,
+and cyclic proof search with implicit induction for ATP.
+\todo{expand, introduce TC and the cyclic proof system for it}
+
+\todo{IC3 is counterexample-driven; Cyclist is proof-driven. We plan to draw on the metioned duality to construct a tool that maintains and over- and under-approximation of the space of states/logical structures}
+\todo{use a generalized framework: - use cyclic proof search to locally block counterexamples; - use discovered clauses and/or models to prune some branches early, or, conversely, strengthen some hypotheses to make them inductive based on the relative inductiveness of clauses in IC3 frames}
+\end{paragraph}
+
+
+\begin{paragraph}{Objective 2: {\it Bridging equality and congruence}}~
+Equality and equivalence are fundamental terms in mathematics and computer science.
+Therefore, equality is a native primitive in most logics.
+SMT solvers rely on a decision procedure for (quantifier-free) congruence closure together with the Nelson-Oppen method for combining it with other theories.
+ATPs, by and large, are invested in superposition calculus, which is driven by term rewriting.
+To support efficient rewriting and avoid backtracking, modern ATPs such as Vampire and E employ an order relation on terms, so that all rewrites are directed.
+Both of these approaches limit the provers' ability to reason about equalities given as assumptions or discovered as conjectures in the course of the search:
+This is due to the quantifier-free nature of Nelson-Oppen, leading to a constant need for speculative quantifier instantiation, on one hand;
+and the requirement for ordering, which relies on the Knuth-Bendix algorithm, which in turn is incomplete --- so it cannot be expected to produce a normalizing ordering for an arbitrary set of univerally-quantified equalities that has been accumulated.
+We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\citeneeded{} for performance purposes.
+We combine this with term rewriting and \emph{equality saturation} to obtain \emph{unordered} sets of equivalence terms (e-classes).
+E-graphs are known to be space-efficient by reducing duplication in the representation of terms to a minimum, employing congruence closure as a core mechanism to merge class nodes and keep the graph compact.
+This knowledge is maintained as part of the prover's state and can be updated incrementally when the prover discovers new conjectures.
+To cope with Boolean constructs (such as implications and branching statements), we propose a novel solution, \emph{e-graph coloring}, by which sub-components of the e-graph can be annotated with certain ``colors''; the colors denote that the validity of some propositions is subject to one or more assumptions, in the spirit of Gentzen's sequents.
+This enables the use of assumptions similar to how they are introduced in CDCL(T), with easy backtracking when a conflict occurs.
+\end{paragraph}
+
+\begin{paragraph}{Objective 3: {\it Modularization of reasoning}}~\todo{better title to describe what modular proof search offers}
+For an automated reasoning task of any scale beyond trivial, decomposing goals into sub-goals that can be solved independently is an invaluable tool.
+This is especially true when it comes to software verification, and the need for it is only emphasized by broadening the scope of acceptable logics and theories.
+Putting in mind that a unified framework for automated reasoning strives to combine together proof strategies of several existing tools,
+it is even more challenging --- but also potentially more beneficial --- to ``divide and conquer''.
+This would increase the flexibility in applying different strategies and automatically turning some exploration features on or off, selectively.
+It provides one way of mitigating the risk involved in a more expressive proof system, allowing to take bolder decisions for inclusion of certain inference tactics.
+
+\todo{The key ingredient here is that when searching top-down, you need to reach axioms in the leaves; when combining bottom-up, you can stop earlier when you have reached a lemma that was discovered previously.
+More importantly, the lemma can be discovered by a variety of proof techniques, which can be SMT- or ATP-driven.}
+Our modularization approach for more effective theorem proving is based on the introduction and use of \emph{lemmas}, encapsulating some details of the proof and reducing the search depth required to complete the goal.
+Such lemmas are typical in mathematical pen-and-paper proofs, and they are layered on top of one another to be able to convey a complex development.
+Oftentimes, choosing the right lemmas to use as stepping stones is the key insight a mathematician has to come up with.
+While it would definitely be presumptious to expect an automated reasoning program to replicate this much insight; but there are two key factors working to our advantage when dealing with software-oriented proofs:
+(i) Even if some lemmas require ingenuity in their formulation, there is an even larger number of simpler, more ``mundane'' lemmas, and finding those automatically removes tedium from the human user;
+(ii) Lemmas used in different proofs are often similar, so using a corpus of proofs can guide the search for lemmas and make use of past results.
+
+We are especially interested in \emph{theory exploration} (or \emph{theory forming}):
+Given a library of proven properties, an automated reasoning system can eagerly search for consequences, thereby growing the body of ``knowledge'' at the prover's disposal.
+Deductive proof search in ATPs such as Vampire and Cyclist tends to be oriented ``top-down'', that is,
+starting from a proof goal, simplifying it further and further until axioms are reached.
+The is analoguous to building the proof tree from the root down to the leaves. (Although, graphically, proof trees are depicted with the root at the bottom --- this is nevertheless a top-down approach.)
+\todo{this para is incomplete}
+
+\todo{talk about frame property and tie to TC}
+\todo{--}
+\end{paragraph}
+
+\begin{paragraph}{Objective 4: {\it Extrapolating to Software}}~
+The overarching goal of this research is to pave the way for the next generation of theorem proving technology.
+The emphasis remains on making tools that allows reasoning about properties of computer programs.
+\end{paragraph}
+
+\section{Research Plan \todo{B2}}
 
 \subsection{Inductive-Deductive Reasoning Hybrid}
 
@@ -171,17 +282,18 @@ just a handful of examples can give rise to a useful generalization, a lemma,
 which can then be proven deductively.
 
 While there is no perfect analogue in the prover/solver setting as portrayed
-in this document, it is quite obvious that theorem provers employ deductive
+in \autoref{intro}, it is quite obvious that theorem provers employ deductive
 reasoning almost exclusively.
-It would not be correct to say that SMT solvers employ inductive reasoning in
+It would be inaccurate to say that SMT solvers employ inductive reasoning in
 the same sense; a lot of their mechanics is still based on deduction.
-However, state-of-the-art SMT solvers do make use of models generated in the
+However, they are very much oriented toward constructing a model of the given formulas.
+State-of-the-art SMT solvers make use of (partial) models generated in the
 course of the search to guide deductive reasoning as this search progresses.
 One notable example for this is Model-Based Quantifier Instantiation (MBQI),
 a technique implemented in Z3.
 In Sketch, a software synthesis tool, the system observes a set of inputs (and
 outputs), proposes a generalization (a program), and then attempts to verify it
-using a deductive method (in their case, reduction to SAT).
+using a deductive method (in their case, reduction to SAT).\todo{what no, need to explain the use of counterexamples}
 A growing number of examples is needed for the generalization to yield a correct
 program, so this process repeats in a loop.
 
@@ -562,7 +674,7 @@ Again, by the law of commutativity,
 $\fdiv(n,\evar{j})\cdot j = \evar{j} \cdot\fdiv(n,\evar{j})$,
 so we should be able to unify $\evar{j}$ with $2$ and $\fdiv(n, 2)$ with $\evar{k}$.
 
-This process of \emph{unification modulo equalities}, or \emph{E-unification}, has been explored in the past but never exploited for automation\citeneeded.
+This process of \emph{unification modulo equalities}, or \emph{E-unification}, has been explored in the past but never exploited for automation\citeneeded{}.
 
 {\color{gray}
 transitive closure (see above) of a unary function $n$.
