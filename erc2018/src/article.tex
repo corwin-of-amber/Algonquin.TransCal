@@ -11,13 +11,23 @@
 \usepackage{hyperref}
 \usepackage{xspace}
 \usepackage{comment}
+\usepackage{fancyhdr}
 
 \usepackage{src/mathspeak}
 
 \input{macros.tex}
 
+%\setlength{\headheight}{1cm}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+
+\lhead{\it Itzhaky}\chead{Part B1}\rhead{ARFUSE}
+
 \begin{document}
 
+\input{00-cover}
 \input{document}
 
 \bibliographystyle{plain} 

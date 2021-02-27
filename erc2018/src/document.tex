@@ -19,35 +19,42 @@ for specifications~\cite{dafny,boogie,seahorn}, loop invariants~\cite{ic3,spacer
 The task of checking adherence to a program's specification is also reduced, in
 more than one way, to deciding the validity of a logical formula.
 
-This research is based on a fundamental understanding, that breaking existing
-barriers in automated theorem proving is a key ingredient that will lead to
-much more powerful software construction and certification mechanisms. \todo{``certification'' appears first here}
+\medskip
+This proposal is based on a fundamental understanding, that breaking existing
+barriers in automated reasoning is a key ingredient that will lead to
+much more powerful mechanism for the construction of provably-correct software.
 By powerful, we mean scalable to the sizes of realistic software modules,
 adpatable to arbitrarly complex properties,
 and requiring less user effort thanks to an increased level of automation.
-To achieve this goal, this research aims to bridge the gap between insofar prevalent logical reasoning techniques --- thereby constructing a unifying framework that can be more widely applicable.
-Such framework need not be constrained by the boundaries of some specific logic, such as first-order logic or linear integer arithmetic.
-Instead, careful parameterization will allow adaptive treatment of a wide spectrum of domains, where existing techniques are specialized to individual points in the space.
+To achieve this goal, this research aims to bridge the gap between two insofar prevalent logical reasoning disciplines:
 
-\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
-
-\medskip
-Prominent reasoning techniques of our time are placed mostly in these two disciplines:
-
-\paragraph{Autmoated Theorem Provers (ATP)} A family of tools and techniques based on proof
+\begin{paragraph}{Autmoated Theorem Provers (ATP)} A family of tools and techniques based on proof
 theory of logical deduction.
 A logic in this setting is characterized by a vocabulary and a system of
 inference rules; provers are tasked with searching the space of proofs, which
 are essentially trees (more generally, DAGs) constructed from repeated
 application of the inference rules.
-The expected result is a proof leading to a desired statement (closed formula)
-$\varphi$, that can be used as a certificate to the logical validity of
-$\varphi$ --- that is, it can be checked mechanically to confirm the soundness
-of each inference step.
-While proof search can be a very costly process, due to the inherent complexity
-of the search space, checking a proof is usually swift and done with linear
-cost with respect to its size.
+\end{paragraph}
 
+\begin{paragraph}{Satisfiability-Modulo-Theory Solvers (SMT)} A somewhat newer approach with roots in complexity theory and algorithms for solving the Boolean satisfiability problem (SAT).
+These algorithms have been augmented with decision procedures for several first-order fragments.
+These have become immensely popular thanks to highly efficient implementations and very successful optimization heuristics that manage to combat the inherent intractability of the problem.
+\end{paragraph}
+
+\medskip
+
+\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
+
+
+%The expected result is a proof leading to a desired statement (closed formula)
+%$\varphi$, that can be used as a certificate to the logical validity of
+%$\varphi$ --- that is, it can be checked mechanically to confirm the soundness
+%of each inference step.
+%While proof search can be a very costly process, due to the inherent complexity
+%of the search space, checking a proof is usually swift and done with linear
+%cost with respect to its size.
+
+\begin{comment}
 \paragraph{Satisfiability-Modulo-Theory Solvers} A somewhat newer approach based on extending the
 Boolean satisfiability problem (SAT) with first-order theories and arithmetic, leading to
 Satisfiability Modulo Theory (SMT).
@@ -72,7 +79,7 @@ For many software verification conditions, SMT solvers have been shown to be
 more effective in proving the validity of verification conditions than
 contemporary proof theory-based theorem provers.
 
-\begin{comment}
+%\begin{comment}
 \todo{remove this from here and put in background, it kills the flow}
 It is worth mentioning a third camp, that has, so far, received less
 attention from the programming languages and automated reasoning crowd.
@@ -87,12 +94,15 @@ Their use in automated theorem proving is insofar limited.
 \end{comment}
 
 \medskip
-The primary goal of this research is to overcome the gap between the two camps,
+These two camps, coming from such different backgrounds,
+face a serious gap,
 one that currently prevents adoption of results from one approach into use in
 the other.
-We will strive to construct a unified framework for reasoning, where proving
+The primary goal of this research is to construct a unified framework for automated reasoning, where proving
 and solving techniques can cooperate.
-This will allow to leverage the power of SMT into proving the more complex
+Such framework need not be constrained by the boundaries of some specific logic, such as first-order logic or linear integer arithmetic.
+Instead, careful parameterization will allow adaptive treatment of a wide spectrum of domains, where existing techniques can be seen as individual points in the more general space.
+This will allow to leverage the power of ATP and SMT into proving the more complex
 conjectures required for software verification and synthesis.
 When it comes to applying SMT, one major obstacle in many problem domains, is
 that SMT solvers are generally restricted to first-order logic; at the same time,
@@ -100,7 +110,7 @@ the properties one wishes to prove require reasoning about composite structures 
 Theorem provers can more easily be equipped with higher-order logic and induction-oriented inference
 rules.
 Still, sub-problems arising in the course of resolving the induction step can
-and should benefit from SAT capabilities.
+and should benefit from honed SAT and SMT capabilities.
 
 Another obstacle, which hinders both approaches, is the use of quantification
 in assumptions and theorems.
@@ -204,12 +214,9 @@ Combining partial results from both disciplines will provide a more complete sol
 and improve our understanding and treatment of branching induction in proofs.
 
 \todo{say here: IC3 is good at finding invariants and the like, cyclic proofs are good at [other things], therefore...}
-solving Constrained Horn Clauses using IC3 (and its subsequent variants) while utilizing an underlying SMT solver,
-and cyclic proof search with implicit induction for ATP.
-\todo{expand, introduce TC and the cyclic proof system for it}
 
-\todo{IC3 is counterexample-driven; Cyclist is proof-driven. We plan to draw on the metioned duality to construct a tool that maintains and over- and under-approximation of the space of states/logical structures}
-\todo{use a generalized framework: - use cyclic proof search to locally block counterexamples; - use discovered clauses and/or models to prune some branches early, or, conversely, strengthen some hypotheses to make them inductive based on the relative inductiveness of clauses in IC3 frames}
+%\todo{IC3 is counterexample-driven; Cyclist is proof-driven. We plan to draw on the metioned duality to construct a tool that maintains and over- and under-approximation of the space of states/logical structures}
+%\todo{use a generalized framework: - use cyclic proof search to locally block counterexamples; - use discovered clauses and/or models to prune some branches early, or, conversely, strengthen some hypotheses to make them inductive based on the relative inductiveness of clauses in IC3 frames}
 \end{paragraph}
 
 
@@ -237,6 +244,13 @@ Putting in mind that a unified framework for automated reasoning strives to comb
 it is even more challenging --- but also potentially more beneficial --- to ``divide and conquer''.
 This would increase the flexibility in applying different strategies and automatically turning some exploration features on or off, selectively.
 It provides one way of mitigating the risk involved in a more expressive proof system, allowing to take bolder decisions for inclusion of certain inference tactics.
+
+In a traditional top-down proof search based on a system of inference rules, the prover must reach the system's \emph{axioms} --- rules with no logical premises ---
+in order to seal off a proof branch.
+Only following successfulc closure of all proof branches can the prover declare victory.
+Two major factors contribute to search-space explosion:
+the proof \emph{width}, caused by having multiple rules be applicable at any given point in the proof;
+and proof \emph{depth}, caused by the long chain of rules that have to be applied, consecutively, in order to reach the axioms from the proof goal.
 
 \todo{The key ingredient here is that when searching top-down, you need to reach axioms in the leaves; when combining bottom-up, you can stop earlier when you have reached a lemma that was discovered previously.
 More importantly, the lemma can be discovered by a variety of proof techniques, which can be SMT- or ATP-driven.}
