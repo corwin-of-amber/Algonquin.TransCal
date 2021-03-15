@@ -24,11 +24,11 @@ This proposal is based on a fundamental understanding, that breaking existing
 barriers in automated reasoning is a key ingredient that will lead to
 much more powerful mechanism for the construction of provably-correct software.
 By powerful, we mean scalable to the sizes of realistic software modules,
-adpatable to arbitrarly complex properties,
+adaptable to arbitrarily complex properties,
 and requiring less user effort thanks to an increased level of automation.
-To achieve this goal, this research aims to bridge the gap between two insofar prevalent logical reasoning disciplines:
+To achieve this goal, this research \textbf{aims to bridge the gap between two insofar prevalent automated  reasoning disciplines}:
 
-\begin{paragraph}{Autmoated Theorem Provers (ATP)} A family of tools and techniques based on proof
+\begin{paragraph}{Automated Theorem Provers (ATP)} A family of tools and techniques based on proof
 theory of logical deduction.
 A logic in this setting is characterized by a vocabulary and a system of
 inference rules; provers are tasked with searching the space of proofs, which
@@ -38,12 +38,12 @@ application of the inference rules.
 
 \begin{paragraph}{Satisfiability-Modulo-Theory Solvers (SMT)} A somewhat newer approach with roots in complexity theory and algorithms for solving the Boolean satisfiability problem (SAT).
 These algorithms have been augmented with decision procedures for several first-order fragments.
-These have become immensely popular thanks to highly efficient implementations and very successful optimization heuristics that manage to combat the inherent intractability of the problem.
+SMT solvers have become incredibly popular thanks to highly efficient implementations and very successful optimization heuristics that manage to combat the inherent intractability of the problem.
 \end{paragraph}
 
 \medskip
 
-\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
+%\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
 
 
 %The expected result is a proof leading to a desired statement (closed formula)
@@ -55,29 +55,6 @@ These have become immensely popular thanks to highly efficient implementations a
 %cost with respect to its size.
 
 \begin{comment}
-\paragraph{Satisfiability-Modulo-Theory Solvers} A somewhat newer approach based on extending the
-Boolean satisfiability problem (SAT) with first-order theories and arithmetic, leading to
-Satisfiability Modulo Theory (SMT).
-SAT solvers accept Boolean formulas and construct a satisfying assignment, or
-declare that none exists.
-Since SAT is NP-complete (in fact, usually referred to as \emph{the} canonical
-NP-complete problem), finding the solution may be time consuming, but eventual
-termination is guaranteed.
-SMT solvers take first-order formulas and attempt to find a first-order
-\emph{model} for them, that is consistent with an underlying theory --- where the
-theory is built into the solver.
-The theories generally put no bound on the size of the models they admit
-(\eg, numerical theories are typically defined over the domain of integers),
-and as expected, the problem is generally undecidable.
-However, despite the inherent complexity of SAT and undecidability of SMT,
-solver technology has become extremely successful, especially in applications
-relating to software verification.
-In this context, proving a verification condition (``theorem'') $\varphi$
-amounts to finding its negation $\lnot\varphi$ unsatisfiable --- which is the root
-of the connection, and contention, between SMT solvers and theorem provers.
-For many software verification conditions, SMT solvers have been shown to be
-more effective in proving the validity of verification conditions than
-contemporary proof theory-based theorem provers.
 
 %\begin{comment}
 \todo{remove this from here and put in background, it kills the flow}
@@ -112,37 +89,9 @@ rules.
 Still, sub-problems arising in the course of resolving the induction step can
 and should benefit from honed SAT and SMT capabilities.
 
-Another obstacle, which hinders both approaches, is the use of quantification
-in assumptions and theorems.
-One generally wishes to take advantage of the inherent modularity in proving
-most kinds of properties, be those mathematical theorems in algebra or combinatorics,
-and definitely when it comes to correctness properties of computer programs.
-\todo{it is possible that the whole discussion of software modularity should be
- moved to the main body}
-Software is modular by nature, since modularity is what makes it possible
-for human programmers to cope with its ever-growing complexity.
-It is very much desirable to adopt the same contributing factor to reasoning about
-these programs.
-This means that instead of constructing one monolithic proof of the ``ultimate
-theorem'', one identifies and proves \emph{lemmas} that abstract and generalize
-domain knowledge and understanding of the underlying program --- layering them
-up until the final goal is met.
-This is definitely how it is done in academic papers, and, more recently, in
-large software verification projects.
-Going back to the challenge at hand, these auxiliary lemmas typically include
-quantified formulas, which are logic's way of expressing generalized conjectures.
-Applying these lemmas, \eg in the context of carrying out the next step of the proof,
-ultimately requires to instantiate universal quantifiers with logical terms.
-Since the space of available terms is large (or even infinite), this becomes
-a task that is daunting to automate and requires the employment of heuristics
-to select the right instances.
-We will move to consolidate instantiation strategies into ones that more closely
-matches the search for proof --- thus being goal-directed rather then origin-directed.
-A primary aim is to make these strategies less heuristic and more predictable.
-
-As an overarching goal, this research will lay foundations for a new discipline
+As an overarching goal, this research will \textbf{lay foundations for a new discipline
 in automated provers, by way of integrating the camps of ATP and SMT and allowing
-cross-fertilization.
+cross-fertilization}.
 Specifically, it is motivated by provers for the tasks of software verification
 and synthesis; these are characterized by relying almost exclusively on discrete
 mathematics, such as set theory, graphs, automata, an algebraic construction of
@@ -172,6 +121,32 @@ This trace condition is carefully crafted for every cyclic system to enable a so
 In a way, whatever complexity is removed from the proof proper is shifted to the global trace condition;
 however, this allows for some pretty sophisticated trace conditions, such as those based on B\"uchi automata.
 In turn, these allow such systems to provide exetremely succinct and elegant proofs.
+\end{paragraph}
+
+\begin{paragraph}{Satisfiability-Modulo-Theory Solvers}
+A somewhat newer approach based on extending the
+Boolean satisfiability problem (SAT) with first-order theories and arithmetic, leading to
+Satisfiability Modulo Theory (SMT).
+SAT solvers accept Boolean formulas and construct a satisfying assignment, or
+declare that none exists.
+Since SAT is NP-complete (in fact, usually referred to as \emph{the} canonical
+NP-complete problem), finding the solution may be time consuming, but eventual
+termination is guaranteed.
+SMT solvers take first-order formulas and attempt to find a first-order
+\emph{model} for them, that is consistent with an underlying theory --- where the
+theory is built into the solver.
+The theories generally put no bound on the size of the models they admit
+(\eg, numerical theories are typically defined over the domain of integers),
+and as expected, the problem is generally undecidable.
+However, despite the inherent complexity of SAT and undecidability of SMT,
+solver technology has become extremely successful, especially in applications
+relating to software verification.
+In this context, proving a verification condition (``theorem'') $\varphi$
+amounts to finding its negation $\lnot\varphi$ unsatisfiable --- which is the root
+of the connection, and contention, between SMT solvers and theorem provers.
+For many software verification conditions, SMT solvers have been shown to be
+more effective in proving the validity of verification conditions than
+contemporary proof theory-based theorem provers.
 \end{paragraph}
 
 
@@ -245,6 +220,11 @@ it is even more challenging --- but also potentially more beneficial --- to ``di
 This would increase the flexibility in applying different strategies and automatically turning some exploration features on or off, selectively.
 It provides one way of mitigating the risk involved in a more expressive proof system, allowing to take bolder decisions for inclusion of certain inference tactics.
 
+\begin{wrapfigure}[8]{r}{4cm}
+\vspace{-1em}
+\includegraphics[width=4.5cm]{img/untangled}
+\end{wrapfigure}
+
 In a traditional top-down proof search based on a system of inference rules, the prover must reach the system's \emph{axioms} --- rules with no logical premises ---
 in order to seal off a proof branch.
 Only following successfulc closure of all proof branches can the prover declare victory.
@@ -252,29 +232,80 @@ Two major factors contribute to search-space explosion:
 the proof \emph{width}, caused by having multiple rules be applicable at any given point in the proof;
 and proof \emph{depth}, caused by the long chain of rules that have to be applied, consecutively, in order to reach the axioms from the proof goal.
 
-\todo{The key ingredient here is that when searching top-down, you need to reach axioms in the leaves; when combining bottom-up, you can stop earlier when you have reached a lemma that was discovered previously.
-More importantly, the lemma can be discovered by a variety of proof techniques, which can be SMT- or ATP-driven.}
-Our modularization approach for more effective theorem proving is based on the introduction and use of \emph{lemmas}, encapsulating some details of the proof and reducing the search depth required to complete the goal.
+%\todo{The key ingredient here is that when searching top-down, you need to reach axioms in the leaves; when combining bottom-up, you can stop earlier when you have reached a lemma that was discovered previously.
+%More importantly, the lemma can be discovered by a variety of proof techniques, which can be SMT- or ATP-driven.}
+Our modularization approach for more effective theorem proving is based on the introduction and use of \emph{ancillary lemmas}, encapsulating some details of the proof and reducing the search depth by providing a wider range of known facts that can be used as leaves.
 Such lemmas are typical in mathematical pen-and-paper proofs, and they are layered on top of one another to be able to convey a complex development.
+To amplify the significance of lemmas we propose a novel approach to problem decomposition, called \textbf{untangle-and-conquer}.
+As the name suggests, it consists of two phases, the first of which is aimed at splitting a proof goal such that each sub-proof can be comfortably completed using an existing database of lemmas.
+We identify the following gap: logical propositions occurring as proof goals contain a mixture of logical symbols from different theories.
+For example, they may contain operations on arrays as well as linear arithmetic over the indices and pointer operations on the elements.
+In contrast, lemmas are naturally smaller and involve only a handful of symbols.
+This applies to both human-constructed lemmas, because the cognitive load required to deal with intricate interactions between too many different concepts is high;
+and to automatically generated lemmas (which we discuss shortly), since large vocabularies incur high resource costs to search through.
+It is therefore desirable to engineer the proof in such a way, that each part contains a subset of the symbols occurring in the goal.
+
+
 Oftentimes, choosing the right lemmas to use as stepping stones is the key insight a mathematician has to come up with.
-While it would definitely be presumptious to expect an automated reasoning program to replicate this much insight; but there are two key factors working to our advantage when dealing with software-oriented proofs:
+It would definitely be presumptious to expect an automated reasoning program to replicate this much insight; but there are two key factors working to our advantage when dealing with software-oriented proofs:
 (i) Even if some lemmas require ingenuity in their formulation, there is an even larger number of simpler, more ``mundane'' lemmas, and finding those automatically removes tedium from the human user;
-(ii) Lemmas used in different proofs are often similar, so using a corpus of proofs can guide the search for lemmas and make use of past results.
+(ii) Lemmas used in different proofs are often similar, 
+so building a database of discovered lemmas can help the prover in future endeavors;
+(iii) By the same argument, using a corpus of previously completed proofs (either human- or machine-generated) can guide the search for lemmas and make use of past results.
 
 We are especially interested in \emph{theory exploration} (or \emph{theory forming}):
 Given a library of proven properties, an automated reasoning system can eagerly search for consequences, thereby growing the body of ``knowledge'' at the prover's disposal.
 Deductive proof search in ATPs such as Vampire and Cyclist tends to be oriented ``top-down'', that is,
 starting from a proof goal, simplifying it further and further until axioms are reached.
-The is analoguous to building the proof tree from the root down to the leaves. (Although, graphically, proof trees are depicted with the root at the bottom --- this is nevertheless a top-down approach.)
-\todo{this para is incomplete}
-
-\todo{talk about frame property and tie to TC}
-\todo{--}
+The is analoguous to building the proof tree from the root down to the leaves. (Although, graphically, proof trees are commonly depicted with the root at the bottom --- this is nevertheless a top-down approach.)
+The availability of synthesis technology \cite{quickspec,thesy} means that we can generate a vast number of lemmas to guide our untangle-based decomposition.
+The major risk here is that too many lemmas may incur a high overhead and, moreover, produce too many different ways to decompose a given proof.
+We propose to mitigate this by developing a ranking method for discovered lemmas based on their usefulness,
+so that our automated reasoning tool can \textbf{learn from experience} and get better over time, using classic statistical inference.
 \end{paragraph}
 
 \begin{paragraph}{Objective 4: {\it Extrapolating to Software}}~
 The overarching goal of this research is to pave the way for the next generation of theorem proving technology.
-The emphasis remains on making tools that allows reasoning about properties of computer programs.
+The emphasis remains on making tools that allow reasoning about properties of computer programs.
+What this means is that an automated prover is required to cope with a high volume of low-level details that interact in unexpected ways.
+We would like to take advantage of \textbf{inherent abstraction layers} that already exist in software,
+since abstraction is what makes it possible
+for human programmers to cope with its ever-growing complexity.
+One form of abstraction can be used via the ancillary lemmas described above.
+An orthogonal axis is the application of \textbf{semi-automatic refinement} to provide encapsulation for some of the implementation details.
+For example, and ordered data structure may be abstracted as a set and a (total or partial) order relation; a multi-threaded process may be abstracted as a sequential one that is behaviorally equivalent.
+Choosing the abstraction to use in a refinement proof would, more often than not, require some human intuition, which is why some amount of user interaction will be needed.
+Our hope is that with the right abstraction in place,  the automated prover will be able to carry out all or most of the refinement proofs,
+showing that the abstraction soundly models the underlying implementation and also inferring system invariants from it --- making this process extremely rewarding.
+\end{paragraph}
+
+
+\begin{comment}
+% I am not sure what to do with this
+Another obstacle, which hinders both approaches, is the use of quantification
+in assumptions and theorems.
+One generally wishes to take advantage of the inherent modularity in proving
+most kinds of properties, be those mathematical theorems in algebra or combinatorics,
+and definitely when it comes to correctness properties of computer programs.
+Software is modular by nature, 
+It is very much desirable to adopt the same contributing factor to reasoning about
+these programs.
+This means that instead of constructing one monolithic proof of the ``ultimate
+theorem'', one identifies and proves \emph{lemmas} that abstract and generalize
+domain knowledge and understanding of the underlying program --- layering them
+up until the final goal is met.
+This is definitely how it is done in academic papers, and, more recently, in
+large software verification projects.
+Going back to the challenge at hand, these auxiliary lemmas typically include
+quantified formulas, which are logic's way of expressing generalized conjectures.
+Applying these lemmas, \eg in the context of carrying out the next step of the proof,
+ultimately requires to instantiate universal quantifiers with logical terms.
+Since the space of available terms is large (or even infinite), this becomes
+a task that is daunting to automate and requires the employment of heuristics
+to select the right instances.
+We will move to consolidate instantiation strategies into ones that more closely
+matches the search for proof --- thus being goal-directed rather then origin-directed.
+A primary aim is to make these strategies less heuristic and more predictable.
 \end{paragraph}
 
 \section{Research Plan \todo{B2}}
