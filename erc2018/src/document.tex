@@ -147,6 +147,16 @@ of the connection, and contention, between SMT solvers and theorem provers.
 For many software verification conditions, SMT solvers have been shown to be
 more effective in proving the validity of verification conditions than
 contemporary proof theory-based theorem provers.
+
+SAT and SMT received much tractions in the Model Checking community~\cite{clarke-grumberg} thanks to their successful applications to formal methods.
+SAT was initially utilized for hardware verification of logical circuits, and SMT became a natural extension for dealing with software, as programming languages typically provide primitives such as integer values~\cite{CAV2006:Dutertre}, bit vectors~\cite{TACAS2007:Bryant}, and arrays~\cite{CAV2007:Ganesh}.
+Because loops are pervasive in both hardware and software systems, there is an ever-present need for reasoning about executions of unbounded length.
+To that end, \emph{loop invariants} play a crucial role in all software verification systems~\cite{dafny,fstar,leon}.
+This essentially facilitates an induction scheme, but, by and large, the burden of supplying the invariant remains with the programmer.
+\emph{Invariant inference} is a big open problem that stands in the way to effective software verification.
+A significant breakthrough in invariant inference was achieved last decade with the development of the IC3 algorithm~\cite{bradley11} for automatic inference of Boolean invariants for hardware model checking.
+This sprouted a line of successful follow-up works on Property-Directed Reachability~\cite{gurfinkel,shoham,vizel}.
+These results have been integrated into the leading SMT solver Z3~\cite{z3,spacer} and form key components of the SeaHorn verifier~\cite{seahorn} for C programs.
 \end{paragraph}
 
 
@@ -212,7 +222,7 @@ To cope with Boolean constructs (such as implications and branching statements),
 This enables the use of assumptions similar to how they are introduced in CDCL(T), with easy backtracking when a conflict occurs.
 \end{paragraph}
 
-\begin{paragraph}{Objective 3: {\it Modularization of reasoning}}~\todo{better title to describe what modular proof search offers}
+\begin{paragraph}{Objective 3: {\it Combining proof techniques through modular reasoning}}
 For an automated reasoning task of any scale beyond trivial, decomposing goals into sub-goals that can be solved independently is an invaluable tool.
 This is especially true when it comes to software verification, and the need for it is only emphasized by broadening the scope of acceptable logics and theories.
 Putting in mind that a unified framework for automated reasoning strives to combine together proof strategies of several existing tools,
@@ -227,7 +237,7 @@ It provides one way of mitigating the risk involved in a more expressive proof s
 
 In a traditional top-down proof search based on a system of inference rules, the prover must reach the system's \emph{axioms} --- rules with no logical premises ---
 in order to seal off a proof branch.
-Only following successfulc closure of all proof branches can the prover declare victory.
+Only following successful closure of all proof branches can the prover declare victory.
 Two major factors contribute to search-space explosion:
 the proof \emph{width}, caused by having multiple rules be applicable at any given point in the proof;
 and proof \emph{depth}, caused by the long chain of rules that have to be applied, consecutively, in order to reach the axioms from the proof goal.
@@ -273,7 +283,7 @@ since abstraction is what makes it possible
 for human programmers to cope with its ever-growing complexity.
 One form of abstraction can be used via the ancillary lemmas described above.
 An orthogonal axis is the application of \textbf{semi-automatic refinement} to provide encapsulation for some of the implementation details.
-For example, and ordered data structure may be abstracted as a set and a (total or partial) order relation; a multi-threaded process may be abstracted as a sequential one that is behaviorally equivalent.
+For example, an ordered data structure may be abstracted as a set and a (total or partial) order relation; a multi-threaded process may be abstracted as a sequential one that is behaviorally equivalent.
 Choosing the abstraction to use in a refinement proof would, more often than not, require some human intuition, which is why some amount of user interaction will be needed.
 Our hope is that with the right abstraction in place,  the automated prover will be able to carry out all or most of the refinement proofs,
 showing that the abstraction soundly models the underlying implementation and also inferring system invariants from it --- making this process extremely rewarding.
@@ -306,7 +316,7 @@ to select the right instances.
 We will move to consolidate instantiation strategies into ones that more closely
 matches the search for proof --- thus being goal-directed rather then origin-directed.
 A primary aim is to make these strategies less heuristic and more predictable.
-\end{paragraph}
+\end{comment}
 
 \section{Research Plan \todo{B2}}
 
