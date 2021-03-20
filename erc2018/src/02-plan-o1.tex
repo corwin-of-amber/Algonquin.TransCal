@@ -1,0 +1,27 @@
+\section{Research Plan \todo{B2}}
+
+
+\subsection{Bridging equality reasoning}
+
+Equality is a fundamental concept in mathematics.
+The most basic algebraic structures, such as groups,
+are models (in the logical sense) of a set of equational
+axioms, the likeness of $x\cdot(y\cdot z) = (x\cdot y)\cdot z$ and $x\cdot 1 = 1\cdot x = x$.
+Equality is crucial for automated reasoning, because it means that mathematical objects can have more than one name --- multiple terms may represent the same object.
+An inference rule $\infruleshort{K}{P(x),Q(x)}{R(x, x+1)}$
+can be applied to derive a goal such as $R(y+z, y+z+1)$,
+by instantiating $x\mapsto y+z$;
+but it cannot be applied directly to a goal such as
+$R(y+1, y+2)$, because it does not (syntactically) match the conclusion pattern $R(x,x+1)$.
+The goal first has to be rephrased as the two subgoals
+$y + 2 = (y + 1) + 1, R(y+1, (y+1)+1)$, using the so-called \emph{paramodulation} rule%
+~\cite{Book2001:Nieuwenhuis},
+at which point $K$ can be applied to the second subgoal.
+The first subgoal is proved independently using an appropriate axiomatization of the integers.
+
+The paramodulation rule is powerful as it allows the prover to subsitute any term $t_1$ with any other term $t_2$, provided that it can then prove the conjecture $t_1 = t_2$.
+This is an extremely useful utility for marking progress in a given proof, but is disastrous from an automated proof search perspective:
+Because it can be instantiated with \emph{any} two terms, it opens up an infinite space of possible derivations for any given goal.
+Even with a decision procedure that can feasibly find all the possible terms that are equivalent to $t_2$ (and in most cases, such procedure is not available) ---
+there would still infinitely many such terms in any non-trivial logic (for instance, $x = x + 0 = x + 0 + 0 = \cdots$).
+Careful choice of where and when to apply equality reasoning is essential for effective proof search.
