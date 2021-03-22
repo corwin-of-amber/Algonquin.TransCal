@@ -25,3 +25,57 @@ Because it can be instantiated with \emph{any} two terms, it opens up an infinit
 Even with a decision procedure that can feasibly find all the possible terms that are equivalent to $t_2$ (and in most cases, such procedure is not available) ---
 there would still infinitely many such terms in any non-trivial logic (for instance, $x = x + 0 = x + 0 + 0 = \cdots$).
 Careful choice of where and when to apply equality reasoning is essential for effective proof search.
+
+Superposition calculus~\cite{superposition} aims to provide such control over applications of paramodulation
+by imposing a \emph{reduction order} $\succ$ over the set of possible terms, and then applying \emph{term rewriting}, replacing $t_1$ by $t_2$ only when $t_1\succ t_2$.
+For such a strategy to be effective, $\succ$ most be \emph{confluent}, \ie, if $t\succeq s_1,s_2$, then there
+exists $t'$ such that $s_1,s_2 \succeq t'$ (where $t$, $s_{1,2}$, $t'$ are all equivalent).
+Otherwise, rewriting may cause proof goals to diverge to
+a state where terms occurring in them can no longer be unified via equality reasoning even though they are equivalent.
+The widespread solution for constructing such an ordering is to collect the set of all known (universally quantifier) equalities $\Eqs$ and provide them as input to the Knuth-Bendix completion algorithm~\cite{AR1983:Knuth}.
+The result is a \emph{directed term rewriting system} that is \emph{normalizing}, that is, any two terms $t_{1,2}$ such that $\Eqs\vdash t_1=t_2$
+have a common normal form.
+This is done by \emph{orienting} each $x=y \in \Eqs$ to either $x\rwto y$ or $y\rwto x$ based on a Knuth-Bendix ordering of the terms.
+(In fact, the ordering is a parameter of the completion algorithm and can be configured.)
+It follows that it is sufficient to reduce all the terms in the proof to their normal forms, and then any two equivalent terms will be syntactically equal.
+
+What separates superposition calculus from an ideal solution for equational reasoning is the fact that Knuth-Bendix completion is, in reality, a \emph{semi-algorithm}:
+It is not guaranteed to yield a normalizing direction for any set of equations.
+Indeed, some inputs exist for which there is no such orientation of the equations.
+The problem of telling whether or not a solution exists is itself undecidable (because checking even a TRS for confluence is undecidable).
+One glaring situation is the case of the commutative axiom, $x\cdot y = y\cdot x$, where both orientations are equivalent and immediately cause divergence,
+leading to the need of instating a side condition $x\succ y$ that arbitatily chooses one order of the operands over the other.
+Fine-tuning the term ordering can have drastic effects on whether the Knuth-Bendix algorithm succeeds~\cite{ICRTA2006:Wehrman}.
+
+Equality reasoning in SMT solvers is based on an equality theory solver that uses \emph{congruence closure} to identify (ground) terms that whose equality follows from known (quantifer-free) equality conjectures and from the equality axioms~\cite{JACM1980:Nelson}.
+An efficient implementation is achieved through use of \emph{equality graphs} --- \emph{e-graphs} --- that allow fast computation of congruence closure~\cite{Thesis1980:Nelson}.
+E-graphs where also in the core of one of the earlier ATPs, Simplify~\cite{simplify}.
+
+\begin{proposal}E-graphs are a suitable formalism to serve as the bridge that unifies equality reasoning in SMT and ATP.
+\end{proposal}
+
+We propose to build a framework for equality reasoning based on e-graphs and term rewriting systems (TRSs), 
+inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{everything-zack}.
+We will use egg~\cite{egg}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
+In an e-graph, terms are grouped in equivalence classes (e-classes), and shared sub-terms are not duplicated, leading to a very compact representation.
+The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z. x\cdot(y\cdot z) = (x\cdot y)\cdot z)$ and $\forall x,y. x\cdot y = y \cdot x$.
+Previous work in compilers relied on the concept of \emph{equality saturation}~\cite{equsat}:
+That term rewriting can be applied to the e-graph until it eventually captures all possible consequences of the underlying equalities, and further applications of the rewrite rules would not contribute any new terms ---
+the e-graph is saturated.
+Naturally, this cannot be achieved in all circumstances.
+Our first task is therefore going to be a theoretical one, investigating the property of saturation.
+
+\begin{researchquestion}What characterizes a TRS that is \emph{saturating}, that is, reaches saturation on any input e-graph?
+\end{researchquestion}
+ 
+This question is a lifting of the finite termination and confluence properties of TRSs when operating on standard terms.
+It is trivial to see that a finitely-terminating TRS will also be saturating,
+although there can be an exponential blowup in the number of steps required for termination due to exploration of all possible rewrites in the e-graph setting.
+The other direction is definitely not true:
+We already saw the case of $x \cdot y \rwto y\cdot x$ as an example to a non-terminating rule.
+This rule is, in fact, saturating, because any $\cdot$ term has exactly two variants.
+Similarly, $x \rwto 1\cdot x$ is even \emph{diverging}, in the sense that every application of it yields a new term that was not derived before ($1 \to 1\cdot 1 \to 1\cdot 1 \cdot 1 \to \cdots$);
+however, thanks to the compact representation of e-classes, infinitely many terms can be represented in a single, finite e-graph, so this rule is also saturizing.
+This is not to say that all RTSs are saturating w.r.t. e-graphs.
+What makes some RTSs saturizing while others diverge?
+Can we 
