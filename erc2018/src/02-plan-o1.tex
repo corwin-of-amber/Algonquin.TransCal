@@ -22,13 +22,13 @@ The first subgoal is proved independently using an appropriate axiomatization of
 The paramodulation rule is powerful as it allows the prover to subsitute any term $t_1$ with any other term $t_2$, provided that it can then prove the conjecture $t_1 = t_2$.
 This is an extremely useful utility for marking progress in a given proof, but is disastrous from an automated proof search perspective:
 Because it can be instantiated with \emph{any} two terms, it opens up an infinite space of possible derivations for any given goal.
-Even with a decision procedure that can feasibly find all the possible terms that are equivalent to $t_2$ (and in most cases, such procedure is not available) ---
-there would still infinitely many such terms in any non-trivial logic (for instance, $x = x + 0 = x + 0 + 0 = \cdots$).
+Even with an efficient procedure that can find all the possible terms that are equivalent to $t_2$ (and in most cases, such procedure is not available) ---
+there would still be infinitely many such terms in any non-trivial theory (for instance, $x = x + 0 = x + 0 + 0 = \cdots$).
 Careful choice of where and when to apply equality reasoning is essential for effective proof search.
 
 Superposition calculus~\cite{superposition} aims to provide such control over applications of paramodulation
 by imposing a \emph{reduction order} $\succ$ over the set of possible terms, and then applying \emph{term rewriting}, replacing $t_1$ by $t_2$ only when $t_1\succ t_2$.
-For such a strategy to be effective, $\succ$ most be \emph{confluent}, \ie, if $t\succeq s_1,s_2$, then there
+For such a strategy to be effective, $\succ$ must be \emph{confluent}, \ie, if $t\succeq s_1,s_2$, then there
 exists $t'$ such that $s_1,s_2 \succeq t'$ (where $t$, $s_{1,2}$, $t'$ are all equivalent).
 Otherwise, rewriting may cause proof goals to diverge to
 a state where terms occurring in them can no longer be unified via equality reasoning even though they are equivalent.
@@ -56,7 +56,7 @@ E-graphs where also in the core of one of the earlier ATPs, Simplify~\cite{simpl
 
 We propose to build a framework for equality reasoning based on e-graphs and term rewriting systems (TRSs), 
 inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{everything-zack}.
-We will use egg~\cite{egg}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
+We will use \emph{egg}~\cite{egg}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
 In an e-graph, terms are grouped in equivalence classes (e-classes), and shared sub-terms are not duplicated, leading to a very compact representation.
 The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z. x\cdot(y\cdot z) = (x\cdot y)\cdot z)$ and $\forall x,y. x\cdot y = y \cdot x$.
 Previous work in compilers relied on the concept of \emph{equality saturation}~\cite{equsat}:
@@ -72,10 +72,66 @@ This question is a lifting of the finite termination and confluence properties o
 It is trivial to see that a finitely-terminating TRS will also be saturating,
 although there can be an exponential blowup in the number of steps required for termination due to exploration of all possible rewrites in the e-graph setting.
 The other direction is definitely not true:
-We already saw the case of $x \cdot y \rwto y\cdot x$ as an example to a non-terminating rule.
+We already saw the case of $x \cdot y \rwto y\cdot x$, which an example of a non-terminating rule.
 This rule is, in fact, saturating, because any $\cdot$ term has exactly two variants.
 Similarly, $x \rwto 1\cdot x$ is even \emph{diverging}, in the sense that every application of it yields a new term that was not derived before ($1 \to 1\cdot 1 \to 1\cdot 1 \cdot 1 \to \cdots$);
-however, thanks to the compact representation of e-classes, infinitely many terms can be represented in a single, finite e-graph, so this rule is also saturizing.
+however, thanks to the compact representation of e-classes, infinitely many terms can be represented in a single, finite e-graph, so this rule is also saturating.
 This is not to say that all RTSs are saturating w.r.t. e-graphs.
-What makes some RTSs saturizing while others diverge?
-Can we 
+What makes some RTSs saturating while others diverge?
+Can we define classes of saturating RTSs?
+Is the problem of checking saturation decidable?
+Solutions to these theoretical problems will be valuable for the more practical aspects of this project,
+and guide design of appropriate algorithms and approximations.
+
+\begin{researchquestion}How can e-graphs be used in concert with propositional reasoning, to handle proof goals with arbitrary Boolean structure?
+\end{researchquestion}
+
+In SMT solvers, integration with an underlying SAT procedure is a core characteristic.
+We will attempt to facilitate this form of integration for equality reasoning based on e-graphs as well.
+The inspiration for this line of work comes from DPLL(T) and CDCL(T), where the solver \emph{decides} on the truth value of an atomic formula whose value is not already determined by known facts, and attempts to complete a model of the entire formula.
+If that attempt fails, the solver rolls back to the point where the decision is made, now assuming the opposite.
+Choosing where in the decision tree to roll back to and what information can be added when a contradiction is detected is what differentiates various solver designs.
+
+%\subsection{Unification Modulo Theories}
+
+\begin{researchquestion}(Unification Modulo Theories) How can equality reasoning enhance existing proof search mechanisms, and how can it be combined with other theory solvers?
+\end{researchquestion}
+
+Theorem provers offer the flexibility that comes with customizing the logic used and its inference rules.
+This makes it possible to encode high-level strategies for problem decomposition, and incorporate domain knowledge for different classes of problems.
+What ATPs are not good at---in some cases, in fact, pretty bad---is
+handling many different cases requiring sub-proofs,
+as is the situation when, \emph{e.g.}, observing a computer program with several conditional statements.
+SMT solvers, on the other hand, evolved around the SAT problem and are therefore better equipped to cope with issues of Boolean structure.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\textwidth]{img/unification-modulo-theories.pdf}
+\caption{Excerpt from a correctness proof for a list reversal program, demonstrating the power of \emph{unification modulo theory}:
+The bottom sequent is drived from the top-right sequent by unifying $n(i_1)$ with $n_2(i_1)$, a unification made possible by the remaining five sequents given as auxiliary assumptions.}
+\label{unification:example}
+\end{figure}
+
+To facilitate effective proof search in a tool that combines the strengths of both ATP and SMT,
+we propose a technique that involves dedicated theory solvers directly in the process, rather than having a narrow interface through which they communicate their results.
+A core mechanism in deductive inference is that of \emph{unification}, where formulas from the goal are checked against known sequents that were previously derived to see if these sequents can fill in some pending premises.
+Since both the goal and the pre-existing sequents may contain free variables, this procedure is not merely checking equality, but also provides substitution and renaming of variables when needed.
+The proposed development is to enhance the unifier with knownledge about background theories, such as the theory of equality, partial orders, group theory, and transitive closure (the latter described below in \todo{}).
+This would allow the unifier to not only detect syntactic matches, but also consider situations where an existing formula entails a given premise according to the theory,
+and also combine several facts to satisfy one such premise.
+
+An example illustrating how this may affect proof search is given in~\autoref{unification:example}.
+The current goal is the sequent
+$R(s_0,s_1), R(s_1,s_2),R^*(s_2,s) \Rightarrow
+n(i_1) = i_0$,
+and the prover has pre-existing fact,
+$R(s_0,s_1), R(s_1,s_2) \Rightarrow n_2(i_1)=i_0$.
+A-priori, the sequents cannot be unified, because the goal has $n(i_1)$ on its right-hand side, whereas the assumption has $n_2(n_1)$.
+Instead of giving up on using the given assumption at this point, the prover can deduce that $n(i_1)=n_2(i_1)$ and utilize the paramodulation rule to unify the terms.
+Establishing $n(i_1)=n_2(i_1)$ itself requires some extra reasoning, for example, if the prover's collection of known facts contains the sequent
+$R^*(s_2,s)\Rightarrow n(i_1)=n_2(i_1), i_2\leq_2 i_1$.
+The precondition $R^*(s_2,s)$ is already present, luckily, on the left-hand side of the current goal;
+however, the literal $i_2\leq_2 i_1$ must be eliminated from the right-hand side before the equality can be utilized.
+This is a sub-task in which SMT solvers shine:
+the right-hand side of the fact is essentially a disjunction, and the solver can perform a case split and eventually discover that $i_2\leq_2 i_1$ contradicts other known properties, listed below in the figure.
+During this process of elimination, an acute role is played by the literals $i_2\leq_1 i_1$, $i_1<i_1$, $i_2=n_1(i_1)$ and the underlying theory of transitive closure.
