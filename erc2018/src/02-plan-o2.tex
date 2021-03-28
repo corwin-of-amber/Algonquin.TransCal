@@ -43,7 +43,7 @@ FO(TC) formulas (first-order formulas with TC).
 The first expected benefit is that TC enables clean, compact representation of data-related properties,
 making the logic easier to use and the resulting formalisms clearer.
 For example, the classical construction of the natural numbers from first principles involves a zero element and a successor operator.
-Based on this definition, operations and relations over natural values, such as the order relation $\leq$, can be defined via induction/recursion.
+Based on this definition, operations and relations over natural values, such as the order relation $\leq$, is defined recursively:
 \[
 \begin{array}{l@{\hspace{4em}}l}
 \begin{array}[t]{l}
@@ -60,16 +60,16 @@ Based on this definition, operations and relations over natural values, such as 
 \end{array}
 \]
 
-The definition of $\fle$ is amongst the most basic ones in Type Theory; yet it commonly baffles newcomers and takes some time convincing that it indeed defines the familiar notion of $\leq$.
+The definition of $\fle$ above is taken from the Coq standard library and is amongst the most basic ones in the Calculus of Inductive Constructions (CIC); yet it commonly baffles newcomers and takes some time convincing oneself that it indeed defines the familiar notion of $\leq$.
 Using transitive closure, however, offers a more compelling formulation:
 \[
 \fle\,x\,y ~\eqdef~ \big(\RTC{x,y}\,S\,x=y\big)(x,y)
 \]
 
-The above formula reads: $x\leq y$ iff $y$ can be obtained from $x$ by zero or more application of $S$, the successor function.
+The above formula reads: $x\leq y$ iff $y$ can be obtained from $x$ by zero or more application of $S$, the successor operator.
 This naturally aligns with our fundamental perception of ordering of natural numbers.
-In this sense, the transitive closure construct captures a recurring pattern in recursive definitions, one that seasoned TT users can identify at a glance, but which nevertheless adds some amount of unnecessary ``noise'' to the mix.
-This noise becomes more significant as definitions grow in complexity, and eventually encumbers proof search and development.
+In this sense, the transitive closure construct captures a recurring pattern in recursive definitions, one that seasoned logicians can identify at a glance, but which nevertheless adds some amount of unnecessary ``noise'' when constructing proofs.
+This noise becomes more significant as definitions grow in complexity, and eventually encumbers proof development, especially proof automation.
 In particular, chained application of a previously defined function or relation is so commonly useful, that it makes sense to define a designated notation for it:
 \[
 \fle\,x\,y ~\eqdef~ x[S^*]y \hspace{4em}
@@ -94,8 +94,8 @@ The use of square brackets in notations occurring in this document helps to avoi
 \label{plan:hamilton-defs}
 \end{figure}
 
-We argue that the compact TC formulation allows for shorter proofs---which in turn lead, potentially, to easier proof derivation processes in both interactive and fully-automated settings.
-We use the following example to illustrate this point; it is a problem taken from an undergraduate class on algorithms.
+We argue that the compact TC formulation allows for shorter proofs --- which, in turn, lead to easier proof derivation processes in both interactive and fully-automated settings.
+We use the following example to illustrate this point; it is a problem taken from an undergraduate class on algorithms and complexity theory.
 
 \begin{example}~\label{plan:hamilton}
 \begin{tabular}[t]{lp{10cm}}
@@ -107,13 +107,13 @@ We use the following example to illustrate this point; it is a problem taken fro
 \medskip
 This exercise is given following a lecture on DFS, BFS, and topological sort.
 This gives rise to a short solution:
-(1)~topologically sort the vertices of $G$;
-(2)~check whether the resulting array constitutes a path,
- that is, every two consecutive elements are connected by a path.
+(1)~Topologically sort the vertices of $G$;
+(2)~Check whether the resulting array constitutes a path,
+ that is, every two consecutive elements are connected by an edge.
  
-While the algorithm looks simple, it is not at all obvious that it is correct w.r.t. the requirements.
-Clearly, if it returns $\ftrue$, then it has correctly discovered a Hamilton path (even without considering any properties of topological sort).
-But when the outcome is $\ffalse$, some acute reasoning is required to show that there does not exist a \emph{different} ordering of $V$ that will indeed corresponds to a Hamilton path.
+While the algorithm looks simple, it is not at all obvious that it is correct w.r.t.\@ the requirements.
+Clearly, if step (2) returns $\ftrue$, then it has correctly discovered a Hamilton path (even without considering any properties of topological sort).
+But when the outcome is $\ffalse$, some acute reasoning is required to show that there does not exist a \emph{different} ordering of $V$ that corresponds to a Hamilton path.
 To establish correctness, the student needs to formalize the definition of topological sort and that of a Hamilton path
 (\autoref{plan:hamilton-defs}).
 Then the following proof goal must be accomplished:
@@ -125,14 +125,14 @@ That is, in a DAG containing a Hamilton path, there is exactly one possible topo
 (Notice that a DAG may contain at most one Hamilton path; this property is obtained as a simple corrollary of (\ref{plan:hamilton-goal}).)
 
 An insight into the proof can be offered by considering the two binary relations $R_1^a$, $R_2^a$ occurring in the definitions of $\fTS$ and $\fH$.
-A keen observer can notice that: $R_1^a = [R_2^a]^+$.
+A keen observer may notice that: $R_1^a = [{R_2^a}^+]$.
 The implication would be that the topological sort ($R_1^a$) is uniquely determined by the Hamilton path ($R_2^a$) if the latter exists.
-From there, proving (\ref{plan:hamilton-goal}) is by no means routine, but it does follow from rather standard algebraic conjectures:
+From there, proving (\ref{plan:hamilton-goal}) is by no means trivial, but it does follow from rather standard algebraic properties:
 \begin{enumerate}
-  \item $R_1^a$ is a \emph{total order} on $V=\{\ldots a\}$.
-  \item A total order is \emph{maximal w.r.t. set inclusion}
+  \item $R_1^a$ is a \underline{\emph{total order}} on $V=\{...a\}$.
+  \item A total order is \underline{\emph{maximal w.r.t.\@ set inclusion}}
     over all (partial) orders on the same set.
-  \item The mapping $a \mapsto R_1^a$ is \emph{injective}.
+  \item The mapping $a \mapsto R_1^a$ is \underline{\emph{injective}}.
 \end{enumerate}
 
 Notably, the monotonicity of the transitive closure operator $^+$ (as of any closure operator) is utilized here to establish the relationship $R_1^a \subseteq R_1^{a'}$.
