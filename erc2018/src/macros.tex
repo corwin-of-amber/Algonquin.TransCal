@@ -33,13 +33,18 @@
 \newcommand\rInductive{\treserved{Inductive}}
 \newcommand\rFixpoint{\treserved{Fixpoint}}
 
+\newcommand\Lang{\mathcal{L}}
 \newcommand\Eqs{\mathcal{E}}
 \newcommand\rwto{\overset{.~}{\to}}
 
 % Transitive Closure stuff
-\newcommand\TC[1]{\mathrm{TC}_{#1}}
-\newcommand\RTC[1]{\mathrm{RTC}_{#1}}
+\newcommand\TCsym[1]{\mathrm{TC}_{#1}}
+\newcommand\RTCsym[1]{\mathrm{RTC}_{#1}}
 
+\newcommand\TC[3]{(\TCsym{#1}\,#2)(#3)}
+\newcommand\RTC[3]{(\RTCsym{#1}\,#2)(#3)}
+
+\newcommand\rulename[1]{\textrm{[#1]}}
 
 \newcommand\evar[1]{{\color{purple}^{\scriptscriptstyle?}\!{#1}}}
 

@@ -160,3 +160,49 @@ The use of algebraic concepts here is deliberate: the phrases ``total order'', `
 
 \begin{researchquestion}How can we combine inductive and deductive reasoning for automatic inference of proper induction hypotheses?
 \end{researchquestion}
+
+Deductive reasoning is the practice of applying general rules or statements to
+individual, concrete cases; conversely, inductive reasoning is one of inferring,
+from a set of observations, a unifying generalization.
+Deductive reasoning can be thought of as a ``top-down'' application of logical
+thinking, whereas inductive reasoning works ``bottom-up''.
+While inferring a special case from a general case is always logically sound,
+generalizing from examples can only guarantee soundness up to the set of
+instances observed.
+Still, even in the course of proving theorems, where soundness is of utmost
+importance, humans habitually make use of inductive reasoning to guide their
+deduction:
+just a handful of examples can give rise to a useful generalization, a lemma,
+which can then be proven deductively.
+
+ATPs employ deductive reasoning almost exclusively.
+SMT solvers employ \emph{both} deductive reasoning (for example, propositional resolution) inductive reasoning in their inner workings.
+Indeed, the latter are very much oriented toward constructing a model of the given formulas.
+State-of-the-art SMT solvers make use of (partial) models generated in the
+course of the search to guide deductive reasoning as this search progresses.
+One notable example for this is Model-Based Quantifier Instantiation (MBQI)~\cite{MBQI},
+a technique implemented in Z3.
+In model checking, Counterexample-guided abstraction refinement (CEGAR)~\cite{cegar} is based on the notion of observing an abstract counterexample to guide predicate abstraction.
+The most relevant works in the context of induction are those of invariant inference:
+IC3 is heavily counterexample-guided, in that it makes progress by ``blocking'' states that are found to be unreachable.
+Its ability to converge greatly depends on procedure for \emph{inductive generalization} that can draw stronger conclusions from the unreachability of a single state.
+Without this generalization, IC3 will essentially have to enumerate all states, making it a very poor solution for symbolic model checking.
+Similarly, ICE~\cite{CAV2014:Pranav} uses counterexamples, \esp counterexample-to-induction (CTIs), generalizing them to form candidate loop invariants.
+
+Evidently, the idea of accumulating models of formulas or sub-formulas in the course of
+a dialog between a deductive component and an inductive one can be lifted to
+any type of reasoning.
+What we wish to do in this research direction is to find the common core that makes the above work,
+and how they can be integrated into automated reasoning tools proper.
+When constructing proofs, existing models can be used to quickly vet possible
+branching choices and discard ``obviously wrong'' ones: it is clearly futile
+to try to prove a formula that is not valid, and any instance that does not
+satisfy it can serve as a witness for that.
+This is very much the process that a human mathematician may undergo when
+considering which conjecture to prove next.
+Clearly, having a representative set of models is essential for it, since
+most intermediate statements have the form ``if $A_1$ and $A_2$ and $A_3$, then
+$B$'', and models not satisfying one of the premises $A_i$ contribute no
+relevant information.
+It is thus desirable to identify ``pivot'' atomic formulas and keep around
+models for various subsets of them.

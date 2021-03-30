@@ -1,2 +1,90 @@
 \section{State of the art and objectives}
 
+The correctness of computer-controlled systems is an open problem in computer science that, despite significant theoretical advances, does not have a satisfactory, practical solution.
+Software has been growing steadily in volume and complexity since the 1970's, and compiler architecture grew along with it.
+Automated verification is lagging behind: It has only become reasonably tractable in the early 2000's, at which time the size of software systems was already measured in millions of lines of code.
+Since then, it is struggling to catch up with the software industry, while at the same time, technological advances increase our reliance on software as well as the complexity of computer systems.
+Most of the quality assurance processes rely on intensive testing, and Symbolic Execution~\cite{symex30years} has become a valuable tool for automatic generation of tests for detecting bugs.
+However, such tools do not provide guarantees and cannot prove correctness properties of the underlying program.
+
+All software verification tools follow a common pattern:
+First, a frontend inspects the source code and constructs a semantic representation (some examples for this intermediate representation are Boogie~\cite{boogie}, Viper~\cite{viper}, and LLVM IR).
+Then, a backend derives a set of \emph{verification conditions} --- logical statements whose validity implies the correctness of the property being verified.
+These logical statements are sent to a prover to establish their validity.
+This proposal focuses on the latter phase, that of finding the proof of validity, where the input formula is a given.
+Still, it is important to remember, that better provers influence the design choices in the upper layers, which may contribute to the overall success of the tool.
+
+\subsection{Recent advances in proof theory}
+
+Automated theorem provers are based on the foundation of formal proof systems.
+A proof system consists of a language of \emph{judgements} and a set of \emph{inference rules} that facilitate derivation of new judgements from existing ones.
+The most notable proof systems today are a form of \emph{sequent calculus}, where judgements are \emph{sequents} of the form $\Gamma \vdash \Delta$ where $\Gamma,\Delta \subset \Lang$ are finite sets of formulas from a logic $\Lang$, which can be, for example, first-order logic over some vocabulary.
+The semantics of $\Gamma\vdash\Delta$ is: for every structure $M$ and valuation $\sigma$, if $M,\sigma\models\varphi$ for every $\varphi\in\Gamma$, then there exists $\psi\in\Delta$ such that $M,\sigma\models\psi$.
+The connection with the logical semantics is utilized in meta-proofs about the soundness and/or completeness of the proof system,
+but when constructing proofs (manually or automatically) the semantics is largely ignored, and only the syntactic form of the judgement, as embodied in the system's inference rules,
+is utilized for reasoning.
+
+\begin{figure}
+\renewcommand\arraystretch{1.2}
+\[
+\begin{array}{c@{\qquad}c}
+\begin{array}{c}
+~ \\ \hline
+\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,s}
+\end{array}
+\,\rulename{TC$_\textrm{refl}$}
+%
+&
+\begin{array}{c}
+\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,r} \quad
+\varphi\big[r/x,t/y\big] \\ \hline
+\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,t}
+\end{array}
+\,\rulename{TC$_\textrm{R}$}
+\\[5ex]
+\multicolumn{2}{c}{
+\begin{array}{c}
+\Gamma, s = t \vdash \Delta \quad
+\Gamma,\varphi\big[s/x,z/y\big] \vdash \Delta
+\\ \hline
+\Gamma,\RTC{x,y}{\varphi}{s,t}
+	\vdash \Delta
+\end{array}
+\,\rulename{TC$_\textrm{L}$}
+}
+\end{array}
+\]
+\caption{An example for a cyclic proof system for transitive closure.}
+\label{b2:tc-cyclic}
+\end{figure}
+
+Inference rules take the form shown in \autoref{b2:tc-cyclic}: premises are judgements written above the line, and a conclusion is written below the line.
+Each rule is, in fact, a \emph{schema}, since the names $\Gamma, \Delta, \varphi, s, t, x$ \etc are placeholders for formulas, terms, or variables, as appropriate.
+A proof of a sequent $\Gamma\vdash\Delta$ is, at its core, a sequence $\Phi_1, \Phi_2, {\cdots}, \Phi_n$ of judgements such that each $\Phi_i$ is \emph{derived} from $\Phi_{r_1}, {\cdots}, \Phi_{r_k}$ ($r_{1..k} < i$) using one of the inference rules, and $\Phi_n = \Gamma\vdash\Delta$.
+Commonly, $\Phi_{1..n}$ are portrayed in a directed tree where the direct children of $\Phi_i$ are the corresponding $\Phi_{r_{1..k}}$ from the derivation.
+If some $\Phi_j$ is used as a premise in more than one derivation step,
+there are two alternative ways to represent it:
+Either duplicate $\Phi_j$ (and all of its descendants) when depicting the proof as a tree, or switch to a DAG representation where each judgement can have any number of parents.
+
+\begin{paragraph}{Cyclic proofs}
+Traditionally, proofs are required to be finite, which is a sensible design choice, since the most important aspect of formal proofs is that they can be checked mechanically and validated by an algorithm.
+However, more recently, a somewhat surprising player entered the field by challenging this restriction and allowing infinite proofs~\cite{LICS2007:Brotherston}.
+Relaxing the finitary condition demands another, external condition in order to preserve the soundness of the proof system.
+It is perhaps this \textbf{separation of concerns} that admits cyclic proofs that are more compact and elegant than traditional finitary proofs --- which is what brought them growing popularity.
+
+In the cyclic framework, derivations are permitted to be regular,
+non-well-founded (\ie,~infinitely tall) trees.
+Regularity ensures that an \newlogic derivation tree always has a finite representation
+as a (possibly) cyclic graph.
+Concretely, we these derivations are represented as finite trees, 
+along with a set of \emph{backlinks} connecting each
+non-terminal leaf node --- called \emph{bud} ---
+to a syntactically identical ancestor node --- called \emph{companion}.
+In other words, we allow goals from the middle of the proof to be
+used again as premises higher up the derivation tree.
+Formally, each backlink denotes the infinite unfolding of the
+path connecting the bud with its associated companion.
+We call such derivations \emph{pre-proofs}, since, alluding to the proofs-as-programs duality, they do not necessarily correpond to \emph{terminating} programs.
+To ensure termination, we require that pre-proofs satisfy
+an additional global property, defined in terms of \emph{traces} of formulas.
+\end{paragraph}
