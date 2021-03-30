@@ -1,0 +1,23 @@
+\subsection{Modular Reasoning with Lemmas}
+
+Mathematical proofs are seldom monolithic.
+Usually, there are some intermediate conjectures --- \emph{lemmas} --- that
+are proved one by one, gradually building toward the culmination of the main
+theorem.
+Mainly, it helps the author overcome the complexity of the proof development
+task: in a formal setting, even a seemingly benign logical step can have many
+inference steps; and the steps are not always sequential, for example when
+a case split is required in order to consider several scenarios.
+A hierarchical organization of tasks helps the author make sure that all the bases are covered, while not drowning in details.
+This style of writing proofs has the additional benefit of making a proof easier to understand for potential readers.
+
+There is much in common between this practice of organizing proofs and sub-proofs, and proven practices in software engineering.
+In fact, the term \emph{proof engineering} has been coined recently~\cite{FTPL2019:Ringer} to drive this precise idea.
+Like a programmer working on large systems, a scientist  developing complex proofs constructs abstractions, embodied in mathematical definitions, and then reasons about these abstractions at a high level, ignoring some concrete underlying details.
+The scientist will prove properties about their abstractions as \emph{ancillary lemmas}, and then use these lemmas to derive desired properties.
+What we intend to do in this research is to anchor this practice in support tools, and increase the level of automation by \textbf{automatically discovering and proving} these ancillary lemmas.
+
+\begin{proposal}
+Effective \emph{automatic} proof engineering requires a bidirectional approach, combining ``top-down'' reasoning --- decomposing top-level goals into smaller pieces,
+and ``bottom-up'' reasoning --- constructing new conjectures that are consequences of known facts.
+\end{proposal}

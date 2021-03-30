@@ -289,6 +289,11 @@ For example, an ordered data structure may be abstracted as a set and a (total o
 Choosing the abstraction to use in a refinement proof would, more often than not, require some human intuition, which is why some amount of user interaction will be needed.
 Our hope is that with the right abstraction in place,  the automated prover will be able to carry out all or most of the refinement proofs,
 showing that the abstraction soundly models the underlying implementation and also inferring system invariants from it --- making this process extremely rewarding.
+
+We will focus on the incorporation of Separation Logic and its modern variants such as Iris~\cite{iris} for modeling a program's memory, \esp in programs that use dynamic allocation or multiple threads with shared state.
+In essence, what Separation Logic provides is a refinement that \textbf{correlates the low-level, imperative, mutable semantics of pointer programs with high-level, functional, immutable semantics} that are closer to mathematical definitions.
+Establishing the correlation, then leveraging it to prove properties of the underlying program, is a fine example of proof modularization.
+The pillars of equality reasoning and proof by induction are both central in this effort.
 \end{paragraph}
 
 
@@ -319,3 +324,19 @@ We will move to consolidate instantiation strategies into ones that more closely
 matches the search for proof --- thus being goal-directed rather then origin-directed.
 A primary aim is to make these strategies less heuristic and more predictable.
 \end{comment}
+
+
+\section{Risk assessment and expected significance}
+
+My earlier work~\cite{phd} and some follow-up by others~\cite{padon,feldman} revolved around the use of decidable logics to encode verification conditions for software,
+and transferring these to an SMT solver.
+These decidable fragments are extremely limited, and once you ``cross the line'' of undecidability, performance is largly unpredictable.
+There are many practical solvers that are able to prove many naturally occurring problems with arithmetic, arrays, and lists;
+but pile up too many undecidable particles on top of one another, and frequent divergence ensues, with little to no recourse for debugging the cause.
+
+The Matryoshka project~\cite{what} set as their target enriching SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
+This allows for a more natural, straightforward encoding of software-related queries, but there is very much a glass ceiling imposed by the SMT core.
+This project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on finely-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
+Generating short, readable proofs, as well as interpretable explanations in cases of failure to find a proof,
+are key to mitigate of the risks and remove of the element of dread that accompanies usage of contemprary ATPs and SMT solvers.
+In addition, careful regression experiments that will ensure that our team will not have to reinvent existing technology, but build on the vast experience of the past decades of research.

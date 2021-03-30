@@ -64,10 +64,10 @@ We propose to build a framework for equality reasoning based on e-graphs and ter
 inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{everything-zack}.
 We will use \emph{egg}~\cite{egg}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
 In an e-graph, terms are grouped in equivalence classes (e-classes), and shared sub-terms are not duplicated, leading to a very compact representation.
-The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z. x\cdot(y\cdot z) = (x\cdot y)\cdot z)$ and $\forall x,y. x\cdot y = y \cdot x$.
+The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z.~ x\cdot(y\cdot z) = (x\cdot y)\cdot z$ and $\forall x,y.~ x\cdot y = y \cdot x$.
 Previous work in compilers relied on the concept of \emph{equality saturation}~\cite{equsat}:
 That term rewriting can be applied to the e-graph until it eventually captures all possible consequences of the underlying equalities, and further applications of the rewrite rules would not contribute any new terms ---
-the e-graph is saturated.
+the e-graph is \emph{saturated}.
 Naturally, this cannot be achieved in all circumstances.
 Our first task is therefore going to be a theoretical one, investigating the property of saturation.
 
@@ -78,9 +78,9 @@ This question is a lifting of the finite termination and confluence properties o
 It is trivial to see that a finitely-terminating TRS will also be saturating,
 although there can be an exponential blowup in the number of steps required for termination due to exploration of all possible rewrites in the e-graph setting.
 The other direction is definitely not true:
-We already saw the case of $x \cdot y \rwto y\cdot x$, which an example of a non-terminating rule.
+We already saw the case of $x \cdot y \rwto y\cdot x$, which is an example of a non-terminating rule.
 This rule is, in fact, saturating, because any $\cdot$ term has exactly two variants.
-Similarly, $x \rwto 1\cdot x$ is even \emph{diverging}, in the sense that every application of it yields a new term that was not derived before ($1 \to 1\cdot 1 \to 1\cdot 1 \cdot 1 \to \cdots$);
+Similarly, $x \rwto 1\cdot x$ is non-terminating, and even \emph{diverging} --- every application of it yields a new term that was not derived before ($1 \to 1\cdot 1 \to 1\cdot 1 \cdot 1 \to \cdots$);
 however, thanks to the compact representation of e-classes, infinitely many terms can be represented in a single, finite e-graph, so this rule is also saturating.
 This is not to say that all RTSs are saturating w.r.t. e-graphs.
 What makes some RTSs saturating while others diverge?
@@ -97,6 +97,16 @@ We will attempt to facilitate this form of integration for equality reasoning ba
 The inspiration for this line of work comes from DPLL(T) and CDCL(T), where the solver \emph{decides} on the truth value of an atomic formula whose value is not already determined by known facts, and attempts to complete a model of the entire formula.
 If that attempt fails, the solver rolls back to the point where the decision is made, now assuming the opposite.
 Choosing where in the decision tree to roll back to and what information can be added when a contradiction is detected is what differentiates various solver designs.
+
+Boolean connectives, especially logical implications, are ubiquituous in reasoning about computer programs, as they are used to model conditional control flow.
+This is one of the things that brought SMT its popularity in model checking and software verification.
+The e-graph structure, however is essentially \emph{flat}: Vertices are grouped into classes, but classes cannot be further composed, and they all exist on a single layer.
+Boolean expressions can be represented directly, by treating the connectives as operators $\{t,f\}^k\to\{t,f\}$, but this encoding is not conducive to automated reasoning strategies, such as resolution~\cite{resolution-things?}.
+In particular, \emph{case splitting}, a very basic proof technique, is computationally hard to perform, because it requires forking the computation, essentially duplicating the e-graph for each of the cases in the proof.
+When searching for proofs a prover may be required to try several different split points, and doing so repeatedly is prohibitively expensive.
+
+We introduce the novel notion of \emph{conditional conjectures} into the area of e-graphs.
+This allows parts of the e-graph to be treated as \emph{subordinate}, in the sense that the facts they represent are valid under some set of assumptions.
 
 %\subsection{Unification Modulo Theories}
 

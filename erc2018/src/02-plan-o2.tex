@@ -106,7 +106,7 @@ We use the following example to illustrate this point; it is a problem taken fro
 
 \medskip
 This exercise is given following a lecture on DFS, BFS, and topological sort.
-This gives rise to a short solution:
+This gives rise to the following short solution:
 (1)~Topologically sort the vertices of $G$;
 (2)~Check whether the resulting array constitutes a path,
  that is, every two consecutive elements are connected by an edge.
@@ -147,7 +147,16 @@ The use of algebraic concepts here is deliberate: the phrases ``total order'', `
 \begin{center}
 \includegraphics[width=.8\textwidth]{img/topological-and-hamilton-proof-sketch.png}
 \end{center}
+\vspace{-2em}
 \todo{typeset with $\fTS\,G\,a$ and $\fH\,G\,a$}
 \caption{A sketch of the proof described in \autoref{plan:hamilton}.}
 \label{plan:hamilton-proof}
 \end{figure}
+
+
+\begin{researchquestion}How can we leverage the success of cyclic proof systems for automated reasoning in TC (and co-TC)?
+\end{researchquestion}
+
+
+\begin{researchquestion}How can we combine inductive and deductive reasoning for automatic inference of proper induction hypotheses?
+\end{researchquestion}
