@@ -1,0 +1,15 @@
+\subsection{Extrapolating to Software}
+
+As explained above, at the end of every software verification task there is a formal reasoning task, and that formal reasoning task is carried out solely at the level of the logical formula, paying no heed to the program for which the formula was generated.
+In that sense, just building and improving a general-purpose automated prover is of immediate value to whatever verification tool is constructed on top of it.
+However, there is one crucial pain point in reasoning about computer program, for which it is worth blurring the dichotomous boundary between code and logic.
+This is the point of \textbf{representing program memory and memory updates}.
+
+The first decade of the 21st century saw several breakthroughs in the analysis of programs with pointers and dynamic memory allocation.
+Notably, \emph{Separation Logic}~\cite{Reynolds} was founded as a logic designed specifically for the purpose of modeling the heap area on which a program operates,
+with dedicated inference rules in the style of Hoare to describe various effects on it.
+Smallfoot~\cite{berdine} and Grasshopper~\cite{weis} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
+At the same time, Shape Analysis based on Abstract Interpretation and 3-valued logic~\cite{sagiv-reps} became one of the most influential works in program analysis.
+It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{dafny}, VCC~\cite{vcc}, and SeaHorn~\cite{seahorn} \textbf{use none of that}.
+The reason is, probably, the difficulty in using them within an SMT-based verifier, except in restricted cases
+(\eg \cite{CAV2013:Piskac}).

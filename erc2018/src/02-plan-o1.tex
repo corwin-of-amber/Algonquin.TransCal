@@ -33,7 +33,7 @@ there would still be infinitely many such terms in any non-trivial theory (for i
 Careful choice of where and when to apply equality reasoning is essential for effective proof search.
 
 Superposition calculus~\cite{superposition} aims to provide such control over applications of paramodulation
-by imposing a \emph{reduction order} $\succ$ over the set of possible terms, and then applying \emph{term rewriting}, replacing $t_1$ by $t_2$ only when $t_1\succ t_2$.
+by imposing a \emph{simplification order} $\succ$ over the set of possible terms, and then applying \emph{term rewriting}, replacing $t_1$ by $t_2$ only when $t_1\succ t_2$.
 For such a strategy to be effective, $\succ$ must be \emph{confluent}, \ie, if $t\succeq s_1,s_2$, then there
 exists $t'$ such that $s_1,s_2 \succeq t'$ (where $t$, $s_{1,2}$, $t'$ are all equivalent).
 Otherwise, rewriting may cause proof goals to diverge to
@@ -82,7 +82,7 @@ We already saw the case of $x \cdot y \rwto y\cdot x$, which is an example of a 
 This rule is, in fact, saturating, because any $\cdot$ term has exactly two variants.
 Similarly, $x \rwto 1\cdot x$ is non-terminating, and even \emph{diverging} --- every application of it yields a new term that was not derived before ($1 \to 1\cdot 1 \to 1\cdot 1 \cdot 1 \to \cdots$);
 however, thanks to the compact representation of e-classes, infinitely many terms can be represented in a single, finite e-graph, so this rule is also saturating.
-This is not to say that all RTSs are saturating w.r.t. e-graphs.
+This is not to say that all RTSs are saturating w.r.t.\@ e-graphs.
 What makes some RTSs saturating while others diverge?
 Can we define classes of saturating RTSs?
 Is the problem of checking saturation decidable?
@@ -122,7 +122,7 @@ SMT solvers, on the other hand, evolved around the SAT problem and are therefore
 
 \begin{figure}
 \centering
-\includegraphics[width=0.75\textwidth]{img/unification-modulo-theories.pdf}
+\includegraphics[width=0.65\textwidth]{img/unification-modulo-theories.pdf}
 \caption{Excerpt from a correctness proof for a list reversal program, demonstrating the power of \emph{unification modulo theory}:
 The bottom sequent is drived from the top-right sequent by unifying $n(i_1)$ with $n_2(i_1)$, a unification made possible by the remaining five sequents given as auxiliary assumptions.}
 \label{unification:example}

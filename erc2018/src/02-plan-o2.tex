@@ -172,7 +172,7 @@ instances observed.
 Still, even in the course of proving theorems, where soundness is of utmost
 importance, humans habitually make use of inductive reasoning to guide their
 deduction:
-just a handful of examples can give rise to a useful generalization, a lemma,
+A handful of examples can give rise to a useful generalization, a lemma,
 which can then be proven deductively.
 
 ATPs employ deductive reasoning almost exclusively.
@@ -181,7 +181,7 @@ Indeed, the latter are very much oriented toward constructing a model of the giv
 State-of-the-art SMT solvers make use of (partial) models generated in the
 course of the search to guide deductive reasoning as this search progresses.
 One notable example for this is Model-Based Quantifier Instantiation (MBQI)~\cite{MBQI},
-a technique implemented in Z3.
+a technique implemented in Z3 to handle universally-quantified formulas.
 In model checking, Counterexample-guided abstraction refinement (CEGAR)~\cite{cegar} is based on the notion of observing an abstract counterexample to guide predicate abstraction.
 The most relevant works in the context of induction are those of invariant inference:
 IC3 is heavily counterexample-guided, in that it makes progress by ``blocking'' states that are found to be unreachable.

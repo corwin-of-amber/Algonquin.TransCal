@@ -36,8 +36,8 @@ is utilized for reasoning.
 %
 &
 \begin{array}{c}
-\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,r} \quad
-\varphi\big[r/x,t/y\big] \\ \hline
+\Gamma \vdash \Delta, \varphi\big[s/x,r/y\big] \quad
+\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{r,t} \\ \hline
 \Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,t}
 \end{array}
 \,\rulename{TC$_\textrm{R}$}
@@ -66,6 +66,56 @@ If some $\Phi_j$ is used as a premise in more than one derivation step,
 there are two alternative ways to represent it:
 Either duplicate $\Phi_j$ (and all of its descendants) when depicting the proof as a tree, or switch to a DAG representation where each judgement can have any number of parents.
 
+\begin{paragraph}{Superposition theorem provers and saturation}
+The term ``superposition'' is used to describe a family of theorem provers that are based on two main principles of deduction: \emph{resolution} and \emph{superposition}.
+Both use the core concept of \emph{unification}.
+Given two terms $t_1, t_2$, a \emph{unifier} is a (syntactic) substitution $\theta$ such that $t_1\theta = t_2\theta$.
+The equality here designates syntactic identity, and $t\theta$ denotes applying a substitution to a term.
+A classical result in logic tells us that if two terms have a unifier, then they also have a \emph{most general unifier} (\emph{mgu}):
+A substitution $\theta_1$ is considered more general than another $\theta_2$ if the latter can be obtained from the former via sequential composition, $\theta_2 = \theta'\circ\theta_1$.
+Following are a few select inference rules based on this concept.
+
+\noindent\vspace{0pt}
+\[
+\begin{array}{c}
+A \lor C_1 \quad \lnot A' \lor C_2 \\ \hline
+(C_1 \lor C_2)\theta^{\scriptscriptstyle A}_{\scriptscriptstyle \!A'}
+\end{array}
+\,\rulename{RES}
+\qquad
+\begin{array}{c}
+l=r \lor C_1 \quad L[s] \lor C_2 \\ \hline
+(L[r] \lor C_1 \lor C_2)\theta^{s}_{l}
+\end{array}
+\,\rulename{SUP_$^=_0$}
+\qquad
+\begin{array}{c}
+l=r \lor C_1 \quad t[s]=t' \lor C_2 \\ \hline
+(t[r]=t' \lor C_1 \lor C_2)\theta^{s}_{l}
+\end{array}
+\,\rulename{SUP_$^=_1$}
+\]
+
+In the above, $\theta^{\alpha}_{\!\beta}$ is the mgu of $\alpha$ and $\beta$.
+In addition to that, a superposition inference system makes use of an extra \emph{simplification order} $\succ$ on terms.
+In \rulename{SUP_$^=_0$} and \rulename{SUP_$^=_1$},
+application is restricted to cases where
+$t'\theta \not\succeq t[s]\theta$.
+This breaks the symmetry of equality and provides the prover with a direction.
+
+Vampire~\cite{vampire} is the most reknown superposition theorem prover.
+It works by \emph{saturation}: Vampire maintains a set $D$ of first-order clauses,
+and incrementally grow it by selecting $\Phi_{r_{1..k}} \subseteq D$ and adding a clause $\Phi_{n+1}$ according to one of the inference rules.
+Vampire terminates when it derives the empty clause ($\bot$, representing a contradiction),
+or when $D$ is saturated, \ie, no new clauses can be added.
+\end{paragraph}
+
+\begin{figure}
+\input{img/fig-cyclic-proof}
+\caption{An example for a cyclic proof with transitive closure.}
+\label{b2:tc-cyclic-example}
+\end{figure}
+
 \begin{paragraph}{Cyclic proofs}
 Traditionally, proofs are required to be finite, which is a sensible design choice, since the most important aspect of formal proofs is that they can be checked mechanically and validated by an algorithm.
 However, more recently, a somewhat surprising player entered the field by challenging this restriction and allowing infinite proofs~\cite{LICS2007:Brotherston}.
@@ -74,7 +124,7 @@ It is perhaps this \textbf{separation of concerns} that admits cyclic proofs tha
 
 In the cyclic framework, derivations are permitted to be regular,
 non-well-founded (\ie,~infinitely tall) trees.
-Regularity ensures that an \newlogic derivation tree always has a finite representation
+Regularity ensures that an infinite derivation tree always has a finite representation
 as a (possibly) cyclic graph.
 Concretely, we these derivations are represented as finite trees, 
 along with a set of \emph{backlinks} connecting each
@@ -87,4 +137,15 @@ path connecting the bud with its associated companion.
 We call such derivations \emph{pre-proofs}, since, alluding to the proofs-as-programs duality, they do not necessarily correpond to \emph{terminating} programs.
 To ensure termination, we require that pre-proofs satisfy
 an additional global property, defined in terms of \emph{traces} of formulas.
+
+A \emph{trace} is a sequence of formulas $\varphi_1, {\cdots}, \varphi_n$ that appear along a path in the proof tree (not counting the backlinks).
+For a cycle consisting of the sequents $\Phi_1,{\cdots},\Phi_n$, where $\Phi_n$ is the bud and $\Phi_1$ is the companion, we define the \emph{trace condition} as follows:
+\begin{enumerate}
+ \item Each $\varphi_i$ occurs in the corresponding $\Phi_i$.
+ \item $\varphi_i \sqsubset \varphi_{i+1}$ for every $i=1..(n-1)$, where $\sqsubset$ is a global (partial) order over formulas.
+ \item $\varphi_1 = \varphi_n$ (recall that $\Phi_1 = \Phi_n$ because of the cycle).
+\end{enumerate}
 \end{paragraph}
+
+
+\subsection{Recent advances in SAT and SMT}
