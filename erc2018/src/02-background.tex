@@ -149,3 +149,13 @@ For a cycle consisting of the sequents $\Phi_1,{\cdots},\Phi_n$, where $\Phi_n$ 
 
 
 \subsection{Recent advances in SAT and SMT}
+
+Interest in algorithms for solving Boolean satisfiability (SAT) began with the development of the DPLL method~\cite{DPLL1,DPLL2}.
+In its core it is very simple:
+It operates on a propositional CNF formula (conjunction of clauses), and follows two main principles:
+(a) the \emph{unit propagation rule}, whereby a clause with a single literal determines the truth value of the variable therein; and
+(b) the \emph{pure literal elimination rule}, whereby a variable occurring either only positively or only negatively can be omitted.
+Whenever the procedure assigns a value of \emph{true} to some literal, the entire clause containing it is discharged.
+When a value of \emph{false} is assigned, the literal is removed from the clause.
+This can lead to the rules (a) and (b) being enabled many times in the course of execution.
+Of course, (a) and (b) alone are not enough to solve all instances, so some guess-and-backtrack is needed to handle the unassigned variables.
