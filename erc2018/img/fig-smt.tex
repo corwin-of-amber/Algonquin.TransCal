@@ -1,0 +1,80 @@
+\begin{SCfigure}
+\begin{tikzpicture}[>=latex,
+	buzz/.style={decorate,
+    decoration={snake, amplitude=1pt,
+      segment length=5pt}}]
+      
+  \node(fol)
+  { $g(a)=c \land \big(f(g(a))\neq f(c)
+    \lor g(a)=d\big) \land c\neq d$ };
+    
+  \node(prop)[below=of fol]
+  { $A \land (\lnot B \lor C) \land \lnot D$ };
+  
+  \node(sat1)[right=of prop, draw]
+  { \small
+    $\begin{array}{cccc}
+        A  &  B  &  C  &  D  \\
+      \top & \bot & \bot & \bot \\[-2pt]
+     \end{array}$ }; 
+      
+  \node(uf1)[below=0 of sat1]
+  { \small
+    $\begin{array}{r@{~}c@{~}l}
+       g(a) &=& c \\
+       f(g(a)) &\neq& f(c) \\
+       g(a) &\neq& d \\
+       c &\neq& d
+     \end{array}$ };
+      
+  \node(conflict-uf1)[below=0 of uf1, xshift=-1.25cm]
+  { $g(a)=c \to f(g(a))=f(c)$ };
+  
+  \node(conflict-prop1)[below=of prop]
+  { $(\lnot A \lor B)$ };
+  
+  \node(sat2)[left=of conflict-prop1, draw]
+  { \small
+    $\begin{array}{cccc}
+        A  &  B  &  C  &  D  \\
+      \top & \top & \top & \bot \\[-2pt]
+     \end{array}$ }; 
+
+  \node(uf2)[below=0 of sat2]
+  { \small
+    $\begin{array}{r@{~}c@{~}l}
+       g(a) &=& c \\
+       f(g(a)) &=& f(c) \\
+       g(a) &=& d \\
+       c &\neq& d
+     \end{array}$ };
+     
+  \node(conflict-prop2)[below=1.5 of conflict-prop1,
+  	inner ysep=1pt]
+  { $(\lnot A \lor \lnot C \lor D)$ };
+  
+  \node(unsat)[right=of conflict-prop2,draw] { UNSAT };
+
+  \draw[->] (fol) -- (prop);
+  \draw[buzz] (prop) -- ($(sat1.west) - (2mm,0)$)
+  	node[coordinate](i){};
+  \draw[->] (i) -- +(1mm,0);
+  \draw[dashed] (prop) -- node[left]{$\land$} 
+                (conflict-prop1);
+  \draw[->] ($(uf1) - (8mm,2mm)$) -- (conflict-uf1);
+  \draw[->] (conflict-uf1) -- (conflict-prop1);
+
+  \draw[buzz] (conflict-prop1) -- 
+              ($(sat2.east) + (2mm,0)$)
+  	node[coordinate](i){};
+  \draw[->] (i) -- +(-1mm,0);
+
+  \draw[->] ($(uf2) + (9mm,-1mm)$) -- (conflict-prop2);
+
+  \draw[buzz] (conflict-prop2) -- 
+              ($(unsat.west) - (2mm,0)$)
+  	node[coordinate](i){};
+  \draw[->] (i) -- +(1mm,0);
+
+\end{tikzpicture}
+\end{SCfigure}
