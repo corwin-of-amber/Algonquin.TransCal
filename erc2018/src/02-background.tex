@@ -159,3 +159,17 @@ Whenever the procedure assigns a value of \emph{true} to some literal, the entir
 When a value of \emph{false} is assigned, the literal is removed from the clause.
 This can lead to the rules (a) and (b) being enabled many times in the course of execution.
 Of course, (a) and (b) alone are not enough to solve all instances, so some guess-and-backtrack is needed to handle the unassigned variables.
+Which values to guess and how to backtrack in a way that maintains the most information is crucial for the performance of the solver.
+
+Conflict-Driven Clause Learning (CDCL)~\cite{CDCL} is the gold standard of SAT solvers today.
+CDCL improves over DPLL by using \emph{non chronological} backtracking, allowing the solver to undo several decisions at once, and preserving the information obtained from the failed branch in a \emph{conflict clause} that is added to the collection.
+The conflict clause then guides future decisions for assigning truth values to variables.
+CDCL solvers such as CaDiCaL~\cite{SAT2020:CaDiCaL} are being actively developed to this very day.
+Techniques and heuristics for choosing the backtracking destination and constructing conflict clauses is an active research area.
+
+Despite the complexity of SAT (it is NP-complete), today's solvers are capable of solving surprisingly large instances occurring in hardware verification.
+For software verification, propositional logic is much too low-level to comfortably express our properties and semantics.
+The research community was able to leverage the success of SAT solvers and extend it to satisfiability of first-order formulas, leading to Satisfiability Modulo Theories (SMT).
+The ``theories'' refer to specific fragments of first-order logic for which efficient decision procedures have been constructed.
+These theory solvers are then composed with the underlying SAT procedure to handle logical connectives.
+The combined method is referred to CDCL(T) (previously, DPLL(T)).
