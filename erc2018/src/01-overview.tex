@@ -190,7 +190,7 @@ The proposed framework will try to generalize and unify the two leading frontier
 In the world of model checking and SMT, the IC3 algorithm and its variants~\todo{remember to cite them in the background} has proven to be the gold standard for automatic invariant inference.
 In proof theory and deductive reasoning, cyclic proof systems provide shorter proofs, which have good value for ATPs such as Cyclist, where proof search is severely limited by the depth of the proofs that can be feasibly explored.
 These two approaches to proof by induction are vastly different: IC3 is counterexample-driven; Cyclist is proof-driven.
-We plan to draw on the duality between reachability and invariant inference~\citeneeded{padon} to create a unified description of the two processes, where both aspects, inductive and deductive, will manifest.
+We plan to draw on the duality between reachability and invariant inference~\cite{arXiv2020:Padon} to create a unified description of the two processes, where both aspects, inductive and deductive, will manifest.
 This new setting would allow the conclusions accumulated with the IC3 method to direct and guide the proof search, and intermediate conclusions from closed cycles in the pre-proof being constructed to inform the clause inference that is a core step of IC3.
 
 More broadly, IC3 can be seen as a process where a proposition is repeatedly \emph{strengthened} until it becomes inductive and can be used as an inductive loop invariant.

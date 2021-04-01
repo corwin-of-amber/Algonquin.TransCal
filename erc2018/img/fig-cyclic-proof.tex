@@ -1,8 +1,18 @@
 \centering
 \begin{tikzpicture}
   \node(u0) { $a[n^+]a, a[n^*]b \vdash b[n^*]a$ };
-  \node(u1)[above=0 of u0, anchor=south east, xshift=-.5cm] { $a[n^+]a, \vdash $ };
-  \node(u2)[above=0 of u0, anchor=south west, xshift=.5cm] { $a[n^+]a,a[n^*]i,n\,i=b \vdash b[n^*]a$ };
+
+  \node(u1)[above=0 of u0, anchor=south east, 
+            xshift=-.5cm] 
+  { $a[n^+]a, a=b \vdash b[n^*]a$ };
+
+  \node(u2)[above=0 of u0, anchor=south west,
+            xshift=.5cm] 
+  { $a[n^+]a,a[n^*]i,n\,i=b \vdash b[n^*]a$ };
   
   \draw (u1.south west) -- (u2.south east);
+
+  \node(u3)[above=0 of u2] 
+  { $a[n^+]a,a[n^*]i \vdash (n\,i)[n^*]a$ };
+
 \end{tikzpicture}
