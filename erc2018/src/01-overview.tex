@@ -1,5 +1,5 @@
 
-\section*{Satisfiability Modulo Theories and Automated Theorem Proving:\\ Quest for the Missing Link}
+\section{Extended Synopsis and Scientific Proposal}
 
 \vspace{-.5em}
 \hrule
@@ -98,7 +98,7 @@ mathematics, such as set theory, graphs, automata, an algebraic construction of
 natural numbers, and various theories of integer arithmetic.
 
 
-\section{Background}
+\subsection{Background}
 
 %\todo{The background should put an emphasis on what each tool is good at}
 
@@ -111,7 +111,7 @@ Most of these early systems were based on the resolution principle~\cite{robinso
 Term unification~\cite{robinson1965} is used to resolve first-order formulas.
 In the 1990's, superposition calculus~\cite{LPAR1992:Bachmair} emerged as the leading technique for equality reasoning.
 This led to several successful theorem provers, notably Vampire~\cite{JAR1995:Voronkov} and E prover~\cite{AIC2002:Schulz}.
-Today, most theorem provers rely in one way or another on term rewriting for the implementation of superposition, based on the Knuth-Bendix algorithm~\cite{knuth-bendix} for normalizing rewrites.
+Today, most theorem provers rely in one way or another on term rewriting for the implementation of superposition, based on the Knuth-Bendix algorithm~\cite{AR1983:Knuth} for normalizing rewrites.
 
 More recently, a lot of attention was directed towards \emph{cyclic proof systems}, a form of Gentzen-style calculus that natively admits proof by induction.
 Instead of the traditional induction scheme or induction rule, \eg (for $\mathbb{N}$) $P(0)\land \forall k.\,P(k)\to P(k+1) \vdash \forall n.\,P(n)$,
@@ -148,7 +148,7 @@ For many software verification conditions, SMT solvers have been shown to be
 more effective in proving the validity of verification conditions than
 contemporary proof theory-based theorem provers.
 
-SAT and SMT received much tractions in the Model Checking community~\cite{clarke-grumberg} thanks to their successful applications to formal methods.
+SAT and SMT received much tractions in the Model Checking community~\cite{Book2001:Clarke,SSS2014:Grumberg} thanks to their successful applications to formal methods.
 SAT was initially utilized for hardware verification of logical circuits, and SMT became a natural extension for dealing with software, as programming languages typically provide primitives such as integer values~\cite{CAV2006:Dutertre}, bit vectors~\cite{TACAS2007:Bryant}, and arrays~\cite{CAV2007:Ganesh}.
 Because loops are pervasive in both hardware and software systems, there is an ever-present need for reasoning about executions of unbounded length.
 To that end, \emph{loop invariants} play a crucial role in all software verification systems~\cite{dafny,fstar,leon}.
@@ -156,11 +156,11 @@ This essentially facilitates an induction scheme, but, by and large, the burden 
 \emph{Invariant inference} is a big open problem that stands in the way to effective software verification.
 A significant breakthrough in invariant inference was achieved last decade with the development of the IC3 algorithm~\cite{bradley11} for automatic inference of Boolean invariants for hardware model checking.
 This sprouted a line of successful follow-up works on Property-Directed Reachability~\cite{gurfinkel,shoham,vizel}.
-These results have been integrated into the leading SMT solver Z3~\cite{z3,spacer} and form key components of the SeaHorn verifier~\cite{seahorn} for C programs.
+These results have been integrated into the leading SMT solver Z3~\cite{Z3SMT,CAV2013:Komuravelli,CAV2014:Komuravelli} and constitute key components of the SeaHorn verifier~\cite{TACAS2015:Gurfinkel} for C programs.
 \end{paragraph}
 
 
-\section{Bridging the Automated Reasoning Gap}
+\subsection{Research Objectives and Methodology}
 
 %\todo{Be more specific about the problems and why they are important: e.g. "cope with Boolean constructs", "unavoidable in software verification" etc.; explain what gives rise to these instances}
 
@@ -326,7 +326,7 @@ A primary aim is to make these strategies less heuristic and more predictable.
 \end{comment}
 
 
-\section{Risk assessment and expected significance}
+\subsection{Impact and Evaluation of Project Success}
 
 My earlier work~\cite{phd} and some follow-up by others~\cite{padon,feldman} revolved around the use of decidable logics to encode verification conditions for software,
 and transferring these to an SMT solver.

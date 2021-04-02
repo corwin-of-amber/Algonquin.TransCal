@@ -12,7 +12,32 @@
   
   \draw (u1.south west) -- (u2.south east);
 
-  \node(u3)[above=0 of u2] 
-  { $a[n^+]a,a[n^*]i \vdash (n\,i)[n^*]a$ };
+  \node(u3)[above=0 of u2]
+  { $a[n^+]a,a[n^*]i \vdash i[n^+]a$ };
+
+  \draw (u2.north west) -- (u2.north east) 
+    node[right] {\small =};
+
+  \node(u4)[above=0 of u3, anchor=south west, 
+            xshift=.75cm]
+  { $a[n^+]a,i=a \vdash i[n^+]a$ };
+  \node(u5)[above=0 of u3, anchor=south east,
+            xshift=.1cm] 
+  { $a[n^+]a,a[n^*]i \vdash i=a, i[n^+]a$ };
+
+  \draw (u5.south west) -- (u4.south east)
+    node[right] {\small Cut};
+
+  \node(u6)[above=0 of u5, anchor=south west, 
+            xshift=.05cm]
+  { $i[n^*]a \vdash i=a, i[n^+]a$ };
+  \node(u7)[above=0 of u5, anchor=south east, 
+            xshift=-.25cm]
+  { $a[n^+]a, a[n^*]i \vdash i[n^*]a$ };
+  
+  \draw (u6.south east) -- (u7.south west)
+  	node[left] {\small Cut};
+    
+  %\draw
 
 \end{tikzpicture}

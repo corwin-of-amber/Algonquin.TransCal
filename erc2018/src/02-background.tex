@@ -25,6 +25,7 @@ but when constructing proofs (manually or automatically) the semantics is largel
 is utilized for reasoning.
 
 \begin{figure}
+\centering
 \renewcommand\arraystretch{1.2}
 \[
 \begin{array}{c@{\qquad}c}
@@ -36,7 +37,7 @@ is utilized for reasoning.
 %
 &
 \begin{array}{c}
-\Gamma \vdash \Delta, \varphi\big[s/x,r/y\big] \quad
+\Gamma \vdash \Delta, \varphi[s,r] \quad
 \Gamma \vdash \Delta, \RTC{x,y}{\varphi}{r,t} \\ \hline
 \Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,t}
 \end{array}
@@ -45,7 +46,8 @@ is utilized for reasoning.
 \multicolumn{2}{c}{
 \begin{array}{c}
 \Gamma, s = t \vdash \Delta \quad
-\Gamma,\varphi\big[s/x,z/y\big] \vdash \Delta
+\Gamma,\varphi[s,z], \RTC{x,y}{\varphi}{z,t} \vdash \Delta \quad
+z~\textrm{\small fresh}
 \\ \hline
 \Gamma,\RTC{x,y}{\varphi}{s,t}
 	\vdash \Delta
@@ -54,6 +56,7 @@ is utilized for reasoning.
 }
 \end{array}
 \]
+({\small $\varphi[s,t]$ is a shorthand for $\varphi[s/x,t/y]$})
 \caption{An example for a cyclic proof system for transitive closure.}
 \label{b2:tc-cyclic}
 \end{figure}
@@ -126,7 +129,7 @@ In the cyclic framework, derivations are permitted to be regular,
 non-well-founded (\ie,~infinitely tall) trees.
 Regularity ensures that an infinite derivation tree always has a finite representation
 as a (possibly) cyclic graph.
-Concretely, we these derivations are represented as finite trees, 
+Concretely, these derivations are represented as finite trees, 
 along with a set of \emph{backlinks} connecting each
 non-terminal leaf node --- called \emph{bud} ---
 to a syntactically identical ancestor node --- called \emph{companion}.
@@ -136,7 +139,7 @@ Formally, each backlink denotes the infinite unfolding of the
 path connecting the bud with its associated companion.
 We call such derivations \emph{pre-proofs}, since, alluding to the proofs-as-programs duality, they do not necessarily correpond to \emph{terminating} programs.
 To ensure termination, we require that pre-proofs satisfy
-an additional global property, defined in terms of \emph{traces} of formulas.
+an additional global property, defined in terms of \emph{traces} of syntactic elements, which can be formulas or terms.
 
 A \emph{trace} is a sequence of formulas $\varphi_1, {\cdots}, \varphi_n$ that appear along a path in the proof tree (not counting the backlinks).
 For a cycle consisting of the sequents $\Phi_1,{\cdots},\Phi_n$, where $\Phi_n$ is the bud and $\Phi_1$ is the companion, we define the \emph{trace condition} as follows:
