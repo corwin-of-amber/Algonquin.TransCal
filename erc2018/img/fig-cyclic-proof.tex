@@ -1,5 +1,5 @@
 \centering
-\begin{tikzpicture}
+\begin{tikzpicture}[>=latex]
   \node(u0) { $a[n^+]a, a[n^*]b \vdash b[n^*]a$ };
 
   \node(u1)[above=0 of u0, anchor=south east, 
@@ -10,7 +10,8 @@
             xshift=.5cm] 
   { $a[n^+]a,a[n^*]i,n\,i=b \vdash b[n^*]a$ };
   
-  \draw (u1.south west) -- (u2.south east);
+  \draw (u1.south west) -- (u2.south east)
+    node[right] {\small [TC$_{\textrm{L}}$]};
 
   \node(u3)[above=0 of u2]
   { $a[n^+]a,a[n^*]i \vdash i[n^+]a$ };
@@ -26,18 +27,20 @@
   { $a[n^+]a,a[n^*]i \vdash i=a, i[n^+]a$ };
 
   \draw (u5.south west) -- (u4.south east)
-    node[right] {\small Cut};
+    node[right] {\small [Cut]};
 
   \node(u6)[above=0 of u5, anchor=south west, 
             xshift=.05cm]
   { $i[n^*]a \vdash i=a, i[n^+]a$ };
   \node(u7)[above=0 of u5, anchor=south east, 
             xshift=-.25cm]
-  { $a[n^+]a, a[n^*]i \vdash i[n^*]a$ };
-  
+   { $a[n^+]a, a[n^*]i \vdash i[n^*]a$ };
+   
   \draw (u6.south east) -- (u7.south west)
-  	node[left] {\small Cut};
-    
-  %\draw
+  	node[left] {\small [Cut]};
+      
+  \draw[->,purple] (u7.north west) to[out=135,in=0] +(-2mm,+1mm)
+    -- +(-1cm,0 ) to[out=180,in=90] +(-1.2,-2mm) 
+    -- +(0,-2.75cm) to[out=-90,in=180] +(+2mm,-2.95cm) -- (u0);
 
 \end{tikzpicture}

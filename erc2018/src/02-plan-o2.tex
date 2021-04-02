@@ -1,4 +1,5 @@
 \subsection{Bridging induction}
+\label{plan-induction}
 
 Effective treatment of (quantifier-free) equality is one of the things that made SMT solvers and the Nelson-Oppen method successful.
 When it comes to reasoning by induction, it has been investigated and addressed more thoroughly in the proof theory-oriented field.
@@ -165,6 +166,22 @@ Bearing in mind that branches can be closed off by forming a cycle, processing a
 In~\cite{PLDI2021:Itzhaky} my colleagues and I made use of the cyclic framework (for Separation Logic) for the purpose of improving state-of-the-art synthesis of pointer programs (\cite{POPL2019:Polikarpova}) by allowing the generation of auxiliary recursive functions.
 These are extremely similar to ancillary lemmas whose proofs require induction, according to the proofs-as-programs correspondence, and this resonates well with our other objectives in \autoref{plan-modular}.
 
+We also note that the proof rules shown in \autoref{b2:tc-cyclic} are biased, and correspond to a ``\emph{last step}''-oriented definition of RTC,
+that is, the constructor grows a path by adding a step at the end:
+%
+\[\RTC{x,y}{\varphi}{s,t} ~~\Leftrightarrow~~
+  s = t ~\lor~ \exists r.~\RTC{x,y}{\varphi}{s,r} \land \varphi[r,t]
+\]
+%
+A dual definition is ``\emph{first step}''-oriented and adds a step at the beginning of the path instead:
+%
+\[\RTC{x,y}{\varphi}{s,t} ~~\Leftrightarrow~~
+  s = t ~\lor~ \exists r.~\varphi[s,r] \land \RTC{x,y}{\varphi}{r,t}
+\]
+
+Although these definitions are very similar (and, of course, semantically equivalent), while experimenting with cyclic TC proofs we noticed that choosing one direction over the other can greatly simplify the proof.
+When dealing with formulas having multiple occurrences of TC, it would become a crucial decision for automation which occurrence to apply the \rulename{TC$_{\textrm{L}}$}/\rulename{TC$_{\textrm{R}}$} rules to, and which variant of the rule to use.
+This presents an opportunity to improve proof automation when compared to reasoning with general inductive definitions, where the freedom to choose the direction does not exist.
 
 \begin{researchquestion}How can we combine inductive and deductive reasoning for automatic inference of proper induction hypotheses?
 \end{researchquestion}

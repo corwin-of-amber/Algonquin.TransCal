@@ -10,6 +10,55 @@ Notably, \emph{Separation Logic}~\cite{Reynolds} was founded as a logic designed
 with dedicated inference rules in the style of Hoare to describe various effects on it.
 Smallfoot~\cite{berdine} and Grasshopper~\cite{weis} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
 At the same time, Shape Analysis based on Abstract Interpretation and 3-valued logic~\cite{sagiv-reps} became one of the most influential works in program analysis.
-It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{dafny}, VCC~\cite{vcc}, and SeaHorn~\cite{seahorn} \textbf{use none of that}.
+It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{dafny}, VCC~\cite{vcc}, CIVL~\cite{civl}, and SeaHorn~\cite{seahorn} \textbf{use none of that}.
 The reason is, probably, the difficulty in using them within an SMT-based verifier, except in restricted cases
 (\eg \cite{CAV2013:Piskac}).
+
+At the same time, mechanical verification with \emph{interactive proof assistants} has skyrocketed in the last decade.
+Thanks to their capacity to express higher-order propositions, Separation Logic has been embedded in Coq~\cite{nanevski} and Isabelle/HOLCF~\cite{MFPS2008:Varming},
+and substantial frameworks were erected for systematic treatment of unbounded-state programs with SL and it many variants.
+Notable ones are VST~\cite{JAR2018:Cao}, Viper~\cite{viper}, and Iris~\cite{iris}, the latter becoming a cornerstone in recent years thanks to its ability to handle shared-memory concurrency in a variety of settings.
+Some of the frameworks provide proof automation to a certain degree.
+Thanks to the NSF's \emph{DeepSpec Expedition in Computer Science}, a plethora of formal verification success stories is now available in the form of proofs constructed by leading experts in the community.
+This is a huge opportunity to harvest this corpus of knowledge and generalize from the hunderds of thousands of lines of Coq developments and other forms of proofs to drive our quest for more automation.
+Being able to automate large classes of proofs that have been previously carried out in interactive proof assistants would be the culmination of my team's research.
+
+\begin{proposal}
+Instead of building provers that specialize in SL, we should strive to express the semantics of SL in our the logics that our provers support, thereby cultivating a healthier collaboration within the PL and Formal Methods community.
+\end{proposal}
+
+This is very much inspired by the success of SL in Coq as described above.
+By providing tools like VST as libraries for Coq, the creators were able to tap into a vast pool of existing knowledge and experience.
+I intend to repeat this successful strategy in the field of automated reasoning.
+Doing so will require that we make some intermediate steps in which part of the reasoning would still be
+\emph{user-guided} or \emph{supervised}.
+The end goal remains to increase proof automation as much as possible.
+
+\begin{researchquestion}
+How can SL concepts be encoded in a logic based on TC,
+and how can we use a generic TC prover (from \autoref{plan-induction})
+to prove SL propositions?
+\end{researchquestion}
+
+This is an enticing question, because transitive closure can be used to define reachability properties,
+and reachability has a dual meaning in program analysis: \emph{state reachability} refers to execution paths,
+and \emph{heap reachability} refers to pointer paths in the program's memory.
+I have explored this duality in~\cite{squeezers},
+where the concept was used to perfect safety proofs and complexity bound estimation.
+State reachability is a standard notion corresponding to \textbf{induction over time};
+heap reachability is used in Shape Analysis and is a form of \textbf{induction over space}.
+Using the same mechanism to express both types of reachability allow for a uniform treatment of both kinds of induction, and opens the door to potential other kinds that can be harnessed.
+
+\begin{figure} 
+\begin{lstlisting}[basicstyle=\linespread{1.36}\ttfamily\fontsize{10pt}{8pt}\selectfont]
+reverse(h) :=
+  i := h; j := null;
+  while (i != null) {
+    t := i.next;
+    i.next := j; j := i;
+    i := t;
+  }
+\end{lstlisting}
+\caption{A program that reverses a linked list in-place;
+ a canonical example from~\cite{reynolds2002}.}
+\end{figure}

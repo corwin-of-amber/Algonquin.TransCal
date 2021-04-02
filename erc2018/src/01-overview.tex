@@ -1,21 +1,21 @@
 
 \section{Extended Synopsis and Scientific Proposal}
 
-\vspace{-.5em}
-\hrule
+%\vspace{-.5em}
+%\hrule
 
-\vspace{1.2em}
+%\vspace{1.2em}
 Beginning with the 1980's, the computer science community has accepted
 that computer programs and logical proofs are made of the same fabric.
 They are both based on a rigorous formal language, characterized by a grammar,
 and they both rely heavily on tree-like structures for defining their semantics,
 via syntax-directed derivations.
-By now, it has become widely accepted~\cite{curry-howard} that the task of writing a program can be
+By now, it has become widely accepted~\cite{PNAS1934:Curry,Essay1969:Howard,IC1988:Coquand,CACM2015:Wadler} that the task of writing a program can be
 reduced to that of finding a proof to a conjecture, and conversely, the task of
 proving a theorem can be reduced to producing a program with some specific
 characteristics.
 In addition to that, logic is at the core of software verification, as a basis
-for specifications~\cite{dafny,boogie,seahorn}, loop invariants~\cite{ic3,spacer,..}, rely-guarantee properties~\cite{relyguarantee1,..}, and more.
+for specifications~\cite{LPAR2010:Leino,ECOOP2013:Regis,ICSE2009:Schulte,PASTE2005:Barnett,CAV2015:Gurfinkel}, loop invariants~\cite{VMCAI2011:Bradley,CAV2013:Komuravelli,CAV2019:Feldman}, rely-guarantee properties for concurrent programs~\cite{relyguarantee1,TCS2007:Jones}, and more.
 The task of checking adherence to a program's specification is also reduced, in
 more than one way, to deciding the validity of a logical formula.
 
@@ -70,9 +70,9 @@ CSP solvers excel at solving puzzles such as the $N$-queen problem or Sudoku.
 Their use in automated theorem proving is insofar limited.
 \end{comment}
 
-\medskip
+\smallskip
 These two camps, coming from such different backgrounds,
-face a serious gap,
+face a serious gap in both theory and practice,
 one that currently prevents adoption of results from one approach into use in
 the other.
 The primary goal of this research is to construct a unified framework for automated reasoning, where proving
@@ -106,11 +106,11 @@ natural numbers, and various theories of integer arithmetic.
 Proof theory is a branch of logic that has gained much traction in the 20th century with the advent of Hilbert~\cite{Book1928:Hilbert} and Gentzen~\cite{j1935:Gentzen},
 both of whom developed calcli for algorithmic formalization of proofs.
 As computers became available, it was natural that these notions be implemented as programs.
-As early as 1960~\cite{otter}, large automatic systems for theorem provers have been used by the research community for a variety of logical reasoning tasks.
-Most of these early systems were based on the resolution principle~\cite{robinson1965}, which continues to be popular today.
-Term unification~\cite{robinson1965} is used to resolve first-order formulas.
+As early as 1960~\cite{Wiley1960:Wang,Wiley1961:Wang}, large automatic systems for theorem provers have been used by the research community for a variety of logical reasoning tasks.
+Most of these early systems were based on the resolution principle~\cite{JACM1965:Robinson}, which continues to be popular today.
+Term unification~\cite{IJCM1965:Robinson} is used to resolve first-order formulas.
 In the 1990's, superposition calculus~\cite{LPAR1992:Bachmair} emerged as the leading technique for equality reasoning.
-This led to several successful theorem provers, notably Vampire~\cite{JAR1995:Voronkov} and E prover~\cite{AIC2002:Schulz}.
+This led to several successful theorem provers, notably Vampire~\cite{JAR1995:Voronkov,CAV2013:Kovacs}, E prover~\cite{AIC2002:Schulz}, and iProver~\cite{CADE2008:Korovin}.
 Today, most theorem provers rely in one way or another on term rewriting for the implementation of superposition, based on the Knuth-Bendix algorithm~\cite{AR1983:Knuth} for normalizing rewrites.
 
 More recently, a lot of attention was directed towards \emph{cyclic proof systems}, a form of Gentzen-style calculus that natively admits proof by induction.
@@ -124,7 +124,7 @@ In turn, these allow such systems to provide exetremely succinct and elegant pro
 \end{paragraph}
 
 \begin{paragraph}{Satisfiability-Modulo-Theory Solvers}
-A somewhat newer approach based on extending the
+A somewhat newer approach is based on extending the
 Boolean satisfiability problem (SAT) with first-order theories and arithmetic, leading to
 Satisfiability Modulo Theory (SMT).
 SAT solvers accept Boolean formulas and construct a satisfying assignment, or
@@ -173,7 +173,7 @@ To support efficient rewriting and avoid backtracking, modern ATPs such as Vampi
 Both of these approaches limit the provers' ability to reason about equalities given as assumptions or discovered as conjectures in the course of the search:
 This is due to the quantifier-free nature of Nelson-Oppen, leading to a constant need for speculative quantifier instantiation, on one hand;
 and the requirement for ordering, which relies on the Knuth-Bendix algorithm, which in turn is incomplete --- so it cannot be expected to produce a normalizing ordering for an arbitrary set of univerally-quantified equalities that has been accumulated.
-We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\citeneeded{} for performance purposes.
+We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\cite{CADE2007:deMoura} for performance purposes.
 We combine this with term rewriting and \emph{equality saturation} to obtain \emph{unordered} sets of equivalence terms (e-classes).
 E-graphs are known to be space-efficient by reducing duplication in the representation of terms to a minimum, employing congruence closure as a core mechanism to merge class nodes and keep the graph compact.
 This knowledge is maintained as part of the prover's state and can be updated incrementally when the prover discovers new conjectures.
@@ -187,7 +187,8 @@ This will lay a foundation in which e-graphs are the glue that binds SMT-style e
 The success of SMT solvers with first-order reasoning led to their wide adoption in software verification.
 This gives rise to the challenge of representing unbounded state (\eg size of data structures) and unbounded time (\eg number of loop iterations).
 The proposed framework will try to generalize and unify the two leading frontiers for reasoning by induction.
-In the world of model checking and SMT, the IC3 algorithm and its variants~\todo{remember to cite them in the background} has proven to be the gold standard for automatic invariant inference.
+In the world of model checking and SMT, the IC3 algorithm and its variants %~\todo{remember to cite them in the background}
+has proven to be the gold standard for automatic invariant inference.
 In proof theory and deductive reasoning, cyclic proof systems provide shorter proofs, which have good value for ATPs such as Cyclist, where proof search is severely limited by the depth of the proofs that can be feasibly explored.
 These two approaches to proof by induction are vastly different: IC3 is counterexample-driven; Cyclist is proof-driven.
 We plan to draw on the duality between reachability and invariant inference~\cite{arXiv2020:Padon} to create a unified description of the two processes, where both aspects, inductive and deductive, will manifest.
@@ -206,18 +207,19 @@ To allow seamless information exchange between these frameworks, we propose a me
 We draw inspiration from~\cite{Book2003:Avron}, where it was shown that all instances of finitary induction, \ie, induction over countable domains, can be captured by FO(TC) --- first-order logic extended with \emph{transitive closure}.
 TC provides a good middle ground for combining induction strategies because
 (i) it naturally captures the notion of reachability around which IC3 is built, and
-(ii) it has been successfully formulated within the cyclic proof framework~\citeneeded{liron-tc-cyclic}.
-Moreover, the latter also facilitates coinduction, which allows proofs over infinite traces (\ie, non-terminating executions).
+(ii) it has been successfully formulated within the cyclic proof framework~\cite{TOCL2020:Cohen}.
+Moreover, the latter also facilitates coinduction~\cite{IJCAR2020:Cohen}, which allows proofs over infinite traces (\ie, non-terminating executions) and streams of input.
 This may give rise to a new adaptation of IC3 to coinduction, which has not been proposed until now.
 
-State-of-the-art software verification tools such as Spacer employ an intermediate representation of the verification task as a system of Constrained Horn Clauses (CHCs)\todo{make sure these are mentioned in the background} and apply IC3 in order to solve them.
+State-of-the-art software verification tools such as SeaHorn~\cite{TACAS2015:Gurfinkel} employ an intermediate representation of the verification task as a system of Constrained Horn Clauses (CHCs) %\todo{make sure these are mentioned in the background} 
+and apply IC3 in order to solve them.
 An interesting problem in CHC solving arises when clauses are \emph{non-linear}, that is, the body (left-hand side of the implication) of the rule contains more than one uninterpreted literal.
 A similar problem arises in reasoning with TC logic when trees (rather than chains, or sequences) are involved.
 Both require handling \emph{branching} paths during exploration.
 Combining partial results from both disciplines will provide a more complete solution to this problem,
 and improve our understanding and treatment of branching induction in proofs.
 
-\todo{say here: IC3 is good at finding invariants and the like, cyclic proofs are good at [other things], therefore...}
+%\todo{say here: IC3 is good at finding invariants and the like, cyclic proofs are good at [other things], therefore...}
 
 %\todo{IC3 is counterexample-driven; Cyclist is proof-driven. We plan to draw on the metioned duality to construct a tool that maintains and over- and under-approximation of the space of states/logical structures}
 %\todo{use a generalized framework: - use cyclic proof search to locally block counterexamples; - use discovered clauses and/or models to prune some branches early, or, conversely, strengthen some hypotheses to make them inductive based on the relative inductiveness of clauses in IC3 frames}
@@ -232,9 +234,9 @@ it is even more challenging --- but also potentially more beneficial --- to ``di
 This would increase the flexibility in applying different strategies and automatically turning some exploration features on or off, selectively.
 It provides one way of mitigating the risk involved in a more expressive proof system, allowing to take bolder decisions for inclusion of certain inference tactics.
 
-\begin{wrapfigure}[8]{r}{4cm}
+\begin{wrapfigure}[8]{r}{4.5cm}
 \vspace{-1em}
-\includegraphics[width=4.5cm]{img/untangled}
+\input{img/untangled}
 \end{wrapfigure}
 
 In a traditional top-down proof search based on a system of inference rules, the prover must reach the system's \emph{axioms} --- rules with no logical premises ---
@@ -271,7 +273,10 @@ Deductive proof search in ATPs such as Vampire and Cyclist tends to be oriented 
 starting from a proof goal, simplifying it further and further until axioms are reached.
 The is analoguous to building the proof tree from the root down to the leaves. (Although, graphically, proof trees are commonly depicted with the root at the bottom --- this is nevertheless a top-down approach.)
 The availability of synthesis technology \cite{quickspec,thesy} means that we can generate a vast number of lemmas to guide our untangle-based decomposition.
-The major risk here is that too many lemmas may incur a high overhead and, moreover, produce too many different ways to decompose a given proof.
+My premiliminary results from developing TheSy~\cite{thesy}, a framework for synthesizing lemmas, show that by generating many lemmas and proving them, individualy, by induction, it is possible to prove theorems that previously required the use of an SMT solver (CVC4~\cite{cvc4-ig}), using a relatively modest procedure of congruence closure.
+This is a very encouraging and promising direction.
+
+A major risk in doing so is that too many lemmas may incur a high overhead and, moreover, produce too many different ways to decompose a given proof.
 We propose to mitigate this by developing a ranking method for discovered lemmas based on their usefulness,
 so that our automated reasoning tool can \textbf{learn from experience} and get better over time, using classic statistical inference.
 \end{paragraph}
@@ -287,13 +292,23 @@ One form of abstraction can be used via the ancillary lemmas described above.
 An orthogonal axis is the application of \textbf{semi-automatic refinement} to provide encapsulation for some of the implementation details.
 For example, an ordered data structure may be abstracted as a set and a (total or partial) order relation; a multi-threaded process may be abstracted as a sequential one that is behaviorally equivalent.
 Choosing the abstraction to use in a refinement proof would, more often than not, require some human intuition, which is why some amount of user interaction will be needed.
-Our hope is that with the right abstraction in place,  the automated prover will be able to carry out all or most of the refinement proofs,
+With the right abstraction in place,  the automated prover will be able to carry out all or most of the refinement proofs,
 showing that the abstraction soundly models the underlying implementation and also inferring system invariants from it --- making this process extremely rewarding.
 
-We will focus on the incorporation of Separation Logic and its modern variants such as Iris~\cite{iris} for modeling a program's memory, \esp in programs that use dynamic allocation or multiple threads with shared state.
+I will focus on the incorporation of Separation Logic and its modern variants such as Iris~\cite{iris} for modeling a program's memory, \esp in programs that use dynamic allocation or multiple threads with shared state.
 In essence, what Separation Logic provides is a refinement that \textbf{correlates the low-level, imperative, mutable semantics of pointer programs with high-level, functional, immutable semantics} that are closer to mathematical definitions.
+The increasing popularity of SL dialects for describing complex properties such as object ownership and thread synchronization provides a natural form of ``embedded'' abstraction:
+Because SL propositions rely heavily on inductive definitions, the functional interpretation emerges from the specifications.
 Establishing the correlation, then leveraging it to prove properties of the underlying program, is a fine example of proof modularization.
 The pillars of equality reasoning and proof by induction are both central in this effort.
+
+I will draw on results from my work on \textsc{Cypress}~\cite{cypress}, a system for synthesizing programs from specifications given in Separation Logic.
+\textsc{Cypress} heavily utilizes the concept of cyclic proofs and project it onto the program space,
+to facilitate synthesis of recursive auxiliary procedures.
+
+I will also perpetuate my efforts to reason about unbounded-state software systems via a combination of \emph{induction over time} (number of loop iterations or recursive calls) and \emph{induction over space} (size of data structures in a program's memory)~\cite{squeezers}.
+This work introduced \emph{state squeezers}, an alternative induction scheme based on a well-founded ordering of program states.
+They have already been applied successfully to verification of challenging safety properties and to automatic inference of complexity bounds that were beyond reach for existing analysis systems.
 \end{paragraph}
 
 
@@ -334,9 +349,16 @@ These decidable fragments are extremely limited, and once you ``cross the line''
 There are many practical solvers that are able to prove many naturally occurring problems with arithmetic, arrays, and lists;
 but pile up too many undecidable particles on top of one another, and frequent divergence ensues, with little to no recourse for debugging the cause.
 
-The Matryoshka project~\cite{what} set as their target enriching SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
-This allows for a more natural, straightforward encoding of software-related queries, but there is very much a glass ceiling imposed by the SMT core.
-This project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on finely-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
+Automated theorem provers piorneered and play a crucial rule in computerized formalization of mathematics.
+So far, they have taken the back seat when it comes to software verification and synthesis.
+This is about to change.
+The inclination of SMT solvers to integrate concepts of induction~\cite{reynlods-kuncak} and higher-order reasoning~\cite{smt-from-matryoshka} on one hand,
+and the renewed success of ATPs in core PL areas such as Separation Logic on the other,
+mark the dawn of a new era in which ATP and SMT come together and join forces.
+
+The Matryoshka project~\cite{what} set as their target to enrich SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
+Although this allows for a more natural, straightforward encoding of software-related queries, there is very much a glass ceiling imposed by the SMT core.
+Instead, this project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on finely-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
 Generating short, readable proofs, as well as interpretable explanations in cases of failure to find a proof,
 are key to mitigate of the risks and remove of the element of dread that accompanies usage of contemprary ATPs and SMT solvers.
 In addition, careful regression experiments that will ensure that our team will not have to reinvent existing technology, but build on the vast experience of the past decades of research.

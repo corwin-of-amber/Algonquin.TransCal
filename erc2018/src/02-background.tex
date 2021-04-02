@@ -24,7 +24,7 @@ The connection with the logical semantics is utilized in meta-proofs about the s
 but when constructing proofs (manually or automatically) the semantics is largely ignored, and only the syntactic form of the judgement, as embodied in the system's inference rules,
 is utilized for reasoning.
 
-\begin{figure}
+\begin{figure}[b]
 \centering
 \renewcommand\arraystretch{1.2}
 \[
@@ -37,8 +37,8 @@ is utilized for reasoning.
 %
 &
 \begin{array}{c}
-\Gamma \vdash \Delta, \varphi[s,r] \quad
-\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{r,t} \\ \hline
+\Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,r} \quad
+\Gamma \vdash \Delta, \varphi[r,t]            \\ \hline
 \Gamma \vdash \Delta, \RTC{x,y}{\varphi}{s,t}
 \end{array}
 \,\rulename{TC$_\textrm{R}$}
@@ -46,7 +46,7 @@ is utilized for reasoning.
 \multicolumn{2}{c}{
 \begin{array}{c}
 \Gamma, s = t \vdash \Delta \quad
-\Gamma,\varphi[s,z], \RTC{x,y}{\varphi}{z,t} \vdash \Delta \quad
+\Gamma, \RTC{x,y}{\varphi}{s,z}, \varphi[z,t] \vdash \Delta \quad
 z~\textrm{\small fresh}
 \\ \hline
 \Gamma,\RTC{x,y}{\varphi}{s,t}
@@ -140,6 +140,8 @@ path connecting the bud with its associated companion.
 We call such derivations \emph{pre-proofs}, since, alluding to the proofs-as-programs duality, they do not necessarily correpond to \emph{terminating} programs.
 To ensure termination, we require that pre-proofs satisfy
 an additional global property, defined in terms of \emph{traces} of syntactic elements, which can be formulas or terms.
+
+To understand traces, observe the example derivation of \autoref{b2:tc-cyclic-example}, which uses the rules of \autoref{b2:tc-cyclic} along with rules for equality and a \emph{cut} rule (a sequent version of resolution).
 
 A \emph{trace} is a sequence of formulas $\varphi_1, {\cdots}, \varphi_n$ that appear along a path in the proof tree (not counting the backlinks).
 For a cycle consisting of the sequents $\Phi_1,{\cdots},\Phi_n$, where $\Phi_n$ is the bud and $\Phi_1$ is the companion, we define the \emph{trace condition} as follows:
