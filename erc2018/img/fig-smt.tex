@@ -68,6 +68,8 @@
               ($(sat2.east) + (2mm,0)$)
   	node[coordinate](i){};
   \draw[->] (i) -- +(-1mm,0);
+  \draw[dashed] (conflict-prop1) -- node[left]{$\land$} 
+                (conflict-prop2);
 
   \draw[->] ($(uf2) + (9mm,-1mm)$) -- (conflict-prop2);
 
