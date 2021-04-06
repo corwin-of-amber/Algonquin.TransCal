@@ -1,0 +1,153 @@
+\def\hdist{3mm}
+\def\hdistnul{1mm}
+\def\vdist{4mm}
+\def\vdistptr{1.1mm}
+\def\vdistptrj{0.8mm}
+
+\begin{tikzpicture}[link/.style={draw, minimum size=3mm}, baseline={(current bounding box.center)},
+    state/.style={font=\small, inner sep=1pt},
+	ptr/.style={font=\tiny, inner sep=1pt},
+    buzz/.style={decorate,
+      decoration={zigzag, amplitude=1pt,
+      segment length=5pt}}]
+    
+  \node(s1u0)[link] {};
+  \node(s1u1)[link, right=\hdist of s1u0] {};
+  \node(s1u2)[link, right=\hdist of s1u1] {};
+  \node(s1u3)[link, right=\hdist of s1u2] {};
+  \node(s1u4)[link, right=\hdist of s1u3] {};
+  \node(s1nul)[right=\hdistnul of s1u4, inner sep=0] {$\times$};
+  \draw[-latex] (s1u0) -- (s1u1);
+  \draw[-latex] (s1u1) -- (s1u2);
+  \draw[-latex] (s1u2) -- (s1u3);
+  \draw[-latex] (s1u3) -- (s1u4);
+  \draw (s1u4) -- (s1nul.center);
+  \node(s1i)[ptr, above=\vdistptr of s1u0]{$i$};
+  \draw[->] (s1i) -- (s1u0);
+  
+  \node(s0)[state, left=of s1u0] {$\sigma_0$};
+  
+  %
+  
+  \node(s2u0)[link, below=\vdist of s1u0] {};
+  \node(s2u1)[link, right=\hdist of s2u0] {};
+  \node(s2u2)[link, right=\hdist of s2u1] {};
+  \node(s2u3)[link, right=\hdist of s2u2] {};
+  \node(s2u4)[link, right=\hdist of s2u3] {};
+  \node(s2nul)[right=\hdistnul of s2u4, inner sep=0] {$\times$};
+  \node(s2bk)[left=\hdistnul of s2u0, inner sep=0] {$\times$};
+  \draw (s2u0) -- (s2bk.center);
+  \draw[-latex] (s2u1) -- (s2u2);
+  \draw[-latex] (s2u2) -- (s2u3);
+  \draw[-latex] (s2u3) -- (s2u4);
+  \draw (s2u4) -- (s2nul.center);
+  \node(s2i)[ptr, above=\vdistptr of s2u1]{$i$};
+  \draw[->] (s2i) -- (s2u1);
+  \node(s2j)[ptr, above=\vdistptrj of s2u0]{$j$};
+  \draw[->] (s2j) -- (s2u0);
+
+  \node(s1)[state, left=of s2u0] {$\sigma_1$};
+  
+  %
+  
+  \node(s2u0)[link, below=\vdist of s2u0] {};
+  \node(s2u1)[link, right=\hdist of s2u0] {};
+  \node(s2u2)[link, right=\hdist of s2u1] {};
+  \node(s2u3)[link, right=\hdist of s2u2] {};
+  \node(s2u4)[link, right=\hdist of s2u3] {};
+  \node(s2nul)[right=\hdistnul of s2u4, inner sep=0] {$\times$};
+  \node(s2bk)[left=\hdistnul of s2u0, inner sep=0] {$\times$};
+  \draw (s2u0) -- (s2bk.center);
+  \draw[-latex] (s2u1) -- (s2u0);
+  \draw[-latex] (s2u2) -- (s2u3);
+  \draw[-latex] (s2u3) -- (s2u4);
+  \draw (s2u4) -- (s2nul.center);
+  \node(s2i)[ptr, above=\vdistptr of s2u2]{$i$};
+  \draw[->] (s2i) -- (s2u2);
+  \node(s2j)[ptr, above=\vdistptrj of s2u1]{$j$};
+  \draw[->] (s2j) -- (s2u1);
+  
+  \node(s2)[state, left=of s2u0] {$\sigma_2$};
+  
+  %
+  
+  \node(s2u0)[link, below=\vdist of s2u0] {};
+  \node(s2u1)[link, right=\hdist of s2u0] {};
+  \node(s2u2)[link, right=\hdist of s2u1] {};
+  \node(s2u3)[link, right=\hdist of s2u2] {};
+  \node(s2u4)[link, right=\hdist of s2u3] {};
+  \node(s2nul)[right=\hdistnul of s2u4, inner sep=0] {$\times$};
+  \node(s2bk)[left=\hdistnul of s2u0, inner sep=0] {$\times$};
+  \draw (s2u0) -- (s2bk.center);
+  \draw[-latex] (s2u1) -- (s2u0);
+  \draw[-latex] (s2u2) -- (s2u1);
+  \draw[-latex] (s2u3) -- (s2u4);
+  \draw (s2u4) -- (s2nul.center);
+  \node(s2i)[ptr, above=\vdistptr of s2u3]{$i$};
+  \draw[->] (s2i) -- (s2u3);
+  \node(s2j)[ptr, above=\vdistptrj of s2u2]{$j$};
+  \draw[->] (s2j) -- (s2u2);
+
+  \node(s3)[state, left=of s2u0] {$\sigma_3$};
+  
+  %
+  
+  \node(s2u0)[link, below=\vdist of s2u0] {};
+  \node(s2u1)[link, right=\hdist of s2u0] {};
+  \node(s2u2)[link, right=\hdist of s2u1] {};
+  \node(s2u3)[link, right=\hdist of s2u2] {};
+  \node(s2u4)[link, right=\hdist of s2u3] {};
+  \node(s2nul)[right=\hdistnul of s2u4, inner sep=0] {$\times$};
+  \node(s2bk)[left=\hdistnul of s2u0, inner sep=0] {$\times$};
+  \draw (s2u0) -- (s2bk.center);
+  \draw[-latex] (s2u1) -- (s2u0);
+  \draw[-latex] (s2u2) -- (s2u1);
+  \draw[-latex] (s2u3) -- (s2u2);
+  \draw (s2u4) -- (s2nul.center);
+  \node(s2i)[ptr, above=\vdistptr of s2u4]{$i$};
+  \draw[->] (s2i) -- (s2u4);
+  \node(s2j)[ptr, above=\vdistptrj of s2u3]{$j$};
+  \draw[->] (s2j) -- (s2u3);
+
+  \node(s4)[state, left=of s2u0] {$\sigma_4$};
+  
+  %
+  
+  \node(s2u0)[link, below=\vdist of s2u0] {};
+  \node(s2u1)[link, right=\hdist of s2u0] {};
+  \node(s2u2)[link, right=\hdist of s2u1] {};
+  \node(s2u3)[link, right=\hdist of s2u2] {};
+  \node(s2u4)[link, right=\hdist of s2u3] {};
+  \node(s2bk)[left=\hdistnul of s2u0, inner sep=0] {$\times$};
+  \draw (s2u0) -- (s2bk.center);
+  \draw[-latex] (s2u1) -- (s2u0);
+  \draw[-latex] (s2u2) -- (s2u1);
+  \draw[-latex] (s2u3) -- (s2u2);
+  \draw[-latex] (s2u4) -- (s2u3);
+  \node(s2j)[ptr, above=\vdistptrj of s2u4]{$j$};
+  \draw[->] (s2j) -- (s2u4);
+
+  \node(s5)[state, left=of s2u0] {$\sigma_5$};
+
+  %
+  
+  \node(exit)[below=.5mm of s5] {$\times$};
+  
+  \draw[buzz, -latex] (s0) -- (s1);
+  \draw[buzz, -latex] (s1) -- (s2);
+  \draw[buzz, -latex] (s2) -- (s3);
+  \draw[buzz, -latex] (s3) -- (s4);
+  \draw[buzz, -latex] (s4) -- (s5);
+  \draw[buzz] (s5) -- (exit.center);
+  
+  \node(origin)[above right=4mm of s0, yshift=3mm, coordinate] {};
+  \node(time)[below=50mm of origin, coordinate] {};
+  \draw[gray,-latex] (origin) -- (time) node[right,anchor=south west, inner ysep=0] {\tiny\textit{time}};
+
+  \node(space)[right=43mm of origin, coordinate] {};
+  \draw[gray,-latex] (origin) -- (space) node[right,anchor=south east, inner xsep=0] {\tiny\textit{space}};
+  
+  \draw[gray] (origin) -- +(-2mm,0);
+  \draw[gray] (origin) -- +(0,2mm);
+
+\end{tikzpicture}

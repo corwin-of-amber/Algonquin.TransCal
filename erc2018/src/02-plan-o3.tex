@@ -24,12 +24,12 @@ and ``bottom-up'' reasoning --- constructing new conjectures that are consequenc
 \end{proposal}
 
 The core of this idea is in itself not new.
-Starting from early theorem provers, the concept of \emph{information retention}~\cite{anatomy-of-vampire} --- the derivation of new clauses by applying known inference rules and rewriting with equalities --- has been identified as an important feature for automated theorem proving, \esp when included in a prover that follows a top-down search strategy.
+Starting from early theorem provers, the concept of \emph{information retention}~\cite{JAR1995:Voronkov} --- the derivation of new clauses by applying known inference rules and rewriting with equalities --- has been identified as an important feature for automated theorem proving, \esp when included in a prover that follows a top-down search strategy.
 However, this proposal offers a new perspective on this aspect:
 \begin{itemize}
   \item Where existing methods build consequences using small-step inference rules, we propose a paradigm that will make \textbf{larger logical leaps} by building on recent advances in lemma synthesis~\cite{moa,thesy,CAV2021:Murali} to create more useful lemmas that will hit the goals faster.
   \item We rethink the concept of \textbf{bottom-up through the lens of cyclic proofs}.
-  Because the new systems admit infinite proofs, the do not necessarily have a ``bottom'' in the previous sense.
+  Because the new systems admit infinite proofs~\cite{LICS2007:Brotherston,more}, they do not necessarily have a ``bottom'' in the previous sense.
 \end{itemize}
 
 We allude to incremental construction of loop invariants presented in~\cite{arXiv2020:Padon,FAC2008:Bradley} as an inspiration for new, exciting ways to combine top-down and bottom-up search.

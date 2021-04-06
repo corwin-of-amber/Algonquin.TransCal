@@ -1,4 +1,5 @@
 \section{Methodology}
+\label{b2:methodology}
 
 To achieve our overarching goal, the team will pursue three core components that will be the foundational basis to our new automated reasoning architecture.
 Our efforts will culminate in the forth objective, which will integrate these elements and connect the results to software verification.
@@ -32,7 +33,7 @@ Even with an efficient procedure that can find all the possible terms that are e
 there would still be infinitely many such terms in any non-trivial theory (for instance, $x = x + 0 = x + 0 + 0 = \cdots$).
 Careful choice of where and when to apply equality reasoning is essential for effective proof search.
 
-Superposition calculus~\cite{superposition} aims to provide such control over applications of paramodulation
+Superposition calculus~\cite{JACM1965:Robinson,IJCM1965:Robinson} aims to provide such control over applications of paramodulation
 by imposing a \emph{simplification order} $\succ$ over the set of possible terms, and then applying \emph{term rewriting}, replacing $t_1$ by $t_2$ only when $t_1\succ t_2$.
 For such a strategy to be effective, $\succ$ must be \emph{confluent}, \ie, if $t\succeq s_1,s_2$, then there
 exists $t'$ such that $s_1,s_2 \succeq t'$ (where $t$, $s_{1,2}$, $t'$ are all equivalent).
@@ -55,7 +56,8 @@ Fine-tuning the term ordering can have drastic effects on whether the Knuth-Bend
 
 Equality reasoning in SMT solvers is based on an equality theory solver that uses \emph{congruence closure} to identify (ground) terms that whose equality follows from known (quantifer-free) equality conjectures and from the equality axioms~\cite{JACM1980:Nelson}.
 An efficient implementation is achieved through use of \emph{equality graphs} --- \emph{e-graphs} --- that allow fast computation of congruence closure~\cite{Thesis1980:Nelson}.
-E-graphs where also in the core of one of the earlier ATPs, Simplify~\cite{simplify}.
+E-graphs where also in the core of one of the earlier ATPs, Simplify~\cite{JACM2005:Detlefs},
+which in retrospect is now referred to as SMT.
 
 \begin{proposal}E-graphs are a suitable formalism to serve as the bridge that unifies equality reasoning in SMT and ATP.
 \end{proposal}

@@ -14,7 +14,31 @@ These logical statements are sent to a prover to establish their validity.
 This proposal focuses on the latter phase, that of finding the proof of validity, where the input formula is a given.
 Still, it is important to remember, that better provers influence the design choices in the upper layers, which may contribute to the overall success of the tool.
 
-\subsection{Recent advances in proof theory}
+In this proposal, we focus on the two most predominant disciplines that have evolved to address the problem of automatically proving the validity of logical formulas, in the general setting of mechanizing the foundations of mathematics as well as for the more specific use for software verification.
+Despite ongoing efforts in enhancing the theory and honing the implementations, neither direction has been able to produce tools that offer a comprehensive treatment of proof automation.
+Portfolio approaches~\cite{ESOP2013:Filliatre} attempt to bind together a variety of provers, heuristically trying several tools on each problem instance in the hope that one of them will fit the bill ---
+but eventually, these systems only amount to the sum of their parts.
+At the same time, the emergence and increasing popularity of \emph{interactive theorem proving} teaches us that for realistic goals, even academic ones~\cite{DeepSpec}, the total coverage of existing tools is insufficient.
+On the other hand, interactive theorem proving in proof assistants is laborious, requiring a large amount of training and manual effort.
+I will describe the two main research disciplines that, at the time of writing, dominate the field of automated reasoning, survey the state of the art in each of them, and describe how a better paradigm can be obtained by \textbf{fusing the existing methodologies} under a unified theory and practice.
+
+\vspace{5pt}\noindent
+\begin{tabular}{p{8cm}p{8cm}}
+\textbf{ATP: Automated Theorem Proving} &
+\textbf{SMT: Satisfiability Modulo Theories} \\
+Admittedly, the term is somewhat of a misnomer, since all the techniques surveyed here can be titled ``automated provers''.
+However, the term ATP has become associated with a narrower flavor of theorem proving, based on \emph{superposition calculus} --- itself a term that bundles not only superposition (a technique for dealing with equalities and their implications) but several other concepts, such as resolution and saturation.
+They are based on classical proof theory and fundamental concepts of syntactic substitution and term unification.
+&
+SMT solvers forked off the ``mainstream'' theorem proving crowd around the year 2000,
+and are characterized by their heavy reliance on Boolean SAT decision procedures.
+They have become specialized in certain logical fragments, mostly driven by the needs of hardware and software verifications, such as linear integer arithmetic, bit-vectors, and arrays.
+Practically all of these are first-order.
+Reasoning about property that combined multiple fragments is achieved by representing information that crosses theory boundaries as equalities.
+\end{tabular}
+
+
+\subsection{Recent advances in proof theory and ATP}
 
 Automated theorem provers are based on the foundation of formal proof systems.
 A proof system consists of a language of \emph{judgements} and a set of \emph{inference rules} that facilitate derivation of new judgements from existing ones.
@@ -24,7 +48,7 @@ The connection with the logical semantics is utilized in meta-proofs about the s
 but when constructing proofs (manually or automatically) the semantics is largely ignored, and only the syntactic form of the judgement, as embodied in the system's inference rules,
 is utilized for reasoning.
 
-\begin{figure}[b]
+\begin{figure}
 \centering
 \renewcommand\arraystretch{1.2}
 \[
@@ -106,14 +130,14 @@ application is restricted to cases where
 $t'\theta \not\succeq t[s]\theta$.
 This breaks the symmetry of equality and provides the prover with a direction.
 
-Vampire~\cite{vampire} is the most reknown superposition theorem prover.
+Vampire~\cite{JAR1995:Voronkov,CAV2013:Kovacs} is the most reknown superposition theorem prover.
 It works by \emph{saturation}: Vampire maintains a set $D$ of first-order clauses,
 and incrementally grow it by selecting $\Phi_{r_{1..k}} \subseteq D$ and adding a clause $\Phi_{n+1}$ according to one of the inference rules.
 Vampire terminates when it derives the empty clause ($\bot$, representing a contradiction),
 or when $D$ is saturated, \ie, no new clauses can be added.
 \end{paragraph}
 
-\begin{figure}
+\begin{figure}[b]
 \input{img/fig-cyclic-proof}
 \caption{An example for a cyclic proof with transitive closure.}
 \label{b2:tc-cyclic-example}
@@ -139,21 +163,21 @@ Formally, each backlink denotes the infinite unfolding of the
 path connecting the bud with its associated companion.
 We call such derivations \emph{pre-proofs}, since, alluding to the proofs-as-programs duality, they do not necessarily correpond to \emph{terminating} programs.
 To ensure termination, we require that pre-proofs satisfy
-an additional global property, defined in terms of \emph{traces} of syntactic elements, which can be formulas or terms.
+an additional global property, defined in terms of \emph{traces} of syntactic elements, which can be formulas or terms occurring in sequents along a path in the proof tree.
 
 To understand traces, observe the example derivation of \autoref{b2:tc-cyclic-example}, which uses the rules of \autoref{b2:tc-cyclic} along with rules for equality and a \emph{cut} rule (a sequent version of resolution).
-
-A \emph{trace} is a sequence of formulas $\varphi_1, {\cdots}, \varphi_n$ that appear along a path in the proof tree (not counting the backlinks).
-For a cycle consisting of the sequents $\Phi_1,{\cdots},\Phi_n$, where $\Phi_n$ is the bud and $\Phi_1$ is the companion, we define the \emph{trace condition} as follows:
-\begin{enumerate}
- \item Each $\varphi_i$ occurs in the corresponding $\Phi_i$.
- \item $\varphi_i \sqsubset \varphi_{i+1}$ for every $i=1..(n-1)$, where $\sqsubset$ is a global (partial) order over formulas.
- \item $\varphi_1 = \varphi_n$ (recall that $\Phi_1 = \Phi_n$ because of the cycle).
-\end{enumerate}
+A backlink (purple arrow) connects the bud (top right) with a companion (bottom), which are syntactically identical up to $\alpha$-renaming ($i\mapsto b$).
+The tree path connecting the companion to the bud consists of five sequents, in which the traced elements are:
+$a[n^*]b\leadsto a[n^*]i\leadsto a[n^*]i\leadsto a[n^*]i\leadsto a[n^*]i$.
+Notice that cut and equality rules keep ``tracking'' the same element, and the destructuring rule {\rulename{TC$_\textrm{L}$}} pairs a TC formula $a[n^*]b$ with a TC formula representing a shorter path, $a[n^*]i$ ($i$ is a predecessor of $b$).
+In this manner, the tracking structure of a cyclic system's inference rules draw a connection between syntactic entities and the semantic interpretations of them, such that \emph{some well-founded measure} (in the case of this example, the length of an $n$-path in the model) is weakly decreasing along the proof branch.
+Moreover, at least one step (here, $a[n^*]b\leadsto a[n^*]i$) is \emph{progressing}, that is, \emph{strictly} decreasing.
 \end{paragraph}
 
 
 \subsection{Recent advances in SAT and SMT}
+
+\input{img/fig-smt}
 
 Interest in algorithms for solving Boolean satisfiability (SAT) began with the development of the DPLL method~\cite{DPLL1,DPLL2}.
 In its core it is very simple:
@@ -178,5 +202,3 @@ The research community was able to leverage the success of SAT solvers and exten
 The ``theories'' refer to specific fragments of first-order logic for which efficient decision procedures have been constructed.
 These theory solvers are then composed with the underlying SAT procedure to handle logical connectives.
 The combined method is referred to CDCL(T) (previously, DPLL(T)).
-
-\input{img/fig-smt}

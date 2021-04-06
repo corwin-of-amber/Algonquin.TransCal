@@ -151,11 +151,11 @@ contemporary proof theory-based theorem provers.
 SAT and SMT received much tractions in the Model Checking community~\cite{Book2001:Clarke,SSS2014:Grumberg} thanks to their successful applications to formal methods.
 SAT was initially utilized for hardware verification of logical circuits, and SMT became a natural extension for dealing with software, as programming languages typically provide primitives such as integer values~\cite{CAV2006:Dutertre}, bit vectors~\cite{TACAS2007:Bryant}, and arrays~\cite{CAV2007:Ganesh}.
 Because loops are pervasive in both hardware and software systems, there is an ever-present need for reasoning about executions of unbounded length.
-To that end, \emph{loop invariants} play a crucial role in all software verification systems~\cite{dafny,fstar,leon}.
+To that end, \emph{loop invariants} play a crucial role in all software verification systems~\cite{LPAR2010:Leino,PLDI2016:Padon,ECOOP2013:Regis}.
 This essentially facilitates an induction scheme, but, by and large, the burden of supplying the invariant remains with the programmer.
 \emph{Invariant inference} is a big open problem that stands in the way to effective software verification.
-A significant breakthrough in invariant inference was achieved last decade with the development of the IC3 algorithm~\cite{bradley11} for automatic inference of Boolean invariants for hardware model checking.
-This sprouted a line of successful follow-up works on Property-Directed Reachability~\cite{gurfinkel,shoham,vizel}.
+A significant breakthrough in invariant inference was achieved last decade with the development of the IC3 algorithm~\cite{VMCAI2011:Bradley} for automatic inference of Boolean invariants for hardware model checking.
+This sprouted a line of successful follow-up works on Property-Directed Reachability~\cite{VMCAI2015:Bjorner,CAV2016:Fedyukovich,CAV2014:Vizel,VMCAI2017:Vizel,CAV2019:Shemer}.
 These results have been integrated into the leading SMT solver Z3~\cite{Z3SMT,CAV2013:Komuravelli,CAV2014:Komuravelli} and constitute key components of the SeaHorn verifier~\cite{TACAS2015:Gurfinkel} for C programs.
 \end{paragraph}
 
@@ -167,13 +167,13 @@ These results have been integrated into the leading SMT solver Z3~\cite{Z3SMT,CA
 \begin{paragraph}{Objective 1: {\it Bridging equality and congruence}}~
 Equality and equivalence are fundamental terms in mathematics and computer science.
 Therefore, equality is a native primitive in most logics.
-SMT solvers rely on a decision procedure for (quantifier-free) congruence closure together with the Nelson-Oppen method for combining it with other theories.
+SMT solvers rely on a decision procedure for (quantifier-free) congruence closure together with the Nelson-Oppen method for combining it with other theories~\cite{JACM1980:Nelson}.
 ATPs, by and large, are invested in superposition calculus, which is driven by term rewriting.
 To support efficient rewriting and avoid backtracking, modern ATPs such as Vampire and E employ an order relation on terms, so that all rewrites are directed.
 Both of these approaches limit the provers' ability to reason about equalities given as assumptions or discovered as conjectures in the course of the search:
 This is due to the quantifier-free nature of Nelson-Oppen, leading to a constant need for speculative quantifier instantiation, on one hand;
 and the requirement for ordering, which relies on the Knuth-Bendix algorithm, which in turn is incomplete --- so it cannot be expected to produce a normalizing ordering for an arbitrary set of univerally-quantified equalities that has been accumulated.
-We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\cite{CADE2007:deMoura} for performance purposes.
+We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\cite{IC2007:Nieuwenhuis,CADE2007:deMoura,TACAS2017:Barbosa} for performance purposes.
 We combine this with term rewriting and \emph{equality saturation} to obtain \emph{unordered} sets of equivalence terms (e-classes).
 E-graphs are known to be space-efficient by reducing duplication in the representation of terms to a minimum, employing congruence closure as a core mechanism to merge class nodes and keep the graph compact.
 This knowledge is maintained as part of the prover's state and can be updated incrementally when the prover discovers new conjectures.
@@ -272,8 +272,8 @@ Given a library of proven properties, an automated reasoning system can eagerly 
 Deductive proof search in ATPs such as Vampire and Cyclist tends to be oriented ``top-down'', that is,
 starting from a proof goal, simplifying it further and further until axioms are reached.
 The is analoguous to building the proof tree from the root down to the leaves. (Although, graphically, proof trees are commonly depicted with the root at the bottom --- this is nevertheless a top-down approach.)
-The availability of synthesis technology \cite{quickspec,thesy} means that we can generate a vast number of lemmas to guide our untangle-based decomposition.
-My premiliminary results from developing TheSy~\cite{thesy}, a framework for synthesizing lemmas, show that by generating many lemmas and proving them, individualy, by induction, it is possible to prove theorems that previously required the use of an SMT solver (CVC4~\cite{cvc4-ig}), using a relatively modest procedure of congruence closure.
+The availability of synthesis technology \cite{JFP2017:Smallbone,ITP2017:Johansson,arXiv2020:Singher} means that we can generate a vast number of lemmas to guide our untangle-based decomposition.
+My premiliminary results from developing TheSy~\cite{arXiv2020:Singher}, a framework for synthesizing lemmas, show that by generating many lemmas and proving them, individualy, by induction, it is possible to prove theorems that previously required the use of an SMT solver (CVC4~\cite{VMCAI2015:Reynolds}), using a relatively modest procedure of congruence closure.
 This is a very encouraging and promising direction.
 
 A major risk in doing so is that too many lemmas may incur a high overhead and, moreover, produce too many different ways to decompose a given proof.
@@ -302,11 +302,11 @@ Because SL propositions rely heavily on inductive definitions, the functional in
 Establishing the correlation, then leveraging it to prove properties of the underlying program, is a fine example of proof modularization.
 The pillars of equality reasoning and proof by induction are both central in this effort.
 
-I will draw on results from my work on \textsc{Cypress}~\cite{cypress}, a system for synthesizing programs from specifications given in Separation Logic.
+I will draw on results from my work on \textsc{Cypress}~\cite{PLDI2021:Itzhaky}, a system for synthesizing programs from specifications given in Separation Logic.
 \textsc{Cypress} heavily utilizes the concept of cyclic proofs and project it onto the program space,
 to facilitate synthesis of recursive auxiliary procedures.
 
-I will also perpetuate my efforts to reason about unbounded-state software systems via a combination of \emph{induction over time} (number of loop iterations or recursive calls) and \emph{induction over space} (size of data structures in a program's memory)~\cite{squeezers}.
+I will also perpetuate my efforts to reason about unbounded-state software systems via a combination of \emph{induction over time} (number of loop iterations or recursive calls) and \emph{induction over space} (size of data structures in a program's memory)~\cite{VMCAI2020:Ish-Shalom,ESOP2021:Ish-Shalom}.
 This work introduced \emph{state squeezers}, an alternative induction scheme based on a well-founded ordering of program states.
 They have already been applied successfully to verification of challenging safety properties and to automatic inference of complexity bounds that were beyond reach for existing analysis systems.
 \end{paragraph}
@@ -352,7 +352,7 @@ but pile up too many undecidable particles on top of one another, and frequent d
 Automated theorem provers piorneered and play a crucial rule in computerized formalization of mathematics.
 So far, they have taken the back seat when it comes to software verification and synthesis.
 This is about to change.
-The inclination of SMT solvers to integrate concepts of induction~\cite{reynlods-kuncak} and higher-order reasoning~\cite{smt-from-matryoshka} on one hand,
+The inclination of SMT solvers to integrate concepts of induction~\cite{VMCAI2015:Reynolds} and higher-order reasoning~\cite{smt-from-matryoshka} on one hand,
 and the renewed success of ATPs in core PL areas such as Separation Logic on the other,
 mark the dawn of a new era in which ATP and SMT come together and join forces.
 

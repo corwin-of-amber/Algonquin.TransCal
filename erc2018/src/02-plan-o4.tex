@@ -43,22 +43,39 @@ to prove SL propositions?
 This is an enticing question, because transitive closure can be used to define reachability properties,
 and reachability has a dual meaning in program analysis: \emph{state reachability} refers to execution paths,
 and \emph{heap reachability} refers to pointer paths in the program's memory.
-I have explored this duality in~\cite{squeezers},
+I have explored this duality in~\cite{ESOP2021:Ish-Shalom},
 where the concept was used to perfect safety proofs and complexity bound estimation.
 State reachability is a standard notion corresponding to \textbf{induction over time};
 heap reachability is used in Shape Analysis and is a form of \textbf{induction over space}.
 Using the same mechanism to express both types of reachability allow for a uniform treatment of both kinds of induction, and opens the door to potential other kinds that can be harnessed.
 
-\begin{figure} 
+\begin{figure}
+\centering
+\begin{tabular}{ll}
 \begin{lstlisting}[basicstyle=\linespread{1.36}\ttfamily\fontsize{10pt}{8pt}\selectfont]
 reverse(h) :=
-  i := h; j := null;
+  i := h;
+  j := null;
   while (i != null) {
     t := i.next;
-    i.next := j; j := i;
+    i.next := j;
+    j := i;
     i := t;
   }
 \end{lstlisting}
+&
+\input{img/reverse-trace}
+\end{tabular}
 \caption{A program that reverses a linked list in-place;
- a canonical example from~\cite{reynolds2002}.}
+ a canonical example from~\cite{CAV2002:Reynolds}.
+ Notice the isomorphism between the time and the space axes.
+ }
+\label{b2:software-reverse}
 \end{figure}
+
+Notice how in the example program \texttt{reverse}
+of \autoref{b2:software-reverse},
+the duality between the \emph{time} axis (successive states in the execution trace) and the \emph{space}
+axis (links in the singly-linked list, \esp those pointed to by $i$ and $j$).
+The end of the list, denoted by a null pointer,
+corresponds to the exit state.

@@ -2,7 +2,7 @@
 \begin{tikzpicture}[>=latex,
 	buzz/.style={decorate,
     decoration={snake, amplitude=1pt,
-      segment length=5pt}}]
+      segment length=5pt}}, baseline=(s4.center)]
       
   \node(fol)
   { $g(a)=c \land \big(f(g(a))\neq f(c)
@@ -79,4 +79,5 @@
   \draw[->] (i) -- +(1mm,0);
 
 \end{tikzpicture}
+\caption{Demonstration of an SMT procedure, outlining the dialogue between the propositional SAT solver and the theory solver (in this case, QFUF --- quantifier-free uninterpreted functions).}
 \end{SCfigure}
