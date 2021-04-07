@@ -155,7 +155,7 @@ The use of algebraic concepts here is deliberate: the phrases ``total order'', `
 \begin{researchquestion}How can we leverage the success of cyclic proof systems for automated reasoning in TC (and co-TC)?
 \end{researchquestion}
 
-We would like to leverage the recent success of automated reasoning with cyclic proofs in Cyclist~\cite{cyclist}, and apply similar techniques to reasoning about properties encoded as TC formulas.
+We would like to leverage the recent success of automated reasoning with cyclic proofs in Cyclist~\cite{CPP2017:Rowe}, and apply similar techniques to reasoning about properties encoded as TC formulas.
 Cyclic systems for TC have been proposed~\cite{TOCL2020:Cohen,IJCAR2020:Cohen} and early experimentation with it (in a non-automatic setting) look very promising, as the proofs are elegant and large portions of them follow trivially by applying inference rules top-down, guided by the syntactic structure of the sub-goals.
 
 It is of special interest to investigate if this guidance can be imporved by considering as a objective function the similarity between open sub-goals and their ancestors in the (partial) proof tree.
@@ -202,9 +202,9 @@ SMT solvers employ \emph{both} deductive reasoning (for example, propositional r
 Indeed, the latter are very much oriented toward constructing a model of the given formulas.
 State-of-the-art SMT solvers make use of (partial) models generated in the
 course of the search to guide deductive reasoning as this search progresses.
-One notable example for this is Model-Based Quantifier Instantiation (MBQI)~\cite{MBQI},
+One notable example for this is Model-Based Quantifier Instantiation (MBQI)~\cite{CAV2009:Ge},
 a technique implemented in Z3 to handle universally-quantified formulas.
-In model checking, Counterexample-guided abstraction refinement (CEGAR)~\cite{cegar} is based on the notion of observing an abstract counterexample to guide predicate abstraction.
+In model checking, Counterexample-guided abstraction refinement (CEGAR)~\cite{ASPLOS2006:Solar-Lezama} is based on the notion of observing an abstract counterexample to guide predicate abstraction.
 The most relevant works in the context of induction are those of invariant inference:
 IC3 is heavily counterexample-guided, in that it makes progress by ``blocking'' states that are found to be unreachable.
 Its ability to converge greatly depends on procedure for \emph{inductive generalization} that can draw stronger conclusions from the unreachability of a single state.

@@ -8,7 +8,7 @@ Most of the quality assurance processes rely on intensive testing, and Symbolic 
 However, such tools do not provide guarantees and cannot prove correctness properties of the underlying program.
 
 All software verification tools follow a common pattern:
-First, a frontend inspects the source code and constructs a semantic representation (some examples for this intermediate representation are Boogie~\cite{boogie}, Viper~\cite{viper}, and LLVM IR).
+First, a frontend inspects the source code and constructs a semantic representation (some examples for this intermediate representation are Boogie~\cite{PASTE2005:Barnett}, Viper~\cite{VMCAI2016:Muller}, and LLVM IR).
 Then, a backend derives a set of \emph{verification conditions} --- logical statements whose validity implies the correctness of the property being verified.
 These logical statements are sent to a prover to establish their validity.
 This proposal focuses on the latter phase, that of finding the proof of validity, where the input formula is a given.
@@ -179,7 +179,7 @@ Moreover, at least one step (here, $a[n^*]b\leadsto a[n^*]i$) is \emph{progressi
 
 \input{img/fig-smt}
 
-Interest in algorithms for solving Boolean satisfiability (SAT) began with the development of the DPLL method~\cite{DPLL1,DPLL2}.
+Interest in algorithms for solving Boolean satisfiability (SAT) began with the development of the DPLL method \cite{DPLL1,DPLL2}.
 In its core it is very simple:
 It operates on a propositional CNF formula (conjunction of clauses), and follows two main principles:
 (a) the \emph{unit propagation rule}, whereby a clause with a single literal determines the truth value of the variable therein; and
