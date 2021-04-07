@@ -6,9 +6,9 @@ However, there is one crucial pain point in reasoning about computer program, fo
 This is the point of \textbf{representing program memory and memory updates}.
 
 The first decade of the 21st century saw several breakthroughs in the analysis of programs with pointers and dynamic memory allocation.
-Notably, \emph{Separation Logic}~\cite{Reynolds} was founded as a logic designed specifically for the purpose of modeling the heap area on which a program operates,
+Notably, \emph{Separation Logic}~\cite{LICS2002:Reynolds} was founded as a logic designed specifically for the purpose of modeling the heap area on which a program operates,
 with dedicated inference rules in the style of Hoare to describe various effects on it.
-Smallfoot~\cite{berdine} and Grasshopper~\cite{weis} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
+Smallfoot~\cite{FMCO2005:Berdine} and Grasshopper~\cite{weis} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
 At the same time, Shape Analysis based on Abstract Interpretation and 3-valued logic~\cite{sagiv-reps} became one of the most influential works in program analysis.
 It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{dafny}, VCC~\cite{vcc}, CIVL~\cite{civl}, and SeaHorn~\cite{seahorn} \textbf{use none of that}.
 The reason is, probably, the difficulty in using them within an SMT-based verifier, except in restricted cases
@@ -67,7 +67,7 @@ reverse(h) :=
 \input{img/reverse-trace}
 \end{tabular}
 \caption{A program that reverses a linked list in-place;
- a canonical example from~\cite{CAV2002:Reynolds}.
+ a canonical example from~\cite{LICS2002:Reynolds}.
  Notice the isomorphism between the time and the space axes.
  }
 \label{b2:software-reverse}

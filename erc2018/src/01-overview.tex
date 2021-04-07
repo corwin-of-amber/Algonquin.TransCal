@@ -343,7 +343,7 @@ A primary aim is to make these strategies less heuristic and more predictable.
 
 \subsection{Impact and Evaluation of Project Success}
 
-My earlier work~\cite{phd} and some follow-up by others~\cite{padon,feldman} revolved around the use of decidable logics to encode verification conditions for software,
+My earlier work~\cite{CAV2013,POPL2014,CAV2014,PLDI2014,ICDT2017} and some follow-up by others~\cite{OOPSLA2017:Padon,VMCAI2017:Frumkin,PLDI2018:Taube,CAV2019:Berkovits,CAV2019:Feldman} revolved around the use of decidable logics to encode verification conditions for software,
 and transferring these to an SMT solver.
 These decidable fragments are extremely limited, and once you ``cross the line'' of undecidability, performance is largly unpredictable.
 There are many practical solvers that are able to prove many naturally occurring problems with arithmetic, arrays, and lists;
@@ -358,7 +358,7 @@ mark the dawn of a new era in which ATP and SMT come together and join forces.
 
 The Matryoshka project~\cite{what} set as their target to enrich SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
 Although this allows for a more natural, straightforward encoding of software-related queries, there is very much a glass ceiling imposed by the SMT core.
-Instead, this project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on finely-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
+Instead, this project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on fine-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
 Generating short, readable proofs, as well as interpretable explanations in cases of failure to find a proof,
 are key to mitigate of the risks and remove of the element of dread that accompanies usage of contemprary ATPs and SMT solvers.
 In addition, careful regression experiments that will ensure that our team will not have to reinvent existing technology, but build on the vast experience of the past decades of research.

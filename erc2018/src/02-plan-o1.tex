@@ -134,7 +134,7 @@ To facilitate effective proof search in a tool that combines the strengths of bo
 we propose a technique that involves dedicated theory solvers directly in the process, rather than having a narrow interface through which they communicate their results.
 A core mechanism in deductive inference is that of \emph{unification}, where formulas from the goal are checked against known sequents that were previously derived to see if these sequents can fill in some pending premises.
 Since both the goal and the pre-existing sequents may contain free variables, this procedure is not merely checking equality, but also provides substitution and renaming of variables when needed.
-The proposed development is to enhance the unifier with knownledge about background theories, such as the theory of equality, partial orders, group theory, and transitive closure (the latter described below in \todo{}).
+The proposed development is to enhance the unifier with knownledge about background theories, such as the theory of equality, partial orders, group theory, and transitive closure (the latter described below in \autoref{plan-induction}).
 This would allow the unifier to not only detect syntactic matches, but also consider situations where an existing formula entails a given premise according to the theory,
 and also combine several facts to satisfy one such premise.
 
