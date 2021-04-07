@@ -27,9 +27,9 @@ The core of this idea is in itself not new.
 Starting from early theorem provers, the concept of \emph{information retention}~\cite{JAR1995:Voronkov} --- the derivation of new clauses by applying known inference rules and rewriting with equalities --- has been identified as an important feature for automated theorem proving, \esp when included in a prover that follows a top-down search strategy.
 However, this proposal offers a new perspective on this aspect:
 \begin{itemize}
-  \item Where existing methods build consequences using small-step inference rules, we propose a paradigm that will make \textbf{larger logical leaps} by building on recent advances in lemma synthesis~\cite{moa,thesy,CAV2021:Murali} to create more useful lemmas that will hit the goals faster.
+  \item Where existing methods build consequences using small-step inference rules, we propose a paradigm that will make \textbf{larger logical leaps} by building on recent advances in lemma synthesis~\cite{CADE2013:Claessen,ITP2017:Johansson,arXiv2020:Singher,CAV2021:Murali} to create more useful lemmas that will hit the goals faster.
   \item We rethink the concept of \textbf{bottom-up through the lens of cyclic proofs}.
-  Because the new systems admit infinite proofs~\cite{LICS2007:Brotherston,more}, they do not necessarily have a ``bottom'' in the previous sense.
+  Because the new systems admit infinite proofs~\cite{LICS2007:Brotherston,CPP2017:Rowe,IJCAR2020:Cohen}, they do not necessarily have a ``bottom'' in the traditional sense.
 \end{itemize}
 
 We allude to incremental construction of loop invariants presented in~\cite{arXiv2020:Padon,FAC2008:Bradley} as an inspiration for new, exciting ways to combine top-down and bottom-up search.
@@ -39,7 +39,7 @@ We allude to incremental construction of loop invariants presented in~\cite{arXi
 What is an effective measure of \emph{usefulness} for ancillary lemmas, for the purpose of guiding theory exploration?
 \end{researchquestion}
 
-In~\cite{thesy}, we explored an enumerative-synthesis approach to theory exploration with an emphasis on lemmas whose proofs require the use of induction.
+In~\cite{arXiv2020:Singher}, we explored an enumerative-synthesis approach to theory exploration with an emphasis on lemmas whose proofs require the use of induction.
 A simple heuristic was used to choose lemmas that will be as generally applicable as possible.
 This was sufficient for theorem proving benchmarks, but as the number of function symbols in the vocabulary grows, a more aggressive pruning will be necessary to avoid an unmanageable blowup in the number of lemmas.
 We will develop an \textbf{a-priori clustering} of symbols from the vocabulary that are more tightly coupled, so that theory exploration can be applied to smaller vocabularies.

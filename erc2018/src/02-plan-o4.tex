@@ -8,16 +8,16 @@ This is the point of \textbf{representing program memory and memory updates}.
 The first decade of the 21st century saw several breakthroughs in the analysis of programs with pointers and dynamic memory allocation.
 Notably, \emph{Separation Logic}~\cite{LICS2002:Reynolds} was founded as a logic designed specifically for the purpose of modeling the heap area on which a program operates,
 with dedicated inference rules in the style of Hoare to describe various effects on it.
-Smallfoot~\cite{FMCO2005:Berdine} and Grasshopper~\cite{weis} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
-At the same time, Shape Analysis based on Abstract Interpretation and 3-valued logic~\cite{sagiv-reps} became one of the most influential works in program analysis.
-It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{dafny}, VCC~\cite{vcc}, CIVL~\cite{civl}, and SeaHorn~\cite{seahorn} \textbf{use none of that}.
+Smallfoot~\cite{FMCO2005:Berdine} and GRASSHopper~\cite{TACAS2014:Piskac,CAV2014:Piskac} are examples of tools from that era, which can automatically prove propositions in Separation Logic.
+At the same time, Shape Analysis based on Abstract Interpretation and 3-valued logic~\cite{CAV2014:Reps} became one of the most influential works in program analysis.
+It is therefore surprising that state-of-the-art tools for automated software verification such as Dafny~\cite{LPAR2010:Leino}, VCC~\cite{vcc}, CIVL~\cite{civl}, and SeaHorn~\cite{CAV2015:Gurfinkel} \textbf{use none of that}.
 The reason is, probably, the difficulty in using them within an SMT-based verifier, except in restricted cases
 (\eg \cite{CAV2013:Piskac}).
 
 At the same time, mechanical verification with \emph{interactive proof assistants} has skyrocketed in the last decade.
-Thanks to their capacity to express higher-order propositions, Separation Logic has been embedded in Coq~\cite{nanevski} and Isabelle/HOLCF~\cite{MFPS2008:Varming},
+Thanks to their capacity to express higher-order propositions, Separation Logic has been embedded in Coq~\cite{PLDI2015:Sergey} and Isabelle/HOLCF~\cite{MFPS2008:Varming},
 and substantial frameworks were erected for systematic treatment of unbounded-state programs with SL and it many variants.
-Notable ones are VST~\cite{JAR2018:Cao}, Viper~\cite{viper}, and Iris~\cite{iris}, the latter becoming a cornerstone in recent years thanks to its ability to handle shared-memory concurrency in a variety of settings.
+Notable ones are VST~\cite{JAR2018:Cao}, Viper~\cite{VMCAI2016:Muller}, and Iris~\cite{POPL2015:Jung,ICFP2016:Jung,ESOP2017:Krebbers}, the latter becoming a cornerstone in recent years thanks to its ability to handle shared-memory concurrency in a variety of settings.
 Some of the frameworks provide proof automation to a certain degree.
 Thanks to the NSF's \emph{DeepSpec Expedition in Computer Science}, a plethora of formal verification success stories is now available in the form of proofs constructed by leading experts in the community.
 This is a huge opportunity to harvest this corpus of knowledge and generalize from the hunderds of thousands of lines of Coq developments and other forms of proofs to drive our quest for more automation.
@@ -79,3 +79,22 @@ the duality between the \emph{time} axis (successive states in the execution tra
 axis (links in the singly-linked list, \esp those pointed to by $i$ and $j$).
 The end of the list, denoted by a null pointer,
 corresponds to the exit state.
+
+\smallskip
+After having obtained a suitable solution for modeling program memory in our automated reasoning,
+we set as a goal to automate challenging objectives from the DeepSpec expedition code base.
+These serve triple purpose:
+\begin{enumerate}
+  \item As evaluation milestones for self-check and monitoring the project's progress.
+  \item As a driving force for the identification of interesting theoretical and practical problems and the pursuit of appropriate solutions.
+  \item As a means to disseminate our results and bring forth its adoption by the larger formal methods community, since DeepSpec is famous for being a grand undertaking.
+\end{enumerate}
+
+The remainder of this objective therefore comprised not of research questions but as a sequence of ongoing experimental setups where the team strives to cover ground in DeepSpec, \esp the following components and their associated proofs:
+\begin{enumerate}
+  \item CertiKOS: certified OS kernel.
+  \item DataCert: DBMS and SQL service.
+  \item CompCert: certified C compiler.
+  \item Galois: electronic voting system with strong guarantees against fraud.
+\end{enumerate}
+
