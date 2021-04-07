@@ -26,8 +26,23 @@
 \input{macros.tex}
 
 \geometry{tmargin=1.5cm, bmargin=1.5cm}
-\renewcommand{\thesection}{Section \alph{section}.}
-\renewcommand{\thesubsection}{\alph{section}.\arabic{subsection}.}
+
+% Section
+\renewcommand{\thesection}{\alph{section}}
+\titleformat{\section}
+  {\Large\bfseries}
+  {Section \thesection.~}{.5em}
+  {}
+
+% Subsection
+\renewcommand{\thesubsection}{\alph{section}.\arabic{subsection}}
+\titleformat{\subsection}
+  {\large\bfseries}
+  {\thesubsection.~}{.5em}
+  {}
+
+%\renewcommand{\sectionautorefname}{Section}
+%\renewcommand{\subsectionautorefname}{Subsection}
 
 \titlespacing{\paragraph}{%
   0pt}{%              left margin
