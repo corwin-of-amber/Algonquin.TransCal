@@ -46,3 +46,16 @@ We will develop an \textbf{a-priori clustering} of symbols from the vocabulary t
 The clustering will be driven by the system's experience of proving theorems, which is accumulated over time, using statistical inference
 This would mean that the prover will become more biased, but potentially much more effective, the more proofs it manages to successfully generate.
 Even though we do not plan to use a deep-learning approach, a form of curriculum learning, where the system is exercised over a collection of problems with increasing complexity, will be used to bootstrap the prover's knowledge.
+
+\begin{researchquestion}
+What guidance metric would a prover use in order to \emph{untangle} a complex proof goal that mixes several mathematical concepts?
+\end{researchquestion}
+
+In order to make use of our lemmas, the vocabularies, that is, sets of logical symbols, occurring in propositions has to be clustered into ``tightly-coupled'' concepts.
+Intuitively, functions or relations are tightly coupled if they occur together in ancillary lemmas; the more lemmas combine them, the more tightly coupled should they be considered.
+This has practical implications:
+If the prover manages to split the proof goal into sub-goals such that each sub-goal consists of tightly-coupled symbols, it will then have a larger variety of relevant lemmas to make progress with.
+This \emph{untangle phase} can be multi-layered, since to get a separation into clusters A, B and C a prover may have to first separate A from B+C, and then separate B from C.
+Each such separation is rarely a single derivation in the proof system, so some search, and backtracking, may be needed to nail down the right decomposition.
+Here, too, I will apply statistical bias based on previous successful attempts at decomposing problems,
+mimicking to a large degree the process of training an experienced mathematician.
