@@ -12,7 +12,7 @@ A long-standing problem in this area is that of choosing an appropriate \emph{in
 Oftentimes, and depending on the form of induction principle being employed, a proof goal has to be \emph{strengthened} to make the induction step go through.
 This is most apparent in software verification tasks that involve loops:
 Induction is done on the number of loop iterations performed, and appropriate \emph{loop invariants} are required for this strategy to succeed.
-Since software verification tools are, by and large, dominated by SMT solvers, automation of invariant inference has to come on top of the existing stack, as is done in Spacer~\cite{spacer} (and SeaHorn~\cite{seahorn}).
+Since software verification tools are, by and large, dominated by SMT solvers, automation of invariant inference has to come on top of the existing stack, as is done in Spacer~\cite{CAV2013:Komuravelli} (and SeaHorn~\cite{TACAS2015:Gurfinkel}).
 
 We would like to devise a framework that could facilitate both the more natural treatment of induction introduced by cyclic proof systems and the powerful loop invariant inference offered by IC3.
 Loops are known to be a special case of (tail) recursion; however, they can also be treated elegantly using a simpler notion, that of \emph{transitive closure} (TC).

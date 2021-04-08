@@ -64,10 +64,10 @@ which in retrospect is now referred to as SMT.
 
 We propose to build a framework for equality reasoning based on e-graphs and term rewriting systems (TRSs), 
 inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{everything-zack}.
-We will use \emph{egg}~\cite{egg}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
+We will use \emph{egg}~\cite{POPL2021:Willsey}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
 In an e-graph, terms are grouped in equivalence classes (e-classes), and shared sub-terms are not duplicated, leading to a very compact representation.
 The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z.~ x\cdot(y\cdot z) = (x\cdot y)\cdot z$ and $\forall x,y.~ x\cdot y = y \cdot x$.
-Previous work in compilers relied on the concept of \emph{equality saturation}~\cite{equsat}:
+Previous work in compilers relied on the concept of \emph{equality saturation}~\cite{arXiv2020:Singher}:
 That term rewriting can be applied to the e-graph until it eventually captures all possible consequences of the underlying equalities, and further applications of the rewrite rules would not contribute any new terms ---
 the e-graph is \emph{saturated}.
 Naturally, this cannot be achieved in all circumstances.
@@ -103,7 +103,7 @@ Choosing where in the decision tree to roll back to and what information can be 
 Boolean connectives, especially logical implications, are ubiquituous in reasoning about computer programs, as they are used to model conditional control flow.
 This is one of the things that brought SMT its popularity in model checking and software verification.
 The e-graph structure, however is essentially \emph{flat}: Vertices are grouped into classes, but classes cannot be further composed, and they all exist on a single layer.
-Boolean expressions can be represented directly, by treating the connectives as operators $\{t,f\}^k\to\{t,f\}$, but this encoding is not conducive to automated reasoning strategies, such as resolution~\cite{resolution-things?}.
+Boolean expressions can be represented directly, by treating the connectives as operators $\{t,f\}^k\to\{t,f\}$, but this encoding is not conducive to automated reasoning strategies, such as resolution~\cite{JACM1965:Robinson,IJCM1965:Robinson}.
 In particular, \emph{case splitting}, a very basic proof technique, is computationally hard to perform, because it requires forking the computation, essentially duplicating the e-graph for each of the cases in the proof.
 When searching for proofs a prover may be required to try several different split points, and doing so repeatedly is prohibitively expensive.
 
