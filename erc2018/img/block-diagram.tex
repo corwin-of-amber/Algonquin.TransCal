@@ -1,0 +1,16 @@
+\newcommand\vdist{5mm}
+\newcommand\hdist{2mm}
+\begin{tikzpicture}[>=latex,
+	task/.style={draw,fill=white},
+    shady/.style={fill=gray!50!white}]
+  \node(obj1)[task] { Obj.1: Equality };
+  \node(midpoint)[below=\vdist of obj1] {};
+  \node(obj2)[task, below=\vdist of midpoint] { Obj.2: Induction };
+  \node(obj4)[shady, right=\hdist of midpoint, inner sep=9pt] {\hspace{10.5em}Obj.4: Extrapolating to Software};
+  \node(obj3)[task, right=\hdist of midpoint, xshift=4pt] { Obj.3: Modularization };
+  
+  \node[right=0 of obj3] { $\rangle\!\rangle$ };
+  
+  \draw[->] (obj1) edge[out=-30,in=175] (obj4.170);
+  \draw[->] (obj2) edge[out=30,in=185] (obj4.-170);
+\end{tikzpicture}
