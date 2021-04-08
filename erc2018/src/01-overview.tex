@@ -15,11 +15,11 @@ reduced to that of finding a proof to a conjecture, and conversely, the task of
 proving a theorem can be reduced to producing a program with some specific
 characteristics.
 In addition to that, logic is at the core of software verification, as a basis
-for specifications~\cite{LPAR2010:Leino,ECOOP2013:Regis,ICSE2009:Schulte,PASTE2005:Barnett,CAV2015:Gurfinkel}, loop invariants~\cite{VMCAI2011:Bradley,CAV2013:Komuravelli,CAV2019:Feldman}, rely-guarantee properties for concurrent programs~\cite{relyguarantee1,TCS2007:Jones}, and more.
+for specifications~\cite{LPAR2010:Leino,ECOOP2013:Regis,ICSE2009:Schulte,PASTE2005:Barnett,CAV2015:Gurfinkel}, loop invariants~\cite{VMCAI2011:Bradley,CAV2013:Komuravelli,CAV2019:Feldman}, rely-guarantee properties for concurrent programs~\cite{relyguarantee1,TCS2007:Jones}, and for defining the semantics of the programs themselves~\cite{MACS1967:Floyd}.
 The task of checking adherence to a program's specification is also reduced, in
 more than one way, to deciding the validity of a logical formula.
 
-\medskip
+\smallskip
 This proposal is based on a fundamental understanding, that breaking existing
 barriers in automated reasoning is a key ingredient that will lead to
 much more powerful mechanism for the construction of provably-correct software.
@@ -40,8 +40,6 @@ application of the inference rules.
 These algorithms have been augmented with decision procedures for several first-order fragments.
 SMT solvers have become incredibly popular thanks to highly efficient implementations and very successful optimization heuristics that manage to combat the inherent intractability of the problem.
 \end{paragraph}
-
-\medskip
 
 %\todo{Merge description of ATP and SMT to the background; write here a short paragraph defining these two things and saying that the idea is to merge them}
 
@@ -104,9 +102,9 @@ natural numbers, and various theories of integer arithmetic.
 
 \begin{paragraph}{Automated Theorem Provers}
 Proof theory is a branch of logic that has gained much traction in the 20th century with the advent of Hilbert~\cite{Book1928:Hilbert} and Gentzen~\cite{j1935:Gentzen},
-both of whom developed calcli for algorithmic formalization of proofs.
+both of whom developed calculi for algorithmic formalization of proofs.
 As computers became available, it was natural that these notions be implemented as programs.
-As early as 1960~\cite{Wiley1960:Wang,Wiley1961:Wang}, large automatic systems for theorem provers have been used by the research community for a variety of logical reasoning tasks.
+As early as 1960~\cite{Wiley1960:Wang,Wiley1961:Wang}, large automatic systems for theorem proving have been used by the research community for a variety of logical reasoning tasks.
 Most of these early systems were based on the resolution principle~\cite{JACM1965:Robinson}, which continues to be popular today.
 Term unification~\cite{IJCM1965:Robinson} is used to resolve first-order formulas.
 In the 1990's, superposition calculus~\cite{LPAR1992:Bachmair} emerged as the leading technique for equality reasoning.
@@ -169,12 +167,12 @@ Equality and equivalence are fundamental terms in mathematics and computer scien
 Therefore, equality is a native primitive in most logics.
 SMT solvers rely on a decision procedure for (quantifier-free) congruence closure together with the Nelson-Oppen method for combining it with other theories~\cite{JACM1980:Nelson}.
 ATPs, by and large, are invested in superposition calculus, which is driven by term rewriting.
-To support efficient rewriting and avoid backtracking, modern ATPs such as Vampire and E employ an order relation on terms, so that all rewrites are directed.
+To support efficient rewriting and avoid backtracking, modern ATPs such as Vampire and E employ an order relation on terms, so that all rewrites are \emph{directed}.
 Both of these approaches limit the provers' ability to reason about equalities given as assumptions or discovered as conjectures in the course of the search:
 This is due to the quantifier-free nature of Nelson-Oppen, leading to a constant need for speculative quantifier instantiation, on one hand;
 and the requirement for ordering, which relies on the Knuth-Bendix algorithm, which in turn is incomplete --- so it cannot be expected to produce a normalizing ordering for an arbitrary set of univerally-quantified equalities that has been accumulated.
-We propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\cite{IC2007:Nieuwenhuis,CADE2007:deMoura,TACAS2017:Barbosa} for performance purposes.
-We combine this with term rewriting and \emph{equality saturation} to obtain \emph{unordered} sets of equivalence terms (e-classes).
+I propose, as a unifying mechanism, to further utilize the notion of \emph{equality graphs} (e-graphs), as is done in some SMT solvers~\cite{IC2007:Nieuwenhuis,CADE2007:deMoura,TACAS2017:Barbosa} for performance purposes.
+I combine this with term rewriting and \emph{equality saturation}~\cite{POPL2009:Tate} to obtain \emph{unordered} sets of equivalence terms (e-classes).
 E-graphs are known to be space-efficient by reducing duplication in the representation of terms to a minimum, employing congruence closure as a core mechanism to merge class nodes and keep the graph compact.
 This knowledge is maintained as part of the prover's state and can be updated incrementally when the prover discovers new conjectures.
 To cope with Boolean constructs (such as implications and disjunctions, which are frequent in verification conditions due to the presence of branching statements in programs), we propose a novel solution, \emph{e-graph coloring}, by which sub-components of the e-graph can be annotated with certain ``colors''; the colors denote that the validity of some propositions is subject to one or more assumptions, in the spirit of Gentzen's sequents.

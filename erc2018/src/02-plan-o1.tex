@@ -63,7 +63,7 @@ which in retrospect is now referred to as SMT.
 \end{proposal}
 
 We propose to build a framework for equality reasoning based on e-graphs and term rewriting systems (TRSs), 
-inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{everything-zack}.
+inspired by similar uses that came up in compiler optimizations and program synthesis~\cite{POPL2009:Tate,PLDI2015:Wilcox,FM2018:Becker,PLDI2020:Nandi}.
 We will use \emph{egg}~\cite{POPL2021:Willsey}, a collection of state-of-the-art algorithms for manipulating e-graphs and for fast rewriting over the e-graph representation.
 In an e-graph, terms are grouped in equivalence classes (e-classes), and shared sub-terms are not duplicated, leading to a very compact representation.
 The use of TRSs provides a way to handle universally-quantified equality statements such as $\forall x,y,z.~ x\cdot(y\cdot z) = (x\cdot y)\cdot z$ and $\forall x,y.~ x\cdot y = y \cdot x$.

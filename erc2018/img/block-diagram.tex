@@ -1,16 +1,29 @@
-\newcommand\vdist{5mm}
-\newcommand\hdist{2mm}
+\newcommand\vdist{6mm}
+\newcommand\hdist{0}
+
 \begin{tikzpicture}[>=latex,
-	task/.style={draw,fill=white},
-    shady/.style={fill=gray!50!white}]
+	task/.style={draw,fill=white,text depth=1pt,
+                 inner ysep=6pt},
+    shady/.style={fill=black!20!white,
+       text depth=0, 
+       inner xsep=9pt, inner ysep=11pt}]
   \node(obj1)[task] { Obj.1: Equality };
   \node(midpoint)[below=\vdist of obj1] {};
-  \node(obj2)[task, below=\vdist of midpoint] { Obj.2: Induction };
-  \node(obj4)[shady, right=\hdist of midpoint, inner sep=9pt] {\hspace{10.5em}Obj.4: Extrapolating to Software};
-  \node(obj3)[task, right=\hdist of midpoint, xshift=4pt] { Obj.3: Modularization };
+  \node(obj2)[task, below=\vdist of midpoint]
+  { Obj.2: Induction };
+  \node(obj4)[shady, right=0 of midpoint,
+              xshift=-.5em]
+  {\hspace{11em}Obj.4: 
+   Extrapolating to Software};
+  \node(obj3)[task, right=0 of midpoint,
+              xshift=4pt]
+  { Obj.3: Modularization };
+
+  \node[below=0 of obj4, inner sep=3pt]
+  { \small\itshape\color{gray} (ongoing) };
   
   \node[right=0 of obj3] { $\rangle\!\rangle$ };
   
-  \draw[->] (obj1) edge[out=-30,in=175] (obj4.170);
-  \draw[->] (obj2) edge[out=30,in=185] (obj4.-170);
+  \draw[->,line width=1pt] (obj1) edge[out=-30,in=175] (obj4.170);
+  \draw[->,line width=1pt] (obj2) edge[out=30,in=185] (obj4.-170);
 \end{tikzpicture}
