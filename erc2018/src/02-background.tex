@@ -200,5 +200,10 @@ Despite the complexity of SAT (it is NP-complete), today's solvers are capable o
 For software verification, propositional logic is much too low-level to comfortably express our properties and semantics.
 The research community was able to leverage the success of SAT solvers and extend it to satisfiability of first-order formulas, leading to Satisfiability Modulo Theories (SMT).
 The ``theories'' refer to specific fragments of first-order logic for which efficient decision procedures have been constructed.
-These theory solvers are then composed with the underlying SAT procedure to handle logical connectives.
+These theory solvers are then composed with the underlying SAT procedure to handle logical connectives, as illustrated in \autoref{b2:cdclt}:
+A first-order formula is first reduced to a propositional one by replacing every atomic formula with a Boolean variable.
+The result is then sent to the SAT component,
+and if a satisfying (Boolean) assignment is found,
+the theory solver is subsequently queried to test the feasibility of this assignment under the theory.
+If it is not, then the theory solver emit a \emph{conflict clause}, which is appended to the formula, and the process repeats.
 The combined method is referred to CDCL(T) (previously, DPLL(T)).

@@ -1,3 +1,5 @@
+\newcommand\smaller{\fontsize{8pt}{8pt}\selectfont}
+
 \begin{SCfigure}
 \hspace{1.5em}
 \begin{tikzpicture}[>=latex,
@@ -33,6 +35,12 @@
   
   \node(conflict-prop1)[below=of prop]
   { $(\lnot A \lor B)$ };
+  \node(c)[above right=0 of conflict-prop1,
+           inner xsep=0, inner ysep=3pt,
+           align=center,
+           font={\smaller\color{gray}}]
+  { conflict\\clause };
+  \draw[->,gray] (c.-120) -- (conflict-prop1.5);
   
   \node(sat2)[left=of conflict-prop1, draw]
   { \small
@@ -81,4 +89,5 @@
 
 \end{tikzpicture}\quad~
 \caption{Demonstration of an SMT procedure, outlining the dialogue between the propositional SAT solver and the theory solver (in this case, QFUF --- quantifier-free uninterpreted functions).}
+\label{b2:cdclt}
 \end{SCfigure}
