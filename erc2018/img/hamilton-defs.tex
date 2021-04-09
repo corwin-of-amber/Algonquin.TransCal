@@ -1,0 +1,58 @@
+%\newcommand\smaller{\fontsize{8pt}{8pt}\selectfont}
+
+\begin{tikzpicture}
+     [defn/.style={black!70!blue!70!white},
+      tag/.style={gray, inner sep=1pt},
+      namem/.style={black!70!white, font=\smaller},
+      strk/.style={gray, line width=1pt}]
+  \node(ts)[anchor=west, inner sep=2pt, defn]
+  { $\fTS~G~a$ };
+  \node(h)[below=of ts.east, anchor=east, 
+           inner sep=1pt, defn]
+  { $\fH~G~a $ };
+  
+  \node[right=1mm of ts, yshift=3pt, defn] { $\eqdef$ };
+  \node[right=1mm of h, yshift=3pt, defn] { $\eqdef$ };
+  
+  \node(ve)[above=6pt of ts.55, tag]
+  { $\scriptscriptstyle\langle V,E\rangle$ };
+  
+  \draw[gray] (ve) -- (ts.55);
+  
+  \node(ts-caption)[anchor=south east,
+    above left=2mm of ts.west,
+    xshift=-2mm, tag]
+  { \smaller $a$ is a topological sort of $G$ };
+  \draw[gray] (ts-caption.south east) -- (ts.west);
+
+  \node(h-caption)[anchor=north east,
+    below left=2mm of h.west,
+    xshift=-3mm, tag, inner xsep=3pt]
+  { \smaller $a$ is a Hamilton path in $G$ };
+  \draw[gray] (h-caption.north east) -- (h.west);
+
+  \node(ts-def1)[anchor=west, inner xsep=0,
+                 right=1.1cm of ts.east]
+  { $E \subseteq {}$ };
+  \node(ts-def2)[inner xsep=0, 
+    inner ysep=2mm, right=0 of ts-def1]
+  { $\big\{\langle a[i],a[j]\rangle ~\big|~ i < j\big\}$ };
+  \node(h-def1)[anchor=west, inner xsep=0,
+    inner ysep=2mm, right=1.1cm of h.east]
+  { $\big\{\langle a[i],a[i+1]\rangle 
+     ~\big|~ i < |a|\big\}$ };
+  \node(h-def2)[right=0 of h-def1, inner sep=0]
+     { ${} \subseteq E$ };
+     
+  \node[right=2mm of ts-def2]
+  { $\land ~~~ \{...a\}=V$ };
+  \node[right=2mm of h-def2]
+  { $\land ~~~ \{...a\}=V$ };
+  
+  \draw[strk] (ts-def2.north west) -- 
+              (ts-def2.north east);
+  \node[namem, above=0 of ts-def2] { $R_1^a$ };
+  \draw[strk] (h-def1.south west) -- 
+              (h-def1.south east);
+  \node[namem, below=1pt of h-def1] { $R_2^a$ };
+\end{tikzpicture}
