@@ -12,9 +12,10 @@ A long-standing problem in this area is that of choosing an appropriate \emph{in
 Oftentimes, and depending on the form of induction principle being employed, a proof goal has to be \emph{strengthened} to make the induction step go through.
 This is most apparent in software verification tasks that involve loops:
 Induction is done on the number of loop iterations performed, and appropriate \emph{loop invariants} are required for this strategy to succeed.
-Since software verification tools are, by and large, dominated by SMT solvers, automation of invariant inference has to come on top of the existing stack, as is done in Spacer~\cite{CAV2013:Komuravelli} (and SeaHorn~\cite{TACAS2015:Gurfinkel}).
+Since software verification tools are, by and large, dominated by SMT solvers, automation of invariant inference has to come on top of the existing stack, as is done in Spacer~\cite{CAV2013:Komuravelli} (and SeaHorn~\cite{TACAS2015:Gurfinkel}),
+that are based on the IC3 algorithm~\cite{VMCAI2006:Bradley} with extensions to handle first-order structures and branching~\cite{CAV2014:Komuravelli}.
 
-We would like to devise a framework that could facilitate both the more natural treatment of induction introduced by cyclic proof systems and the powerful loop invariant inference offered by IC3.
+I will devise a framework that could facilitate both the more natural treatment of induction introduced by cyclic proof systems and the powerful loop invariant inference offered by IC3.
 Loops are known to be a special case of (tail) recursion; however, they can also be treated elegantly using a simpler notion, that of \emph{transitive closure} (TC).
 TC logics introduce atomic formulas of the form $\big(\mathrm{TC}_{x,y}\varphi\big)(s,t)$,
 whose semantics is the existence of a path $s=u_0,u_1,\ldots,u_n=t$, $n\geq 1$, with $\varphi[u_i/x,u_{i+1}/y]$

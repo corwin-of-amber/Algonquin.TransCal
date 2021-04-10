@@ -124,7 +124,7 @@ l=r \lor C_1 \quad t[s]=t' \lor C_2 \\ \hline
 \]
 
 In the above, $\theta^{\alpha}_{\!\beta}$ is the mgu of $\alpha$ and $\beta$.
-In addition to that, a superposition inference system makes use of an extra \emph{simplification order} $\succ$ on terms.
+In addition to that, a superposition inference system makes use of a \emph{simplification order} $\succ$ on terms.
 In \rulename{SUP$^=_0$} and \rulename{SUP$^=_1$},
 application is restricted to cases where
 $t'\theta \not\succeq t[s]\theta$.
@@ -135,9 +135,15 @@ It works by \emph{saturation}: Vampire maintains a set $D$ of first-order clause
 and incrementally grow it by selecting $\Phi_{r_{1..k}} \subseteq D$ and adding a clause $\Phi_{n+1}$ according to one of the inference rules.
 Vampire terminates when it derives the empty clause ($\bot$, representing a contradiction),
 or when $D$ is saturated, \ie, no new clauses can be added.
+
+Another notable prover is E~\cite{AIC2002:Schulz}, a ``brainiac'' theorem prover:
+It also uses superposition but invests more work in a careful selection of clauses and literals to operate on in each iteration.
+This means a lower iteration rate, but allows the prover to focus on the more relevant parts of the proof.
+The DISCOUNT proof search strategy makes not of ``active'' clauses and uses a search heuristic that favors them.
+This heuristic can also be customized by the user of the tool, which is one of the main strengths of E.
 \end{paragraph}
 
-\begin{figure}[b]
+\begin{figure}
 \input{img/fig-cyclic-proof}
 \caption{An example for a cyclic proof with transitive closure.}
 \label{b2:tc-cyclic-example}
@@ -177,8 +183,6 @@ Moreover, at least one step (here, $a[n^*]b\leadsto a[n^*]i$) is \emph{progressi
 
 \subsection{Recent advances in SAT and SMT}
 
-\input{img/fig-smt}
-
 Interest in algorithms for solving Boolean satisfiability (SAT) began with the development of the DPLL method \cite{DPLL1,DPLL2}.
 In its core it is very simple:
 It operates on a propositional CNF formula (conjunction of clauses), and follows two main principles:
@@ -195,6 +199,8 @@ CDCL improves over DPLL by using \emph{non chronological} backtracking, allowing
 The conflict clause then guides future decisions for assigning truth values to variables.
 CDCL solvers such as CaDiCaL~\cite{SAT2020:CaDiCaL} are being actively developed to this very day.
 Techniques and heuristics for choosing the backtracking destination and constructing conflict clauses is an active research area.
+
+\input{img/fig-smt}
 
 Despite the complexity of SAT (it is NP-complete), today's solvers are capable of solving surprisingly large instances occurring in hardware verification.
 For software verification, propositional logic is much too low-level to comfortably express our properties and semantics.

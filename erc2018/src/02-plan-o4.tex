@@ -28,28 +28,14 @@ Instead of building provers that specialize in SL, we should strive to express t
 \end{proposal}
 
 This is very much inspired by the success of SL in Coq as described above.
-By providing tools like VST as libraries for Coq, the creators were able to tap into a vast pool of existing knowledge and experience.
+By providing tools like VST as libraries for Coq rather than monolithic frameworks, the creators were able to tap into a vast pool of existing knowledge and experience.
 I intend to repeat this successful strategy in the field of automated reasoning.
 Doing so will require that we make some intermediate steps in which part of the reasoning would still be
 \emph{user-guided} or \emph{supervised}.
 The end goal remains to increase proof automation as much as possible.
 
-\begin{researchquestion}
-How can SL concepts be encoded in a logic based on TC,
-and how can we use a generic TC prover (from \autoref{plan-induction})
-to prove SL propositions?
-\end{researchquestion}
 
-This is an enticing question, because transitive closure can be used to define reachability properties,
-and reachability has a dual meaning in program analysis: \emph{state reachability} refers to execution paths,
-and \emph{heap reachability} refers to pointer paths in the program's memory.
-I have explored this duality in~\cite{ESOP2021:Ish-Shalom},
-where the concept was used to perfect safety proofs and complexity bound estimation.
-State reachability is a standard notion corresponding to \textbf{induction over time};
-heap reachability is used in Shape Analysis and is a form of \textbf{induction over space}.
-Using the same mechanism to express both types of reachability allow for a uniform treatment of both kinds of induction, and opens the door to potential other kinds that can be harnessed.
-
-\begin{figure}
+\begin{figure}[b]
 \centering
 \begin{tabular}{ll}
 \begin{lstlisting}[basicstyle=\linespread{1.36}\ttfamily\fontsize{10pt}{8pt}\selectfont]
@@ -72,6 +58,21 @@ reverse(h) :=
  }
 \label{b2:software-reverse}
 \end{figure}
+
+\begin{researchquestion}
+How can SL concepts be encoded in a logic based on TC,
+and how can we use a generic TC prover (from \autoref{plan-induction})
+to prove SL propositions?
+\end{researchquestion}
+
+This is an enticing question, because transitive closure can be used to define reachability properties,
+and reachability has a dual meaning in program analysis: \emph{state reachability} refers to execution paths,
+and \emph{heap reachability} refers to pointer paths in the program's memory.
+I have explored this duality in~\cite{ESOP2021:Ish-Shalom},
+where the concept was used to perfect safety proofs and complexity bound estimation.
+State reachability is a standard notion corresponding to \textbf{induction over time};
+heap reachability is used in Shape Analysis and is a form of \textbf{induction over space}.
+Using the same mechanism to express both types of reachability allow for a uniform treatment of both kinds of induction, and opens the door to potential other kinds that can be harnessed.
 
 Notice how in the example program \texttt{reverse}
 of \autoref{b2:software-reverse},
