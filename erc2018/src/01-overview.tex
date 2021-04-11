@@ -350,11 +350,11 @@ but pile up too many undecidable particles on top of one another, and frequent d
 Automated theorem provers piorneered and play a crucial rule in computerized formalization of mathematics.
 So far, they have taken the back seat when it comes to software verification and synthesis.
 This is about to change.
-The inclination of SMT solvers to integrate concepts of induction~\cite{VMCAI2015:Reynolds} and higher-order reasoning~\cite{Misc2020:Tourret} on one hand,
+The inclination of SMT solvers to integrate concepts of induction~\cite{VMCAI2015:Reynolds} and higher-order reasoning~\cite{CADE2019:Barbosa} on one hand,
 and the renewed success of ATPs in core PL areas such as Separation Logic on the other,
 mark the dawn of a new era in which ATP and SMT come together and join forces.
 
-The Matryoshka project (\cite{Misc2020:Tourret,CADE2020:Vukmirovic} and more) set as their target to enrich SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
+The Matryoshka project (\cite{CADE2019:Barbosa,Misc2020:Tourret,CADE2020:Vukmirovic} and more) set as their target to enrich SMT solvers with higher-order constructs such as recursive definitions and second-order quantification.
 Although this allows for a more natural, straightforward encoding of software-related queries, there is very much a glass ceiling imposed by the SMT core.
 Instead, this project's aim is to inspire a \textbf{paradigm shift} in prover design, putting less focus on fine-tuned heuristics to cover an ever-increasing set of benchmarks, and diverting more effort to \emph{transparency and comprehensibility} of the results.
 Generating short, readable proofs, as well as interpretable explanations in cases of failure to find a proof,
