@@ -7,7 +7,8 @@ function wip_flexiparse() {
     var lex;
     var lvl1 = {
             lex: lex = new PickLexer({'[': '\\[', ']': '\\]', '{': '{', '}': '}', '(': '\\(', ')': '\\)'}),
-            pars: new SpiralParser(Object.assign(new Grammar([
+            pars: new SpiralParser(Object.assign(
+                new Grammar([
                 new Rule('E', []), new Rule('E', ['P', 'E']),
                 new Rule('P', ['[]']), new Rule('P', ['{}']), new Rule('P', ['()']),
                 new Rule('[]', [{type: '['}, 'E', {type: ']'}]),
@@ -37,7 +38,7 @@ function wip_flexiparse() {
     var ast2 = lvl2.pars.parse(ast1.children.map(x => x.text || {type: x.type, value: <any>x}));
     console.log(ast2);
 
-    Object.assign(window, {lvl1, lvl2});
+    Object.assign(window, {lvl1, lvl2, SpiralParser});
     //console.log(lvl2.pars.parse(["s_0", "s, s", "s' \\vdash n(i)"]));
     //console.log(pars.parse(['s_0[R^*]s', {type: 'K', value: '0'}, 's[R]s\'']));
 

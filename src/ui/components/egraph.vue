@@ -1,6 +1,6 @@
 <template>
     <div class="egraph--container">
-        <svg ref="drawGraph" :height="height">
+        <svg ref="drawGraph" :height="size.y" :width="size.x">
         </svg>
         <div class="egraph--stats">{{stats}}</div>
     </div>
@@ -11,23 +11,23 @@ import { GraphvizAdapter } from '../graphs/graphviz';
 
 export default {
     props: ['egraph'],
-    data: () => ({height: 150}),
+    data: () => ({size: {x: 150, y: 150}}),
     mounted() {
         this.adapter = new GraphvizAdapter();
     },
     watch: {
         async egraph() {
             let svg = await this.adapter.render(this.egraph);
-            console.log(svg); //.getAttributeNS('viewPort'));
-            window.sbg = svg
             this.$refs.drawGraph.append(...svg.children);
-            this.height = svg.height.baseVal.valueInSpecifiedUnits;
+            this.size = {
+                x: svg.width.baseVal.valueInSpecifiedUnits,
+                y: svg.height.baseVal.valueInSpecifiedUnits
+            };
         }
     },
     computed: {
         stats() {
             var g = this.egraph;
-            console.log(g);
             if (g)
                 return `${g.nodeCount?.()} nodes, ${g.edgeCount?.()} hyperedges`;
         }

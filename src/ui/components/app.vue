@@ -11,7 +11,3 @@ export default {
     components: { Egraph }
 }
 </script>
-
-<style>
-
-</style>

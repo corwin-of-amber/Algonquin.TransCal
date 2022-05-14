@@ -104,12 +104,32 @@ class Parser extends nearley.Parser {
         return Object.assign([...iter()], { type });
     }
 
+    static compile(grammar: string, opts: CompileOptions = {}) {
+        var compiled = Parser.nearleyc(grammar);
+        if (opts.autokens) {
+            for (let rule of compiled.rules) {
+                rule.symbols = rule.symbols.map(s =>
+                    typeof s === 'string' && !(s in compiled.byName) ? 
+                    {type: s} : s)
+            }
+        }
+        return compiled;
+    }
+
     static nearleyc(grammar: string) {
         var parserGrammar = nearley.Grammar.fromCompiled(require('nearley/lib/nearley-language-bootstrapped.js'));
         var p = new nearley.Parser(parserGrammar);
         p.feed(grammar); p.feed('\n');
-        return new nearley.Grammar(Compile(p.results[0], {}).rules);
+        var compiled = Compile(p.results[0], {})
+        return nearley.Grammar.fromCompiled({
+            ParserStart: compiled.start,
+            ParserRules: compiled.rules
+        });
     }
+}
+
+type CompileOptions = {
+    autokens?: boolean   // automatically turn all terminals into tokens
 }
 
 
