@@ -37,7 +37,7 @@ class PickLexer implements nearley.Lexer {
     regexp: RegExp
     input: string
     chunkOffset: number
-    iter: Iterator<RegExpMatchArray>
+    iter: Iterator<Token, void>
 
     types: Map<string, string>
 
@@ -50,21 +50,39 @@ class PickLexer implements nearley.Lexer {
 
     start(input: string) {
         this.input = input;
-        this.iter = input.matchAll(this.regexp);
+        this.iter = this._iter(input);
         return this;
     }
 
+    *_iter(input: string): Generator<Token, void> {
+        let index = 0;
+        for (let mo of input.matchAll(this.regexp)) {
+            for (let ttok of this._skip(input, index, mo.index))
+                yield ttok;
+            yield this.tokenOf(mo);
+            index = mo.index + mo[0].length;
+        }
+        for (let ttok of this._skip(input, index, input.length))
+            yield ttok;
+    }
+
+    _skip(input: string, from: number, to: number): Token[] {
+        return to > from ?
+            this._mktext(input.slice(from, to),
+                         {start: from, end: to}) : [];
+    }
+
     reset(chunk: string, state: PickLexer.State) {
-        if (this.input) 
-            this.chunkOffset += this.input.length;
-        else
+        //if (this.input) 
+        //    this.chunkOffset += this.input.length;
+        //else
             this.chunkOffset = 0;
         this.start(chunk);
     }
 
     next(): Token {
         var next = this.iter.next();
-        return next.done ? null : this.tokenOf(next.value);
+        return next.done ? null : (next.value as Token);
     }
 
     formatError(e: any, msg: string) {
@@ -88,6 +106,11 @@ class PickLexer implements nearley.Lexer {
             if (v) return this.types.get(k) ?? k;
         }
         /** assert(false); /**/
+    }
+
+    _mktext(text: string, range?: CodeRange): Token[] {
+        text = text.trim();
+        return text ? [{type: '_', value: text, range}] : [];
     }
 }
 
@@ -115,7 +138,7 @@ class PassThroughLexer implements nearley.Lexer {
             this.buf = undefined;
         }
         else {
-            this.buf = this._filter([data]);
+            this.buf = [data]; //this._filter([data]);
         }
     }
     next(): nearley.Token {

@@ -1,0 +1,19 @@
+
+svg.egraph g.graph > polygon {
+    fill: none;
+}
+svg.egraph g.node > ellipse,
+svg.egraph g.node > polygon {
+    fill: white;
+    stroke: black;
+}
+svg.egraph g.node:hover > ellipse,
+svg.egraph g.node:hover > polygon {
+    fill: #eee;
+}
+svg.egraph g.node > text {
+    cursor: default;
+}
+svg.egraph g.edge > path {
+    stroke: black;
+}

@@ -1,17 +1,27 @@
 <template>
     <div class="egraph--container">
-        <svg ref="drawGraph" :height="size.y" :width="size.x">
+        <svg ref="drawGraph" class="egraph" :height="size.y" :width="size.x"
+            @mouseover="onMouseOver">
         </svg>
-        <div class="egraph--stats">{{stats}}</div>
+        <div class="egraph--stats">{{stats}}  {{hover}}</div>
     </div>
 </template>
 
+<style>
+@import "./egraph.css";  /** @todo kremlin drops the ball here */
+</style>
+
+
 <script>
 import { GraphvizAdapter } from '../graphs/graphviz';
+import './egraph.css';
 
 export default {
     props: ['egraph'],
-    data: () => ({size: {x: 150, y: 150}}),
+    data: () => ({
+        size: {x: 150, y: 150},
+        hover: {node: undefined, edge: undefined}
+    }),
     mounted() {
         this.adapter = new GraphvizAdapter();
     },
@@ -31,10 +41,12 @@ export default {
             if (g)
                 return `${g.nodeCount?.()} nodes, ${g.edgeCount?.()} hyperedges`;
         }
+    },
+    methods: {
+        onMouseOver(ev) {
+            var node = ev.target.closest('.node');
+            this.hover.node = node ? this.egraph.node(node.id) : undefined;
+        }
     }
 }
 </script>
-
-<style>
-
-</style>

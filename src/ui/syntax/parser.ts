@@ -1,5 +1,6 @@
 import assert from 'assert';
-import nearley from "nearley";
+import _ from 'lodash';
+import nearley from 'nearley'
 import Compile from 'nearley/lib/compile';
 import { Token } from './lexer';
 
@@ -7,7 +8,7 @@ import { Token } from './lexer';
 
 interface Ast<Tok = nearley.Token> {
     type: string;
-    children: Ast<Tok>[];
+    subtrees: Ast<Tok>[];
     range?: CodeRange;
     text?: string;
     token?: Tok;
@@ -19,6 +20,7 @@ interface CodeRange<P = number> {
 }
 
 class Parser extends nearley.Parser {
+    grammar: nearley.Grammar & {rigid?: string[], grouped?: string[]}
     initial: any;
 
     constructor(grammar: nearley.Grammar, options?: nearley.ParserOptions) {
@@ -26,14 +28,15 @@ class Parser extends nearley.Parser {
         this.initial = this.save();
     }
 
-    static prepare(grammar: nearley.Grammar & {Rigid?: string[]}) {
-        var rigid = grammar.Rigid || [];
+    static prepare(grammar: nearley.Grammar & {rigid?: string[], grouped?: string[]}) {
+        var rigid = grammar.rigid || [],
+            grouped = grammar.grouped || [];
         for (const rule of grammar.rules) {
             rule.postprocess = rigid.includes(rule.name)
-                ? (data: any[]) => this.unfold(data, rule.name)
+                ? (data: any[]) => this.unfold(Parser.group(data, rule, grouped), rule.name)
                 : rule.symbols.length === 1
                     ? (data: any[]) => data[0]
-                    : (data: any[]) => Object.assign(data, { type: rule.name });
+                    : (data: any[]) => Parser.group(data, rule, grouped); //[].concat(...data), {type: rule.name});
         }
         return grammar;
     }
@@ -62,25 +65,25 @@ class Parser extends nearley.Parser {
             return {
                 type: ast.type,
                 token: ast,
-                children: null,
+                subtrees: null,
                 range: ast.range,
             };
         } else if (Array.isArray(ast)) {
             return {
                 type: (<any>ast).type,
-                children: ast.map(s => this.toTree<Tok>(s))
+                subtrees: ast.map(s => this.toTree<Tok>(s))
             };
         }
         else assert(false, 'malformed parse tree');
     }
 
     setRanges<Tok>(ast: Ast<Tok>, offset = 0) {
-        for (let s of ast.children || []) {
+        for (let s of ast.subtrees || []) {
             this.setRanges(s, offset);
             offset = s.range.end;
         }
         if (!ast.range) {
-            ast.range = this.joinRanges((ast.children || []).map(s => s.range), offset);
+            ast.range = this.joinRanges((ast.subtrees || []).map(s => s.range), offset);
         }
         return ast;
     }
@@ -104,11 +107,29 @@ class Parser extends nearley.Parser {
         return Object.assign([...iter()], { type });
     }
 
+    static group(data: any[], rule: nearley.Rule, grouped: string[]) {
+        assert(data.length === rule.symbols.length);
+        var children = _.zip(data, rule.symbols).map(([d, sym]) =>
+            grouped.includes(sym) ? [d] : d);
+        return Object.assign([].concat(...children), {type: rule.name});
+    }
+
     static compile(grammar: string, opts: CompileOptions = {}) {
-        var compiled = Parser.nearleyc(grammar);
+        var compiled = Parser.nearleyc(grammar, prules => {
+            if (opts.autokens) {
+                for (let prule of prules) {
+                    for (let rule of prule.rules) {
+                        rule.tokens = rule.tokens.map((s: any) =>
+                            s.literal ? {token: s.literal} : s)
+                    }
+                }
+            }
+            return prules;
+        });
         if (opts.autokens) {
             for (let rule of compiled.rules) {
                 rule.symbols = rule.symbols.map(s =>
+                    s.token ? {type: s.token} :
                     typeof s === 'string' && !(s in compiled.byName) ? 
                     {type: s} : s)
             }
@@ -116,11 +137,11 @@ class Parser extends nearley.Parser {
         return compiled;
     }
 
-    static nearleyc(grammar: string) {
+    static nearleyc(grammar: string, preprocess: (prules: ParsedRule[]) => ParsedRule[] = x => x) {
         var parserGrammar = nearley.Grammar.fromCompiled(require('nearley/lib/nearley-language-bootstrapped.js'));
         var p = new nearley.Parser(parserGrammar);
         p.feed(grammar); p.feed('\n');
-        var compiled = Compile(p.results[0], {})
+        var compiled = Compile(preprocess(p.results[0]), {})
         return nearley.Grammar.fromCompiled({
             ParserStart: compiled.start,
             ParserRules: compiled.rules
@@ -128,32 +149,53 @@ class Parser extends nearley.Parser {
     }
 }
 
+type ParsedRule = {
+    name: string
+    rules: {tokens: ParsedToken[]}[]
+}
+type ParsedToken = string | {literal: string} | {type: string};
+
 type CompileOptions = {
     autokens?: boolean   // automatically turn all terminals into tokens
 }
 
 
 class SpiralParser extends Parser {
-    input = new Rope
+    grammar: nearley.Grammar & {rigid?: string[], absorb?: string[]}
+    //input = new Rope
 
-    parse<Tok>(program: (string | Token)[]) {
+    parse<Tok = SpiralParser.Token>(program: (string | Ast<SpiralParser.Token>)[]): Ast<Tok> {
         return super.parse<Tok>(<any>program);  // @oops
     }
 
-    feed(chunk: string | Token) {
-        this.input.push(chunk);
+    feed(chunk: string | Ast<SpiralParser.Token>) {
+        if (typeof chunk !== 'string') {
+            if (chunk.type === '_')
+                chunk = typeof chunk.token === 'string' ? chunk.token : chunk.token.value;
+            else
+                chunk = <any>{type: chunk.type, value: chunk.type, inner: chunk};
+        }
+        //this.input.push(chunk);
         return super.feed(<any>chunk);  // @oops
     }
 
     end<Tok>() {
         var t = super.end<Tok>();
         console.log('(*)', JSON.parse(JSON.stringify(t)));
-        return this.innerFiller(t, {start: 0, end: this.input.length + 1});
+        return t;
+        //return this.innerFiller(t, {start: 0, end: this.input.length + 1});
     }
 
+    restart(): void {
+        super.restart();
+        //this.input = new Rope;
+    }
+
+    /**
+     * @deprecated
     innerFiller<Tok>(ast: Ast<Tok>, range: CodeRange): Ast<Tok> {
         if (ast.children) {
-            var absorb = (ast.type == 'E') || ast.type == 'S1' || (ast.type == 'Q');
+            var absorb = this.grammar.absorb?.includes(ast.type);
             var acc = [],
                 pos = absorb ? range.start : ast.range.start,
                 end = absorb ? range.end : ast.range.end,
@@ -190,6 +232,13 @@ class SpiralParser extends Parser {
     _textNode(text: string) {
         return {type: '_', text, children: null};
     }
+    */
+}
+
+type SpiralToken = Token & {inner?: Ast<SpiralToken>}
+
+namespace SpiralParser {
+    export type Token = SpiralToken;
 }
 
 

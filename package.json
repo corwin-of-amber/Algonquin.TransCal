@@ -8,13 +8,16 @@
     "dependencies": {
         "graphlib": "^2.1.8",
         "graphlib-dot": "^0.6.4",
+        "lodash": "^4.17.21",
         "nearley": "^2.20.1",
+        "s-expression": "^3.1.1",
         "viz.js": "^2.1.2",
         "vue": "^3.2.33"
     },
     "devDependencies": {
         "@types/graphlib": "^2.1.8",
         "@types/graphlib-dot": "^0.6.1",
+        "@types/lodash": "^4.14.182",
         "@types/nearley": "^2.11.2",
         "@types/node": "^17.0.33",
         "@types/viz.js": "^2.1.2"

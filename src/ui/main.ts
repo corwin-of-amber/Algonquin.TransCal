@@ -4,19 +4,22 @@ import { Graph } from 'graphlib';
 import Egraph from './components/egraph.vue';
 import { createComponent } from './infra/vue-dev';
 
-import { wip_flexiparse } from './frontend';
+import { SexpFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
-import { treeToGraph } from './infra/tree';
+import { forestToGraph } from './infra/tree';
 
 
 async function main() {
     var app = createComponent<{egraph: Graph}>(Egraph)
                 .mount(document.body);
 
-    let ast = wip_flexiparse() as Ast<any>,
-        g = treeToGraph(ast, node => ({label: node.type}));
+    let ast = wip_flexiparse() as Ast<any>[],
+        g = forestToGraph(ast, node => ({label: node.type}));
 
-    app.egraph = g;
+    let fe = new SexpFrontend;
+    fe.add('inline', ['(+ (S n) m)', '(+ n (S m))'])
+
+    app.egraph = fe.asGraph();
 
     Object.assign(window, {app, ast, g});
 }
