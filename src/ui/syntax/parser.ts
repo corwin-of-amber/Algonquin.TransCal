@@ -2,6 +2,7 @@ import assert from 'assert';
 import _ from 'lodash';
 import nearley from 'nearley'
 import Compile from 'nearley/lib/compile';
+import { postorderWalk } from '../infra/tree';
 import { Token } from './lexer';
 
 
@@ -18,6 +19,20 @@ interface CodeRange<P = number> {
     start: P;
     end: P;
 }
+
+namespace Ast {
+    export function *terminals<Tok>(ast: Ast<Tok>) {
+        for (let u of postorderWalk(ast)) {
+            if (u.token && !u.subtrees) yield u.token;
+        }
+    }
+
+    export function toText<Tok extends nearley.Token>(ast: Ast<Tok>) {
+        return [...terminals(ast)].map(tok => 
+            typeof tok === 'string' ? tok : tok.value).join('');
+    }
+}
+
 
 class Parser extends nearley.Parser {
     grammar: nearley.Grammar & {rigid?: string[], grouped?: string[]}
@@ -114,7 +129,7 @@ class Parser extends nearley.Parser {
         return Object.assign([].concat(...children), {type: rule.name});
     }
 
-    static compile(grammar: string, opts: CompileOptions = {}) {
+    static compile(grammar: string, opts: CompileOptions = {}, extra: GrammarExtra = {}) {
         var compiled = Parser.nearleyc(grammar, prules => {
             if (opts.autokens) {
                 for (let prule of prules) {
@@ -134,7 +149,7 @@ class Parser extends nearley.Parser {
                     {type: s} : s)
             }
         }
-        return compiled;
+        return Object.assign(compiled, extra);
     }
 
     static nearleyc(grammar: string, preprocess: (prules: ParsedRule[]) => ParsedRule[] = x => x) {
@@ -159,9 +174,11 @@ type CompileOptions = {
     autokens?: boolean   // automatically turn all terminals into tokens
 }
 
+type GrammarExtra = {};
+
 
 class SpiralParser extends Parser {
-    grammar: nearley.Grammar & {rigid?: string[], absorb?: string[]}
+    grammar: SpiralParser.Grammar
     //input = new Rope
 
     parse<Tok = SpiralParser.Token>(program: (string | Ast<SpiralParser.Token>)[]): Ast<Tok> {
@@ -189,6 +206,10 @@ class SpiralParser extends Parser {
     restart(): void {
         super.restart();
         //this.input = new Rope;
+    }
+
+    static compile(grammar: string, opts: CompileOptions = {}, extra: SpiralParser.GrammarExtra = {}) {
+        return Parser.compile(grammar, opts, extra);
     }
 
     /**
@@ -239,6 +260,8 @@ type SpiralToken = Token & {inner?: Ast<SpiralToken>}
 
 namespace SpiralParser {
     export type Token = SpiralToken;
+    export type GrammarExtra = {rigid?: string[], grouped?: string[]};
+    export type Grammar = nearley.Grammar & GrammarExtra;
 }
 
 
@@ -274,5 +297,4 @@ class Rope {
 }
 
 
-export { Parser, SpiralParser };
-export type { Ast, CodeRange };
+export { Parser, SpiralParser, Ast, CodeRange };

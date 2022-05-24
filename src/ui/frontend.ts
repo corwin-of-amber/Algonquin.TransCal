@@ -1,16 +1,19 @@
 import { Grammar, Rule } from 'nearley';
-import { Tree, preorderWalk, postorderWalk } from './infra/tree';
+import { Tree, preorderWalk, postorderWalk, treeClone } from './infra/tree';
 import { PickLexer, PassThroughLexer, Token } from './syntax/lexer';
 import { Ast, SpiralParser } from './syntax/parser';
 
 import sexpParse from 's-expression';
 import { enumerate } from './infra/itertools';
-import { Hyperedge, Hypergraph } from './graphs/hypergraph';
+import { ViviMap } from './infra/collections';
+import { Hyperedge, Hypergraph, HypernodeId } from './graphs/hypergraph';
+import { RewriteRule } from './graphs/rewrites';
 
 
 
 class SexpFrontend {
     edges: Hyperedge[] = []
+    maxId = 0
 
     add(name: string, statements: string[]) {
         var exprs = [];
@@ -22,38 +25,231 @@ class SexpFrontend {
                 console.error(`(in ${name}:${i})`, e);
             }
         }
-        this.edges.push(...this.edgesOf(exprs));
+        this.incorporate(exprs);
+    }
+
+    compile(sexps: (Sexp | string)[]) {
+        var asts = sexps.map(sexp => this.sexpToTree(sexp)),
+            edges = [...this.edgesOf(asts)];
+        return asts.map(ast => ({ast, edges: edges.filter(e => e.origin == ast)}));
     }
 
     asGraph() {
         return Hypergraph.toGraph(this.edges);
     }
 
-    sexpToTree(sexp: Sexp): Ast<Token> {
+    sexpToTree(sexp: Sexp | string): Ast<Token> {
+        sexp = SexpFrontend.sexpPromote(sexp);
         var type = sexp[0].toString(), /* should be a string */
             subtrees = sexp.slice(1).map(c =>
                 this.sexpToTree(typeof c === 'string' ? [c] : c));
-        return {type, subtrees}
+        return {type, subtrees};
     }
 
-    *edgesOf(forest: Ast<Token>[]) {
+    incorporate(forest: Ast<Token>[]) {
+        this.edges.push(...this.edgesOf(forest, true));
+    }
+
+    *edgesOf(forest: Ast<Token>[], incorporate = false):
+                Generator<Hyperedge & {origin: Ast<Token>, node: Ast<Token>}> {
         // assign ids to nodes
-        let idmap = generateIds(forest);
+        let idmap = generateIds(forest, incorporate ? this.maxId + 1 : 1);
+        if (incorporate) this.maxId = Math.max(...idmap.values());
 
         for (let t of forest) {
-            for (let node of postorderWalk(t)) {
+            for (let node of preorderWalk(t)) {
                 yield {
                     op: node.type,
                     target: idmap.get(node),
-                    sources: node.subtrees.map(s => idmap.get(s))
+                    sources: node.subtrees.map(s => idmap.get(s)),
+                    origin: t, node
                  };
             }
         }
+    }
+
+    static sexpPromote(sexp: Sexp | string): Sexp {
+        return typeof sexp === 'string' ? sexpParse(sexp) : sexp;
     }
 }
 
 type Sexp = (string | Sexp)[];
 
+
+class RuleProcessor {
+
+    edgesToRule(fromEdges: Hyperedge[], toEdges: Hyperedge[], name?: string) {
+        let vars = this.getVars([...fromEdges, ...toEdges]),
+            //toVars = this.getVars(toEdges),
+            rule = [this.edgesToRuleSide(fromEdges, vars),
+                    this.edgesToRuleSide(toEdges, vars)];
+                    
+        this.compactIdsInplace([].concat(...rule));
+        return new RewriteRule(name ?? '<rule>', rule[0], rule[1]);
+    }
+
+    edgesToRuleSide(edges: Hyperedge[], vars = this.getVars(edges)) {
+        return edges.map(e =>
+            (e.sources.length === 0 && vars.has(e.op)) ? undefined
+                : this.remapVars(e, vars)
+        ).filter(x => x);
+    }
+
+    getVars(edges: Hyperedge[]) {
+        var vars = new ViviMap<string, HypernodeId[]>().withFactory(() => []);
+        for (let e of edges) {
+            if (e.sources.length === 0 && this.isVar(e.op))
+                vars.get(e.op).push(e.target);
+        }
+        return vars;
+    }
+
+    remapVars(e: Hyperedge, vars: Map<string, HypernodeId[]>) {
+        let canonize = (hnid: HypernodeId) => {
+            for (let v of vars.values())
+                if (v.includes(hnid)) return v[0];
+            return hnid;
+        }
+        return {...e, 
+            target: canonize(e.target),
+            sources: e.sources.map(canonize)
+        };
+    }
+
+    compactIdsInplace(es: Hyperedge[]) {
+        var defrag = [],
+            visit = (hnid: HypernodeId) => defrag.includes(hnid) || defrag.push(hnid),
+            recall = (hnid: HypernodeId) => defrag.indexOf(hnid) + 1;
+        for (let e of es) 
+            [e.target, ...e.sources].forEach(visit);
+        
+        for (let e of es) {
+            e.target = recall(e.target);
+            e.sources = e.sources.map(recall);
+        }
+        return es;
+    }
+
+    isVar(name: string) {
+        return /^\w+$/.test(name);
+    }
+}
+
+
+class VernacFrontend {
+    passes: flexiparse.Pass[]
+    asts: Ast<SpiralParser.Token>[] = []
+
+    sexpFe = new SexpFrontend
+    rp = new RuleProcessor
+
+    constructor() {
+        var lex = new PickLexer({'(': '\\(', ')': '\\)', '""': '"[^"]*"'});
+        var layer1 = new SpiralParser(Object.assign(
+            new Grammar([
+                new Rule('S', []), new Rule('S', ['A', 'S']),
+                new Rule('A', [{type: '_'}]),
+                new Rule('A', ['()']),
+                new Rule('A', [{type: '""'}]),
+                new Rule('()', [{type: '('}, 'S', {type: ')'}])
+            ]), {rigid: ['S'], grouped: ['S', 'A']}), {lexer: lex});
+    
+        lex = new PickLexer({'rewrite': 'rewrite', ':-': ':-', '->': '->'});
+        var layer2 = new SpiralParser(
+            SpiralParser.compile(`
+                S -> RW | ASRT
+                RW -> "rewrite" NM "()" "->" "()"
+                NM -> "\\"\\"" | null
+                ASRT -> ":-" "()"
+            `, {autokens: true}, {rigid: ['NM'], grouped: ['RW', 'ASRT', 'NM']}),
+            {lexer: new PassThroughLexer(lex)}
+        );
+
+        this.passes = [
+            new flexiparse.Pass(layer1, []), 
+            new flexiparse.Pass(layer2, ['S']).with({deep: false})
+        ];
+    }
+
+    add(name: string, statements: string[]) {
+        for (let stmt of statements) {
+            let ast = this.passes[0].parser.parse([stmt]);
+            this.asts.push(treeClone(ast));
+            try {
+                ast = this.passes[1].reprocess(ast);
+                this.asts.push(ast);
+                let s = ast.subtrees;
+                switch (ast.type) {
+                case 'RW': 
+                    this.addRewrite(s[2], s[4],
+                        s[0].subtrees ? s[1].subtrees[0].token.inner.token.value : undefined);
+                    break;
+                case 'ASRT':
+                    this.sexpFe.add(name, [Ast.toText(s[1])]);
+                }
+            }
+            catch (e) { console.error(`(in ${name}, statement '${stmt}')`, e); }
+        }
+    }
+
+    addRewrite(from: Ast, to: Ast, name?: string) {
+        console.log('----', Ast.toText(from), Ast.toText(to))
+        //this.sexpFe.add('incoming rule', [Ast.toText(from), Ast.toText(to)]);
+        var [cfrom, cto] = this.sexpFe.compile(
+            [from, to].map(t => Ast.toText(t)));
+        for (let e of cto.edges) if (e.node === cto.ast) e.target = 1;
+        let rule = this.rp.edgesToRule(cfrom.edges, cto.edges, name);
+        console.log(rule.exportToCpp());
+    }
+}
+
+
+namespace flexiparse {
+
+    export class Pass<Token extends SpiralParser.Token = SpiralParser.Token> {
+        descend: (node: Ast<Token>) => Ast<Token>[] = node => node.subtrees
+        deep = true
+
+        constructor(
+            public parser: SpiralParser, 
+            public drill: string[]) {    
+        }
+
+        with(attrs: any) {
+            Object.assign(this, attrs);  /** @todo typing */
+            return this;
+        }
+
+        reprocess(ast: Ast<Token>) {
+            var delayed = [];
+            for (let node of preorderWalk(ast)) {
+                if (this.drill.includes(node.type)) {
+                    let subexpr = this.descend(node),
+                        reast = this.reroot(this.parser.parse(subexpr));
+                    // prune tree here and later attach `reast` instead
+                    node.subtrees = [];
+                    node.type = reast.type;
+                    delayed.push(() => node.subtrees = reast.subtrees);
+                }
+            }
+            // recursively reprocess
+            for (let op of delayed) op();
+            return ast;
+        }
+    
+        reroot(ast: Ast<Token>) {
+            for (let o of preorderWalk(ast)) {
+                if (typeof o.token === 'object' && o.token.inner) {
+                    let t = this.deep ? this.reprocess(o.token.inner as Ast<Token>)
+                                      : o.token.inner;
+                    o.type = o.token.inner.type;
+                    o.subtrees = t.subtrees as Ast<Token>[];
+                }
+            }
+            return ast;
+        }
+    }
+}
 
 function wip_flexiparse() {
     var lex;
@@ -180,4 +376,4 @@ function generateIds<T>(forest: Tree<T>[], start = 0) {
 }
 
 
-export { SexpFrontend, wip_flexiparse }
+export { SexpFrontend, VernacFrontend, wip_flexiparse }

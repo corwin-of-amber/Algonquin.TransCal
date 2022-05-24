@@ -157,7 +157,7 @@ class PassThroughLexer implements nearley.Lexer {
 }
 
 
-type Token = {type: string, range?: CodeRange} & nearley.Token
+type Token = {type: string, range?: CodeRange, value?: string} & nearley.Token
 type CodeRange = {start: number, end: number}
 
 

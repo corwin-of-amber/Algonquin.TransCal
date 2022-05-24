@@ -10,7 +10,6 @@ class GraphvizAdapter {
     async render(graph: Graph) {
         this.setIds(graph);
         let dotText = dot.write(graph);
-        console.log(dotText);
         return this.strip(await this.viz.renderSVGElement(dotText));
     }
 

@@ -46,6 +46,14 @@ namespace Hypergraph {
             g.setNode(u, {label: id, ...STYLES.hypernode});
         return u;
     }
+
+    export function exportToCpp(edges: Hyperedge[]) {
+        return edges.map(exportEdgeToCpp).join('\n') + '\n';
+    }
+
+    export function exportEdgeToCpp(e: Hyperedge) {
+        return `${e.op} ${[e.target, ...e.sources].join(' ')}`;
+    }
 }
 
 

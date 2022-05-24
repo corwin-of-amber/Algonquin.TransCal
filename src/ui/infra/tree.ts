@@ -27,7 +27,7 @@ function forestToGraph<T, K extends Tree<T>>(ts: K[], labelFunc: (t: K) => any =
     let mp = new Map<Tree<T>, number>(), i = 0;
 
     let mkLabel = (node: K, lbl: any) =>
-        ({data: node, ...(typeof lbl === 'object' ? lbl : {label: lbl})});
+        ({data: node, ...(typeof lbl === 'object' ? lbl : lbl && {label: lbl})});
 
     for (let t of ts) {
         for (let node of preorderWalk(t))
@@ -44,5 +44,16 @@ function forestToGraph<T, K extends Tree<T>>(ts: K[], labelFunc: (t: K) => any =
     return g;
 }
 
+function mapNodes<T, K extends Tree<T>>(t: K, f: (t: K) => K): K {
+    var nt = f(t);
+    nt.subtrees = t.subtrees?.map(s => mapNodes(s, f));
+    return nt;
+}
 
-export { Tree, preorderWalk, postorderWalk, treeToGraph, forestToGraph }
+function treeClone<T, K extends Tree<T>>(t: K) {
+    return mapNodes(t, t => ({...t}));
+}
+
+
+export { Tree, preorderWalk, postorderWalk, treeToGraph, forestToGraph,
+         mapNodes, treeClone }
