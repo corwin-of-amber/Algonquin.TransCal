@@ -198,9 +198,8 @@ class SpiralParser extends Parser {
 
     end<Tok>() {
         var t = super.end<Tok>();
-        console.log('(*)', JSON.parse(JSON.stringify(t)));
+        //console.log('(*)', JSON.parse(JSON.stringify(t)));
         return t;
-        //return this.innerFiller(t, {start: 0, end: this.input.length + 1});
     }
 
     restart(): void {

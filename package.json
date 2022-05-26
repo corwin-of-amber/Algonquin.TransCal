@@ -3,9 +3,11 @@
     "version": "0.1.0",
     "main": "build/kremlin/index.html",
     "scripts": {
-        "build": "kremlin index.html"
+        "build": "kremlin index.html",
+        "build:cppnator": "kremlin --node -o build/cppnator src/other/the-cppnator.ts"
     },
     "dependencies": {
+        "commander": "^9.2.0",
         "graphlib": "^2.1.8",
         "graphlib-dot": "^0.6.4",
         "lodash": "^4.17.21",
