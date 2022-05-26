@@ -8,6 +8,7 @@
     },
     "dependencies": {
         "commander": "^9.2.0",
+        "concat-stream": "^2.0.0",
         "graphlib": "^2.1.8",
         "graphlib-dot": "^0.6.4",
         "lodash": "^4.17.21",
@@ -17,6 +18,7 @@
         "vue": "^3.2.33"
     },
     "devDependencies": {
+        "@types/concat-stream": "^2.0.0",
         "@types/graphlib": "^2.1.8",
         "@types/graphlib-dot": "^0.6.1",
         "@types/lodash": "^4.14.182",

@@ -17,7 +17,7 @@ import { GraphvizAdapter } from '../graphs/graphviz';
 import './egraph.css';
 
 export default {
-    props: ['egraph'],
+    props: ['egraph', 'layoutStylesheet'],
     data: () => ({
         size: {x: 150, y: 150},
         hover: {node: undefined, edge: undefined}
@@ -27,7 +27,9 @@ export default {
     },
     watch: {
         async egraph() {
+            this.adapter.stylesheet = this.layoutStylesheet;
             let svg = await this.adapter.render(this.egraph);
+            this.$refs.drawGraph.textContent = '';
             this.$refs.drawGraph.append(...svg.children);
             this.size = {
                 x: svg.width.baseVal.valueInSpecifiedUnits,

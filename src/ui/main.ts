@@ -7,6 +7,8 @@ import { createComponent } from './infra/vue-dev';
 import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
+import { Hypergraph } from './graphs/hypergraph';
+import { Backend } from './graphs/backend-interface';
 
 
 function astsToGraph(forest: Ast<any>[]) {
@@ -14,7 +16,7 @@ function astsToGraph(forest: Ast<any>[]) {
 }
 
 async function main() {
-    var app = createComponent<{egraph: Graph}>(Egraph)
+    var app = createComponent<{egraph: Graph, layoutStylesheet: any}>(Egraph)
                 .mount(document.body);
 
     /*
@@ -32,19 +34,27 @@ async function main() {
         'rewrite ":+ []" (:+ [] x) -> (:: x [])',
         'rewrite ":+ ::" (:+ (:: x xs) y) -> (:: x (:+ xs y))',
         'rewrite "rev []" (rev []) -> ([])',
-        'rewrite (rev (:: x xs)) -> (:+ (rev xs) x)'
+        'rewrite "rev ::" (rev (:: x xs)) -> (:+ (rev xs) x)'
     ]);
     vfe.add('prog', [
-        ':- (rev (:+ (:: x xs) y))'
+        ':- (rev (:+ (:: x xs) y))',
+        ':- (:: y (rev (:: x xs)))'
     ]);
 
-    console.log(vfe.asts);
-    //app.egraph = astsToGraph(vfe.asts);
-    let g = vfe.sexpFe.asGraph();
-    g.setGraph({ranksep: 0.3, nodesep: 0.4});
-    app.egraph = g;
+    app.layoutStylesheet = {
+        graph: {ranksep: 0.3, nodesep: 0.4}
+    };
 
-    Object.assign(window, {app, g});
+    app.egraph = vfe.sexpFe.asGraph();
+
+    var be = new Backend;
+    be.writeProblem({input: vfe.sexpFe.edges, rules: vfe.rules});
+    var sol = await be.execute();
+
+    vfe.sexpFe.edges = Hypergraph.importFromCpp(sol);
+    app.egraph = vfe.sexpFe.asGraph();
+
+    Object.assign(window, {app});
 }
 
 

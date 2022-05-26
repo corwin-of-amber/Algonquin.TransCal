@@ -139,6 +139,7 @@ class RuleProcessor {
 class VernacFrontend {
     passes: flexiparse.Pass[]
     asts: Ast<SpiralParser.Token>[] = []
+    rules: RewriteRule[] = []
 
     sexpFe = new SexpFrontend
     rp = new RuleProcessor
@@ -182,7 +183,7 @@ class VernacFrontend {
                 switch (ast.type) {
                 case 'RW': 
                     this.addRewrite(s[2], s[4],
-                        s[0].subtrees ? s[1].subtrees[0].token.inner.token.value : undefined);
+                        s[1].subtrees ? s[1].subtrees[0].token.inner.token.value : undefined);
                     break;
                 case 'ASRT':
                     this.sexpFe.add(name, [Ast.toText(s[1])]);
@@ -198,8 +199,7 @@ class VernacFrontend {
         var [cfrom, cto] = this.sexpFe.compile(
             [from, to].map(t => Ast.toText(t)));
         for (let e of cto.edges) if (e.node === cto.ast) e.target = 1;
-        let rule = this.rp.edgesToRule(cfrom.edges, cto.edges, name);
-        console.log(rule.exportToCpp());
+        this.rules.push(this.rp.edgesToRule(cfrom.edges, cto.edges, name));
     }
 }
 

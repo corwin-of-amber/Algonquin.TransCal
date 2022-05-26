@@ -16,4 +16,5 @@ svg.egraph g.node > text {
 }
 svg.egraph g.edge > path {
     stroke: black;
+    fill: none;
 }

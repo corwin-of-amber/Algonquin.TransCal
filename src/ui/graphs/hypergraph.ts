@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { Graph } from 'graphlib';
 import { enumerate } from '../infra/itertools';
 
@@ -53,6 +54,18 @@ namespace Hypergraph {
 
     export function exportEdgeToCpp(e: Hyperedge) {
         return `${e.op} ${[e.target, ...e.sources].join(' ')}`;
+    }
+
+    export function importFromCpp(text: string): Hyperedge[] {
+        let lines = text.split('\n').map(s => s.trim()).filter(s => s);
+        return lines.map(ln => importEdgeFromCpp(ln));
+    }
+
+    export function importEdgeFromCpp(s: string): Hyperedge {
+        let splt = s.split(/\s+/),
+            ids = splt.slice(1).map(x => parseInt(x));
+        assert(ids.every(x => typeof x === 'number'));
+        return {op: splt[0], target: ids[0], sources: ids.slice(1)};
     }
 }
 

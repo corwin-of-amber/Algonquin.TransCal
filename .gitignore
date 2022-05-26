@@ -21,7 +21,7 @@ target/
 .*.swp
 _npmlink
 
-
+/data/tmp
 node_modules
 
 

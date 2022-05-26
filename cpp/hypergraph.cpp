@@ -80,7 +80,7 @@ public:
                       Valuation& valuation,
                       MatchCb cb);
 
-    void merge(Vertex* u, Vertex* v);
+    Vertex *merge(Vertex* u, Vertex* v);
     void compact(Vertex* u);
     void compact();
 
@@ -255,16 +255,16 @@ void Hypergraph::findSubgraph(std::vector<Edge>& pattern,
     }
 }
 
-void Hypergraph::merge(Vertex* u, Vertex* v) {
+Hypergraph::Vertex *Hypergraph::merge(Vertex* u, Vertex* v) {
     while (u->merged) u = u->merged;
     while (v->merged) v = v->merged;
-    if (u == v) return;
+    if (u == v) return u;
 
     dirty = true;
 
     if (v->id < u->id) std::swap(u, v);
 
-    //std::cerr << "merge " << u->id << "~" << v->id << std::endl;
+    std::cerr << "merge " << u->id << "~" << v->id << std::endl;
 
     for (auto& ie : v->edges) {
         ie.e->vertices[ie.index] = u;
@@ -272,6 +272,7 @@ void Hypergraph::merge(Vertex* u, Vertex* v) {
         u->edges.push_back(ie);
     }
     v->merged = u;
+    return u;
 }
 
 template <typename T>
@@ -299,10 +300,25 @@ void Hypergraph::compact(Vertex* u) {
             }
         }
     }
+    /* oops: need to go over nullary edges as well. */
+    /* really need to avoid this. */
+    for (auto& entry : edges_by_kind) {
+        Vertex *nullary_rep = NULL;
+        for (auto e : entry.second) {
+            if (!e->removed && e->vertices.size() == 1) {
+                auto u = e->vertices[0];
+                if (nullary_rep == NULL) nullary_rep = u;
+                else {
+                    nullary_rep = merge(nullary_rep, u);
+                    removeEdge(e);
+                }
+            }
+        }
+    }
 }
 
 void Hypergraph::compact() {
-    std::cout << " (compact)" << std::endl;
+    std::cerr << " (compact)" << std::endl;
     do {
         dirty = false;
         for (auto& u : vertices) {
@@ -398,6 +414,9 @@ public:
 
     void apply(Hypergraph& g, int gen_req = 0, cmp_t gen_cmp = GEQ);
 
+    static void fromTextMultiple(std::istream& in,
+        std::vector<RewriteRule>& rules);
+
     static void putHoles(Hypergraph& g);
 };
 
@@ -425,6 +444,14 @@ void RewriteRule::putHoles(Hypergraph& g) {
     for (auto& u : g.vertices) u.id = -u.id;
 }
 
+void RewriteRule::fromTextMultiple(std::istream& in,
+                                   std::vector<RewriteRule>& rules) {
+    while (!in.eof()) {
+        rules.push_back(RewriteRule());
+        rules[rules.size() - 1].fromText(in);
+    }
+}
+
 
 void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
@@ -435,17 +462,17 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
     std::vector<Hypergraph::Edge> edges;
 
-    std::cout << "trying " << name << std::endl;
+    std::cerr << "trying " << name << std::endl;
 
     g.findSubgraph(premise.edges, nholes, gen_max, [&] (Hypergraph::Valuation& valuation, int gen) {
         if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
 
-        std::cout << "match [";
+        std::cerr << "match [";
         for (auto u : valuation) {
             assert(u);
-            std::cout << " " << u->id;
+            std::cerr << " " << u->id;
         }
-        std::cout << "] " << name << std::endl;
+        std::cerr << "] " << name << std::endl;
 
         int k = valuation.size(), n = conclusion.vertices.size();
         Hypergraph::Valuation extras(std::max(0, n - k));
@@ -697,7 +724,7 @@ void coordinate_heuristic(Reconstruct& r, Hypergraph::Vertex* u, Hypergraph::Ver
     });
 
     if (flag) {
-        std::cout << "  **** diagonally " << r.minimal(skel, 2) << std::endl;
+        std::cerr << "  **** diagonally " << r.minimal(skel, 2) << std::endl;
         Hypergraph::Vertex* dskel = NULL;
         for (auto& e : skel->edges) {
             if (e.index == 1 && e.e->kind == ldiag) {
