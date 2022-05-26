@@ -3,7 +3,7 @@
         <svg ref="drawGraph" class="egraph" :height="size.y" :width="size.x"
             @mouseover="onMouseOver">
         </svg>
-        <div class="egraph--stats">{{stats}}  {{hover}}</div>
+        <div class="egraph--stats">{{stats}}<br/>{{hover}}</div>
     </div>
 </template>
 

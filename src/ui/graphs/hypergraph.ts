@@ -20,22 +20,33 @@ namespace Hypergraph {
             margin: "0.05,0", width: "0.1", height: "0.1",
             pad: "0.05"
         },
-        hyperedge: {
-            class: 'hyperedge',
+        nucleus: {
+            class: 'hyperedge--nucleus',
             shape: 'ellipse',
             margin: "0.05,0", width: "0.1", height: "0.1",
             pad: "0.05"
+        },
+        source: (i: number, k: number) => ({
+            class: 'hyperedge--source',
+            ...k > 1 ? {headlabel: i} : {},
+            data: {is: 'source', index: i, outOf: k},
+            arrowhead: "none", labelfontsize: "10pt"
+        }),
+        target: {
+            class: 'hyperedge--target',
+            arrowhead: "normal" ,
+            data: {is: 'target'}           
         }
     }
 
     export function toGraph(edges: Hyperedge[]) {
         var g = new Graph();
         for (let [i, e] of enumerate(edges)) {
-            var eid = `e${i}`;
-            g.setNode(eid, {label: e.op, ...STYLES.hyperedge});
-            g.setEdge(eid, nodeHelper(g, e.target), {arrowhead: "normal"});
-            for (let u of e.sources)
-                g.setEdge(nodeHelper(g, u), eid, {arrowhead: "none"});
+            var eid = `e${i}`, k = e.sources.length;
+            g.setNode(eid, {label: e.op, ...STYLES.nucleus});
+            g.setEdge(eid, nodeHelper(g, e.target), STYLES.target);
+            for (let [i, u] of enumerate(e.sources))
+                g.setEdge(nodeHelper(g, u), eid, STYLES.source(i, k));
         }
 
         return g;
