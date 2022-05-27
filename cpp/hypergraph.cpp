@@ -81,8 +81,11 @@ public:
                       MatchCb cb);
 
     Vertex *merge(Vertex* u, Vertex* v);
+    void compact0();
     void compact(Vertex* u);
     void compact();
+
+    bool is_functional(label_t kind) const;
 
     // ------------
     // Input/output
@@ -291,6 +294,7 @@ void Hypergraph::compact(Vertex* u) {
             for (int j = i + 1; j < edgeset.size(); ++j) {
                 auto& e2 = edgeset[j];
                 if (e2.index == e1.index && e2.e->kind == e1.e->kind && 
+                     is_functional(e1.e->kind) &&
                      slices_equal(e2.e->vertices, e1.e->vertices, 1)) {
                     Vertex *v1 = e1.e->vertices[0],
                            *v2 = e2.e->vertices[0];
@@ -300,6 +304,9 @@ void Hypergraph::compact(Vertex* u) {
             }
         }
     }
+}
+
+void Hypergraph::compact0() {
     /* oops: need to go over nullary edges as well. */
     /* really need to avoid this. */
     for (auto& entry : edges_by_kind) {
@@ -321,6 +328,7 @@ void Hypergraph::compact() {
     std::cerr << " (compact)" << std::endl;
     do {
         dirty = false;
+        compact0();
         for (auto& u : vertices) {
             if (!u.merged)
                 compact(&u);
@@ -328,7 +336,15 @@ void Hypergraph::compact() {
     } while(dirty);
 }
 
+#ifndef __cppnator_header
+namespace special_edges {
+    static const Hypergraph::label_t COND_MERGE = Hypergraph::str2label("?~");
+}
+#endif
 
+bool Hypergraph::is_functional(label_t kind) const {
+    return kind != special_edges::COND_MERGE;
+}
 
 void Hypergraph::fromText(std::istream& in) {
 

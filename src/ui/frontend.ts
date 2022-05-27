@@ -16,26 +16,30 @@ class SexpFrontend {
     maxId = 0
 
     add(name: string, statements: string[]) {
-        var exprs = [];
+        var exprs: CompiledSexp[] = [];
         for (let [i, stmt] of enumerate(statements)) {
             try {
-                exprs.push(this.sexpToTree(sexpParse(stmt)));
+                exprs.push(this.compile([stmt], true)[0]);
             }
             catch (e) {
                 console.error(`(in ${name}:${i})`, e);
             }
         }
         this.incorporate(exprs);
+        return exprs;
     }
 
-    compile(sexps: (Sexp | string)[]) {
+    compile(sexps: (Sexp | string)[], incorporate = false): CompiledSexp[] {
         var asts = sexps.map(sexp => this.sexpToTree(sexp)),
-            edges = [...this.edgesOf(asts)];
-        return asts.map(ast => ({ast, edges: edges.filter(e => e.origin == ast)}));
+            edges = [...this.edgesOf(asts, incorporate)];
+        return asts.map(ast => ({ast, 
+            edges: edges.filter(e => e.origin == ast),
+            head: edges.find(e => e.node == ast)
+        }));
     }
 
-    asGraph() {
-        return Hypergraph.toGraph(this.edges);
+    asHypergraph() {
+        return new Hypergraph(this.edges);
     }
 
     sexpToTree(sexp: Sexp | string): Ast<Token> {
@@ -46,8 +50,9 @@ class SexpFrontend {
         return {type, subtrees};
     }
 
-    incorporate(forest: Ast<Token>[]) {
-        this.edges.push(...this.edgesOf(forest, true));
+    incorporate(exprs: CompiledSexp[]) {
+        for (let expr of exprs)
+            this.edges.push(...expr.edges);
     }
 
     *edgesOf(forest: Ast<Token>[], incorporate = false):
@@ -74,13 +79,18 @@ class SexpFrontend {
 }
 
 type Sexp = (string | Sexp)[];
+type CompiledHyperedge = Hyperedge & {origin: Ast<Token>, node: Ast<Token>};
+type CompiledSexp = {
+    ast: Ast<Token>,
+    edges: CompiledHyperedge[],
+    head: CompiledHyperedge
+};
 
 
 class RuleProcessor {
 
     edgesToRule(fromEdges: Hyperedge[], toEdges: Hyperedge[], name?: string) {
         let vars = this.getVars([...fromEdges, ...toEdges]),
-            //toVars = this.getVars(toEdges),
             rule = [this.edgesToRuleSide(fromEdges, vars),
                     this.edgesToRuleSide(toEdges, vars)];
                     
@@ -140,6 +150,7 @@ class VernacFrontend {
     passes: flexiparse.Pass[]
     asts: Ast<SpiralParser.Token>[] = []
     rules: RewriteRule[] = []
+    labeled = new Map<string, HypernodeId>()
 
     sexpFe = new SexpFrontend
     rp = new RuleProcessor
@@ -148,12 +159,13 @@ class VernacFrontend {
         var lex = new PickLexer({'(': '\\(', ')': '\\)', '""': '"[^"]*"'});
         var layer1 = new SpiralParser(Object.assign(
             new Grammar([
-                new Rule('S', []), new Rule('S', ['A', 'S']),
+                new Rule('S', ['LA']),
+                new Rule('LA', []), new Rule('LA', ['A', 'LA']),
                 new Rule('A', [{type: '_'}]),
                 new Rule('A', ['()']),
                 new Rule('A', [{type: '""'}]),
                 new Rule('()', [{type: '('}, 'S', {type: ')'}])
-            ]), {rigid: ['S'], grouped: ['S', 'A']}), {lexer: lex});
+            ]), {grouped: ['S', '()']}), {lexer: lex});
     
         lex = new PickLexer({'rewrite': 'rewrite', ':-': ':-', '->': '->'});
         var layer2 = new SpiralParser(
@@ -161,8 +173,9 @@ class VernacFrontend {
                 S -> RW | ASRT
                 RW -> "rewrite" NM "()" "->" "()"
                 NM -> "\\"\\"" | null
-                ASRT -> ":-" "()"
-            `, {autokens: true}, {rigid: ['NM'], grouped: ['RW', 'ASRT', 'NM']}),
+                ASRT -> LBL ":-" "()"
+                LBL -> "_" | null
+            `, {autokens: true}, {grouped: ['RW', 'ASRT', 'NM', 'LBL']}),
             {lexer: new PassThroughLexer(lex)}
         );
 
@@ -186,7 +199,10 @@ class VernacFrontend {
                         s[1].subtrees ? s[1].subtrees[0].token.inner.token.value : undefined);
                     break;
                 case 'ASRT':
-                    this.sexpFe.add(name, [Ast.toText(s[1])]);
+                    let [u] = this.sexpFe.add(name, [Ast.toText(s[2])]);
+                    if (s[0].subtrees)
+                        this.addLabel(s[0].subtrees[0].token.value, u.head.target);
+                    break;
                 }
             }
             catch (e) { console.error(`(in ${name}, statement '${stmt}')`, e); }
@@ -197,9 +213,14 @@ class VernacFrontend {
         console.log('----', Ast.toText(from), Ast.toText(to))
         //this.sexpFe.add('incoming rule', [Ast.toText(from), Ast.toText(to)]);
         var [cfrom, cto] = this.sexpFe.compile(
-            [from, to].map(t => Ast.toText(t)));
-        for (let e of cto.edges) if (e.node === cto.ast) e.target = 1;
+                [from, to].map(t => Ast.toText(t)));
+        cto.head.target = cfrom.head.target;
         this.rules.push(this.rp.edgesToRule(cfrom.edges, cto.edges, name));
+    }
+
+    addLabel(lab: string, target: HypernodeId) {
+        this.labeled.set(lab, target);
+        this.sexpFe.edges.push({op: lab, target, sources: []});
     }
 }
 

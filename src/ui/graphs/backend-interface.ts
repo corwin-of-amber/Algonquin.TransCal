@@ -30,7 +30,7 @@ class Backend {
             td = new TextDecoder();
         
         return new Promise<string>((resolve, reject) => {
-            p.stdout.pipe(concat(buf => resolve(td.decode(buf))))
+            p.stdout.pipe(concat(buf => resolve(buf.length ? td.decode(buf) : '')));
             p.on('exit', (rc, sig) =>
                 console.log(`%cbackend exited (rc=${rc})`, 'color: green'));
         });

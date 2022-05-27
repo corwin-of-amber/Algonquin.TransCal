@@ -49,9 +49,9 @@ class Parser extends nearley.Parser {
         for (const rule of grammar.rules) {
             rule.postprocess = rigid.includes(rule.name)
                 ? (data: any[]) => this.unfold(Parser.group(data, rule, grouped), rule.name)
-                : rule.symbols.length === 1
-                    ? (data: any[]) => data[0]
-                    : (data: any[]) => Parser.group(data, rule, grouped); //[].concat(...data), {type: rule.name});
+                : /*(!grouped.includes(rule.name) && rule.symbols.length === 1)
+                    ? (data: any[]) => { console.log('---- ', rule.name, data); return data[0] }
+                    :*/ (data: any[]) => Parser.group(data, rule, grouped); //[].concat(...data), {type: rule.name});
         }
         return grammar;
     }
@@ -72,6 +72,9 @@ class Parser extends nearley.Parser {
         // See: https://nearley.js.org/docs/parser#a-note-on-ambiguity
         var ast = this.results[0];
         if (!ast) throw new Error("syntax error");
+        if (!this.grammar.grouped.includes(this.grammar.start) &&
+             ast.length === 1)
+            ast = ast[0];
         return this.setRanges(this.toTree<Tok>(ast));
     }
 

@@ -37,24 +37,35 @@ async function main() {
         'rewrite "rev ::" (rev (:: x xs)) -> (:+ (rev xs) x)'
     ]);
     vfe.add('prog', [
+        'u1 :- (rev (:+ xs y))',
+        'u2 :- (:: y (rev xs))',
         ':- (rev (:+ (:: x xs) y))',
-        ':- (:: y (rev (:: x xs)))'
+        ':- (:: y (rev (:: x xs)))',
+        'rose :- (?~ u1 u2)',
     ]);
 
     app.layoutStylesheet = {
-        graph: {ranksep: 0.3, nodesep: 0.4}
+        graph: {rankdir: "BT", ranksep: 0.3, nodesep: 0.4}
     };
 
-    app.egraph = vfe.sexpFe.asGraph();
+    //app.egraph = astsToGraph(vfe.asts);
+
+    var g = vfe.sexpFe.asHypergraph(),
+        [u1, u2] = ['u1', 'u2'].map(u => vfe.labeled.get(u));
+    //if (u1 && u2) g.merge(u1, u2);
+    //if (u1 && u2) g.edges.push({op: '?->', target: 100, sources: [u1, u2]});
+    app.egraph = g.toGraph();
+    
 
     var be = new Backend;
-    be.writeProblem({input: vfe.sexpFe.edges, rules: vfe.rules});
+    be.writeProblem({input: g.edges, rules: vfe.rules});
     var sol = await be.execute();
 
-    vfe.sexpFe.edges = Hypergraph.importFromCpp(sol);
-    app.egraph = vfe.sexpFe.asGraph();
+    var g = Hypergraph.importFromCpp(sol);
+    //g.merge(1, 5);
+    app.egraph = g.toGraph();
 
-    Object.assign(window, {app});
+    Object.assign(window, {app, vfe});
 }
 
 
