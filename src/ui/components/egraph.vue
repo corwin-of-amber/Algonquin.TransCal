@@ -1,8 +1,8 @@
 <template>
     <div class="egraph--container">
-        <svg ref="drawGraph" class="egraph" :height="size.y" :width="size.x"
-            @mouseover="onMouseOver">
-        </svg>
+        <graphviz-svg ref="gv" class="egraph" :graph="egraph"
+            :layoutStylesheet="layoutStylesheet"
+            @mouseover="onMouseOver"/>
         <div class="egraph--stats">{{stats}}<br/>{{hover}}</div>
     </div>
 </template>
@@ -14,6 +14,7 @@
 
 <script>
 import { GraphvizAdapter } from '../graphs/graphviz';
+import GraphvizSvg from './graphviz-svg.vue';
 import './egraph.css';
 
 export default {
@@ -25,30 +26,18 @@ export default {
     mounted() {
         this.adapter = new GraphvizAdapter();
     },
-    watch: {
-        async egraph() {
-            this.adapter.stylesheet = this.layoutStylesheet;
-            let svg = await this.adapter.render(this.egraph);
-            this.$refs.drawGraph.textContent = '';
-            this.$refs.drawGraph.append(...svg.children);
-            this.size = {
-                x: svg.width.baseVal.valueInSpecifiedUnits,
-                y: svg.height.baseVal.valueInSpecifiedUnits
-            };
-        }
-    },
+    
     computed: {
         stats() {
             var g = this.egraph;
-            if (g)
-                return `${g.nodeCount?.()} nodes, ${g.edgeCount?.()} hyperedges`;
+            return g && `${g.nodeCount?.()} nodes, ${g.edgeCount?.()} hyperedges`;
         }
     },
     methods: {
         onMouseOver(ev) {
-            var node = ev.target.closest('.node');
-            this.hover.node = node ? this.egraph.node(node.id) : undefined;
+            this.hover.node = this.$refs.gv.nodeFromElement(ev.target);
         }
-    }
+    },
+    components: { GraphvizSvg }
 }
 </script>

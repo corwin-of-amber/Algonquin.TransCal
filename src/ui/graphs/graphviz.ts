@@ -2,6 +2,8 @@ import { Graph } from 'graphlib';
 import dot from 'graphlib-dot';
 import Viz from 'viz.js';
 
+import './graphviz.css';
+
 
 class GraphvizAdapter {
 

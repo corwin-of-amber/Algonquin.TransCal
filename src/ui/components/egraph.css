@@ -1,12 +1,4 @@
 
-svg.egraph g.graph > polygon {
-    fill: none;
-}
-svg.egraph g.node > ellipse,
-svg.egraph g.node > polygon {
-    fill: white;
-    stroke: black;
-}
 svg.egraph g.node:hover > ellipse,
 svg.egraph g.node:hover > polygon {
     fill: #eee;
@@ -14,7 +6,15 @@ svg.egraph g.node:hover > polygon {
 svg.egraph g.node > text {
     cursor: default;
 }
-svg.egraph g.edge > path {
-    stroke: black;
-    fill: none;
+
+svg.egraph g.hyperedge--nucleus.nullary > text {
+    fill: #870;
+}
+
+svg.egraph g.hyperedge--nucleus.nullary > ellipse,
+svg.egraph g.hyperedge--target.nullary > path {
+    stroke: gold;
+}
+svg.egraph g.hyperedge--target.nullary > polygon {
+    fill: gold;  /* the arrowhead */
 }

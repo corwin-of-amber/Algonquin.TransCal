@@ -1,0 +1,13 @@
+
+svg.graphviz g.graph > polygon {
+    fill: none;
+}
+svg.graphviz g.node > ellipse,
+svg.graphviz g.node > polygon {
+    fill: white;
+    stroke: black;
+}
+svg.graphviz g.edge > path {
+    stroke: black;
+    fill: none;
+}
