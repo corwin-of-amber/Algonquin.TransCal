@@ -200,7 +200,7 @@ class VernacFrontend {
                     break;
                 case 'ASRT':
                     let [u] = this.sexpFe.add(name, [Ast.toText(s[2])]);
-                    if (s[0].subtrees)
+                    if (s[0].subtrees[0])
                         this.addLabel(s[0].subtrees[0].token.value, u.head.target);
                     break;
                 }

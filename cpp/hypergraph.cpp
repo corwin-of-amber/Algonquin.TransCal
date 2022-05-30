@@ -26,6 +26,8 @@ public:
         Vertex *merged;
         scratch_t scratch; /* sorry */
 
+        Edge *color_index;
+
         Vertex *rep();
     };
 
@@ -34,9 +36,18 @@ public:
         std::vector<Vertex*> vertices;
         int gen;
         bool removed;
+
+        Vertex *target() const { return vertices[0]; }
+        bool contains(Vertex *u) const {
+            return std::find(vertices.begin(), vertices.end(), u) != vertices.end();
+        }
+        bool containsSource(Vertex *u) const {
+            return std::find(vertices.begin() + 1, vertices.end(), u) != vertices.end();
+        }
     };
 
     typedef std::vector<Vertex*> Valuation;
+    typedef Vertex* Assumptions;
 
     std::vector<Vertex> vertices;
     std::vector<Edge> edges;
@@ -64,20 +75,20 @@ public:
 
     void removeEdge(Edge* edge);
 
-    typedef const std::function< void(Valuation&, int) >& MatchCb;
+    typedef const std::function< void(Valuation&, Assumptions, int) >& MatchCb;
 
     void findEdge(Edge& pattern, int gen_max, int index,
-                  Valuation& valuation, MatchCb cb);
+                  Valuation& valuation, Assumptions assumptions, MatchCb cb);
 
     void unifyEdge(Edge& edge, Edge& pattern,
-                   Valuation& valuation, MatchCb cb);
+                   Valuation& valuation, Assumptions assumptions, MatchCb cb);
 
     void findSubgraph(std::vector<Edge>& pattern, int nholes,
                       int gen_max, MatchCb cb);
 
     void findSubgraph(std::vector<Edge>& pattern,
                       int gen_max, int gen_so_far, int index, 
-                      Valuation& valuation,
+                      Valuation& valuation, Assumptions assumptions,
                       MatchCb cb);
 
     Vertex *merge(Vertex* u, Vertex* v);
@@ -172,7 +183,8 @@ void Hypergraph::removeEdge(Edge* edge) {
 }
 
 void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
-                          Valuation& valuation, MatchCb cb) {
+                          Valuation& valuation, Assumptions assumptions,
+                          MatchCb cb) {
 
     int n = pattern.vertices.size();
 #ifndef VERTEX_MATCH_THRESHOLD
@@ -194,20 +206,52 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
 #endif
 
     if (u) {
-        for (auto& e : u->edges) {
-            unifyEdge(*e.e, pattern, valuation, cb);
+        if (u->color_index) {
+            std::cout << "// considering partners of " << u->id << " in color" << std::endl;
+            std::vector<Vertex*>& vs = u->color_index->vertices;
+            for (auto it = vs.begin() + 1; it != vs.end(); it++) {
+                for (auto& e : (*it)->edges) {
+                    unifyEdge(*e.e, pattern, valuation, assumptions, cb);
+                }
+            }
+        }
+        else {
+            for (auto& e : u->edges) {
+                unifyEdge(*e.e, pattern, valuation, assumptions, cb);
+            }
         }
     }
     else {
         for (auto& e : edges_by_kind[pattern.kind]) {
-            unifyEdge(*e, pattern, valuation, cb);
+            unifyEdge(*e, pattern, valuation, assumptions, cb);
         }
     }
 
 }
 
+/**
+ * Color support: check to see if vertices match, possibly using some
+ * assumption, which may cause setting the current machine color to
+ * that assumption.
+ */
+bool compatVertices(Hypergraph::Vertex* u, Hypergraph::Vertex* v,
+                    Hypergraph::Assumptions& assumptions) {
+    if (u == v) return true;
+    else if (u->color_index && (assumptions == 0 || 
+                    assumptions == u->color_index->target())) {
+        bool compat = u->color_index->containsSource(v);
+        if (compat) {
+            std::cout << "// semi-compat " << u->id << " " << v->id << std::endl;
+            assumptions = u->color_index->target();
+            return true;
+        }
+    }
+    return false;
+}
+
 void Hypergraph::unifyEdge(Edge& edge, Edge& pattern, 
-                           Valuation& valuation, MatchCb cb) {
+                           Valuation& valuation, Assumptions assumptions,
+                           MatchCb cb) {
 
     int n = pattern.vertices.size();
     int buf[n];
@@ -226,10 +270,11 @@ void Hypergraph::unifyEdge(Edge& edge, Edge& pattern,
                     buf[j++] = ~u->id;
                     uu = v;
                 }
-                else if (uu != v) break;
+                else if (!compatVertices(uu, v, assumptions)) break;
+                //else if (uu != v) break;
             }
         }
-        if (i >= n) cb(valuation, edge.gen);
+        if (i >= n) cb(valuation, assumptions, edge.gen);
         /* restore valuation to previous value */
         while (j > 0) {
             valuation[buf[--j]] = NULL;
@@ -240,21 +285,23 @@ void Hypergraph::unifyEdge(Edge& edge, Edge& pattern,
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern, int k,
                               int gen_max, MatchCb cb) {
     Valuation valuation(k);
-    findSubgraph(pattern, gen_max, 0, 0, valuation, cb);
+    findSubgraph(pattern, gen_max, 0, 0, valuation, 0, cb);
 }
 
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern,
                               int gen_max, int gen_so_far, int index, 
-                              Valuation& valuation,
+                              Valuation& valuation, Assumptions assumptions,
                               MatchCb cb) {
 
-    if (index >= pattern.size()) cb(valuation, gen_so_far);
+    if (index >= pattern.size()) cb(valuation, assumptions, gen_so_far);
     else {
         Edge& e = pattern[index];
-        findEdge(e, gen_max, 0, valuation, [&] (Valuation& valuation, int gen) {
-            int ngen = std::max(gen_so_far, gen);
-            findSubgraph(pattern, gen_max, ngen, index + 1, valuation, cb);
-        });
+        findEdge(e, gen_max, 0, valuation, assumptions, 
+            [&] (Valuation& valuation, Assumptions assumptions, int gen) {
+                int ngen = std::max(gen_so_far, gen);
+                findSubgraph(pattern, gen_max, ngen, index + 1,
+                            valuation, assumptions, cb);
+            });
     }
 }
 
@@ -338,7 +385,11 @@ void Hypergraph::compact() {
 
 #ifndef __cppnator_header
 namespace special_edges {
-    static const Hypergraph::label_t COND_MERGE = Hypergraph::str2label("?~");
+    typedef Hypergraph::label_t label_t;
+    inline label_t str2label(std::string s) { return Hypergraph::str2label(s); }
+
+    static const label_t ID = str2label("id");
+    static const label_t COND_MERGE = str2label("?~");
 }
 #endif
 
@@ -434,6 +485,17 @@ public:
         std::vector<RewriteRule>& rules);
 
     static void putHoles(Hypergraph& g);
+
+protected:
+    void conclude(const Hypergraph::Valuation& valuation,
+                  Hypergraph& g,
+                  std::vector<Hypergraph::Edge>& out_edges) const;
+
+    void concludeWithAssumptions(
+                  const Hypergraph::Valuation& valuation,
+                  Hypergraph::Assumptions assumptions,
+                  Hypergraph& g,
+                  std::vector<Hypergraph::Edge>& out_edges) const;
 };
 
 #ifndef __cppnator_header
@@ -471,8 +533,6 @@ void RewriteRule::fromTextMultiple(std::istream& in,
 
 void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
-    static Hypergraph::label_t label_id = Hypergraph::str2label("id");
-
     int nholes = premise.vertices.size();
     int gen_max = gen_cmp ? INT32_MAX : gen_req;
 
@@ -480,35 +540,86 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
     std::cerr << "trying " << name << std::endl;
 
-    g.findSubgraph(premise.edges, nholes, gen_max, [&] (Hypergraph::Valuation& valuation, int gen) {
-        if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
+    g.findSubgraph(premise.edges, nholes, gen_max, 
+        [&] (Hypergraph::Valuation& valuation, Hypergraph::Assumptions assumptions, int gen) {
+            if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
 
-        std::cerr << "match [";
-        for (auto u : valuation) {
-            assert(u);
-            std::cerr << " " << u->id;
-        }
-        std::cerr << "] " << name << std::endl;
+            if (assumptions != 0)
+                std::cout << "// got match given assumptions" << std::endl;
 
-        int k = valuation.size(), n = conclusion.vertices.size();
-        Hypergraph::Valuation extras(std::max(0, n - k));
-
-        for (auto& u : extras) u = g.addVertex();
-        for (auto e : conclusion.edges) {
-            for (auto& u : e.vertices) {
-                int i = ~u->id;
-                u = (i < k) ? valuation[i] : extras[i - k];
+            std::cerr << "match [";
+            for (auto u : valuation) {
+                assert(u);
+                std::cerr << " " << u->id;
             }
-            if (e.kind == label_id)
-                g.merge(e.vertices[0], e.vertices[1]);
+            std::cerr << "] " << name << std::endl;
+
+            if (assumptions == 0)
+                conclude(valuation, g, edges);
             else
-                edges.push_back(e);
-        }
-    });
+                concludeWithAssumptions(valuation, assumptions, g, edges);
+        });
 
     for (auto& e : edges) g.addEdge(e);
 }
 
+void RewriteRule::conclude(const Hypergraph::Valuation& valuation,
+                           Hypergraph& g,
+                           std::vector<Hypergraph::Edge>& out_edges) const
+{
+    int k = valuation.size(), n = conclusion.vertices.size();
+    Hypergraph::Valuation extras(std::max(0, n - k));
+
+    for (auto& u : extras) u = g.addVertex();
+    for (auto e : conclusion.edges) {
+        for (auto& u : e.vertices) {
+            int i = ~u->id;
+            u = (i < k) ? valuation[i] : extras[i - k];
+        }
+        if (e.kind == special_edges::ID)
+            g.merge(e.vertices[0], e.vertices[1]);
+        else
+            out_edges.push_back(e);
+    }
+}
+
+void RewriteRule::concludeWithAssumptions(
+                           const Hypergraph::Valuation& valuation,
+                           Hypergraph::Assumptions assumptions,
+                           Hypergraph& g,
+                           std::vector<Hypergraph::Edge>& out_edges) const
+{
+    int k = valuation.size(), n = conclusion.vertices.size();
+    Hypergraph::Vertex *new_root = g.addVertex();
+    Hypergraph::Valuation extras(std::max(0, n - k));
+
+    for (auto& u : extras) u = g.addVertex();
+    for (auto e : conclusion.edges) {
+        /* treat target root in a special way */
+        auto& u = e.vertices[0];
+        int i = ~u->id;
+        if (i == 0) u = new_root;
+        else { assert(i >= k); u = extras[i - k]; }
+        /* treat sources as normal */
+        for (auto it = e.vertices.begin() + 1; it != e.vertices.end(); it++) {
+            auto& u = *it;
+            int i = ~u->id;
+            u = (i < k) ? valuation[i] : extras[i - k];
+        }
+        if (e.kind == special_edges::ID)
+            e.kind = special_edges::COND_MERGE;
+        out_edges.push_back(e);
+    }
+
+    std::cout << "// conditionally merge " << valuation[0]->id << "~" << new_root->id << std::endl;
+
+    Hypergraph::Edge cond_root;
+    cond_root.kind = special_edges::COND_MERGE;
+    cond_root.vertices.push_back(assumptions);
+    cond_root.vertices.push_back(valuation[0]);
+    cond_root.vertices.push_back(new_root);
+    out_edges.push_back(cond_root);
+}
 
 class Reconstruct {
 public:
@@ -548,7 +659,9 @@ void Reconstruct::addLeaves(int upto) {
             terminals.insert(u.rep());
 }
 
-
+/**
+ * Auxiliary method for `minimal`.
+ */
 void Reconstruct::mini(Vertex* u, int depth, TermCb cb) {
 
     bool any = false, atom = false;
@@ -611,6 +724,9 @@ void Reconstruct::mini(Vertex* u, int depth, TermCb cb) {
     }
 }
 
+/**
+ * Constructs a minimal term in the equivalence class of a vertex `u`.
+ */
 std::string Reconstruct::minimal(Vertex* u, int depth) {
     std::string min_term;
     mini(u, depth, [&] (const std::string& term) {

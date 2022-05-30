@@ -37,11 +37,15 @@ async function main() {
         'rewrite "rev ::" (rev (:: x xs)) -> (:+ (rev xs) x)'
     ]);
     vfe.add('prog', [
-        'u1 :- (rev (:+ xs y))',
-        'u2 :- (:: y (rev xs))',
-        ':- (rev (:+ (:: x xs) y))',
-        ':- (:: y (rev (:: x xs)))',
-        'rose :- (?~ u1 u2)',
+        'u1 :- (rev (:+ l y))',
+        'u2 :- (:: y (rev l))',
+        's :- (:: x xs)',
+        'v1 :- (rev (:+ xs y))',
+        'v2 :- (:: y (rev xs))',
+        'rose :- (?~ l s)',
+        'rose :- (?~ v1 v2)'
+        //'l :- (s)',
+        //'v1 :- (v2)'
     ]);
 
     app.layoutStylesheet = {
@@ -59,10 +63,8 @@ async function main() {
 
     var be = new Backend;
     be.writeProblem({input: g.edges, rules: vfe.rules});
-    var sol = await be.execute();
+    var g = await be.solve();
 
-    var g = Hypergraph.importFromCpp(sol);
-    //g.merge(1, 5);
     app.egraph = g.toGraph();
 
     Object.assign(window, {app, vfe});

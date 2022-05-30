@@ -90,7 +90,8 @@ namespace Hypergraph {
     }
 
     export function importEdgesFromCpp(text: string): Hyperedge[] {
-        let lines = text.split('\n').map(s => s.trim()).filter(s => s);
+        let lines = text.split('\n').map(s => s.trim())
+                                    .filter(s => s && !s.startsWith('// '));
         return lines.map(ln => importEdgeFromCpp(ln));
     }
 

@@ -24,6 +24,17 @@ class Backend {
             rules.map(rwr => rwr.exportToCpp()).join('\n'));
     }
 
+    async solve() {
+        let out = await this.execute();
+        this.debugOut(out);
+        return Hypergraph.importFromCpp(out);
+    }
+
+    private debugOut(out: string) {
+        for (let mo of out.matchAll(/^[/][/] (.*)/gm))
+            console.log(`%c[backend] %c${mo[1]}`, 'color: #880', 'color: green');
+    }
+
     execute() {
         let p = child_process.spawn(this.exe, [this.tempdir.dirpath],
             {stdio: ['ignore', 'pipe', 'pipe']}),
@@ -42,7 +53,6 @@ class TempDir {
     constructor(public dirpath: string) { }
 
     writeFile(fn: string, text: string) {
-        console.log(`[${fn}]\n${text}\n\n`);
         fs.mkdirSync(this.dirpath, {recursive: true});
         fn = path.join(this.dirpath, fn);
         fs.writeFileSync(fn, text);
