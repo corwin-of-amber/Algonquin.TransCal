@@ -96,7 +96,9 @@ public:
     void compact(Vertex* u);
     void compact();
 
-    bool is_functional(label_t kind) const;
+    bool isFunctional(label_t kind) const;
+    bool compatVertices(Hypergraph::Vertex* u, Hypergraph::Vertex* v,
+                        Hypergraph::Assumptions& assumptions) const;
 
     // ------------
     // Input/output
@@ -207,7 +209,6 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
 
     if (u) {
         if (u->color_index) {
-            std::cout << "// considering partners of " << u->id << " in color" << std::endl;
             std::vector<Vertex*>& vs = u->color_index->vertices;
             for (auto it = vs.begin() + 1; it != vs.end(); it++) {
                 for (auto& e : (*it)->edges) {
@@ -234,14 +235,14 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
  * assumption, which may cause setting the current machine color to
  * that assumption.
  */
-bool compatVertices(Hypergraph::Vertex* u, Hypergraph::Vertex* v,
-                    Hypergraph::Assumptions& assumptions) {
+bool Hypergraph::compatVertices
+        (Hypergraph::Vertex* u, Hypergraph::Vertex* v,
+         Hypergraph::Assumptions& assumptions) const {
     if (u == v) return true;
     else if (u->color_index && (assumptions == 0 || 
                     assumptions == u->color_index->target())) {
         bool compat = u->color_index->containsSource(v);
         if (compat) {
-            std::cout << "// semi-compat " << u->id << " " << v->id << std::endl;
             assumptions = u->color_index->target();
             return true;
         }
@@ -337,14 +338,13 @@ void Hypergraph::compact(Vertex* u) {
     auto& edgeset = u->edges;
     for (int i = 0; i < edgeset.size(); ++i) {
         auto& e1 = edgeset[i];
-        if (e1.index > 0) {
+        if (e1.index > 0 && isFunctional(e1.e->kind)) {
             for (int j = i + 1; j < edgeset.size(); ++j) {
                 auto& e2 = edgeset[j];
                 if (e2.index == e1.index && e2.e->kind == e1.e->kind && 
-                     is_functional(e1.e->kind) &&
                      slices_equal(e2.e->vertices, e1.e->vertices, 1)) {
-                    Vertex *v1 = e1.e->vertices[0],
-                           *v2 = e2.e->vertices[0];
+                    Vertex *v1 = e1.e->target(),
+                           *v2 = e2.e->target();
                     if (v1 == v2) removeEdge(e2.e);
                     else merge(v1, v2);
                 }
@@ -393,7 +393,7 @@ namespace special_edges {
 }
 #endif
 
-bool Hypergraph::is_functional(label_t kind) const {
+bool Hypergraph::isFunctional(label_t kind) const {
     return kind != special_edges::COND_MERGE;
 }
 
