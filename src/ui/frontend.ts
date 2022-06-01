@@ -42,7 +42,9 @@ class SexpFrontend {
         return new Hypergraph(this.edges);
     }
 
-    sexpToTree(sexp: Sexp | string): Ast<Token> {
+    sexpToTree(sexp: Sexp | String | string): Ast<Token> {
+        if (sexp instanceof String)
+            return {type: sexp.valueOf(), subtrees: [], token: {type: '""', value: sexp.valueOf()}};
         sexp = SexpFrontend.sexpPromote(sexp);
         var type = sexp[0].toString(), /* should be a string */
             subtrees = sexp.slice(1).map(c =>
@@ -78,7 +80,7 @@ class SexpFrontend {
     }
 }
 
-type Sexp = (string | Sexp)[];
+type Sexp = (string | String | Sexp)[];
 type CompiledHyperedge = Hyperedge & {origin: Ast<Token>, node: Ast<Token>};
 type CompiledSexp = {
     ast: Ast<Token>,
@@ -89,7 +91,7 @@ type CompiledSexp = {
 
 class RuleProcessor {
 
-    edgesToRule(fromEdges: Hyperedge[], toEdges: Hyperedge[], name?: string) {
+    edgesToRule(fromEdges: CompiledHyperedge[], toEdges: CompiledHyperedge[], name?: string) {
         let vars = this.getVars([...fromEdges, ...toEdges]),
             rule = [this.edgesToRuleSide(fromEdges, vars),
                     this.edgesToRuleSide(toEdges, vars)];
@@ -98,17 +100,17 @@ class RuleProcessor {
         return new RewriteRule(name ?? '<rule>', rule[0], rule[1]);
     }
 
-    edgesToRuleSide(edges: Hyperedge[], vars = this.getVars(edges)) {
+    edgesToRuleSide(edges: CompiledHyperedge[], vars = this.getVars(edges)) {
         return edges.map(e =>
             (e.sources.length === 0 && vars.has(e.op)) ? undefined
                 : this.remapVars(e, vars)
         ).filter(x => x);
     }
 
-    getVars(edges: Hyperedge[]) {
+    getVars(edges: CompiledHyperedge[]) {
         var vars = new ViviMap<string, HypernodeId[]>().withFactory(() => []);
         for (let e of edges) {
-            if (e.sources.length === 0 && this.isVar(e.op))
+            if (e.sources.length === 0 && this.isVar(e))
                 vars.get(e.op).push(e.target);
         }
         return vars;
@@ -140,8 +142,11 @@ class RuleProcessor {
         return es;
     }
 
-    isVar(name: string) {
-        return /^\w+$/.test(name);
+    isVar(symbol: string | CompiledHyperedge) {
+        if (typeof symbol === 'string')
+            return /^\w+$/.test(symbol);
+        else
+            return this.isVar(symbol.op) && symbol.node.token?.type != '""';
     }
 }
 

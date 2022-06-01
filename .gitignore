@@ -22,6 +22,7 @@ target/
 _npmlink
 
 /data/tmp
+/etc/some-pictures
 node_modules
 
 

@@ -10,9 +10,35 @@ import { forestToGraph } from './infra/tree';
 import { Hypergraph } from './graphs/hypergraph';
 import { Backend } from './graphs/backend-interface';
 
+import { svgToPng } from './infra/gfx';
+import { drawDocument } from 'rasterizehtml';
+
 
 function astsToGraph(forest: Ast<any>[]) {
     return forestToGraph(forest, node => ({label: node.type}));
+}
+
+const SAMPLES = {
+    'rev-snoc': [
+        'u1 :- (rev (:+ l y))',
+        'u2 :- (:: y (rev l))',
+        's :- (:: x xs)',
+        // -- induction l
+        'v1 :- (rev (:+ xs y))',
+        'v2 :- (:: y (rev xs))',
+        'rose :- (?~ l s)',
+        'rose :- (?~ v1 v2)'
+    ],
+    'plus-s': [
+        'u1 :- (+ (S n) m)',
+        'u2 :- (+ n (S m))',
+        's :- (S k)',
+        // -- induction n
+        'v1 :- (+ (S k) m)',
+        'v2 :- (+ k (S m))',
+        'rose :- (?~ n s)',
+        'rose :- (?~ v1 v2)'
+    ]   
 }
 
 async function main() {
@@ -24,8 +50,8 @@ async function main() {
         g = astsToGraph(ast);
     */
 
-    let fe = new SexpFrontend;
-    fe.add('inline', ['(+ (S n) m)', '(+ n (S m))'])
+    //let fe = new SexpFrontend;
+    //fe.add('inline', ['(+ (S n) m)', '(+ n (S m))'])
 
     //app.egraph = fe.asGraph();
 
@@ -34,19 +60,15 @@ async function main() {
         'rewrite ":+ []" (:+ [] x) -> (:: x [])',
         'rewrite ":+ ::" (:+ (:: x xs) y) -> (:: x (:+ xs y))',
         'rewrite "rev []" (rev []) -> ([])',
-        'rewrite "rev ::" (rev (:: x xs)) -> (:+ (rev xs) x)'
+        'rewrite "rev ::" (rev (:: x xs)) -> (:+ (rev xs) x)',
+        'rewrite "+ 0" (+ "0" m) -> (id m)',
+        'rewrite "+ S" (+ (S n) m) -> (S (+ n m))',
+        'rewrite "S +" (S (+ n m)) -> (+ (S n) m)'
     ]);
-    vfe.add('prog', [
-        'u1 :- (rev (:+ l y))',
-        'u2 :- (:: y (rev l))',
-        's :- (:: x xs)',
-        'v1 :- (rev (:+ xs y))',
-        'v2 :- (:: y (rev xs))',
-        'rose :- (?~ l s)',
-        'rose :- (?~ v1 v2)'
-        //'l :- (s)',
-        //'v1 :- (v2)'
-    ]);
+    
+    const name = 'plus-s';
+
+    vfe.add(name, SAMPLES[name]);
 
     app.layoutStylesheet = {
         graph: {rankdir: "BT", ranksep: 0.3, nodesep: 0.4}
@@ -67,7 +89,7 @@ async function main() {
 
     app.egraph = g.toGraph();
 
-    Object.assign(window, {app, vfe});
+    Object.assign(window, {app, vfe, svgToPng, drawDocument});
 }
 
 
