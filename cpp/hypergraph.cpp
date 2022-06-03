@@ -26,7 +26,8 @@ public:
         Vertex *merged;
         scratch_t scratch; /* sorry */
 
-        Edge *color_index;
+        Vertex *color;
+        Edge *color_index[2];
 
         Vertex *rep();
     };
@@ -120,6 +121,8 @@ Hypergraph::Vertex* Hypergraph::addVertex() {
     Vertex u;
     u.id = ++id_counter;
     u.merged = NULL;
+    u.color = NULL;
+    u.color_index[0] = u.color_index[1] = NULL;
     vertices.push_back(u);
     return &vertices[vertices.size() - 1];
 }
@@ -208,15 +211,19 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
 #endif
 
     if (u) {
-        if (u->color_index) {
-            std::vector<Vertex*>& vs = u->color_index->vertices;
-            for (auto it = vs.begin() + 1; it != vs.end(); it++) {
-                for (auto& e : (*it)->edges) {
-                    unifyEdge(*e.e, pattern, valuation, assumptions, cb);
+        bool flag = false;
+        for (size_t j = 0; j < 2; j++) {
+            if (u->color_index[j]) {
+                flag = true;
+                std::vector<Vertex*>& vs = u->color_index[j]->vertices;
+                for (auto it = vs.begin() + 1; it != vs.end(); it++) {
+                    for (auto& e : (*it)->edges) {
+                        unifyEdge(*e.e, pattern, valuation, assumptions, cb);
+                    }
                 }
             }
         }
-        else {
+        if (!flag) {
             for (auto& e : u->edges) {
                 unifyEdge(*e.e, pattern, valuation, assumptions, cb);
             }
@@ -239,12 +246,16 @@ bool Hypergraph::compatVertices
         (Hypergraph::Vertex* u, Hypergraph::Vertex* v,
          Hypergraph::Assumptions& assumptions) const {
     if (u == v) return true;
-    else if (u->color_index && (assumptions == 0 || 
-                    assumptions == u->color_index->target())) {
-        bool compat = u->color_index->containsSource(v);
-        if (compat) {
-            assumptions = u->color_index->target();
-            return true;
+    else {
+        for (size_t j = 0; j < 2; ++j) {
+            if (u->color_index[j] && (assumptions == 0 || 
+                            assumptions == u->color_index[j]->target())) {
+                bool compat = u->color_index[j]->containsSource(v);
+                if (compat) {
+                    assumptions = u->color_index[j]->target();
+                    return true;
+                }
+            }
         }
     }
     return false;
@@ -346,7 +357,7 @@ void Hypergraph::compact(Vertex* u) {
                     Vertex *v1 = e1.e->target(),
                            *v2 = e2.e->target();
                     if (v1 == v2) removeEdge(e2.e);
-                    else merge(v1, v2);
+                    else if (v1->color == v2->color) merge(v1, v2);
                 }
             }
         }
@@ -591,9 +602,10 @@ void RewriteRule::concludeWithAssumptions(
 {
     int k = valuation.size(), n = conclusion.vertices.size();
     Hypergraph::Vertex *new_root = g.addVertex();
+    new_root->color = assumptions;
     Hypergraph::Valuation extras(std::max(0, n - k));
 
-    for (auto& u : extras) u = g.addVertex();
+    for (auto& u : extras) { u = g.addVertex(); u->color = assumptions; }
     for (auto e : conclusion.edges) {
         /* treat target root in a special way */
         auto& u = e.vertices[0];
@@ -607,18 +619,20 @@ void RewriteRule::concludeWithAssumptions(
             u = (i < k) ? valuation[i] : extras[i - k];
         }
         if (e.kind == special_edges::ID)
-            e.kind = special_edges::COND_MERGE;
-        out_edges.push_back(e);
+            out_edges.push_back({
+                .kind = special_edges::COND_MERGE,
+                .vertices = {assumptions, e.vertices[0], e.vertices[1]}
+            });
+        else
+            out_edges.push_back(e);
     }
 
     std::cout << "// conditionally merge " << valuation[0]->id << "~" << new_root->id << std::endl;
 
-    Hypergraph::Edge cond_root;
-    cond_root.kind = special_edges::COND_MERGE;
-    cond_root.vertices.push_back(assumptions);
-    cond_root.vertices.push_back(valuation[0]);
-    cond_root.vertices.push_back(new_root);
-    out_edges.push_back(cond_root);
+    out_edges.push_back({
+        .kind = special_edges::COND_MERGE,
+        .vertices = {assumptions, valuation[0], new_root}
+    });
 }
 
 class Reconstruct {
@@ -836,10 +850,8 @@ Hypergraph::Vertex* CaseSplit::split_one(Hypergraph& g, Hypergraph::Vertex* p,
 
     Hypergraph::Vertex* x2 = g.dupVertex(x1, anchored);
 
-    g.addEdge({.kind = app,
-                .vertices = std::vector<Hypergraph::Vertex*> { val1, p, x1 } });
-    g.addEdge({.kind = app,
-                .vertices = std::vector<Hypergraph::Vertex*> { val2, p, x2 } });
+    g.addEdge({.kind = app, .vertices = { val1, p, x1 } });
+    g.addEdge({.kind = app, .vertices = { val2, p, x2 } });
 
     return x2;
 }

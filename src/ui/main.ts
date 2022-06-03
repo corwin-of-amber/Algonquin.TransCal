@@ -38,7 +38,21 @@ const SAMPLES = {
         'v2 :- (+ k (S m))',
         'rose :- (?~ n s)',
         'rose :- (?~ v1 v2)'
-    ]   
+    ],
+    'plus-0': [
+        'u1 :- (+ n 0)',
+        'u2 :- (n)',
+        'gold :- (?~ n 0)',
+        'rose :- (?~ n (S k))',
+        'rose :- (?~ (+ k 0) k)'
+    ],
+    'plus-comm': [
+        'u1 :- (+ n m)',
+        'u2 :- (+ m n)',
+        's :- (S k)',
+        // -- induction n
+        'gold :- (?~ n 0)'
+    ]
 }
 
 async function main() {
@@ -66,7 +80,7 @@ async function main() {
         'rewrite "S +" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'plus-s';
+    const name = 'plus-0';
 
     vfe.add(name, SAMPLES[name]);
 
@@ -76,18 +90,17 @@ async function main() {
 
     //app.egraph = astsToGraph(vfe.asts);
 
-    var g = vfe.sexpFe.asHypergraph(),
+    var input = vfe.sexpFe.asHypergraph(),
         [u1, u2] = ['u1', 'u2'].map(u => vfe.labeled.get(u));
     //if (u1 && u2) g.merge(u1, u2);
-    //if (u1 && u2) g.edges.push({op: '?->', target: 100, sources: [u1, u2]});
-    app.egraph = g.toGraph();
-    
+    app.egraph = input.toGraph();
 
     var be = new Backend;
-    be.writeProblem({input: g.edges, rules: vfe.rules});
+    be.opts.rewriteDepth = 3;
+    be.writeProblem({input: input.edges, rules: vfe.rules});
     var g = await be.solve();
 
-    app.egraph = g.toGraph();
+    app.egraph = g.foldColorInfo().toGraph();
 
     Object.assign(window, {app, vfe, svgToPng, drawDocument});
 }

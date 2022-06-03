@@ -14,4 +14,9 @@ obj/%.o: %.cpp
 	@mkdir -p ${@D}
 	g++ -c $(OPT) -o $@ -g $(CXXFLAGS) $<
 
+clean:
+	rm -rf obj/*.o tc
+
+.PHONY: clean
+
 obj/main_prove.o: inc/hypergraph.h

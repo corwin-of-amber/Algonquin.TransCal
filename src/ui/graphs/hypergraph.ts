@@ -23,6 +23,10 @@ class Hypergraph {
             Hypergraph.replaceInEdge(e, vs, u));
     }
 
+    filterEdges(p: (e: Hyperedge) => boolean) {
+        return new Hypergraph(this.edges.filter(p));
+    }
+
     toGraph() { return Hypergraph.toGraph(this.edges); }
     exportToCpp() { return Hypergraph.exportToCpp(this.edges); }
     static importFromCpp(s: string) {

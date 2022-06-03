@@ -3,12 +3,14 @@ import path from 'path';
 import child_process from 'child_process';
 import concat from 'concat-stream';
 import { Hypergraph, Hyperedge } from './hypergraph';
+import { Egraph } from './egraph';
 import { RewriteRule } from './rewrites';
 
 
 class Backend {
     tempdir = new TempDir('data/tmp')
     exe = 'cpp/tc'
+    opts: BackendOptions = {}
 
     writeProblem(desc: {input: Hyperedge[], rules: RewriteRule[]}) {
         this.writeGraph(desc.input);
@@ -27,7 +29,7 @@ class Backend {
     async solve() {
         let out = await this.execute();
         this.debugOut(out);
-        return Hypergraph.importFromCpp(out);
+        return Egraph.importFromCpp(out);
     }
 
     private debugOut(out: string) {
@@ -36,9 +38,11 @@ class Backend {
     }
 
     execute() {
-        let p = child_process.spawn(this.exe, [this.tempdir.dirpath],
+        let p = child_process.spawn(this.exe, [...this.flags(), this.tempdir.dirpath],
             {stdio: ['ignore', 'pipe', 'pipe']}),
             td = new TextDecoder();
+
+        p.stderr.pipe(concat(buf => {/*todo*/}));
         
         return new Promise<string>((resolve, reject) => {
             p.stdout.pipe(concat(buf => resolve(buf.length ? td.decode(buf) : '')));
@@ -46,8 +50,17 @@ class Backend {
                 console.log(`%cbackend exited (rc=${rc})`, 'color: green'));
         });
     }
+
+    flags() {
+        return [].concat(...[
+            this.opts.rewriteDepth ? ['--rw-depth', `${this.opts.rewriteDepth}`] : []
+        ]);
+    }
 }
 
+type BackendOptions = {
+    rewriteDepth?: number
+}
 
 class TempDir {
     constructor(public dirpath: string) { }
