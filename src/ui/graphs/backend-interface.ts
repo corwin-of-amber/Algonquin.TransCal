@@ -3,7 +3,7 @@ import path from 'path';
 import child_process from 'child_process';
 import concat from 'concat-stream';
 import { Hypergraph, Hyperedge } from './hypergraph';
-import { Egraph } from './egraph';
+import { EGraph } from './egraph';
 import { RewriteRule } from './rewrites';
 
 
@@ -29,7 +29,7 @@ class Backend {
     async solve() {
         let out = await this.execute();
         this.debugOut(out);
-        return Egraph.importFromCpp(out);
+        return EGraph.importFromCpp(out);
     }
 
     private debugOut(out: string) {

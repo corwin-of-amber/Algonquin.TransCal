@@ -29,5 +29,18 @@ function imageToPng(img: CanvasImageSource & {height: number, width: number}) {
     return new Promise(resolve => canvas.toBlob(resolve, 'png'));
 }
 
+function coordDomToSvg(el: SVGSVGElement, pt: {x: number, y: number}) {
+    let svgpt = el.createSVGPoint(),
+        matrix = el.getCTM().inverse();
+    svgpt.x = pt.x; svgpt.y = pt.y;
+    return svgpt.matrixTransform(matrix);
+}
 
-export { svgToImage, svgToPng }
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function createSvgElement<T extends SVGElement = SVGElement>(tagName: string) {
+    return document.createElementNS(SVG_NS, tagName) as T;
+}
+
+
+export { svgToImage, svgToPng, coordDomToSvg, createSvgElement }

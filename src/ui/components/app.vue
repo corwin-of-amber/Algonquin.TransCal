@@ -3,11 +3,11 @@
 </template>
 
 <script>
-import Egraph from './egraph.vue';
+import EGraph from './egraph.vue';
 
 
 export default {
     data: () => ({g: undefined}),
-    components: { Egraph }
+    components: { 'egraph': EGraph }
 }
 </script>

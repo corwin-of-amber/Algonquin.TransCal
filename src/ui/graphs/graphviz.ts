@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { Graph } from 'graphlib';
 import dot from 'graphlib-dot';
 import Viz from 'viz.js';
@@ -15,7 +16,8 @@ class GraphvizAdapter {
             this.setStyle(graph, this.stylesheet.graph);
         this.setIds(graph);
         let dotText = dot.write(graph);
-        return this.strip(await this.viz.renderSVGElement(dotText));
+        return new GraphvizSvg(graph,
+            this.strip(await this.viz.renderSVGElement(dotText)));
     }
 
     setStyle(graph: Graph, props: object) {
@@ -39,10 +41,11 @@ class GraphvizAdapter {
      * @param svg 
      * @returns 
      */
-    strip(svg: SVGElement) {
-        svg.removeAttribute('stroke');
-        svg.removeAttribute('fill');
-        for (let c of svg.children) this.strip(c as SVGElement);
+    strip<E extends SVGElement>(svg: E) {
+        for (let el of svg.querySelectorAll('[stroke],[fill]')) {
+            el.removeAttribute('stroke');
+            el.removeAttribute('fill');
+        }
         return svg;
     }
 }
@@ -51,5 +54,35 @@ type LayoutStylesheet = {
     graph?: {ranksep?: number | string, nodesep?: number | string}
 }
 
+class GraphvizSvg {
+    graph: Graph
+    svg: SVGSVGElement
 
-export { GraphvizAdapter }
+    constructor(graph: Graph, svg: SVGSVGElement) {
+        this.graph = graph;
+        this.svg = svg;
+    }
+
+    nodeFromElement(el: SVGElement) {
+        let node = el.closest('.node');
+        return node ? this.graph.node(node.id) : undefined;
+    }
+
+    elementFromNode(node: number | string | {id: string}) {
+        let id = typeof node === 'object' ? node.id : node;
+        assert(id);
+        for (let {el, node} of this.iterNodeElements()) {
+            if (node.id == id) return el;
+        }
+    }
+
+    *iterNodeElements() {
+        for (let el of this.svg.querySelectorAll('.node')) {
+            let node = this.nodeFromElement(el as SVGElement);
+            if (node) yield {el, node};
+        }
+    }
+}
+
+
+export { GraphvizAdapter, GraphvizSvg }

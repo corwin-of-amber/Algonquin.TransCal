@@ -22,7 +22,7 @@ import Vue from 'vue';
         render(_ctx, _cache) {
             let props = Object.fromEntries(propNames.map(k => [k, _ctx[k]]));
             return (/*Vue.openBlock(), */
-                Vue.createBlock(component, props, null, 
+                Vue.createBlock(component, {ref: 'it', ...props}, null, 
                     8 /* patchFlag = PROPS */, propNames))
         }
     };

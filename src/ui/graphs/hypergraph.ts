@@ -27,6 +27,14 @@ class Hypergraph {
         return new Hypergraph(this.edges.filter(p));
     }
 
+    nodeCount() {
+        return this.nodes().size;
+    }
+
+    nodes() {
+        return new Set(Hypergraph.iterNodeOccurrences(this.edges));
+    }
+
     toGraph() { return Hypergraph.toGraph(this.edges); }
     exportToCpp() { return Hypergraph.exportToCpp(this.edges); }
     static importFromCpp(s: string) {
@@ -83,6 +91,12 @@ namespace Hypergraph {
         if (!g.node(u))
             g.setNode(u, {label: id, ...STYLES.hypernode});
         return u;
+    }
+
+    export function *iterNodeOccurrences(edges: Iterable<Hyperedge>) {
+        for (let e of edges) {
+            yield e.target; yield* e.sources;
+        }
     }
 
     export function exportToCpp(edges: Hyperedge[]) {

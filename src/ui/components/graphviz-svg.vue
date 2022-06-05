@@ -17,19 +17,21 @@ export default {
     watch: {
         async graph() {
             this.adapter.stylesheet = this.layoutStylesheet;
-            let svg = await this.adapter.render(this.graph);
+            let {svg} = this.rendered =
+                await this.adapter.render(this.graph);
             this.$refs.drawGraph.textContent = '';
             this.$refs.drawGraph.append(...svg.children);
             this.size = {
                 x: svg.width.baseVal.valueInSpecifiedUnits,
                 y: svg.height.baseVal.valueInSpecifiedUnits
             };
+            this.rendered.svg = this.$refs.drawGraph;
+            this.$emit('rendered', this.rendered);
         }
     },
     methods: {
         nodeFromElement(el) {
-            var node = el.closest('.node');
-            return node ? this.graph.node(node.id) : undefined;
+            return this.rendered.nodeFromElement(el);
         }
     }
 }

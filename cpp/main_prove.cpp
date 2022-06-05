@@ -6,7 +6,13 @@
 class ColorScheme {
     Hypergraph& g;
 
-    std::vector<Hypergraph::Edge> pending;
+    struct pending_merge {
+        Hypergraph::Vertex* u1;
+        Hypergraph::Vertex* u2;
+        size_t j;
+    };
+
+    std::vector<pending_merge> to_merge;
 
 public:
     ColorScheme(Hypergraph& g) : g(g) { }
@@ -75,7 +81,7 @@ void ColorScheme::merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2, size_t j
         e2->vertices.push_back(u1);
     }
     else {
-        pending.push_back({.kind = COND_MERGE, .vertices = {u1, u2}});
+        g.addEdge({.kind = COND_MERGE, .vertices = {u1, u2}});
     }
 }
 
@@ -102,7 +108,6 @@ bool slices_compat(Hypergraph& g,
 void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
     auto color = e->target();
     size_t j = lookup(color);
-    std::vector<std::pair<Hypergraph::Vertex*, Hypergraph::Vertex*>> pending;
     for (auto it1 = e->vertices.begin() + 1; it1 != e->vertices.end(); it1++) {
         auto& edges1 = (*it1)->edges;
         for (auto it2 = it1 + 1; it2 != e->vertices.end(); it2++) {
@@ -118,7 +123,7 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
                                 std::cout << "// colored congruence closure for " 
                                     << v1->id << "~" << v2->id << std::endl;
                                 //merge(v1, v2, j);
-                                pending.push_back({v1, v2});
+                                to_merge.push_back({v1, v2, j});
                             }
                         }
                     }
@@ -126,17 +131,15 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
             }
         }
     }
-    for (auto& p : pending) merge(p.first, p.second, j);
 }
 
 void ColorScheme::veryInefficientCompact() {
-    std::vector<Hypergraph::Edge> pending;
-
     for (auto e : g.edges_by_kind[COND_MERGE]) {
         veryInefficientCompact(e);
     }
 
-    for (auto& e : pending) g.addEdge(e);
+    for (auto& p : to_merge) merge(p.u1, p.u2, p.j);
+    to_merge.resize(0);
 }
 
 

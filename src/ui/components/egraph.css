@@ -18,3 +18,16 @@ svg.egraph g.hyperedge--target.nullary > path {
 svg.egraph g.hyperedge--target.nullary > polygon {
     fill: gold;  /* the arrowhead */
 }
+
+/* color overlay */
+svg.egraph g.hypernode--colored > polygon {
+    fill: #f001;
+}
+
+svg.egraph circle.egraph--color-overlay--epicenter {
+    fill: #faae;
+}
+
+svg.egraph path.egraph--color-overlay--ray {
+    stroke: #f99a;
+}

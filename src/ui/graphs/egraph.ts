@@ -2,11 +2,11 @@ import { Graph } from 'graphlib';
 import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
 
 
-class Egraph extends Hypergraph {
-    colors = new Egraph.ColorScheme
+class EGraph extends Hypergraph {
+    colors = new EGraph.ColorScheme
 
-    filterEdges(p: (e: Hyperedge) => boolean): Egraph {
-        return new Egraph(super.filterEdges(p).edges);
+    filterEdges(p: (e: Hyperedge) => boolean): EGraph {
+        return new EGraph(super.filterEdges(p).edges);
     }
 
     foldColorInfo() {
@@ -23,10 +23,18 @@ class Egraph extends Hypergraph {
             case '?.': this.colors.add(e.target, e.sources[0]); break;
             }
         }
+        // fill in color names
+        for (let e of this.edges) {
+            let pe: EGraph.ColorInfo
+            if (e.sources.length === 0 && 
+                (pe = this.colors.palette.get(e.target)) && pe.name === '?') {
+                pe.name = e.op;
+            }
+        }
     }
 
     withoutColors() {
-        return this.filterEdges(e => !Egraph.COLOR_OPS.includes(e.op));
+        return this.filterEdges(e => !EGraph.COLOR_OPS.includes(e.op));
     }
 
     toGraph() {
@@ -37,14 +45,14 @@ class Egraph extends Hypergraph {
 
 
     static importFromCpp(s: string) {
-        return new Egraph(Hypergraph.importEdgesFromCpp(s));
+        return new EGraph(Hypergraph.importEdgesFromCpp(s));
     }
 
     static COLOR_OPS = ['?.', '?~'];
 }
 
 
-namespace Egraph {
+namespace EGraph {
 
     export class ColorScheme {
         eclasses: ColorGroup[] = []  // vertices merged with color
@@ -97,4 +105,4 @@ namespace Egraph {
 }
 
 
-export { Egraph }
+export { EGraph }

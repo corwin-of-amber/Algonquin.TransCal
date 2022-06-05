@@ -1,13 +1,13 @@
 import { Graph } from 'graphlib';
 
 // @ts-ignore
-import Egraph from './components/egraph.vue';
+import EGraphComponent from './components/egraph.vue';
 import { createComponent } from './infra/vue-dev';
 
 import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
-import { Hypergraph } from './graphs/hypergraph';
+import { EGraph } from './graphs/egraph';
 import { Backend } from './graphs/backend-interface';
 
 import { svgToPng } from './infra/gfx';
@@ -56,7 +56,7 @@ const SAMPLES = {
 }
 
 async function main() {
-    var app = createComponent<{egraph: Graph, layoutStylesheet: any}>(Egraph)
+    var app = createComponent<{egraph: EGraph, layoutStylesheet: any}>(EGraphComponent)
                 .mount(document.body);
 
     /*
@@ -93,14 +93,14 @@ async function main() {
     var input = vfe.sexpFe.asHypergraph(),
         [u1, u2] = ['u1', 'u2'].map(u => vfe.labeled.get(u));
     //if (u1 && u2) g.merge(u1, u2);
-    app.egraph = input.toGraph();
+    app.egraph = new EGraph(input.edges);
 
     var be = new Backend;
-    be.opts.rewriteDepth = 3;
+    be.opts.rewriteDepth = 4;
     be.writeProblem({input: input.edges, rules: vfe.rules});
     var g = await be.solve();
 
-    app.egraph = g.foldColorInfo().toGraph();
+    app.egraph = g.foldColorInfo();
 
     Object.assign(window, {app, vfe, svgToPng, drawDocument});
 }
