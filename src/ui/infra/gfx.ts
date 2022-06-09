@@ -26,7 +26,7 @@ function imageToPng(img: CanvasImageSource & {height: number, width: number}) {
     canvas.width = img.width;
     canvas.height = img.height;
     canvas.getContext('2d').drawImage(img, 0, 0);
-    return new Promise(resolve => canvas.toBlob(resolve, 'png'));
+    return new Promise<Blob>(resolve => canvas.toBlob(resolve, 'png'));
 }
 
 function coordDomToSvg(el: SVGSVGElement, pt: {x: number, y: number}) {

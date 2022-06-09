@@ -1,17 +1,18 @@
-import { Graph } from 'graphlib';
+import fs from 'fs';
 
 // @ts-ignore
-import EGraphComponent from './components/egraph.vue';
+import App from './components/app.vue';
 import { createComponent } from './infra/vue-dev';
 
 import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
 import { EGraph } from './graphs/egraph';
-import { Backend } from './graphs/backend-interface';
+import { Backend, EggBackend } from './graphs/backend-interface';
 
 import { svgToPng } from './infra/gfx';
 import { drawDocument } from 'rasterizehtml';
+import { Hypergraph } from './graphs/hypergraph';
 
 
 function astsToGraph(forest: Ast<any>[]) {
@@ -22,11 +23,10 @@ const SAMPLES = {
     'rev-snoc': [
         'u1 :- (rev (:+ l y))',
         'u2 :- (:: y (rev l))',
-        's :- (:: x xs)',
         // -- induction l
         'v1 :- (rev (:+ xs y))',
         'v2 :- (:: y (rev xs))',
-        'rose :- (?~ l s)',
+        'rose :- (?~ l (:: x xs))',
         'rose :- (?~ v1 v2)'
     ],
     'plus-s': [
@@ -55,8 +55,14 @@ const SAMPLES = {
     ]
 }
 
+type AppProps = {
+    egraph: EGraph,
+    format: Hypergraph.GraphFormatting,
+    layoutStylesheet: any
+};
+
 async function main() {
-    var app = createComponent<{egraph: EGraph, layoutStylesheet: any}>(EGraphComponent)
+    var app = createComponent<AppProps>(App)
                 .mount(document.body);
 
     /*
@@ -80,13 +86,9 @@ async function main() {
         'rewrite "S +" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'plus-0';
+    const name = 'rev-snoc';
 
     vfe.add(name, SAMPLES[name]);
-
-    app.layoutStylesheet = {
-        graph: {rankdir: "BT", ranksep: 0.3, nodesep: 0.4}
-    };
 
     //app.egraph = astsToGraph(vfe.asts);
 
@@ -95,14 +97,20 @@ async function main() {
     //if (u1 && u2) g.merge(u1, u2);
     app.egraph = new EGraph(input.edges);
 
-    var be = new Backend;
-    be.opts.rewriteDepth = 4;
+    var be = new EggBackend;
+    //be.opts.rewriteDepth = 4;
     be.writeProblem({input: input.edges, rules: vfe.rules});
     var g = await be.solve();
 
     app.egraph = g.foldColorInfo();
 
-    Object.assign(window, {app, vfe, svgToPng, drawDocument});
+    Object.assign(window, {app, vfe, svgToPng, exportPng});
+}
+
+async function exportPng(svg = document.querySelector('svg')) {
+    let blob = await svgToPng(svg);
+    fs.writeFileSync('data/tmp/egraph.png',
+        new Uint8Array(await blob.arrayBuffer()));
 }
 
 

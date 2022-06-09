@@ -19,6 +19,10 @@ svg.egraph g.hyperedge--target.nullary > polygon {
     fill: gold;  /* the arrowhead */
 }
 
+svg.egraph g.cluster.singleton > path {
+    stroke: #ccc;
+}
+
 /* color overlay */
 svg.egraph g.hypernode--colored > polygon {
     fill: #f001;
@@ -30,4 +34,8 @@ svg.egraph circle.egraph--color-overlay--epicenter {
 
 svg.egraph path.egraph--color-overlay--ray {
     stroke: #f99a;
+}
+
+svg.egraph g.eclass--color > path {
+    stroke: #f33;
 }

@@ -35,7 +35,9 @@ class Hypergraph {
         return new Set(Hypergraph.iterNodeOccurrences(this.edges));
     }
 
-    toGraph() { return Hypergraph.toGraph(this.edges); }
+    toGraph(format = new Hypergraph.GraphFormatting) { 
+        return Hypergraph.toGraph(this.edges, format);
+    }
     exportToCpp() { return Hypergraph.exportToCpp(this.edges); }
     static importFromCpp(s: string) {
         return new Hypergraph(Hypergraph.importEdgesFromCpp(s));
@@ -45,7 +47,7 @@ class Hypergraph {
 
 namespace Hypergraph {
 
-    const STYLES = {
+    export const STYLES = {
         hypernode: {
             class: 'hypernode',
             shape: 'rect',
@@ -73,24 +75,37 @@ namespace Hypergraph {
         })
     }
 
-    export function toGraph(edges: Hyperedge[]) {
-        var g = new Graph();
-        for (let [i, e] of enumerate(edges)) {
-            var eid = `e${i}`, k = e.sources.length;
-            g.setNode(eid, STYLES.nucleus(e));
-            g.setEdge(eid, nodeHelper(g, e.target), STYLES.target(k));
-            for (let [i, u] of enumerate(e.sources))
-                g.setEdge(nodeHelper(g, u), eid, STYLES.source(i, k));
+    export class GraphFormatting {
+        create(): Graph { return new Graph(); }
+        edgeTo(g: Graph, eid: string, edge: Hyperedge) {
+            let k = edge.sources.length;
+            g.setNode(eid, STYLES.nucleus(edge));
+            g.setEdge(eid, this.nodeHelper(g, edge.target), STYLES.target(k));
         }
-
-        return g;
+        edgeFrom(g: Graph, eid: string, edge: Hyperedge,
+                 index: number, source: HypernodeId) {
+            let k = edge.sources.length;
+            g.setEdge(this.nodeHelper(g, source), eid, STYLES.source(index, k));
+        }
+        nodeHelper(g: Graph, id: number) {
+            var u = `${id}`;
+            if (!g.node(u))
+                g.setNode(u, {label: id, ...STYLES.hypernode});
+            return u;
+        }
+        cleanup(g: Graph) { }
     }
 
-    function nodeHelper(g: Graph, id: number) {
-        var u = `${id}`;
-        if (!g.node(u))
-            g.setNode(u, {label: id, ...STYLES.hypernode});
-        return u;
+    export function toGraph(edges: Hyperedge[], format = new GraphFormatting) {
+        let g = format.create();
+        for (let [i, e] of enumerate(edges)) {
+            var eid = `e${i}`
+            format.edgeTo(g, eid, e);
+            for (let [i, u] of enumerate(e.sources))
+                format.edgeFrom(g, eid, e, i, u);
+        }
+        format.cleanup(g);
+        return g;
     }
 
     export function *iterNodeOccurrences(edges: Iterable<Hyperedge>) {

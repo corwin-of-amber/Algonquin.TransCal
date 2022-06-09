@@ -15,6 +15,12 @@ class ColorEGraphOverlay {
         this.rendered = rendered;
     }
 
+    apply() {
+        for (let c of this.g.colors?.eclasses ?? []) {
+            this.connectNodes(c.members);
+        }
+    }
+
     append(el: SVGElement) {
         if (!this.overlay)
             this.rendered.svg.append(this.overlay = createSvgElement<SVGGElement>('g'));

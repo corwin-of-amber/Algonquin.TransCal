@@ -20,14 +20,14 @@ import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
 
 export default {
-    props: ['egraph', 'layoutStylesheet'],
+    props: ['egraph', 'format', 'layoutStylesheet', 'overlay'],
     data: () => ({
         size: {x: 150, y: 150},
         hover: {node: undefined, edge: undefined}
     }),
     
     computed: {
-        _graph() { return this.egraph?.toGraph(); },
+        _graph() { return this.egraph?.toGraph(this.format); },
         stats() {
             var g = this.egraph;
             return g && `${g.nodeCount?.()} nodes, ${g.edges.length} hyperedges`;
@@ -45,9 +45,9 @@ export default {
                 }
             }
             // Display colored merges
-            let co = new ColorEGraphOverlay(this.egraph, rendered);
-            for (let c of this.egraph.colors?.eclasses ?? []) {
-                co.connectNodes(c.members);
+            if (this.overlay) {
+                let co = new ColorEGraphOverlay(this.egraph, rendered);
+                co.apply();
             }
         },
         onMouseOver(ev) {

@@ -38,7 +38,7 @@ class Backend {
     }
 
     execute() {
-        let p = child_process.spawn(this.exe, [...this.flags(), this.tempdir.dirpath],
+        let p = child_process.spawn(this.exe, this.cmdargs(),
             {stdio: ['ignore', 'pipe', 'pipe']}),
             td = new TextDecoder();
 
@@ -51,11 +51,26 @@ class Backend {
         });
     }
 
+    cmdargs() {
+        return [...this.flags(), ...this.inputArgs()];
+    }
+
+    inputArgs() {
+        return [this.tempdir.dirpath];
+    }
+
     flags() {
         return [].concat(...[
             this.opts.rewriteDepth ? ['--rw-depth', `${this.opts.rewriteDepth}`] : []
         ]);
     }
+}
+
+class EggBackend extends Backend {
+    exe = "bin/thesy/fo_reason"
+
+    inputArgs() { return [path.join(this.tempdir.dirpath, 'input')]; }
+    flags() { return []; }
 }
 
 type BackendOptions = {
@@ -73,4 +88,4 @@ class TempDir {
 }
 
 
-export { Backend, TempDir }
+export { Backend, EggBackend, TempDir }

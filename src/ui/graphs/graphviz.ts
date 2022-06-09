@@ -64,8 +64,9 @@ class GraphvizSvg {
     }
 
     nodeFromElement(el: SVGElement) {
-        let node = el.closest('.node');
-        return node ? this.graph.node(node.id) : undefined;
+        let node = el.closest('.node,.cluster');
+        return node ? this.graph.node(node.id) ?? 
+                      this.graph.node(`cluster_${node.id}`) : undefined;
     }
 
     elementFromNode(node: number | string | {id: string}) {
@@ -77,7 +78,7 @@ class GraphvizSvg {
     }
 
     *iterNodeElements() {
-        for (let el of this.svg.querySelectorAll('.node')) {
+        for (let el of this.svg.querySelectorAll('.node,.cluster')) {
             let node = this.nodeFromElement(el as SVGElement);
             if (node) yield {el, node};
         }
