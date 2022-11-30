@@ -3,7 +3,7 @@
     </svg>
 </template>
 
-<script>
+<script lang="ts">
 import { GraphvizAdapter } from '../graphs/graphviz';
 
 export default {

@@ -4,10 +4,50 @@ import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
 
 
 class EGraph extends Hypergraph {
-    colors = new EGraph.ColorScheme
+    colors: EGraph.ColorScheme
+
+    constructor(edges: Hyperedge[] = [], colors?: EGraph.ColorScheme) {
+        super(edges);
+        this.colors = colors ?? new EGraph.ColorScheme
+    }
+
+    static fromHypergraph(g: Hypergraph) {
+        let eg = new EGraph(g.edges);
+        return eg;
+    }
 
     filterEdges(p: (e: Hyperedge) => boolean): EGraph {
-        return new EGraph(super.filterEdges(p).edges);
+        return new EGraph(super.filterEdges(p).edges, this.colors);
+    }
+
+    congruenceClosureLeaves() {
+        let byOp = new Map<string, Hyperedge[]>();
+        for (let e of this.edges) {
+            if (e.sources.length === 0) {
+                let v = byOp.get(e.op) ?? [];
+                v.push(e);
+                byOp.set(e.op, v);
+            }
+        }
+        for (let es of byOp.values()) {
+            let targets = new Set(es.map(e => e.target));
+            this.merge([...targets]);
+        }
+        return this.removeDuplicateEdges();
+    }
+
+    removeDuplicateEdges() {
+        let hashcons = new Map<string, Hyperedge[]>();
+        for (let e of this.edges) {
+            let k = JSON.stringify([e.op, e.sources, e.target]),
+                v = hashcons.get(k) ?? [];
+            v.push(e);
+            hashcons.set(k, v);
+        }
+        for (let es of hashcons.values()) {
+            this.edges = this.edges.filter(e => es.indexOf(e) <= 0);
+        }
+        return this;
     }
 
     foldColorInfo() {
@@ -35,12 +75,14 @@ class EGraph extends Hypergraph {
     }
 
     withoutColors() {
-        return this.filterEdges(e => !EGraph.COLOR_OPS.includes(e.op));
+        return this.filterEdges(e => !EGraph.COLOR_OPS.includes(e.op)
+            && !this.colors.palette.has(e.target));
     }
 
-    toGraph(format = new EGraph.ClusteredFormatting ) {
+    toGraph(format = new EGraph.ClusteredFormatting): Graph {
         let g = super.toGraph(format);
         this.colors.applyToGraph(g);
+        // Grouping is only available for the first color
         if (this.colors.lookup('clr#0') && g.isCompound())
             this.colors.groupBy(g, 'clr#0');
         return g;

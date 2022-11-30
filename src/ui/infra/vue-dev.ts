@@ -32,8 +32,8 @@ interface Component<P, HostElement = Element> extends Vue.App {
     mount(rootContainer: HostElement | string, isHydrate?: boolean, isSVG?: boolean): Vue.ComponentPublicInstance<P>;
 }
 
-function createComponent<P = {}>(component: {props: string[]}) {
-    return Vue.createApp(componentAdapter(component)) as Component<P>;
+function createComponent<P = {}>(component: {props: string[]}, rootProps?: any) {
+    return Vue.createApp(componentAdapter(component), rootProps) as Component<P>;
 }
 
 function withProps<T>() {

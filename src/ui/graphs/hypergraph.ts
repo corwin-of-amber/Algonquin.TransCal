@@ -18,7 +18,12 @@ class Hypergraph {
         this.edges = edges;
     }
 
-    merge(u: HypernodeId, ...vs: HypernodeId[]) {
+    merge(us: HypernodeId[]) {
+        if (us.length > 1)
+            this.mergeInto(us[0], ...us.slice(1));
+    }
+
+    mergeInto(u: HypernodeId, ...vs: HypernodeId[]) {
         this.edges = this.edges.map(e =>
             Hypergraph.replaceInEdge(e, vs, u));
     }

@@ -13,7 +13,7 @@
 </style>
 
 
-<script>
+<script lang="ts">
 import _ from 'lodash';
 import GraphvizSvg from './graphviz-svg.vue';
 import './egraph.css';
@@ -48,10 +48,13 @@ export default {
             if (this.overlay) {
                 let co = new ColorEGraphOverlay(this.egraph, rendered);
                 co.apply();
+                co.on('eclass:select', ev => this.$emit('eclass:select', ev));
+                this._overlay = co;
             }
         },
         onMouseOver(ev) {
-            this.hover.node = this.$refs.gv.nodeFromElement(ev.target);
+            this.hover.node = this.$refs.gv.nodeFromElement(ev.target)
+                              ?? this._overlay?.eclassFromElement(ev.target);
         }
     },
     components: { GraphvizSvg }

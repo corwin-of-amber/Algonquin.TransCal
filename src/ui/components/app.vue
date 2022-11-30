@@ -5,10 +5,11 @@
                 <span>Sam</span><slider-switch :value="mode == 'max'" @input="mode = $event ? 'max' : 'sam'"/><span>Max</span>
             </div>
         </div>
-        <egraph :egraph="egraph"
+        <egraph ref="egraph" :egraph="egraph"
             :format="config.format"
             :overlay="config.overlay"
-            :layoutStylesheet="config.layoutStylesheet"/>
+            :layoutStylesheet="config.layoutStylesheet"
+            @eclass:select="events.emit('eclass:select', $event)"/>
     </div>
 </template>
 
@@ -21,6 +22,7 @@
 </style>
 
 <script>
+import { EventEmitter } from 'events';
 import EGraphComponent from './egraph.vue';
 import SliderSwitch from './widgets/slider-switch.vue';
 import { EGraph } from '../graphs/egraph';
@@ -29,9 +31,27 @@ import { Hypergraph } from '../graphs/hypergraph';
 
 export default {
     props: ['egraph'],
-    data: () => ({mode: 'max'}),
+    data: () => ({mode: 'max', override: {ranksep: undefined, nodesep: undefined}}),
     computed: {
         config() {
+            let c = this.baseConfig(),
+                o = this.override;
+            if (o.ranksep !== undefined) c.layoutStylesheet.graph.ranksep = o.ranksep;
+            if (o.nodesep !== undefined) c.layoutStylesheet.graph.nodesep = o.nodesep;
+            return c;
+        }
+    },
+    created() {
+        this.events = new EventEmitter();
+    },
+    mounted() {
+        let cfg = localStorage['config.app'];
+        if (cfg) Object.assign(this, JSON.parse(cfg));
+        window.addEventListener('beforeunload', () =>
+            localStorage['config.app'] = JSON.stringify(this.$data));
+    },    
+    methods: {
+        baseConfig() {
             switch (this.mode) {
             case 'sam':
                 return {
@@ -50,12 +70,6 @@ export default {
                     overlay: false
                 };
             }
-        }
-    },
-    methods: {
-        onSwitch(ev) {
-            this.mode = ev? 'max' : 'sam'            ;
-            console.log(ev);
         }
     },
     components: { 'egraph': EGraphComponent, SliderSwitch }

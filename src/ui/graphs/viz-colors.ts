@@ -1,24 +1,52 @@
-import _ from 'lodash';
+import { EventEmitter } from 'events';
+import { PointXY, vsum, centerOfMass } from '../infra/geom';
 import { coordDomToSvg, createSvgElement } from '../infra/gfx';
 import { EGraph } from './egraph';
 import { GraphvizSvg } from './graphviz';
 import { HypernodeId } from './hypergraph';
 
 
-class ColorEGraphOverlay {
+class ColorEGraphOverlay extends EventEmitter {
     g: EGraph
     rendered: GraphvizSvg
     overlay: SVGGElement
+    eclasses: RenderedColorGroup[] = []
+
+    epicenterShifts = new Map<EGraph.ColorGroup, PointXY>()
 
     constructor(g: EGraph, rendered: GraphvizSvg) {
+        super();
         this.g = g;
         this.rendered = rendered;
     }
 
     apply() {
         for (let c of this.g.colors?.eclasses ?? []) {
-            this.connectNodes(c.members);
+            this.eclasses.push(this.renderColorGroupFor(c));
         }
+    }
+
+    reapply(eclasses: EGraph.ColorGroup[]) {
+        for (let c of eclasses) {
+            let rcg = this._find(c);
+            if (rcg) {
+                this._removeRendered(rcg);
+                rcg.el = this.renderColorGroupFor(c).el;
+            }
+        }
+    }
+
+    eclassFromElement(el: SVGElement): EGraph.ColorGroup {
+        el = el.closest(`.${ECLASS}`);
+        return el ? this.eclasses.find(rec => rec.el === el)?.c : undefined;
+    }
+
+    moveRel(eclass: EGraph.ColorGroup, rel: PointXY) {
+        if (!this._find(eclass))
+            throw new Error(`eclass not found in ColorEGraphOverlay`);
+        this.epicenterShifts.set(eclass, vsum([
+            this.epicenterShifts.get(eclass), rel].filter(x => x)));
+        this.reapply([eclass]);
     }
 
     append(el: SVGElement) {
@@ -27,7 +55,17 @@ class ColorEGraphOverlay {
         this.overlay.append(el);
     }
 
-    connectNodes(ids: HypernodeId[]) {
+    renderColorGroupFor(eclass: EGraph.ColorGroup) {
+        let colorName = this.g.colors.lookup(eclass.color)[1].name,
+            el = this.connectNodes(eclass.members, colorName,
+                                   this.epicenterShifts.get(eclass));
+        el.addEventListener('mousedown', () => {
+            this.emit('eclass:select', {eclass});
+        });
+        return {c: eclass, colorName, el};
+    }
+
+    connectNodes(ids: HypernodeId[], colorName: string, centerShift: PointXY = {x: 0, y: 0}) {
         let svg = this.rendered.svg;
         let bbox = svg.getBoundingClientRect();
         let elOf = (u: HypernodeId) => this.rendered.elementFromNode(u);
@@ -38,13 +76,28 @@ class ColorEGraphOverlay {
         };
 
         let centers = ids.map(u => bind(elOf, centerOf)(u)).filter(x => x);
-        let epicenter = centerOfMass(centers);
+        let epicenter = vsum([centerOfMass(centers), centerShift]);
 
         let eclass = withClass(createSvgElement<SVGGElement>('g'), ECLASS);
+        eclass.setAttribute('data-color', colorName);
         for (let pt of centers)
             eclass.append(withClass(lineBetween(epicenter, pt), RAY));
         eclass.append(withClass(circleAt(epicenter), EPICENTER));
         this.append(eclass);
+        return eclass;
+    }
+
+    _find(c: EGraph.ColorGroup) {
+        return this.eclasses.find(x => x.c === c);
+    }
+
+    _remove(c: EGraph.ColorGroup) {
+        let rcg = this._find(c);
+        if (rcg) this._removeRendered(rcg);
+    }
+
+    _removeRendered(rcg: RenderedColorGroup) {
+        rcg.el.remove();
     }
 }
 
@@ -52,9 +105,8 @@ const ECLASS = 'egraph--color-overlay--eclass';
 const EPICENTER = 'egraph--color-overlay--epicenter';
 const RAY = 'egraph--color-overlay--ray';
 
+type RenderedColorGroup = {c: EGraph.ColorGroup, colorName: string, el: SVGGElement};
 
-
-type PointXY = {x: number, y: number};
 
 function bind(...funcs: ((a: any) => any)[]) {    /* option monad */
     return (u: any) => {
@@ -64,11 +116,6 @@ function bind(...funcs: ((a: any) => any)[]) {    /* option monad */
     }
 }
 
-function centerOfMass(pts: PointXY[]): PointXY {
-    let n = pts.length;
-    return {x: _.sum(pts.map(pt => pt.x)) / n, 
-            y: _.sum(pts.map(pt => pt.y)) / n}
-}
 
 function circleAt(pt: PointXY, r = 4) {
     let ci = createSvgElement('circle');

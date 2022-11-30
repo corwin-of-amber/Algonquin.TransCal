@@ -28,14 +28,59 @@ svg.egraph g.hypernode--colored > polygon {
     fill: #f001;
 }
 
+svg.egraph *[data-color="clr#0"],
+svg.egraph *[data-color="rose"] {
+    --epicenter-color: #faab;
+    --ray-color: #f99a;
+    --dotted-color: #f33;
+}
+
+svg.egraph *[data-color="clr#1"],
+svg.egraph *[data-color="azure"] {
+    --epicenter-color: #aafb;
+    --ray-color: #99fa;
+    --dotted-color: #33f;
+}
+
+svg.egraph *[data-color="gold"] {
+    --epicenter-color: #ffefaabb;
+    --ray-color: #ffe14acd;
+    --dotted-color: #ffe733;
+}
+
+svg.egraph g.egraph--color-overlay--eclass:hover 
+path.egraph--color-overlay--ray  {
+    stroke-width: 2px;
+}
+
+svg.egraph g.egraph--color-overlay--eclass:hover 
+circle.egraph--color-overlay--epicenter  {
+    stroke: var(--ray-color);
+    stroke-width: 2px;
+}
+
 svg.egraph circle.egraph--color-overlay--epicenter {
-    fill: #faae;
+    fill: var(--epicenter-color);
 }
 
 svg.egraph path.egraph--color-overlay--ray {
-    stroke: #f99a;
+    stroke: var(--ray-color);
 }
 
 svg.egraph g.eclass--color > path {
-    stroke: #f33;
+    stroke: var(--dotted-color);
 }
+
+/** this part is for svg2pdf, which does not support css vars **/
+/** it can probably be "compiled" somehow based on the above **/
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="rose"] circle.egraph--color-overlay--epicenter { fill: #faab; }
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="rose"] path.egraph--color-overlay--ray { stroke: #f99a; }
+svg.egraph.compat g.eclass--color[data-color="rose"] > path { stroke: #f33; }
+
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="azure"] circle.egraph--color-overlay--epicenter { fill: #aafb; }
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="azure"] path.egraph--color-overlay--ray { stroke: #99fa; }
+svg.egraph.compat g.eclass--color[data-color="azure"] > path { stroke: #33f; }
+
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="gold"] circle.egraph--color-overlay--epicenter { fill: #ffefaabb; }
+svg.egraph.compat g.egraph--color-overlay--eclass[data-color="gold"] path.egraph--color-overlay--ray { stroke: #ffe14acd; }
+svg.egraph.compat g.eclass--color[data-color="gold"] > path { stroke: #ffe733; }

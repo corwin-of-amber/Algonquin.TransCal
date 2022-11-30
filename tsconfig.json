@@ -2,9 +2,11 @@
     "compilerOptions": {
         "target": "es2020",
         "module": "esnext",
+        "lib": ["esnext", "DOM", "DOM.Iterable"],
         "moduleResolution": "node",
         "esModuleInterop": true,
         "downlevelIteration": true,
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        "jsx": "preserve"
     }
   }

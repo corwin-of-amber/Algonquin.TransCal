@@ -1,5 +1,15 @@
+import { jsPDF } from 'jspdf';
+import 'svg2pdf.js';
 import { drawDocument } from 'rasterizehtml';
 
+
+async function svgToPdf(svg: SVGSVGElement) {
+    const width = svg.width.baseVal.value
+    const height = svg.height.baseVal.value
+    const pdf = new jsPDF(width > height ? 'l' : 'p', 'pt', [width, height])
+    await pdf.svg(svg, {width, height});
+    return pdf;
+}
 
 async function svgToPng(svg: SVGSVGElement) {
     return imageToPng(await svgToImage(svg));
@@ -10,7 +20,7 @@ async function svgToImage(svg: SVGSVGElement) {
         head: document.head.querySelectorAll('link[rel=stylesheet]'),
         body: [svg]
     });
-    let h = await drawDocument(d, undefined);
+    let h = await drawDocument(d, undefined, {zoom: 2});
     return h.image;
 }
 
@@ -43,4 +53,4 @@ function createSvgElement<T extends SVGElement = SVGElement>(tagName: string) {
 }
 
 
-export { svgToImage, svgToPng, coordDomToSvg, createSvgElement }
+export { svgToPdf, svgToImage, svgToPng, coordDomToSvg, createSvgElement }
