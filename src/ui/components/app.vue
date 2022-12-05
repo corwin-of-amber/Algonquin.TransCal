@@ -9,7 +9,7 @@
             :format="config.format"
             :overlay="config.overlay"
             :layoutStylesheet="config.layoutStylesheet"
-            @eclass:select="events.emit('eclass:select', $event)"/>
+            @eclass:select="this.events.emit('eclass:select', $event)"/>
     </div>
 </template>
 
@@ -21,9 +21,11 @@
 }
 </style>
 
-<script>
+<script lang="ts">
 import { EventEmitter } from 'events';
+// @ts-ignore
 import EGraphComponent from './egraph.vue';
+// @ts-ignore
 import SliderSwitch from './widgets/slider-switch.vue';
 import { EGraph } from '../graphs/egraph';
 import { Hypergraph } from '../graphs/hypergraph';

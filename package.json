@@ -1,7 +1,7 @@
 {
     "name": "algonquin-transcal",
     "version": "0.1.0",
-    "main": "build/kremlin/index.html",
+    "main": "index.webpack.html",
     "scripts": {
         "build": "kremlin index.html",
         "build:cppnator": "kremlin --node -o build/cppnator src/other/the-cppnator.ts"
@@ -27,6 +27,14 @@
         "@types/lodash": "^4.14.182",
         "@types/nearley": "^2.11.2",
         "@types/node": "^17.0.33",
-        "@types/viz.js": "^2.1.2"
+        "@types/viz.js": "^2.1.2",
+        "assert": "^2.0.0",
+        "buffer": "^6.0.3",
+        "css-loader": "^6.7.2",
+        "style-loader": "^3.3.1",
+        "ts-loader": "^9.4.2",
+        "vue-loader": "^17.0.1",
+        "webpack": "^5.75.0",
+        "webpack-cli": "^5.0.0"
     }
 }

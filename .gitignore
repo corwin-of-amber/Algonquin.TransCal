@@ -24,6 +24,7 @@ _npmlink
 /data/tmp
 /etc/some-pictures
 node_modules
+/dist
 
 
 # User-specific stuff:

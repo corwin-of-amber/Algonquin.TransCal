@@ -2,7 +2,7 @@
  * Some facilities for easier development & introspection when using
  * Vue components.
  */
-import Vue from 'vue';
+import * as Vue from 'vue';
 
 
 /**

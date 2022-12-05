@@ -15,6 +15,7 @@
 
 <script lang="ts">
 import _ from 'lodash';
+// @ts-ignore
 import GraphvizSvg from './graphviz-svg.vue';
 import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
