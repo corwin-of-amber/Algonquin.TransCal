@@ -11,11 +11,12 @@ import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
 import { EGraph } from './graphs/egraph';
-import { Backend, EggBackend } from './graphs/backend-interface';
+import { CppBackend, EggBackend } from './graphs/backend-interface';
 
 import { PointXY, vsum } from './infra/geom';
 import { svgToPdf, svgToPng } from './infra/gfx';
-import { Hypergraph } from './graphs/hypergraph';
+import { Hypergraph, HypernodeId } from './graphs/hypergraph';
+import { reconstructTerms } from './semantics/reconstruct';
 
 
 function astsToGraph(forest: Ast<any>[]) {
@@ -32,6 +33,15 @@ const SAMPLES = {
         'azure :- (?~ l [])',
         'rose :- (?~ l (:: x xs))',
         'rose :- (?~ v1 v2)'
+    ],
+    'rev-snoc [cons case]': [
+        'u1 :- (rev (:+ l y))',
+        'u2 :- (:: y (rev l))',
+        // -- induction l
+        'v1 :- (rev (:+ xs y))',
+        'v2 :- (:: y (rev xs))',
+        'l :- (:: x xs)',
+        'v1 :- (v2)'
     ],
     'rev-rev': [
         'u1 :- (rev (rev l))',
@@ -89,9 +99,7 @@ type AppProps = {
 };
 
 async function main() {
-    var app = createComponent<AppProps>(App, {'onEclass:select': console.log})
-                .mount(document.body);
-
+    var app = createComponent<AppProps>(App).mount(document.body);
     /*
     let ast = wip_flexiparse() as Ast<any>[],
         g = astsToGraph(ast);
@@ -114,7 +122,7 @@ async function main() {
         'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'rev-snoc';
+    const name = 'rev-snoc [cons case]';
 
     vfe.add(name, SAMPLES[name]);
 
@@ -125,8 +133,8 @@ async function main() {
     //if (u1 && u2) g.merge(u1, u2);
     app.egraph = new EGraph(input.edges);
 
-    var be = new EggBackend;
-    //be.opts.rewriteDepth = 4;
+    var be = new CppBackend;
+    be.opts.rewriteDepth = 5;
     be.writeProblem({input: input.edges, rules: vfe.rules});
     var g = await be.solve();
     // use this for no-op backend (just for rendering the input graph)
@@ -134,16 +142,21 @@ async function main() {
 
     app.egraph = g.foldColorInfo();
 
-    let cli = new CLI(app.$refs.it as any);
+    let cli = new CLI(g, app.$refs.it as any);
 
     Object.assign(window, {app, vfe, svgToPng, cli});
 }
 
+/**
+ * This is a "cli" for use in the JavaScript console.
+ */
 class CLI {
+    egraph: Hypergraph
     vue: ComponentPublicInstance<AppProps>
     selection: {colorEclass?: EGraph.ColorGroup} = {}
 
-    constructor(vue: ComponentPublicInstance<AppProps>) {
+    constructor(egraph: Hypergraph, vue: ComponentPublicInstance<AppProps>) {
+        this.egraph = egraph;
         this.vue = vue;
         this.vue.events.on('eclass:select', ({eclass}) => {
             this.selection = {colorEclass: eclass};
@@ -192,6 +205,10 @@ class CLI {
         // @ts-ignore
         let overlay = this.vue.$refs.egraph._overlay;
         overlay.moveRel(c, shift);
+    }
+
+    reconstructTerms(u: HypernodeId) {
+        return reconstructTerms(this.egraph, u);
     }
 }
 

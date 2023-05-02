@@ -9,6 +9,7 @@
             :format="config.format"
             :overlay="config.overlay"
             :layoutStylesheet="config.layoutStylesheet"
+            @select="this.events.emit('egraph:select', $event)"
             @eclass:select="this.events.emit('eclass:select', $event)"/>
     </div>
 </template>

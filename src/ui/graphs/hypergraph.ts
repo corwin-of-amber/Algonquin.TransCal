@@ -40,6 +40,14 @@ class Hypergraph {
         return new Set(Hypergraph.iterNodeOccurrences(this.edges));
     }
 
+    getOutgoing(u: HypernodeId) {
+        return this.edges.filter(e => e.sources.includes(u));
+    }
+
+    getIncoming(v: HypernodeId) {
+        return this.edges.filter(e => e.target == v);
+    }
+
     toGraph(format = new Hypergraph.GraphFormatting) { 
         return Hypergraph.toGraph(this.edges, format);
     }

@@ -3,6 +3,7 @@
         <graphviz-svg ref="gv" class="egraph" :graph="_graph"
             :layoutStylesheet="layoutStylesheet"
             @rendered="colorOverlay"
+            @mousedown="onMouseDown"
             @mouseover="onMouseOver"/>
         <div class="egraph--stats">{{stats}}<br/>{{hover}}</div>
     </div>
@@ -15,10 +16,21 @@
 
 <script lang="ts">
 import _ from 'lodash';
+import { Component, Vue } from 'vue-facing-decorator'
+
 // @ts-ignore
 import GraphvizSvg from './graphviz-svg.vue';
 import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
+
+/*
+@Component({
+    //components: { GraphvizSvg }
+})
+export default class Egraph extends Vue {
+    //name: string = "hello"
+}
+*/
 
 export default {
     props: ['egraph', 'format', 'layoutStylesheet', 'overlay'],
@@ -53,6 +65,13 @@ export default {
                 this._overlay = co;
             }
         },
+        onMouseDown(ev) {
+            let node = this.$refs.gv.nodeFromElement(ev.target);
+            let eclass = this._overlay?.eclassFromElement(ev.target);
+            console.log(node, eclass)
+            if (node || eclass)
+                this.$emit('select', {node, eclass})
+        },
         onMouseOver(ev) {
             this.hover.node = this.$refs.gv.nodeFromElement(ev.target)
                               ?? this._overlay?.eclassFromElement(ev.target);
@@ -60,5 +79,4 @@ export default {
     },
     components: { GraphvizSvg }
 }
-
 </script>
