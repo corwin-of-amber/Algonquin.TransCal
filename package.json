@@ -1,7 +1,7 @@
 {
     "name": "algonquin-transcal",
     "version": "0.1.0",
-    "main": "index.webpack.html",
+    "main": "build/kremlin/index.html",
     "scripts": {
         "build": "kremlin index.html",
         "build:cppnator": "kremlin --node -o build/cppnator src/other/the-cppnator.ts"
@@ -18,7 +18,8 @@
         "s-expression": "^3.1.1",
         "svg2pdf.js": "^2.2.1",
         "viz.js": "^2.1.2",
-        "vue": "^3.2.33"
+        "vue": "^3.2.33",
+        "vue-facing-decorator": "^2.1.20"
     },
     "devDependencies": {
         "@types/concat-stream": "^2.0.0",

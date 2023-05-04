@@ -15,68 +15,76 @@
 
 
 <script lang="ts">
-import _ from 'lodash';
-import { Component, Vue } from 'vue-facing-decorator'
+import { Component, Prop, Vue } from 'vue-facing-decorator'
 
 // @ts-ignore
-import GraphvizSvg from './graphviz-svg.vue';
+import GraphvizSvgView from './graphviz-svg.vue';
 import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
+import type { EGraph } from '../graphs/egraph';
+import type { GraphvizSvg } from '../graphs/graphviz';
 
-/*
+
 @Component({
-    //components: { GraphvizSvg }
+    emits: ['select'],
+    components: { GraphvizSvg: GraphvizSvgView }
 })
-export default class Egraph extends Vue {
-    //name: string = "hello"
-}
-*/
+export default class EgraphView extends Vue {
+    @Prop egraph: EGraph
+    @Prop format: any
+    @Prop layoutStylesheet: undefined
+    @Prop overlay: undefined
 
-export default {
-    props: ['egraph', 'format', 'layoutStylesheet', 'overlay'],
-    data: () => ({
-        size: {x: 150, y: 150},
-        hover: {node: undefined, edge: undefined}
-    }),
-    
-    computed: {
-        _graph() { return this.egraph?.toGraph(this.format); },
-        stats() {
-            var g = this.egraph;
-            return g && `${g.nodeCount?.()} nodes, ${g.edges.length} hyperedges`;
-        }
-    },
-    methods: {
-        colorOverlay(rendered) {
-            if (rendered.graph !== this._graph) return;
+    size = {x: 150, y: 150}
+    hover = {node: undefined, edge: undefined}
 
-            let p = this.egraph.colors?.palette, c;
-            for (let {el, node} of rendered.iterNodeElements()) {
-                if ((c = node.data?.color) !== undefined) {
-                    el.classList.add('hypernode--colored');
-                    el.setAttribute('data-color', p.get(c).name ?? c);
-                }
+    get _graph() { return this.egraph?.toGraph(this.format); }
+    get stats() {
+        var g = this.egraph;
+        return g && `${g.nodeCount?.()} nodes, ${g.edges.length} hyperedges`;
+    }
+
+    onMouseOver(ev: MouseEvent) {
+        // @ts-ignore
+        this.hover.node = this.$refs.gv.nodeFromElement(ev.target)
+                          // @ts-ignore
+                          ?? this._overlay?.eclassFromElement(ev.target);
+    }
+
+    onMouseDown(ev) {
+        let helem = this.hyperelementFromElement(ev.target);
+        // @ts-ignore
+        let eclass = this._overlay?.eclassFromElement(ev.target);
+        if (helem || eclass)
+            this.$emit('select', {target: helem, eclass})
+    }
+
+    hyperelementFromElement(el: Element) {
+        // @ts-ignore
+        let node = this.$refs.gv.nodeFromElement(el);
+        return {node: (node?.class === 'hypernode') ? node : undefined,
+                edge: (node?.class === 'hyperedge--nucleus') ? node.data.edge : undefined};
+    }
+
+    colorOverlay(rendered: GraphvizSvg) {
+        if (rendered.graph !== this._graph) return;
+
+        let p = this.egraph.colors?.palette, c;
+        for (let {el, node} of rendered.iterNodeElements()) {
+            if ((c = node.data?.color) !== undefined) {
+                el.classList.add('hypernode--colored');
+                el.setAttribute('data-color', p.get(c).name ?? c);
             }
-            // Display colored merges
-            if (this.overlay) {
-                let co = new ColorEGraphOverlay(this.egraph, rendered);
-                co.apply();
-                co.on('eclass:select', ev => this.$emit('eclass:select', ev));
-                this._overlay = co;
-            }
-        },
-        onMouseDown(ev) {
-            let node = this.$refs.gv.nodeFromElement(ev.target);
-            let eclass = this._overlay?.eclassFromElement(ev.target);
-            console.log(node, eclass)
-            if (node || eclass)
-                this.$emit('select', {node, eclass})
-        },
-        onMouseOver(ev) {
-            this.hover.node = this.$refs.gv.nodeFromElement(ev.target)
-                              ?? this._overlay?.eclassFromElement(ev.target);
         }
-    },
-    components: { GraphvizSvg }
+        // Display colored merges
+        if (this.overlay) {
+            let co = new ColorEGraphOverlay(this.egraph, rendered);
+            co.apply();
+            co.on('eclass:select', ev => this.$emit('eclass:select', ev));
+            // @ts-ignore
+            this._overlay = co;
+        }
+    }
+
 }
 </script>

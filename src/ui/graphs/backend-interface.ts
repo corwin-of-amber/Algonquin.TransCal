@@ -9,7 +9,7 @@ import { RewriteRule } from './rewrites';
 
 class Backend {
     tempdir = new TempDir('data/tmp')
-    exe = 'cpp/tc'
+    exe: string
     opts: BackendOptions = {}
 
     writeProblem(desc: {input: Hyperedge[], rules: RewriteRule[]}) {
@@ -59,6 +59,13 @@ class Backend {
         return [this.tempdir.dirpath];
     }
 
+    flags() { return []; }
+}
+
+
+class CppBackend extends Backend {
+    exe = 'cpp/tc'
+
     flags() {
         return [].concat(...[
             this.opts.rewriteDepth ? ['--rw-depth', `${this.opts.rewriteDepth}`] : []
@@ -66,12 +73,13 @@ class Backend {
     }
 }
 
+
 class EggBackend extends Backend {
     exe = "bin/thesy/fo_reason"
 
     inputArgs() { return [path.join(this.tempdir.dirpath, 'input')]; }
-    flags() { return []; }
 }
+
 
 type BackendOptions = {
     rewriteDepth?: number
@@ -88,4 +96,4 @@ class TempDir {
 }
 
 
-export { Backend, EggBackend, TempDir }
+export { Backend, CppBackend, EggBackend, TempDir }

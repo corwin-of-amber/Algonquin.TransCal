@@ -1,11 +1,11 @@
 import fs from 'fs';
 import { EventEmitter } from 'events';
 
+import * as Vue from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 
 // @ts-ignore
 import App from './components/app.vue';
-import { createComponent } from './infra/vue-dev';
 
 import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
 import { Ast } from './syntax/parser';
@@ -15,7 +15,7 @@ import { CppBackend, EggBackend } from './graphs/backend-interface';
 
 import { PointXY, vsum } from './infra/geom';
 import { svgToPdf, svgToPng } from './infra/gfx';
-import { Hypergraph, HypernodeId } from './graphs/hypergraph';
+import { Hyperedge, Hypergraph, HypernodeId } from './graphs/hypergraph';
 import { reconstructTerms } from './semantics/reconstruct';
 
 
@@ -30,7 +30,7 @@ const SAMPLES = {
         // -- induction l
         'v1 :- (rev (:+ xs y))',
         'v2 :- (:: y (rev xs))',
-        'azure :- (?~ l [])',
+        //'azure :- (?~ l [])',
         'rose :- (?~ l (:: x xs))',
         'rose :- (?~ v1 v2)'
     ],
@@ -87,6 +87,10 @@ const SAMPLES = {
         // -- induction m
         'azure :- (?~ m (S j))',
         'azure :- (?~ (+ n j) (+ j n))'
+    ],
+    'max': [
+        'u1 :- (max x y)',
+        'rose :- (?~ (max x y) x)'
     ]
 }
 
@@ -99,7 +103,8 @@ type AppProps = {
 };
 
 async function main() {
-    var app = createComponent<AppProps>(App).mount(document.body);
+    var app = Vue.createApp(App).mount(document.body) as
+                ComponentPublicInstance<AppProps>;
     /*
     let ast = wip_flexiparse() as Ast<any>[],
         g = astsToGraph(ast);
@@ -122,7 +127,7 @@ async function main() {
         'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'rev-snoc [cons case]';
+    const name = 'rev-snoc';
 
     vfe.add(name, SAMPLES[name]);
 
@@ -142,7 +147,20 @@ async function main() {
 
     app.egraph = g.foldColorInfo();
 
-    let cli = new CLI(g, app.$refs.it as any);
+    // Some UI actions
+    app.events.on('egraph:select', ev => {
+        if (ev.target.node) {
+            console.log("%c%s", 'color: blue', ev.target.node.id);
+            cli.displayTerms(ev.target.node.id);
+        }
+        if (ev.target.edge) {
+            console.log("%c%s", 'color: blue', ev.target.edge.target);
+            cli.displayTerms(ev.target.edge);
+        }
+    });
+
+    // JavaScript exploration CLI
+    let cli = new CLI(g, app);
 
     Object.assign(window, {app, vfe, svgToPng, cli});
 }
@@ -207,7 +225,12 @@ class CLI {
         overlay.moveRel(c, shift);
     }
 
-    reconstructTerms(u: HypernodeId) {
+    displayTerms(u: HypernodeId | Hyperedge) {
+        for (let t of this.reconstructTerms(u))
+            console.log(" - " + t.toString());
+    }
+
+    reconstructTerms(u: HypernodeId | Hyperedge) {
         return reconstructTerms(this.egraph, u);
     }
 }

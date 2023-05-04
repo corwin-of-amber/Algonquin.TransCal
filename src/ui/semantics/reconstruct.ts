@@ -1,12 +1,17 @@
-import { Hypergraph, HypernodeId } from '../graphs/hypergraph';
+import { Hypergraph, HypernodeId, Hyperedge } from '../graphs/hypergraph';
 import { SExp } from './sexp';
 
 
-function *reconstructTerms(g: Hypergraph, root: HypernodeId) {
-    for (let e of g.getIncoming(root)) {
-        let candidates = e.sources.map(u =>
+function *reconstructTerms(g: Hypergraph, root: HypernodeId | Hyperedge) {
+    if (typeof root === 'object') {    // Hyperedge
+        let candidates = root.sources.map(u =>
             first(reconstructTerms(g, u)));
-        yield new SExp(e.op, candidates);
+        yield new SExp(root.op, candidates);
+    }
+    else {                             // HypernodeId
+        for (let e of g.getIncoming(root)) {
+            yield* reconstructTerms(g, e);
+        }
     }
 }
 

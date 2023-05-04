@@ -33,8 +33,7 @@ import { Hypergraph } from '../graphs/hypergraph';
 
 
 export default {
-    props: ['egraph'],
-    data: () => ({mode: 'max', override: {ranksep: undefined, nodesep: undefined}}),
+    data: () => ({egraph: undefined, mode: 'max', override: {ranksep: undefined, nodesep: undefined}}),
     computed: {
         config() {
             let c = this.baseConfig(),
