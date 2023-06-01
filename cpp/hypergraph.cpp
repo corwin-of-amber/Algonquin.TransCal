@@ -21,13 +21,14 @@ public:
     };
 
     struct Vertex {
-        int id;
+        typedef int id_t;
+        id_t id;
         std::vector<Incidence> edges;
         Vertex *merged;
         scratch_t scratch; /* sorry */
 
-        Vertex *color;
-        Edge *color_index[2];
+        Vertex *color;        /* assumption that emanated this vertex */
+        Edge *color_index[2]; /* direct ptr to incident `?~` edges */
 
         Vertex *rep();
     };
@@ -114,6 +115,14 @@ public:
 
 
 //#define VERTEX_MATCH_THRESHOLD 20
+
+std::ostream& operator <<(std::ostream& out, const Hypergraph::Edge& e) {
+    out << Hypergraph::label2str(e.kind);
+    for (auto u : e.vertices) {
+        out << " " << u->id;
+    }
+    return out;
+}
 
 
 Hypergraph::Vertex* Hypergraph::addVertex() {
@@ -347,17 +356,23 @@ bool slices_equal(const std::vector<T>& a1, const std::vector<T>& a2, int start)
 
 void Hypergraph::compact(Vertex* u) {
     auto& edgeset = u->edges;
+    //const Q = 11;
+    //if (u->id == Q) std::cout << "// " << u->id << std::endl;
     for (int i = 0; i < edgeset.size(); ++i) {
         auto& e1 = edgeset[i];
+        //if (u->id == Q) std::cout << "// (" << u->id << ") " << *e1.e << std::endl;
         if (e1.index > 0 && isFunctional(e1.e->kind)) {
             for (int j = i + 1; j < edgeset.size(); ++j) {
                 auto& e2 = edgeset[j];
+                //if (u->id == Q) std::cout << "// (" << u->id << ")   ? " << *e2.e << std::endl;
                 if (e2.index == e1.index && e2.e->kind == e1.e->kind && 
                      slices_equal(e2.e->vertices, e1.e->vertices, 1)) {
+                    //if (u->id == Q) std::cout << "// (" << u->id << ")  YES " << std::endl;
                     Vertex *v1 = e1.e->target(),
                            *v2 = e2.e->target();
                     if (v1 == v2) removeEdge(e2.e);
-                    else if (v1->color == v2->color) merge(v1, v2);
+                    else merge(v1, v2);
+                    //if (v1->color == v2->color) merge(v1, v2);
                 }
             }
         }
@@ -440,11 +455,7 @@ void Hypergraph::toText(std::ostream& out) {
 
     for (auto& e : edges) {
         if (!e.removed) {
-            out << label2str(e.kind);
-            for (auto u : e.vertices) {
-                out << " " << u->id;
-            }
-            out << std::endl;
+            out << e << std::endl;
         }
     }
 }
@@ -555,15 +566,17 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
         [&] (Hypergraph::Valuation& valuation, Hypergraph::Assumptions assumptions, int gen) {
             if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
 
-            if (assumptions != 0)
-                std::cout << "// got match given assumptions" << std::endl;
+            //if (assumptions != 0)
+            //    std::cout << "// got match given assumptions" << std::endl;
 
-            std::cerr << "match [";
+            std::cout << "// match " << name << " [";
             for (auto u : valuation) {
                 assert(u);
-                std::cerr << " " << u->id;
+                std::cout << " " << u->id;
             }
-            std::cerr << "] " << name << std::endl;
+            std::cout << "]";
+            if (assumptions) std::cout << "  @ " << assumptions->id;
+            std::cout << std::endl;
 
             if (assumptions == 0)
                 conclude(valuation, g, edges);
@@ -627,7 +640,8 @@ void RewriteRule::concludeWithAssumptions(
             out_edges.push_back(e);
     }
 
-    std::cout << "// conditionally merge " << valuation[0]->id << "~" << new_root->id << std::endl;
+    std::cout << "// " << valuation[0]->id << "~" << new_root->id 
+              << "  @ " << assumptions->id << std::endl;
 
     out_edges.push_back({
         .kind = special_edges::COND_MERGE,

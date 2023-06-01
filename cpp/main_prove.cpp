@@ -6,13 +6,17 @@
 class ColorScheme {
     Hypergraph& g;
 
+    typedef size_t color_index_t;
+
     struct pending_merge {
         Hypergraph::Vertex* u1;
         Hypergraph::Vertex* u2;
-        size_t j;
+        color_index_t j;
     };
 
     std::vector<pending_merge> to_merge;
+
+    mutable std::map<Hypergraph::Vertex::id_t, color_index_t> color_map;
 
 public:
     ColorScheme(Hypergraph& g) : g(g) { }
@@ -26,8 +30,14 @@ public:
 
     static const Hypergraph::label_t COND_MERGE;
 
-    inline size_t lookup(Hypergraph::Vertex* clr) const {
-        return (clr->id == 5) ? 0 : 1; /** @todo bigtime */
+    inline color_index_t lookup(Hypergraph::Vertex* clr) const {
+        auto it = color_map.find(clr->id);
+        if (it != color_map.end()) return it->second;
+        else {
+            color_index_t new_idx = color_map.size();
+            color_map[clr->id] = new_idx;
+            return new_idx;
+        }
     }
 
 protected:
@@ -47,6 +57,7 @@ void ColorScheme::locateAll() {
         for (auto it = e->vertices.begin() + 1; it != e->vertices.end(); it++) {
             if ((*it)->color_index[j]) {
                 if ((*it)->color_index[j] != e) {
+                    //std::cout << "// " << (*it)->color_index[j]->target()->id << " == " << e->target()->id << std::endl;
                     assert((*it)->color_index[j]->target() == e->target());
                     merge((*it)->color_index[j], e, j);
                     to_drop.push_back(e);
@@ -59,25 +70,25 @@ void ColorScheme::locateAll() {
     for (auto e : to_drop) g.removeEdge(e);
 }
 
-void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2, size_t j) {
+void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2, size_t clr) {
     for (auto it = e2->vertices.begin() + 1; it != e2->vertices.end(); it++) {
         if (!e1->containsSource(*it)) {
-            join(e1, *it, j);
+            join(e1, *it, clr);
         }
     }
 }
 
-void ColorScheme::merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2, size_t j) {
-    auto e1 = u1->color_index[j], e2 = u2->color_index[j];
+void ColorScheme::merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2, size_t clr) {
+    auto e1 = u1->color_index[clr], e2 = u2->color_index[clr];
     if (e1) {
-        if (e2) merge(e1, e2, j);
+        if (e2) merge(e1, e2, clr);
         else {
-            u2->color_index[j] = e1;
+            u2->color_index[clr] = e1;
             e1->vertices.push_back(u2);
         }
     }
     else if (e2) {
-        u1->color_index[j] = e2;
+        u1->color_index[clr] = e2;
         e2->vertices.push_back(u1);
     }
     else {
@@ -216,6 +227,7 @@ int main(int argc, char *argv[]) {
     cs.locateAll();
     g.toText(std::cout);
 
+    // Also output the colors associated with vertices
     for (auto& u : g.vertices) {
         if (!u.merged && u.color) {
             std::cout << "?. " << u.color->id << " " << u.id << std::endl;

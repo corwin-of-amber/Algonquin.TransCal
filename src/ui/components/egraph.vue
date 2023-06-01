@@ -18,7 +18,7 @@
 import { Component, Prop, Vue } from 'vue-facing-decorator'
 
 // @ts-ignore
-import GraphvizSvgView from './graphviz-svg.vue';
+import GraphvizSvgComponent from './graphviz-svg.vue';
 import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
 import type { EGraph } from '../graphs/egraph';
@@ -27,7 +27,7 @@ import type { GraphvizSvg } from '../graphs/graphviz';
 
 @Component({
     emits: ['select'],
-    components: { GraphvizSvg: GraphvizSvgView }
+    components: { GraphvizSvg: GraphvizSvgComponent }
 })
 export default class EgraphView extends Vue {
     @Prop egraph: EGraph

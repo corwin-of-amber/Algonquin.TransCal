@@ -5,7 +5,7 @@
                 <span>Sam</span><slider-switch :value="mode == 'max'" @input="mode = $event ? 'max' : 'sam'"/><span>Max</span>
             </div>
         </div>
-        <egraph ref="egraph" :egraph="egraph"
+        <egraph-view ref="egraph" :egraph="egraph"
             :format="config.format"
             :overlay="config.overlay"
             :layoutStylesheet="config.layoutStylesheet"
@@ -24,6 +24,8 @@
 
 <script lang="ts">
 import { EventEmitter } from 'events';
+import { Component, Vue } from 'vue-facing-decorator'
+
 // @ts-ignore
 import EGraphComponent from './egraph.vue';
 // @ts-ignore
@@ -31,49 +33,54 @@ import SliderSwitch from './widgets/slider-switch.vue';
 import { EGraph } from '../graphs/egraph';
 import { Hypergraph } from '../graphs/hypergraph';
 
+@Component({
+    components: { 'egraph-view': EGraphComponent, SliderSwitch }
+})
+export default class App extends Vue {
+    egraph: EGraph = undefined
+    mode: 'sam' | 'max' = 'max'
+    override = {ranksep: undefined, nodesep: undefined}
 
-export default {
-    data: () => ({egraph: undefined, mode: 'max', override: {ranksep: undefined, nodesep: undefined}}),
-    computed: {
-        config() {
-            let c = this.baseConfig(),
-                o = this.override;
-            if (o.ranksep !== undefined) c.layoutStylesheet.graph.ranksep = o.ranksep;
-            if (o.nodesep !== undefined) c.layoutStylesheet.graph.nodesep = o.nodesep;
-            return c;
-        }
-    },
+    events: EventEmitter
+
+    get config() {
+        let c = this.baseConfig(),
+            o = this.override;
+        if (o.ranksep !== undefined) c.layoutStylesheet.graph.ranksep = o.ranksep;
+        if (o.nodesep !== undefined) c.layoutStylesheet.graph.nodesep = o.nodesep;
+        return c;
+    }
+
     created() {
         this.events = new EventEmitter();
-    },
+    }
+
     mounted() {
         let cfg = localStorage['config.app'];
         if (cfg) Object.assign(this, JSON.parse(cfg));
         window.addEventListener('beforeunload', () =>
             localStorage['config.app'] = JSON.stringify(this.$data));
-    },    
-    methods: {
-        baseConfig() {
-            switch (this.mode) {
-            case 'sam':
-                return {
-                    format: new Hypergraph.GraphFormatting,
-                    layoutStylesheet: {
-                       graph: {rankdir: "BT", ranksep: 0.3, nodesep: 0.4, compound: true}
-                    },
-                    overlay: true
-                };
-            case 'max':
-                return {
-                    format: new EGraph.ClusteredFormatting,
-                    layoutStylesheet: {
-                        graph: {rankdir: "BT", ranksep: 1.2, nodesep: 0.4}
-                    },
-                    overlay: false
-                };
-            }
+    }
+
+    baseConfig() {
+        switch (this.mode) {
+        case 'sam':
+            return {
+                format: new Hypergraph.GraphFormatting,
+                layoutStylesheet: {
+                    graph: {rankdir: "BT", ranksep: 0.3, nodesep: 0.4, compound: true}
+                },
+                overlay: true
+            };
+        case 'max':
+            return {
+                format: new EGraph.ClusteredFormatting,
+                layoutStylesheet: {
+                    graph: {rankdir: "BT", ranksep: 1.2, nodesep: 0.4}
+                },
+                overlay: false
+            };
         }
-    },
-    components: { 'egraph': EGraphComponent, SliderSwitch }
+    }
 }
 </script>
