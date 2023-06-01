@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { EventEmitter } from 'events';
 
 import * as Vue from 'vue';
 import type { ComponentPublicInstance } from 'vue';
@@ -94,17 +93,9 @@ const SAMPLES = {
     ]
 }
 
-type AppProps = {
-    egraph: EGraph,
-    format: Hypergraph.GraphFormatting,
-    layoutStylesheet: any,
-    override: any,
-    events: EventEmitter
-};
-
 async function main() {
     var app = Vue.createApp(App).mount(document.body) as
-                ComponentPublicInstance<AppProps>;
+                ComponentPublicInstance<App>;
     /*
     let ast = wip_flexiparse() as Ast<any>[],
         g = astsToGraph(ast);
@@ -127,7 +118,7 @@ async function main() {
         'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'rev-snoc';
+    const name = 'plus-0';
 
     vfe.add(name, SAMPLES[name]);
 
@@ -136,16 +127,19 @@ async function main() {
     var input = vfe.sexpFe.asHypergraph(),
         [u1, u2] = ['u1', 'u2'].map(u => vfe.labeled.get(u));
     //if (u1 && u2) g.merge(u1, u2);
-    app.egraph = new EGraph(input.edges);
 
-    var be = new CppBackend;
-    be.opts.rewriteDepth = 5;
-    be.writeProblem({input: input.edges, rules: vfe.rules});
-    var g = await be.solve();
-    // use this for no-op backend (just for rendering the input graph)
-    //var g = EGraph.fromHypergraph(input).congruenceClosureLeaves();
+    Vue.watchEffect(async () => {
+        app.egraph = new EGraph(input.edges);
 
-    app.egraph = g.foldColorInfo();
+        var be = new CppBackend;
+        be.opts.rewriteDepth = app.opts.rwDepth;
+        be.writeProblem({input: input.edges, rules: vfe.rules});
+        var g = await be.solve();
+        // use this for no-op backend (just for rendering the input graph)
+        //var g = EGraph.fromHypergraph(input).congruenceClosureLeaves();
+
+        app.egraph = g.foldColorInfo();
+    });
 
     // Some UI actions
     app.events.on('egraph:select', ev => {
@@ -160,7 +154,7 @@ async function main() {
     });
 
     // JavaScript exploration CLI
-    let cli = new CLI(g, app);
+    let cli = new CLI(app);
 
     Object.assign(window, {app, vfe, svgToPng, cli});
 }
@@ -169,12 +163,10 @@ async function main() {
  * This is a "cli" for use in the JavaScript console.
  */
 class CLI {
-    egraph: Hypergraph
-    vue: ComponentPublicInstance<AppProps>
+    vue: ComponentPublicInstance<App>
     selection: {colorEclass?: EGraph.ColorGroup} = {}
 
-    constructor(egraph: Hypergraph, vue: ComponentPublicInstance<AppProps>) {
-        this.egraph = egraph;
+    constructor(vue: ComponentPublicInstance<App>) {
         this.vue = vue;
         this.vue.events.on('eclass:select', ({eclass}) => {
             this.selection = {colorEclass: eclass};
@@ -231,7 +223,7 @@ class CLI {
     }
 
     reconstructTerms(u: HypernodeId | Hyperedge) {
-        return reconstructTerms(this.egraph, u);
+        return reconstructTerms(this.vue.egraph, u);
     }
 }
 

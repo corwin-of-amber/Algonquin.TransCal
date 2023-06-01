@@ -2,8 +2,9 @@
     <div>
         <div class="toolbar">
             <div class="toolbar--switch">
-                <span>Sam</span><slider-switch :value="mode == 'max'" @input="mode = $event ? 'max' : 'sam'"/><span>Max</span>
+                <span>Sam</span><slider-switch :value="opts.mode == 'max'" @input="opts.mode = $event ? 'max' : 'sam'"/><span>Max</span>
             </div>
+            <div class="toolbar--num">rw depth <numeric-input controls v-model="opts.rwDepth"></numeric-input></div>
         </div>
         <egraph-view ref="egraph" :egraph="egraph"
             :format="config.format"
@@ -15,16 +16,42 @@
 </template>
 
 <style>
-.toolbar--switch > span {
-    margin: 0 0.2em;
+.toolbar {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 80%;
+}
+.toolbar > div  { display: inline-block; margin-right: 1em; }
+.toolbar--switch > span {
+    margin: 0 0.2em;
+}
+.vue-number-input {
+    display: inline-block !important;
+    vertical-align: middle;
+    font-size: unset !important;
+}
+.vue-number-input__input {
+    font-size: unset !important;
+    line-height: unset !important;
+    min-height: unset !important;
+    min-width: unset !important;
+    width: 1.5em !important;
+    padding: unset !important;
+}
+.vue-number-input--controls>input {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+.vue-number-input__button {
+    width: 1em !important;
 }
 </style>
 
 <script lang="ts">
 import { EventEmitter } from 'events';
 import { Component, Vue } from 'vue-facing-decorator'
+import NumericInput from '@chenfengyuan/vue-number-input';
+
+console.log(NumericInput)
 
 // @ts-ignore
 import EGraphComponent from './egraph.vue';
@@ -34,11 +61,16 @@ import { EGraph } from '../graphs/egraph';
 import { Hypergraph } from '../graphs/hypergraph';
 
 @Component({
-    components: { 'egraph-view': EGraphComponent, SliderSwitch }
+    components: { NumericInput, SliderSwitch, 'egraph-view': EGraphComponent }
 })
 export default class App extends Vue {
     egraph: EGraph = undefined
-    mode: 'sam' | 'max' = 'max'
+    opts: {
+        mode: 'sam' | 'max'
+        rwDepth: number
+    } = {
+        mode: 'sam', rwDepth: 1
+    }
     override = {ranksep: undefined, nodesep: undefined}
 
     events: EventEmitter
@@ -63,7 +95,7 @@ export default class App extends Vue {
     }
 
     baseConfig() {
-        switch (this.mode) {
+        switch (this.opts.mode) {
         case 'sam':
             return {
                 format: new Hypergraph.GraphFormatting,

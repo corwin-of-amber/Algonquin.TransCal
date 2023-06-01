@@ -1,13 +1,15 @@
-import { Hypergraph, Hyperedge } from './hypergraph';
+import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
 
 
 class RewriteRule {
     name: string
+    vars: Map<string, HypernodeId>
     from: Hyperedge[]
     to: Hyperedge[]
 
-    constructor(name: string, from: Hyperedge[], to: Hyperedge[]) {
+    constructor(name: string, vars: Map<string, HypernodeId>, from: Hyperedge[], to: Hyperedge[]) {
         this.name = name;
+        this.vars = vars;
         this.from = from;
         this.to = to;
     }

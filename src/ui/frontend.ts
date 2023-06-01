@@ -97,7 +97,8 @@ class RuleProcessor {
                     this.edgesToRuleSide(toEdges, vars)];
                     
         this.compactIdsInplace([].concat(...rule));
-        return new RewriteRule(name ?? '<rule>', rule[0], rule[1]);
+        let varIds = new Map([...vars.entries()].map(([k, v]) => [k, v[0]]));
+        return new RewriteRule(name ?? '<rule>', varIds, rule[0], rule[1]);
     }
 
     edgesToRuleSide(edges: CompiledHyperedge[], vars = this.getVars(edges)) {
