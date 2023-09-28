@@ -16,6 +16,11 @@ class EGraph extends Hypergraph {
         return eg;
     }
 
+    mergeInto(u: HypernodeId, ...vs: HypernodeId[]) {
+        super.mergeInto(u, ...vs);
+        this.colors.mergeInto(u, ...vs);
+    }
+
     filterEdges(p: (e: Hyperedge) => boolean): EGraph {
         return new EGraph(super.filterEdges(p).edges, this.colors);
     }
@@ -67,7 +72,7 @@ class EGraph extends Hypergraph {
         // fill in color names
         for (let e of this.edges) {
             let pe: EGraph.ColorInfo
-            if (e.sources.length === 0 && 
+            if (e.sources.length === 0 &&
                 (pe = this.colors.palette.get(e.target)) && pe.name === '?') {
                 pe.name = e.op;
             }
@@ -77,6 +82,11 @@ class EGraph extends Hypergraph {
     withoutColors() {
         return this.filterEdges(e => !EGraph.COLOR_OPS.includes(e.op)
             && !this.colors.palette.has(e.target));
+    }
+
+    collapseColors(...colors: (HypernodeId | string)[]) {
+        for (let c of colors)
+            this.colors.collapseBy(this, c);
     }
 
     toGraph(format = new EGraph.ClusteredFormatting): Graph {
@@ -104,6 +114,9 @@ namespace EGraph {
         vertices: ColorGroup[] = []  // colored vertices
         palette: Palette = new Map
 
+        /**
+         * Creates a color merge (generates a new colored e-class if not present)
+         */
         merge(color: HypernodeId, members: HypernodeId[]) {
             this.declareColor(color);
             let c = this.eclasses.filter(c =>
@@ -112,6 +125,22 @@ namespace EGraph {
                 c[0].members.push(...members.filter(u => !c[0].members.includes(u)));
             else
                 this.eclasses.push({color, members});
+        }
+
+        /**
+         * Responds to `mergeInto` being performed on the underlying egraph.
+         * Updates all eclasses to reflect the rename.
+         */
+        mergeInto(u: HypernodeId, ...vs: HypernodeId[]) {
+            let with_ = <T>(l: T[], u: T) => l.includes(u) ? l : l.concat([u]),
+                without = <T>(l: T[], vs: T[]) => l.filter(u => !vs.includes(u));
+                    
+            for (let l of [this.eclasses, this.vertices])
+                for (let cg of l)
+                    if (vs.some(u => cg.members.includes(u)))
+                        cg.members = with_(without(cg.members, vs), u);
+            
+            this.cleanup();  // remove singleton classes if occur
         }
 
         add(color: HypernodeId, node: HypernodeId) {
@@ -151,6 +180,19 @@ namespace EGraph {
                         g.setParent(`cluster_${u}`, ecluster);
                 }
             }
+        }
+
+        collapseBy(g: EGraph, color: HypernodeId | string | ColorInfo) {
+            let [cid, info] = this.lookup(color) ?? oops(`no such color '${color}'`);
+            for (let ec of this.eclasses) {
+                if (ec.color === cid) {
+                    g.merge(ec.members);
+                }
+            }
+        }
+
+        cleanup() {
+            this.eclasses = this.eclasses.filter(c => c.members.length > 1);
         }
 
         lookup(color: HypernodeId | string | ColorInfo): [HypernodeId, ColorInfo] {

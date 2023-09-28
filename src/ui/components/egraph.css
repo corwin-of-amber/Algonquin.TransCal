@@ -48,6 +48,30 @@ svg.egraph *[data-color="gold"] {
     --dotted-color: #ffe733;
 }
 
+svg.egraph *[data-color="mustard"] {
+    --epicenter-color: #ffd61dbb;
+    --ray-color: #f5d225cd;
+    --dotted-color: #eed515;
+}
+
+svg.egraph *[data-color="kumquat"] {
+    --epicenter-color: #ff961dbb;
+    --ray-color: #f5a925cd;
+    --dotted-color: #ee8c15;
+}
+
+svg.egraph *[data-color="mud"] {
+    --epicenter-color: rgba(189, 115, 115, 0.733);
+    --ray-color: rgba(178, 91, 91, 0.667);
+    --dotted-color: rgb(146, 32, 32);
+}
+
+svg.egraph *[data-color="moss"] {
+    --epicenter-color: rgba(115, 189, 126, 0.733);
+    --ray-color: rgba(91, 178, 124, 0.667);
+    --dotted-color: rgb(32, 146, 76);
+}
+
 svg.egraph g.egraph--color-overlay--eclass:hover 
 path.egraph--color-overlay--ray  {
     stroke-width: 2px;
@@ -84,3 +108,12 @@ svg.egraph.compat g.eclass--color[data-color="azure"] > path { stroke: #33f; }
 svg.egraph.compat g.egraph--color-overlay--eclass[data-color="gold"] circle.egraph--color-overlay--epicenter { fill: #ffefaabb; }
 svg.egraph.compat g.egraph--color-overlay--eclass[data-color="gold"] path.egraph--color-overlay--ray { stroke: #ffe14acd; }
 svg.egraph.compat g.eclass--color[data-color="gold"] > path { stroke: #ffe733; }
+
+
+.egraph--stats {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 9px;
+    background: #fffe;
+}

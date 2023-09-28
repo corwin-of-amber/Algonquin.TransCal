@@ -6,7 +6,7 @@ import type { ComponentPublicInstance } from 'vue';
 // @ts-ignore
 import App from './components/app.vue';
 
-import { SexpFrontend, VernacFrontend, wip_flexiparse } from './frontend';
+import { SexpFrontend, VernacFrontend } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
 import { EGraph } from './graphs/egraph';
@@ -74,18 +74,28 @@ const SAMPLES = {
         'u2 :- (n)',
         'gold :- (?~ n 0)',
         'rose :- (?~ n (S k))',
-        'rose :- (?~ (+ k 0) k)'
+        'mud :- (?~ (+ k 0) k)',
+        'rose :- (?> mud)'
     ],
     'plus-comm': [
         'u1 :- (+ n m)',
         'u2 :- (+ m n)',
         // -- induction n
-        'gold :- (?~ n 0)',
-        'rose :- (?~ n (S k))',
-        'rose :- (?~ (+ k m) (+ m k))',
+        //'gold :- (?~ n 0)',
+        'rose :- (?~ n (S n_))',
+        //'rose :- (?~ (+ k m) (+ m k))',
         // -- induction m
-        'azure :- (?~ m (S j))',
-        'azure :- (?~ (+ n j) (+ j n))'
+        //'azure :- (?~ m 0)'
+        //'mustard :- (?~ m (S j))',
+        'gold :- (?> mustard)',
+        'mud :- (?~ m (S m_))',
+        'rose :- (?> mud)',
+        //'moss :- (?~ (S (+ m_ n_)) (+ m_ (S n_)))',
+        //'moss :- (?~ (+ n_ m) (+ m n_))',
+        'mud :- (?> moss)',
+        //'azure :- (?~ (+ n j) (+ j n))'
+        //'kumquat :- (?~ (+ j 0) j)',
+        'mustard :- (?> kumquat)'
     ],
     'max': [
         'u1 :- (max x y)',
@@ -96,15 +106,6 @@ const SAMPLES = {
 async function main() {
     var app = Vue.createApp(App).mount(document.body) as
                 ComponentPublicInstance<App>;
-    /*
-    let ast = wip_flexiparse() as Ast<any>[],
-        g = astsToGraph(ast);
-    */
-
-    //let fe = new SexpFrontend;
-    //fe.add('inline', ['(+ (S n) m)', '(+ n (S m))'])
-
-    //app.egraph = fe.asGraph();
 
     let vfe = new VernacFrontend;
     vfe.add('rules', [
@@ -118,20 +119,18 @@ async function main() {
         'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)'
     ]);
     
-    const name = 'plus-0';
+    const name = 'plus-comm';
 
     vfe.add(name, SAMPLES[name]);
 
     //app.egraph = astsToGraph(vfe.asts);
 
-    var input = vfe.sexpFe.asHypergraph(),
-        [u1, u2] = ['u1', 'u2'].map(u => vfe.labeled.get(u));
-    //if (u1 && u2) g.merge(u1, u2);
+    var input = vfe.sexpFe.asHypergraph();
+    app.egraph = new EGraph(input.edges);
 
     Vue.watchEffect(async () => {
-        app.egraph = new EGraph(input.edges);
 
-        var be = new CppBackend;
+        var be = new EggBackend;
         be.opts.rewriteDepth = app.opts.rwDepth;
         be.writeProblem({input: input.edges, rules: vfe.rules});
         var g = await be.solve();

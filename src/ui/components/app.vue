@@ -51,8 +51,6 @@ import { EventEmitter } from 'events';
 import { Component, Vue } from 'vue-facing-decorator'
 import NumericInput from '@chenfengyuan/vue-number-input';
 
-console.log(NumericInput)
-
 // @ts-ignore
 import EGraphComponent from './egraph.vue';
 // @ts-ignore

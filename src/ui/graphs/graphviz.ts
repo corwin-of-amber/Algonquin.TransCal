@@ -71,7 +71,7 @@ class GraphvizSvg {
 
     elementFromNode(node: number | string | {id: string}) {
         let id = typeof node === 'object' ? node.id : node;
-        assert(id);
+        assert(id !== undefined);
         for (let {el, node} of this.iterNodeElements()) {
             if (node.id == id) return el;
         }

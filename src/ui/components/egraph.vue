@@ -5,13 +5,9 @@
             @rendered="colorOverlay"
             @mousedown="onMouseDown"
             @mouseover="onMouseOver"/>
-        <div class="egraph--stats">{{stats}}<br/>{{hover}}</div>
+        <div class="egraph--stats">{{hover}}<br/>{{stats}}</div>
     </div>
 </template>
-
-<style>
-@import "./egraph.css";  /** @todo kremlin drops the ball here */
-</style>
 
 
 <script lang="ts">
@@ -19,10 +15,11 @@ import { Component, Prop, Vue } from 'vue-facing-decorator'
 
 // @ts-ignore
 import GraphvizSvgComponent from './graphviz-svg.vue';
-import './egraph.css';
 import { ColorEGraphOverlay } from '../graphs/viz-colors';
 import type { EGraph } from '../graphs/egraph';
 import type { GraphvizSvg } from '../graphs/graphviz';
+
+import "./egraph.css"; /** @todo kremlin does not support <style src=..>? */
 
 
 @Component({

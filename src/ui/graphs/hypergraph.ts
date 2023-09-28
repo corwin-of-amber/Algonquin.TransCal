@@ -137,7 +137,7 @@ namespace Hypergraph {
 
     export function importEdgesFromCpp(text: string): Hyperedge[] {
         let lines = text.split('\n').map(s => s.trim())
-                                    .filter(s => s && !s.startsWith('// '));
+                                    .filter(s => s && !s.startsWith('// ') && !s.startsWith('_'));
         return lines.map(ln => importEdgeFromCpp(ln));
     }
 

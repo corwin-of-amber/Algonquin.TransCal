@@ -31,6 +31,7 @@ public:
         Edge *color_index[2]; /* direct ptr to incident `?~` edges */
 
         Vertex *rep();
+        int inDegree() const;
     };
 
     struct Edge {
@@ -477,6 +478,11 @@ std::string Hypergraph::label2str(label_t w) {
     return s;
 }
 
+int Hypergraph::Vertex::inDegree() const {
+    int c = 0;
+    for (auto& e : edges) if (e.index == 0) ++c;
+    return c;
+}
 
 Hypergraph::Vertex *Hypergraph::Vertex::rep() {
     auto v = this;
@@ -490,10 +496,9 @@ public:
     std::string name;
     Hypergraph premise;
     Hypergraph conclusion;
+    std::vector<Hypergraph::Vertex*> free_holes;
 
-    typedef bool cmp_t;
-    static const cmp_t EQ;
-    static const cmp_t GEQ;
+    enum cmp_t { EQ, GEQ };
 
     RewriteRule() {}
     RewriteRule(const std::string& name) : name(name) {}
@@ -507,6 +512,7 @@ public:
         std::vector<RewriteRule>& rules);
 
     static void putHoles(Hypergraph& g);
+    static std::vector<Hypergraph::Vertex*> freeHoles(Hypergraph& g);
 
 protected:
     void conclude(const Hypergraph::Valuation& valuation,
@@ -518,12 +524,12 @@ protected:
                   Hypergraph::Assumptions assumptions,
                   Hypergraph& g,
                   std::vector<Hypergraph::Edge>& out_edges) const;
-};
 
-#ifndef __cppnator_header
-const RewriteRule::cmp_t RewriteRule::EQ = false;
-const RewriteRule::cmp_t RewriteRule::GEQ = true;
-#endif
+
+    void traceApply(const Hypergraph::Valuation& valuation,
+                    Hypergraph::Assumptions assumptions,
+                    Hypergraph::Vertex *from, Hypergraph::Vertex *to) const;
+};
 
 void RewriteRule::fromText(std::istream& in) {
     std::string title;
@@ -533,6 +539,8 @@ void RewriteRule::fromText(std::istream& in) {
     putHoles(premise);
     conclusion.fromText(in);
     putHoles(conclusion);
+
+    free_holes = freeHoles(premise);
 }
 
 void RewriteRule::toText(std::ostream& out) {
@@ -542,6 +550,14 @@ void RewriteRule::toText(std::ostream& out) {
 
 void RewriteRule::putHoles(Hypergraph& g) {
     for (auto& u : g.vertices) u.id = -u.id;
+}
+
+std::vector<Hypergraph::Vertex*> RewriteRule::freeHoles(Hypergraph& g) {
+    std::vector<Hypergraph::Vertex*> out;
+    for (auto& u : g.vertices)
+        if (u.id < 0 && u.inDegree() == 0)
+            out.push_back(&u);
+    return out;
 }
 
 void RewriteRule::fromTextMultiple(std::istream& in,
@@ -564,19 +580,12 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
 
     g.findSubgraph(premise.edges, nholes, gen_max, 
         [&] (Hypergraph::Valuation& valuation, Hypergraph::Assumptions assumptions, int gen) {
-            if (gen_cmp ? (gen < gen_req) : (gen != gen_req)) return;
+            if (!(gen_cmp == EQ ? gen != gen_req : gen >= gen_req)) return;
 
             //if (assumptions != 0)
             //    std::cout << "// got match given assumptions" << std::endl;
 
-            std::cout << "// match " << name << " [";
-            for (auto u : valuation) {
-                assert(u);
-                std::cout << " " << u->id;
-            }
-            std::cout << "]";
-            if (assumptions) std::cout << "  @ " << assumptions->id;
-            std::cout << std::endl;
+            // traceApply(valuation, assumptions, 0, 0);
 
             if (assumptions == 0)
                 conclude(valuation, g, edges);
@@ -593,6 +602,8 @@ void RewriteRule::conclude(const Hypergraph::Valuation& valuation,
 {
     int k = valuation.size(), n = conclusion.vertices.size();
     Hypergraph::Valuation extras(std::max(0, n - k));
+
+    traceApply(valuation, 0, valuation[0], 0);
 
     for (auto& u : extras) u = g.addVertex();
     for (auto e : conclusion.edges) {
@@ -617,6 +628,8 @@ void RewriteRule::concludeWithAssumptions(
     Hypergraph::Vertex *new_root = g.addVertex();
     new_root->color = assumptions;
     Hypergraph::Valuation extras(std::max(0, n - k));
+
+    traceApply(valuation, assumptions, valuation[0], new_root);
 
     for (auto& u : extras) { u = g.addVertex(); u->color = assumptions; }
     for (auto e : conclusion.edges) {
@@ -647,6 +660,30 @@ void RewriteRule::concludeWithAssumptions(
         .kind = special_edges::COND_MERGE,
         .vertices = {assumptions, valuation[0], new_root}
     });
+}
+
+void RewriteRule::traceApply(const Hypergraph::Valuation& valuation,
+                    Hypergraph::Assumptions assumptions,
+                    Hypergraph::Vertex *from, Hypergraph::Vertex *to) const
+{    
+    std::cout << "// match " << name << " [";
+    // print valuation of free holes
+    for (auto fhi : free_holes) {
+        assert(~fhi->id < valuation.size() && valuation[~fhi->id]);
+        std::cout << " " << valuation[~fhi->id]->id;
+    }
+    /* // print entire valuation
+    for (auto u : valuation) {
+        assert(u);
+        std::cout << " " << u->id;
+    }*/
+    std::cout << " ]";
+    if (assumptions) std::cout << " @ " << assumptions->id;
+
+    if (from && !to) std::cout << "  --> [" << from->id << "]";
+    if (from && to) std::cout << "  --> [" << from->id << "] -> [" << to->id << "]";
+    std::cout << std::endl;
+
 }
 
 class Reconstruct {
