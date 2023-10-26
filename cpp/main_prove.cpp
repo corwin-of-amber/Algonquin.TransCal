@@ -1,3 +1,4 @@
+#include <cassert>
 #include <getopt.h>
 
 #include "inc/hypergraph.h"
@@ -35,6 +36,7 @@ public:
         if (it != color_map.end()) return it->second;
         else {
             color_index_t new_idx = color_map.size();
+            assert(new_idx < Hypergraph::MAX_COLORS);
             color_map[clr->id] = new_idx;
             return new_idx;
         }
@@ -52,12 +54,14 @@ void ColorScheme::locateAll() {
     std::vector<Hypergraph::Edge*> to_drop;
 
     for (auto e : g.edges_by_kind[COND_MERGE]) {
-        std::cout << "// " << e->vertices[1]->id << "~" << e->vertices[2]->id << std::endl;
+        if (e->vertices.size() <= 2) {  // singleton colored class
+            to_drop.push_back(e);
+            continue;
+        }
         size_t j = lookup(e->target());
         for (auto it = e->vertices.begin() + 1; it != e->vertices.end(); it++) {
             if ((*it)->color_index[j]) {
                 if ((*it)->color_index[j] != e) {
-                    //std::cout << "// " << (*it)->color_index[j]->target()->id << " == " << e->target()->id << std::endl;
                     assert((*it)->color_index[j]->target() == e->target());
                     merge((*it)->color_index[j], e, j);
                     to_drop.push_back(e);
@@ -131,9 +135,9 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
                             auto v1 = e1.e->target(),
                                  v2 = e2.e->target();
                             if (!g.compatVertices(v1, v2, color)) {
-                                std::cout << "// colored congruence closure for " 
-                                    << v1->id << "~" << v2->id << std::endl;
-                                //merge(v1, v2, j);
+                                std::cout << "// " 
+                                    << v1->id << "~" << v2->id << "  @ "
+                                    << color->id << " (compact)" << std::endl;
                                 to_merge.push_back({v1, v2, j});
                             }
                         }
@@ -213,13 +217,14 @@ int main(int argc, char *argv[]) {
 
     /* Rewrite Frenzy! */
     int gen = 0;
+    Chronicles chron(g);
     ColorScheme cs(g);
     for (int i = 0; i < rw_depth; i++) {
         g.compact();
         g.gen++;
         cs.locateAll(); cs.veryInefficientCompact();
         for (auto& rule : rw_rules)
-            rule.apply(g, gen);
+            rule.apply(g, gen, RewriteRule::GEQ, &chron);
         gen = g.gen;
     }
     g.compact();

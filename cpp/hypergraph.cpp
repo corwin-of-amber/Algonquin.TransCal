@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cassert>
 
 
 class Hypergraph {
@@ -14,6 +15,8 @@ public:
 
     typedef uint64_t label_t;
     union scratch_t { void *p; int64_t z; };
+
+    static const size_t MAX_COLORS = 3;
 
     struct Incidence {
         Edge *e;
@@ -28,7 +31,7 @@ public:
         scratch_t scratch; /* sorry */
 
         Vertex *color;        /* assumption that emanated this vertex */
-        Edge *color_index[2]; /* direct ptr to incident `?~` edges */
+        Edge *color_index[MAX_COLORS]; /* direct ptr to incident `?~` edges */
 
         Vertex *rep();
         int inDegree() const;
@@ -102,6 +105,8 @@ public:
     bool isFunctional(label_t kind) const;
     bool compatVertices(Hypergraph::Vertex* u, Hypergraph::Vertex* v,
                         Hypergraph::Assumptions& assumptions) const;
+    bool compatVertices0(Hypergraph::Vertex* u, Hypergraph::Vertex* v,
+                         Hypergraph::Assumptions assumptions) const;
 
     // ------------
     // Input/output
@@ -132,7 +137,8 @@ Hypergraph::Vertex* Hypergraph::addVertex() {
     u.id = ++id_counter;
     u.merged = NULL;
     u.color = NULL;
-    u.color_index[0] = u.color_index[1] = NULL;
+    for (int i = 0; i < MAX_COLORS; i++)
+        u.color_index[i] = NULL;
     vertices.push_back(u);
     return &vertices[vertices.size() - 1];
 }
@@ -222,7 +228,7 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
 
     if (u) {
         bool flag = false;
-        for (size_t j = 0; j < 2; j++) {
+        for (size_t j = 0; j < MAX_COLORS; j++) {
             if (u->color_index[j]) {
                 flag = true;
                 std::vector<Vertex*>& vs = u->color_index[j]->vertices;
@@ -257,14 +263,34 @@ bool Hypergraph::compatVertices
          Hypergraph::Assumptions& assumptions) const {
     if (u == v) return true;
     else {
-        for (size_t j = 0; j < 2; ++j) {
-            if (u->color_index[j] && (assumptions == 0 || 
+        for (size_t j = 0; j < MAX_COLORS; ++j) {
+            if (u->color_index[j] && (assumptions == NULL || 
                             assumptions == u->color_index[j]->target())) {
                 bool compat = u->color_index[j]->containsSource(v);
                 if (compat) {
                     assumptions = u->color_index[j]->target();
                     return true;
                 }
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Color support: check to see if vertices match, possibly using some
+ * assumption.
+ */
+bool Hypergraph::compatVertices0
+        (Hypergraph::Vertex* u, Hypergraph::Vertex* v,
+         Hypergraph::Assumptions assumptions) const {
+    if (u == v) return true;
+    else if (assumptions != NULL) {
+        for (size_t j = 0; j < MAX_COLORS; ++j) {
+            if (u->color_index[j] &&
+                    (assumptions == u->color_index[j]->target())) {
+                if (u->color_index[j]->containsSource(v))
+                    return true;
             }
         }
     }
@@ -506,7 +532,8 @@ public:
     void fromText(std::istream& in);
     void toText(std::ostream& out);
 
-    void apply(Hypergraph& g, int gen_req = 0, cmp_t gen_cmp = GEQ);
+    void apply(Hypergraph& g, int gen_req = 0, cmp_t gen_cmp = GEQ,
+               class Chronicles *chron = 0);
 
     static void fromTextMultiple(std::istream& in,
         std::vector<RewriteRule>& rules);
@@ -530,6 +557,37 @@ protected:
                     Hypergraph::Assumptions assumptions,
                     Hypergraph::Vertex *from, Hypergraph::Vertex *to) const;
 };
+
+
+/**
+ * Records rewrite history and helps to detect repeated application
+ * with the same assignments or equivalent ones.
+ */
+class Chronicles {
+public:
+    Chronicles(const Hypergraph& g): g(g) { }
+
+    struct Entry {
+        const RewriteRule *rule;
+        const Hypergraph::Valuation valuation;
+
+        bool operator ==(const Entry& other) const {
+            return rule == other.rule && valuation == other.valuation;
+        }
+    };
+
+    std::vector<Entry> entries;
+
+    bool add(const RewriteRule *rule, const Hypergraph::Valuation& valuation,
+             Hypergraph::Assumptions assumptions);
+
+private:
+    bool compat(const Entry& e1, const Entry& e2,
+                Hypergraph::Assumptions assumptions) const;
+
+    const Hypergraph& g;
+};
+
 
 void RewriteRule::fromText(std::istream& in) {
     std::string title;
@@ -569,7 +627,7 @@ void RewriteRule::fromTextMultiple(std::istream& in,
 }
 
 
-void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
+void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp, Chronicles* chron) {
 
     int nholes = premise.vertices.size();
     int gen_max = gen_cmp ? INT32_MAX : gen_req;
@@ -585,7 +643,17 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp) {
             //if (assumptions != 0)
             //    std::cout << "// got match given assumptions" << std::endl;
 
-            // traceApply(valuation, assumptions, 0, 0);
+            if (chron) {
+                // Project valuation onto free holes
+                Hypergraph::Valuation fh;
+                for (auto fhi : free_holes) {
+                    auto i = ~fhi->id;
+                    assert(i < valuation.size() && valuation[i]);
+                    fh.push_back(valuation[i]);
+                }
+
+                if (!chron->add(this, fh, assumptions)) return;
+            }
 
             if (assumptions == 0)
                 conclude(valuation, g, edges);
@@ -683,8 +751,46 @@ void RewriteRule::traceApply(const Hypergraph::Valuation& valuation,
     if (from && !to) std::cout << "  --> [" << from->id << "]";
     if (from && to) std::cout << "  --> [" << from->id << "] -> [" << to->id << "]";
     std::cout << std::endl;
-
 }
+
+
+bool Chronicles::add(const RewriteRule *rule, const Hypergraph::Valuation& valuation,
+                     Hypergraph::Assumptions assumptions) {
+    Entry e = { rule, valuation };
+    for (auto& ex : entries) {
+        if (compat(ex, e, assumptions)) return false;
+    }
+    entries.push_back(e);
+    return true;
+}
+
+bool Chronicles::compat(const Entry& e1, const Entry& e2,
+                        Hypergraph::Assumptions assumptions) const {
+    if (e1.rule != e2.rule) return false;
+    assert(e1.valuation.size() == e2.valuation.size());
+    for (size_t i = 0; i < e1.valuation.size(); ++i) {
+        if (!g.compatVertices0(e1.valuation[i], e2.valuation[i], assumptions))
+            return false;
+    }
+    return true;
+}
+
+
+template <>
+struct std::hash<Chronicles::Entry> {
+    std::size_t operator()(const Chronicles::Entry& e) const {
+        // Combine the hash codes of the struct members
+        std::size_t hash1 = std::hash<const RewriteRule *>{}(e.rule);
+        std::size_t hash2 = 0;
+        for (auto &el : e.valuation) {
+            hash2 ^= std::hash<Hypergraph::Vertex*>{}(el);
+        }
+
+        // Combine the hash codes in a way that preserves order
+        return hash1 ^ (hash2 << 1);
+    }
+};
+
 
 class Reconstruct {
 public:
