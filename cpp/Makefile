@@ -1,4 +1,4 @@
-CXXFLAGS = -std=c++11 -Wno-out-of-line-declaration
+CXXFLAGS = -std=c++17 -Wno-out-of-line-declaration -I.
 OPT = -O3
 
 tc_SRC = hypergraph main_prove

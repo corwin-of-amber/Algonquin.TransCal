@@ -72,6 +72,17 @@ svg.egraph *[data-color="moss"] {
     --dotted-color: rgb(32, 146, 76);
 }
 
+svg.egraph *[data-color|="gray"],
+svg.egraph *[data-color="ghost"] {
+    --epicenter-color: rgba(126, 126, 126, 0.5);
+    --ray-color: rgba(124, 124, 124, 0.5);
+    --dotted-color: rgb(76, 76, 76);
+}
+
+svg.egraph.hide-ghost *[data-color="ghost"] {
+    display: none;
+}
+
 svg.egraph g.egraph--color-overlay--eclass:hover 
 path.egraph--color-overlay--ray  {
     stroke-width: 2px;

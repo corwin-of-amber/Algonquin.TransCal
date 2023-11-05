@@ -72,6 +72,7 @@ const SAMPLES = {
     'plus-0': [
         'u1 :- (+ n 0)',
         'u2 :- (n)',
+        ':- (ghost)',
         'gold :- (?~ n 0)',
         'rose :- (?~ n (S k))',
         'mud :- (?~ (+ k 0) k)',
@@ -80,22 +81,29 @@ const SAMPLES = {
     'plus-comm': [
         'u1 :- (+ n m)',
         'u2 :- (+ m n)',
+        ':- (ghost)',
         // -- induction n
         //'gold :- (?~ n 0)',
-        'rose :- (?~ n (S n_))',
-        //'rose :- (?~ (+ k m) (+ m k))',
+        'rose :- (?~ n (S "n\'"))',
+        //'rose :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
         // -- induction m
         //'azure :- (?~ m 0)'
         //'mustard :- (?~ m (S j))',
-        'gold :- (?> mustard)',
-        'mud :- (?~ m (S m_))',
+        //'gold :- (?> mustard)',
+        'mud :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
+        //'ghost :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
         'rose :- (?> mud)',
+        'moss :- (?~ m (S "m\'"))',                    // m = S m'
+        //'ghost :- (?~ m (S "m\'"))',                    // m = S m'
         //'moss :- (?~ (S (+ m_ n_)) (+ m_ (S n_)))',
-        //'moss :- (?~ (+ n_ m) (+ m n_))',
+        //'moss :- (?~ (+ "n\'" m) (+ m "n\'"))',       // n' + m = m + n'
         'mud :- (?> moss)',
+        'gray-1 :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',   // S (m' + n') = m' + S n'
+        'moss :- (?> gray-1)'
+        //'ghost :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',
         //'azure :- (?~ (+ n j) (+ j n))'
         //'kumquat :- (?~ (+ j 0) j)',
-        'mustard :- (?> kumquat)'
+        //'mustard :- (?> kumquat)'
     ],
     'max': [
         'u1 :- (max x y)',
@@ -130,7 +138,7 @@ async function main() {
 
     Vue.watchEffect(async () => {
 
-        var be = new EggBackend;
+        var be = new CppBackend;
         be.opts.rewriteDepth = app.opts.rwDepth;
         be.writeProblem({input: input.edges, rules: vfe.rules});
         var g = await be.solve();

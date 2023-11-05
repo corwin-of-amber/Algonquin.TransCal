@@ -1,6 +1,8 @@
 #include <cassert>
+#include <optional>
 #include <getopt.h>
 
+#include "colors.h"
 #include "inc/hypergraph.h"
 
 
@@ -12,7 +14,7 @@ class ColorScheme {
     struct pending_merge {
         Hypergraph::Vertex* u1;
         Hypergraph::Vertex* u2;
-        color_index_t j;
+        Hypergraph::Assumptions assumptions;
     };
 
     std::vector<pending_merge> to_merge;
@@ -23,27 +25,51 @@ public:
     ColorScheme(Hypergraph& g) : g(g) { }
 
     void locateAll();
-    void merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2, size_t j);
-
-    void join(Hypergraph::Edge* e, Hypergraph::Vertex *u, size_t j);
 
     void veryInefficientCompact();
 
     static const Hypergraph::label_t COND_MERGE;
 
-    inline color_index_t lookup(Hypergraph::Vertex* clr) const {
+    color_index_t lookup(Hypergraph::Vertex* clr) const {
         auto it = color_map.find(clr->id);
         if (it != color_map.end()) return it->second;
         else {
             color_index_t new_idx = color_map.size();
             assert(new_idx < Hypergraph::MAX_COLORS);
+            std::cout << "// color [" << new_idx << "] --> " << clr->id << std::endl;
             color_map[clr->id] = new_idx;
             return new_idx;
         }
     }
 
+    std::optional<Hypergraph::Vertex*> byName(const std::string& name) const {
+        auto it = g.edges_by_kind.find(Hypergraph::str2label(name));
+        if (it != g.edges_by_kind.end())
+            return it->second[0]->target();
+        else
+            return std::nullopt;
+    }
+
+    std::optional<color_index_t> lookup(std::string name) const {
+        auto it = g.edges_by_kind.find(Hypergraph::str2label(name));
+        if (it != g.edges_by_kind.end())
+            return std::optional(lookup(it->second[0]->target()));
+        else
+            return std::nullopt;
+    }
+
+    void prepareHierarchyTable(Colors::Hierarchy& h);
+
+    Hypergraph::Assumptions ghost;
+
 protected:
-    void merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2, size_t j);
+    void merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2,
+               Hypergraph::Assumptions assumptions);
+    void merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2,
+               Colors::color_index_t clr);
+    void join(Hypergraph::Edge* e, Hypergraph::Vertex *u,
+              Colors::color_index_t clr);
+
     void veryInefficientCompact(Hypergraph::Edge* e);
 };
 
@@ -53,28 +79,56 @@ const Hypergraph::label_t ColorScheme::COND_MERGE = Hypergraph::str2label("?~");
 void ColorScheme::locateAll() {
     std::vector<Hypergraph::Edge*> to_drop;
 
-    for (auto e : g.edges_by_kind[COND_MERGE]) {
+    auto es = g.edges_by_kind[COND_MERGE];
+    for (auto e : es) {
         if (e->vertices.size() <= 2) {  // singleton colored class
             to_drop.push_back(e);
             continue;
         }
         size_t j = lookup(e->target());
-        for (auto it = e->vertices.begin() + 1; it != e->vertices.end(); it++) {
-            if ((*it)->color_index[j]) {
-                if ((*it)->color_index[j] != e) {
-                    assert((*it)->color_index[j]->target() == e->target());
-                    merge((*it)->color_index[j], e, j);
-                    to_drop.push_back(e);
-                }
+        if (j == ghost.idx) assert(e->target() == ghost.u);
+        auto vertices = e->vertices; // safe iteration
+        for (auto it = vertices.begin() + 1; it != vertices.end(); it++) {
+            auto ej = (*it)->color_index[j];
+            if (ej == NULL) {
+                (*it)->color_index[j] = e;
             }
-            else (*it)->color_index[j] = e;
+            else if (ej != e) {
+                assert(ej->target() == e->target());
+                // symmetry breaking: must be consistent along all participating vertices.
+                // otherwise color edges may be lost...
+                auto ei = e;
+                if (ej > ei) {
+                    std::swap(ei, ej);
+                    (*it)->color_index[j] = ej;
+                }
+                merge(ej, ei, j);
+                to_drop.push_back(ei);
+            }
         }
+
+        if (j == 0) continue;
+        j = ghost.idx;
+        Hypergraph::Edge e0 = *e;
+        e0.vertices[0] = ghost.u;
+        //auto vertices = e->vertices; // safe iteration
+        for (auto it = vertices.begin() + 1; it != vertices.end(); it++) {
+            auto ej = (*it)->color_index[j];
+            if (ej == NULL) {                
+                (*it)->color_index[j] = g.addEdge(e0);
+            }
+            else {
+                assert(ej->target() == ghost.u);
+                merge(ej, &e0, j);
+            }
+        }        
     }
 
     for (auto e : to_drop) g.removeEdge(e);
 }
 
-void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2, size_t clr) {
+void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2,
+                        Colors::color_index_t clr) {
     for (auto it = e2->vertices.begin() + 1; it != e2->vertices.end(); it++) {
         if (!e1->containsSource(*it)) {
             join(e1, *it, clr);
@@ -82,29 +136,28 @@ void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2, size_t clr) 
     }
 }
 
-void ColorScheme::merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2, size_t clr) {
+void ColorScheme::merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2,
+                        Hypergraph::Assumptions assumptions) {
+    auto clr = assumptions.idx;
     auto e1 = u1->color_index[clr], e2 = u2->color_index[clr];
     if (e1) {
         if (e2) merge(e1, e2, clr);
-        else {
-            u2->color_index[clr] = e1;
-            e1->vertices.push_back(u2);
-        }
+        else    join(e1, u2, clr);
     }
     else if (e2) {
-        u1->color_index[clr] = e2;
-        e2->vertices.push_back(u1);
+        join(e2, u1, clr);
     }
     else {
-        g.addEdge({.kind = COND_MERGE, .vertices = {u1, u2}});
+        g.addEdge({.kind = COND_MERGE, .vertices = {assumptions.u, u1, u2}});
     }
 }
 
-void ColorScheme::join(Hypergraph::Edge* e, Hypergraph::Vertex *u, size_t j) {
-    int index = e->vertices.size();
+void ColorScheme::join(Hypergraph::Edge* e, Hypergraph::Vertex *u,
+                       Colors::color_index_t clr) {
+    size_t index = e->vertices.size();
     e->vertices.push_back(u);
     u->edges.push_back({.index = index, .e = e});
-    u->color_index[j] = e;
+    u->color_index[clr] = e;
 }
 
 
@@ -122,7 +175,7 @@ bool slices_compat(Hypergraph& g,
 
 void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
     auto color = e->target();
-    size_t j = lookup(color);
+    Hypergraph::Assumptions assumptions = { .u = color, .idx = lookup(color) };
     for (auto it1 = e->vertices.begin() + 1; it1 != e->vertices.end(); it1++) {
         auto& edges1 = (*it1)->edges;
         for (auto it2 = it1 + 1; it2 != e->vertices.end(); it2++) {
@@ -131,14 +184,14 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
                 if (e1.index > 0 && g.isFunctional(e1.e->kind)) {
                     for (auto& e2 : edges2) {
                         if (e1.index == e2.index && e2.e->kind == e1.e->kind &&
-                            slices_compat(g, e1.e->vertices, e2.e->vertices, 1, color)) {
+                            slices_compat(g, e1.e->vertices, e2.e->vertices, 1, assumptions)) {
                             auto v1 = e1.e->target(),
                                  v2 = e2.e->target();
-                            if (!g.compatVertices(v1, v2, color)) {
+                            if (!g.compatVertices(v1, v2, assumptions)) {
                                 std::cout << "// " 
                                     << v1->id << "~" << v2->id << "  @ "
                                     << color->id << " (compact)" << std::endl;
-                                to_merge.push_back({v1, v2, j});
+                                to_merge.push_back({v1, v2, assumptions});
                             }
                         }
                     }
@@ -153,8 +206,26 @@ void ColorScheme::veryInefficientCompact() {
         veryInefficientCompact(e);
     }
 
-    for (auto& p : to_merge) merge(p.u1, p.u2, p.j);
+    for (auto& p : to_merge) merge(p.u1, p.u2, p.assumptions);
     to_merge.resize(0);
+}
+
+void ColorScheme::prepareHierarchyTable(Colors::Hierarchy& h) {
+    for (int i = 0; i < Colors::MAX_COLORS; ++i) {
+        for (int j = 0; j < Colors::MAX_COLORS; ++j) {
+            h[i][j] = i == j ? Colors::EQ : Colors::NONE;
+        }
+    }
+    
+    h[1][2] = Colors::LT;
+    h[1][3] = Colors::LT;
+    h[2][3] = Colors::LT;
+
+    for (int i = 0; i < Colors::MAX_COLORS; ++i) {
+        for (int j = 0; j < Colors::MAX_COLORS; ++j) {
+            if (h[j][i] == Colors::LT) h[i][j] = Colors::GT;
+        }
+    }
 }
 
 
@@ -215,10 +286,15 @@ int main(int argc, char *argv[]) {
         RewriteRule::fromTextMultiple(frules, rw_rules);
     }
 
-    /* Rewrite Frenzy! */
-    int gen = 0;
     Chronicles chron(g);
     ColorScheme cs(g);
+    cs.ghost = { .u = *cs.byName("ghost"), .idx = 0 };
+    cs.ghost.idx = cs.lookup(cs.ghost.u);
+    cs.prepareHierarchyTable(g.color_hierarchy);
+    g.color_mask[cs.ghost.idx] = false;
+
+    /* Rewrite Frenzy! */
+    int gen = 0;
     for (int i = 0; i < rw_depth; i++) {
         g.compact();
         g.gen++;

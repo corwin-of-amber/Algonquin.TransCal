@@ -7,6 +7,8 @@
 #include <fstream>
 #include <cassert>
 
+#include "colors.h"
+
 
 class Hypergraph {
 public:
@@ -16,11 +18,11 @@ public:
     typedef uint64_t label_t;
     union scratch_t { void *p; int64_t z; };
 
-    static const size_t MAX_COLORS = 3;
+    static const size_t MAX_COLORS = Colors::MAX_COLORS;
 
     struct Incidence {
         Edge *e;
-        int index;
+        size_t index;
     };
 
     struct Vertex {
@@ -53,7 +55,11 @@ public:
     };
 
     typedef std::vector<Vertex*> Valuation;
-    typedef Vertex* Assumptions;
+
+    struct Assumptions {
+        Vertex* u;
+        Colors::color_index_t idx;
+    };
 
     std::vector<Vertex> vertices;
     std::vector<Edge> edges;
@@ -63,9 +69,13 @@ public:
     bool dirty;
     int gen;
 
+    Colors::Hierarchy color_hierarchy;
+    bool color_mask[MAX_COLORS];
+
     Hypergraph() : id_counter(0), gen(0) {
         vertices.reserve(600);
         edges.reserve(24000);
+        for (size_t i = 0; i < MAX_COLORS; ++i) color_mask[i] = true;
     }
 
     void reserve(int nv, int ne) {
@@ -165,7 +175,7 @@ Hypergraph::Edge* Hypergraph::addEdge(const Edge& edge) {
     assert(edges.size() < edges.capacity());  /* can't allow realloc */
     edges.push_back(edge);
     Edge* e = &edges[edges.size() - 1];
-    for (int i = 0; i < edge.vertices.size(); ++i) {
+    for (size_t i = 0; i < edge.vertices.size(); ++i) {
         Incidence ie = { e, i };
         edge.vertices[i]->edges.push_back(ie);
     }
@@ -229,7 +239,7 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
     if (u) {
         bool flag = false;
         for (size_t j = 0; j < MAX_COLORS; j++) {
-            if (u->color_index[j]) {
+            if (color_mask[j] && u->color_index[j]) {
                 flag = true;
                 std::vector<Vertex*>& vs = u->color_index[j]->vertices;
                 for (auto it = vs.begin() + 1; it != vs.end(); it++) {
@@ -239,7 +249,7 @@ void Hypergraph::findEdge(Edge& pattern, int gen_max, int index,
                 }
             }
         }
-        if (!flag) {
+        if (!flag) {  /* if at least one color existed, then, in particular all of u's edges have been scanned already */
             for (auto& e : u->edges) {
                 unifyEdge(*e.e, pattern, valuation, assumptions, cb);
             }
@@ -264,11 +274,14 @@ bool Hypergraph::compatVertices
     if (u == v) return true;
     else {
         for (size_t j = 0; j < MAX_COLORS; ++j) {
-            if (u->color_index[j] && (assumptions == NULL || 
-                            assumptions == u->color_index[j]->target())) {
+            if (!color_mask[j]) continue;
+            Colors::cmp_t rel;
+            if (u->color_index[j] && (assumptions.u == NULL || 
+                        (rel = color_hierarchy[j][assumptions.idx]) != Colors::NONE)) {
                 bool compat = u->color_index[j]->containsSource(v);
                 if (compat) {
-                    assumptions = u->color_index[j]->target();
+                    if (rel == Colors::GT)
+                        assumptions = { .u = u->color_index[j]->target(), .idx = j};
                     return true;
                 }
             }
@@ -285,10 +298,10 @@ bool Hypergraph::compatVertices0
         (Hypergraph::Vertex* u, Hypergraph::Vertex* v,
          Hypergraph::Assumptions assumptions) const {
     if (u == v) return true;
-    else if (assumptions != NULL) {
+    else if (assumptions.u != NULL) {
         for (size_t j = 0; j < MAX_COLORS; ++j) {
             if (u->color_index[j] &&
-                    (assumptions == u->color_index[j]->target())) {
+                    (assumptions.u == u->color_index[j]->target())) {
                 if (u->color_index[j]->containsSource(v))
                     return true;
             }
@@ -333,7 +346,7 @@ void Hypergraph::unifyEdge(Edge& edge, Edge& pattern,
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern, int k,
                               int gen_max, MatchCb cb) {
     Valuation valuation(k);
-    findSubgraph(pattern, gen_max, 0, 0, valuation, 0, cb);
+    findSubgraph(pattern, gen_max, 0, 0, valuation, { .u = 0 }, cb);
 }
 
 void Hypergraph::findSubgraph(std::vector<Edge>& pattern,
@@ -383,23 +396,18 @@ bool slices_equal(const std::vector<T>& a1, const std::vector<T>& a2, int start)
 
 void Hypergraph::compact(Vertex* u) {
     auto& edgeset = u->edges;
-    //const Q = 11;
-    //if (u->id == Q) std::cout << "// " << u->id << std::endl;
+
     for (int i = 0; i < edgeset.size(); ++i) {
         auto& e1 = edgeset[i];
-        //if (u->id == Q) std::cout << "// (" << u->id << ") " << *e1.e << std::endl;
         if (e1.index > 0 && isFunctional(e1.e->kind)) {
             for (int j = i + 1; j < edgeset.size(); ++j) {
                 auto& e2 = edgeset[j];
-                //if (u->id == Q) std::cout << "// (" << u->id << ")   ? " << *e2.e << std::endl;
                 if (e2.index == e1.index && e2.e->kind == e1.e->kind && 
                      slices_equal(e2.e->vertices, e1.e->vertices, 1)) {
-                    //if (u->id == Q) std::cout << "// (" << u->id << ")  YES " << std::endl;
                     Vertex *v1 = e1.e->target(),
                            *v2 = e2.e->target();
                     if (v1 == v2) removeEdge(e2.e);
                     else merge(v1, v2);
-                    //if (v1->color == v2->color) merge(v1, v2);
                 }
             }
         }
@@ -570,9 +578,11 @@ public:
     struct Entry {
         const RewriteRule *rule;
         const Hypergraph::Valuation valuation;
+        const Hypergraph::Vertex *color;
 
         bool operator ==(const Entry& other) const {
-            return rule == other.rule && valuation == other.valuation;
+            return rule == other.rule && valuation == other.valuation
+                && color == other.color;
         }
     };
 
@@ -655,7 +665,7 @@ void RewriteRule::apply(Hypergraph& g, int gen_req, cmp_t gen_cmp, Chronicles* c
                 if (!chron->add(this, fh, assumptions)) return;
             }
 
-            if (assumptions == 0)
+            if (assumptions.u == 0)
                 conclude(valuation, g, edges);
             else
                 concludeWithAssumptions(valuation, assumptions, g, edges);
@@ -671,7 +681,7 @@ void RewriteRule::conclude(const Hypergraph::Valuation& valuation,
     int k = valuation.size(), n = conclusion.vertices.size();
     Hypergraph::Valuation extras(std::max(0, n - k));
 
-    traceApply(valuation, 0, valuation[0], 0);
+    traceApply(valuation, { .u = 0 }, valuation[0], 0);
 
     for (auto& u : extras) u = g.addVertex();
     for (auto e : conclusion.edges) {
@@ -694,12 +704,12 @@ void RewriteRule::concludeWithAssumptions(
 {
     int k = valuation.size(), n = conclusion.vertices.size();
     Hypergraph::Vertex *new_root = g.addVertex();
-    new_root->color = assumptions;
+    //new_root->color = assumptions;
     Hypergraph::Valuation extras(std::max(0, n - k));
 
     traceApply(valuation, assumptions, valuation[0], new_root);
 
-    for (auto& u : extras) { u = g.addVertex(); u->color = assumptions; }
+    for (auto& u : extras) { u = g.addVertex(); /*u->color = assumptions;*/ }
     for (auto e : conclusion.edges) {
         /* treat target root in a special way */
         auto& u = e.vertices[0];
@@ -715,18 +725,18 @@ void RewriteRule::concludeWithAssumptions(
         if (e.kind == special_edges::ID)
             out_edges.push_back({
                 .kind = special_edges::COND_MERGE,
-                .vertices = {assumptions, e.vertices[0], e.vertices[1]}
+                .vertices = {assumptions.u, e.vertices[0], e.vertices[1]}
             });
         else
             out_edges.push_back(e);
     }
 
     std::cout << "// " << valuation[0]->id << "~" << new_root->id 
-              << "  @ " << assumptions->id << std::endl;
+              << "  @ " << assumptions.u->id << std::endl;
 
     out_edges.push_back({
         .kind = special_edges::COND_MERGE,
-        .vertices = {assumptions, valuation[0], new_root}
+        .vertices = {assumptions.u, valuation[0], new_root}
     });
 }
 
@@ -746,7 +756,7 @@ void RewriteRule::traceApply(const Hypergraph::Valuation& valuation,
         std::cout << " " << u->id;
     }*/
     std::cout << " ]";
-    if (assumptions) std::cout << " @ " << assumptions->id;
+    if (assumptions.u != NULL) std::cout << " @ " << assumptions.u->id;
 
     if (from && !to) std::cout << "  --> [" << from->id << "]";
     if (from && to) std::cout << "  --> [" << from->id << "] -> [" << to->id << "]";
@@ -756,7 +766,9 @@ void RewriteRule::traceApply(const Hypergraph::Valuation& valuation,
 
 bool Chronicles::add(const RewriteRule *rule, const Hypergraph::Valuation& valuation,
                      Hypergraph::Assumptions assumptions) {
-    Entry e = { rule, valuation };
+    //return true; // @todo disabling for now because of multi-color clashes
+    
+    Entry e = { rule, valuation, assumptions.u };
     for (auto& ex : entries) {
         if (compat(ex, e, assumptions)) return false;
     }
@@ -766,7 +778,7 @@ bool Chronicles::add(const RewriteRule *rule, const Hypergraph::Valuation& valua
 
 bool Chronicles::compat(const Entry& e1, const Entry& e2,
                         Hypergraph::Assumptions assumptions) const {
-    if (e1.rule != e2.rule) return false;
+    if (e1.rule != e2.rule || e1.color != e2.color) return false;
     assert(e1.valuation.size() == e2.valuation.size());
     for (size_t i = 0; i < e1.valuation.size(); ++i) {
         if (!g.compatVertices0(e1.valuation[i], e2.valuation[i], assumptions))

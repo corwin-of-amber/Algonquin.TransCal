@@ -1,6 +1,7 @@
 <template>
     <div class="egraph--container">
-        <graphviz-svg ref="gv" class="egraph" :graph="_graph"
+        <graphviz-svg ref="gv" class="egraph" :class="{'hide-ghost': !showGhost}"
+            :graph="_graph"
             :layoutStylesheet="layoutStylesheet"
             @rendered="colorOverlay"
             @mousedown="onMouseDown"
@@ -34,6 +35,7 @@ export default class EgraphView extends Vue {
 
     size = {x: 150, y: 150}
     hover = {node: undefined, edge: undefined}
+    showGhost = false
 
     get _graph() { return this.egraph?.toGraph(this.format); }
     get stats() {
