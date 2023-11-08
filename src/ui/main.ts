@@ -90,20 +90,16 @@ const SAMPLES = {
         //'azure :- (?~ m 0)'
         //'mustard :- (?~ m (S j))',
         //'gold :- (?> mustard)',
-        'mud :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
-        //'ghost :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
         'rose :- (?> mud)',
+        'mud :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
+        //'mud :- (?> moss)',
         'moss :- (?~ m (S "m\'"))',                    // m = S m'
-        //'ghost :- (?~ m (S "m\'"))',                    // m = S m'
-        //'moss :- (?~ (S (+ m_ n_)) (+ m_ (S n_)))',
-        //'moss :- (?~ (+ "n\'" m) (+ m "n\'"))',       // n' + m = m + n'
-        'mud :- (?> moss)',
-        'gray-1 :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',   // S (m' + n') = m' + S n'
-        'moss :- (?> gray-1)'
-        //'ghost :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',
-        //'azure :- (?~ (+ n j) (+ j n))'
-        //'kumquat :- (?~ (+ j 0) j)',
-        //'mustard :- (?> kumquat)'
+        
+        //'moss :- (?> gray-1)',
+        //'mud :- (?> gray-2)',
+        //'gray-1 :- (?~ (+ n "m\'") (+ "m\'" n))',
+        //'gray-2 :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',   // S (m' + n') = m' + S n'
+        
     ],
     'max': [
         'u1 :- (max x y)',
@@ -136,8 +132,7 @@ async function main() {
     var input = vfe.sexpFe.asHypergraph();
     app.egraph = new EGraph(input.edges);
 
-    Vue.watchEffect(async () => {
-
+    async function process(input: Hypergraph) {
         var be = new CppBackend;
         be.opts.rewriteDepth = app.opts.rwDepth;
         be.writeProblem({input: input.edges, rules: vfe.rules});
@@ -146,7 +141,25 @@ async function main() {
         //var g = EGraph.fromHypergraph(input).congruenceClosureLeaves();
 
         app.egraph = g.foldColorInfo();
-    });
+    }
+
+    Vue.watchEffect(() => { return process(input); });
+
+    function script() {
+        app.egraph.collapseColors('rose', 'mud', 'moss');
+        app.egraph.removeDuplicateEdges();
+
+        let boughPats = [
+            '(S x)', '(S (S x))', '(S (S (+ m n)))',
+            '(+ x y)', '(+ (S x) y)', '(+ (S (S x)) y)',
+            /* [dups] '(+ x y)', '(+ (S x) y)', */ '(+ x (S y))'
+        ];
+        for (let cpat of vfe.sexpFe.compile(boughPats)) {
+            console.log('%c%s', 'color: blue', vfe.sexpFe.astToText(cpat.ast));
+            let es = vfe.rp.edgesToRuleSide(cpat.edges);
+            console.log([...app.egraph.ematch.subgraph(es)]);
+        }
+    }
 
     // Some UI actions
     app.events.on('egraph:select', ev => {
@@ -164,6 +177,7 @@ async function main() {
     let cli = new CLI(app);
 
     Object.assign(window, {app, vfe, svgToPng, cli});
+    Object.assign(cli, {process, script});
 }
 
 /**

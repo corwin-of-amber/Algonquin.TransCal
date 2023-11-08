@@ -1,3 +1,5 @@
+import assert from 'assert';
+import _ from 'lodash';
 import { Graph } from 'graphlib';
 import { ifind } from '../infra/itertools';
 import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
@@ -5,15 +7,23 @@ import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
 
 class EGraph extends Hypergraph {
     colors: EGraph.ColorScheme
+    ematch: EGraph.EMatch
 
     constructor(edges: Hyperedge[] = [], colors?: EGraph.ColorScheme) {
         super(edges);
         this.colors = colors ?? new EGraph.ColorScheme
+        this.ematch = new EGraph.EMatch(this);
     }
 
     static fromHypergraph(g: Hypergraph) {
         let eg = new EGraph(g.edges);
         return eg;
+    }
+
+    /** Like `Hypergraph.merge`, but merge into smallest id */
+    merge(us: HypernodeId[]) {
+        let rep = _.min(us);
+        super.merge([rep, ...us.filter(u => u != rep)]);
     }
 
     mergeInto(u: HypernodeId, ...vs: HypernodeId[]) {
@@ -23,6 +33,11 @@ class EGraph extends Hypergraph {
 
     filterEdges(p: (e: Hyperedge) => boolean): EGraph {
         return new EGraph(super.filterEdges(p).edges, this.colors);
+    }
+
+    *edgesByOp(op: string): Generator<Hyperedge> {
+        for (let e of this.edges)
+            if (e.op === op) yield e;
     }
 
     congruenceClosureLeaves() {
@@ -62,11 +77,16 @@ class EGraph extends Hypergraph {
         return g;
     }
 
+    unfoldColorInfo() {
+        return new EGraph([...this.edges, ...this.exportColorInfo()], this.colors);
+    }
+
     extractColorInfo() {
         for (let e of this.edges) {
             switch (e.op) {
             case '?~': this.colors.merge(e.target, e.sources); break;
-            case '?.': this.colors.add(e.target, e.sources[0]); break;
+            case '?>': this.colors.declareParent(e.sources[0], e.target); break;
+            case '?.': this.colors.add(e.target, e.sources[0]); break;  // deprecated
             }
         }
         // fill in color names
@@ -76,6 +96,17 @@ class EGraph extends Hypergraph {
                 (pe = this.colors.palette.get(e.target)) && pe.name === '?') {
                 pe.name = e.op;
             }
+        }
+    }
+
+    *exportColorInfo(): Generator<Hyperedge> {
+        for (let e of this.colors.eclasses) {
+            yield {op: '?~', target: e.color, sources: e.members} as Hyperedge;
+        }
+        for (let [id, clr] of this.colors.palette.entries()) {
+            yield {op: clr.name, target: id, sources: []} as Hyperedge;
+            if (clr.parent !== undefined)
+                yield {op: '?>', target: clr.parent, sources: [id]} as Hyperedge;
         }
     }
 
@@ -103,7 +134,7 @@ class EGraph extends Hypergraph {
         return new EGraph(Hypergraph.importEdgesFromCpp(s));
     }
 
-    static COLOR_OPS = ['?.', '?~'];
+    static COLOR_OPS = ['?.', '?~', '?>'];
 }
 
 
@@ -155,6 +186,13 @@ namespace EGraph {
                 if (info) this.palette.set(color, info);
             }
             else this.palette.set(color, {name: '?'});
+        }
+
+        declareParent(color: HypernodeId, parent: HypernodeId) {
+            this.declareColor(color);
+            let c = this.palette.get(color);
+            assert(c !== undefined);
+            c.parent = parent;
         }
 
         applyToGraph(g: Graph) {
@@ -218,7 +256,7 @@ namespace EGraph {
     }
 
     export type Palette = Map<HypernodeId, ColorInfo>
-    export type ColorInfo = {name: string, cssValue?: string}
+    export type ColorInfo = {name: string, parent?: HypernodeId}
 
     const STYLES = {
         cluster: {
@@ -260,6 +298,43 @@ namespace EGraph {
             for (let u of sing) g.setNode(u, {...g.node(u),
                 class: "singleton", pad: "0", margin: "1"});
         }
+    }
+
+    export class EMatch {
+        g: EGraph
+
+        constructor(g: EGraph) { this.g = g; }
+
+        *singleEdge(op: string, target?: HypernodeId,
+                    sources: HypernodeId[] = []): Generator<Hyperedge> {
+            let compat = (u: HypernodeId, v: HypernodeId) =>
+                            u === undefined || u == v;
+            for (let e of this.g.edges) {
+                if (e.op === op && compat(target, e.target) &&
+                    e.sources.every((v, i) => compat(sources[i], v))) {
+                    yield e;
+                }
+            }
+        }
+    
+        *subgraph(pat: Hyperedge[], valuation: Map<HypernodeId, HypernodeId> = new Map) {
+            if (pat.length === 0) {
+                yield valuation;
+            }
+            else {
+                let e0 = pat[0],
+                    target = valuation.get(e0.target),
+                    sources = e0.sources.map(u => valuation.get(u));
+                for (let e of this.singleEdge(e0.op, target, sources)) {
+                    let vt = new Map(valuation.entries());
+                    vt.set(e0.target, e.target);
+                    for (let [u0, u] of _.zip(e0.sources, e.sources))
+                        vt.set(u0, u);
+                
+                    yield* this.subgraph(pat.slice(1), vt);
+                }
+            }
+        }        
     }
 }
 

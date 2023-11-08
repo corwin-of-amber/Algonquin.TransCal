@@ -52,6 +52,13 @@ class SexpFrontend {
         return {type, subtrees};
     }
 
+    astToText(ast: Ast<Token>) {
+        if (ast.subtrees === undefined || ast.subtrees.length === 0)
+            return ast.type;
+        else
+            return `(${ast.type} ${ast.subtrees.map(s => this.astToText(s)).join(' ')})`
+    }
+
     incorporate(exprs: CompiledSexp[]) {
         for (let expr of exprs)
             this.edges.push(...expr.edges);
