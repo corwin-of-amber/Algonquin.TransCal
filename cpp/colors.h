@@ -7,7 +7,7 @@ public:
     static const size_t MAX_COLORS = 16;
     typedef size_t color_index_t;
 
-    enum cmp_t { NONE, LT, EQ, GT };
+    enum cmp_t { NONE, SUP, EQ, SUB };
 
     typedef cmp_t Hierarchy[MAX_COLORS][MAX_COLORS];
 };

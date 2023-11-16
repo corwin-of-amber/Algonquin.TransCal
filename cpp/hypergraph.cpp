@@ -52,6 +52,10 @@ public:
         bool containsSource(Vertex *u) const {
             return std::find(vertices.begin() + 1, vertices.end(), u) != vertices.end();
         }
+
+        /* edge mutation; mostly for non-functional edges (color relations) */
+        void addVertex(Vertex* u);
+        void setVertex(size_t idx, Vertex* u);
     };
 
     typedef std::vector<Vertex*> Valuation;
@@ -140,6 +144,40 @@ std::ostream& operator <<(std::ostream& out, const Hypergraph::Edge& e) {
     return out;
 }
 
+template <typename T>
+void remove_from_vec(std::vector<T>& vec, T elem) {
+    auto it = std::find(vec.begin(), vec.end(), elem);
+    if (it != vec.end()) {
+        *it = vec.back();
+        vec.pop_back();
+    }
+}
+
+template <typename T, typename UnaryPredicate >
+void remove_from_vec_if(std::vector<T>& vec, UnaryPredicate cond) {
+    auto it = std::find_if(vec.begin(), vec.end(), cond);
+    if (it != vec.end()) {
+        *it = vec.back();
+        vec.pop_back();
+    }
+}
+
+
+void Hypergraph::Edge::addVertex(Vertex* u) {
+    size_t i = vertices.size();
+    vertices.push_back(u);
+    u->edges.push_back({this, i});
+}
+
+void Hypergraph::Edge::setVertex(size_t idx, Vertex* u) {
+    auto eu = vertices[idx];
+    if (u == eu) return;
+    remove_from_vec_if(eu->edges, [=] (const Incidence& e) {
+        return e.e == this;
+    });
+    vertices[idx] = u;
+    u->edges.push_back({ this, idx });
+}
 
 Hypergraph::Vertex* Hypergraph::addVertex() {
     assert(vertices.size() < vertices.capacity());  /* can't allow realloc */
@@ -176,31 +214,12 @@ Hypergraph::Edge* Hypergraph::addEdge(const Edge& edge) {
     edges.push_back(edge);
     Edge* e = &edges[edges.size() - 1];
     for (size_t i = 0; i < edge.vertices.size(); ++i) {
-        Incidence ie = { e, i };
-        edge.vertices[i]->edges.push_back(ie);
+        edge.vertices[i]->edges.push_back({e, i});
     }
     e->gen = gen;
     e->removed = false;
     edges_by_kind[edge.kind].push_back(e);
     return e;
-}
-
-template <typename T>
-void remove_from_vec(std::vector<T>& vec, T elem) {
-    auto it = std::find(vec.begin(), vec.end(), elem);
-    if (it != vec.end()) {
-        *it = vec.back();
-        vec.pop_back();
-    }
-}
-
-template <typename T, typename UnaryPredicate >
-void remove_from_vec_if(std::vector<T>& vec, UnaryPredicate cond) {
-    auto it = std::find_if(vec.begin(), vec.end(), cond);
-    if (it != vec.end()) {
-        *it = vec.back();
-        vec.pop_back();
-    }
 }
 
 void Hypergraph::removeEdge(Edge* edge) {
@@ -280,7 +299,7 @@ bool Hypergraph::compatVertices
                         (rel = color_hierarchy[j][assumptions.idx]) != Colors::NONE)) {
                 bool compat = u->color_index[j]->containsSource(v);
                 if (compat) {
-                    if (rel == Colors::GT)
+                    if (rel == Colors::SUB)
                         assumptions = { .u = u->color_index[j]->target(), .idx = j};
                     return true;
                 }
