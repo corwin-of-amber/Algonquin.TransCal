@@ -66,6 +66,12 @@ public:
 
 protected:
     Hypergraph::Vertex* reprOf(Hypergraph::Vertex* u, color_index_t clr) const;
+    bool compatVertices(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2,
+                        color_index_t clr) const;
+    bool compatSlices(
+        const std::vector<Hypergraph::Vertex*>& a1,
+        const std::vector<Hypergraph::Vertex*>& a2, 
+        int start, Hypergraph::Assumptions assumptions) const;
 
     void merge(Hypergraph::Vertex* u1, Hypergraph::Vertex* u2,
                Hypergraph::Assumptions assumptions);
@@ -136,12 +142,27 @@ void ColorScheme::locateAll() {
     for (auto e : to_drop) g.removeEdge(e);
 }
 
+/**
+ * Gets the representative of the colored e-class containing u.
+ * Respects the color hierarchy.
+ */
 Hypergraph::Vertex* ColorScheme::reprOf(Hypergraph::Vertex* u,
                                         Colors::color_index_t clr) const {
-    if (clr == -1 || u->color_index[clr] == NULL)
-        return u;
-    else
-        return reprOf(u->color_index[clr]->vertices[1], color_parents[clr]);
+    if (clr == -1) return u;
+    // canonicalize u according to parent color, if any, to find color edge
+    u = reprOf(u, color_parents[clr]);
+    return (u->color_index[clr] == NULL) ? u
+                : u->color_index[clr]->vertices[1];
+}
+
+/**
+ * This behavior should eventually replace `Hypergraph::compatVertices`
+ * in some capacity.
+ */
+bool ColorScheme::compatVertices(Hypergraph::Vertex* u1,
+                                 Hypergraph::Vertex* u2,
+                                 color_index_t clr) const {
+    return reprOf(u1, clr) == reprOf(u2, clr);
 }
 
 void ColorScheme::merge(Hypergraph::Edge* e1, Hypergraph::Edge* e2,
@@ -188,15 +209,15 @@ void ColorScheme::canonicalize(Hypergraph::Edge* e, Colors::color_index_t clr) {
 }
 
 
-bool slices_compat(Hypergraph& g,
+bool ColorScheme::compatSlices(
         const std::vector<Hypergraph::Vertex*>& a1,
         const std::vector<Hypergraph::Vertex*>& a2, 
-        int start, Hypergraph::Assumptions assumptions)
+        int start, Hypergraph::Assumptions assumptions) const
 {
     if (a1.size() != a2.size()) return false;
     int n = a1.size();
     for (int i = start; i < n; i++)
-        if (!g.compatVertices(a1[i], a2[i], assumptions)) return false;
+        if (!compatVertices(a1[i], a2[i], assumptions.idx)) return false;
     return true;
 }
 
@@ -211,10 +232,10 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
                 if (e1.index > 0 && g.isFunctional(e1.e->kind)) {
                     for (auto& e2 : edges2) {
                         if (e1.index == e2.index && e2.e->kind == e1.e->kind &&
-                            slices_compat(g, e1.e->vertices, e2.e->vertices, 1, assumptions)) {
+                            compatSlices(e1.e->vertices, e2.e->vertices, 1, assumptions)) {
                             auto v1 = e1.e->target(),
                                  v2 = e2.e->target();
-                            if (!g.compatVertices(v1, v2, assumptions)) {
+                            if (!compatVertices(v1, v2, assumptions.idx)) {
                                 std::cout << "// " 
                                     << v1->id << "~" << v2->id << "  @ "
                                     << color->id << " (compact)" << std::endl;
