@@ -354,8 +354,10 @@ int main(int argc, char *argv[]) {
 
     Chronicles chron(g);
     ColorScheme cs(g);
-    cs.ghost = { .u = *cs.byName("ghost"), .idx = 0 };
-    cs.ghost.idx = cs.lookup(cs.ghost.u);
+    /* the ghost color is a hack */
+    cs.ghost = { .u = *cs.byName("ghost"), .idx = Colors::UNDEF };
+    if (cs.ghost.u != NULL)
+        cs.ghost.idx = cs.lookup(cs.ghost.u);
     cs.prepareHierarchyTable(g.color_hierarchy);
     g.color_mask[cs.ghost.idx] = false;
 
