@@ -6,6 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include <cassert>
+#include <functional>
 
 #include "colors.h"
 

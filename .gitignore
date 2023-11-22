@@ -12,7 +12,7 @@ tuples
 prog.json
 prog.txt
 .cache-main
-/.DS_Store
+.DS_Store
 target/
 /build/
 /.gradle/

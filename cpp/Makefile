@@ -1,4 +1,5 @@
-CXXFLAGS = -std=c++17 -Wno-out-of-line-declaration -I.
+# @todo get rid of `-fpermissive` (requires fixing cppnator)
+CXXFLAGS = -std=c++17 -Wno-out-of-line-declaration -fpermissive -I.
 OPT = -O3
 
 tc_SRC = hypergraph main_prove

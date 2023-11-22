@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import commander from 'commander';
+import * as commander from 'commander';
 import { PassThroughLexer, PickLexer } from "../ui/syntax/lexer";
 import { Ast, SpiralParser } from "../ui/syntax/parser";
 

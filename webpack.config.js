@@ -65,5 +65,16 @@ module.exports = (env, argv) => [
     child_process: 'commonjs2 child_process'
   },
   plugins
+},
+{
+  name: 'aux',
+  entry: './src/other/the-cppnator.ts',
+  target: 'node',
+  ...basics(argv),
+  module: {
+    rules: [ts, css, scss, vuesfc]
+  },
+  resolve,
+  output: output('build/cppnator', 'the-cppnator.js')
 }
 ];
