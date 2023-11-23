@@ -295,7 +295,7 @@ bool Hypergraph::compatVertices
     else {
         for (size_t j = 0; j < MAX_COLORS; ++j) {
             if (!color_mask[j]) continue;
-            Colors::cmp_t rel;
+            Colors::cmp_t rel = Colors::SUB;
             if (u->color_index[j] && (assumptions.u == NULL || 
                         (rel = color_hierarchy[j][assumptions.idx]) != Colors::NONE)) {
                 bool compat = u->color_index[j]->containsSource(v);
