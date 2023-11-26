@@ -23,7 +23,14 @@ class ColorScheme {
     color_index_t color_parents[Colors::MAX_COLORS];
 
 public:
-    ColorScheme(Hypergraph& g) : g(g) { }
+        ColorScheme(Hypergraph& g) : g(g) {
+        /* the ghost color is a hack */
+        auto gh = byName("ghost");
+        if (gh)
+            ghost = { .u = *gh, .idx = lookup(*gh) };
+        else
+            ghost = { .u = NULL, .idx = Colors::UNDEF };
+    }
 
     void locateAll();
 
@@ -354,12 +361,9 @@ int main(int argc, char *argv[]) {
 
     Chronicles chron(g);
     ColorScheme cs(g);
-    /* the ghost color is a hack */
-    cs.ghost = { .u = *cs.byName("ghost"), .idx = Colors::UNDEF };
-    if (cs.ghost.u != NULL)
-        cs.ghost.idx = cs.lookup(cs.ghost.u);
     cs.prepareHierarchyTable(g.color_hierarchy);
-    g.color_mask[cs.ghost.idx] = false;
+    if (cs.ghost.u)
+        g.color_mask[cs.ghost.idx] = false;
 
     /* Rewrite Frenzy! */
     int gen = 0;
