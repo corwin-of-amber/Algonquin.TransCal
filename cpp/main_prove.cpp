@@ -129,21 +129,21 @@ void ColorScheme::locateAll() {
             }
         }
 
-        if (j == 0) continue;
-        j = ghost.idx;
-        Hypergraph::Edge e0 = *e;
-        e0.vertices[0] = ghost.u;
-        //auto vertices = e->vertices; // safe iteration
-        for (auto it = vertices.begin() + 1; it != vertices.end(); it++) {
-            auto ej = (*it)->color_index[j];
-            if (ej == NULL) {                
-                (*it)->color_index[j] = g.addEdge(e0);
+        if (ghost.u && j != ghost.idx) {
+            j = ghost.idx;
+            Hypergraph::Edge e0 = *e;
+            e0.vertices[0] = ghost.u;
+            for (auto it = vertices.begin() + 1; it != vertices.end(); it++) {
+                auto ej = (*it)->color_index[j];
+                if (ej == NULL) {                
+                    (*it)->color_index[j] = g.addEdge(e0);
+                }
+                else {
+                    assert(ej->target() == ghost.u);
+                    merge(ej, &e0, j);
+                }
             }
-            else {
-                assert(ej->target() == ghost.u);
-                merge(ej, &e0, j);
-            }
-        }        
+        }
     }
 
     for (auto e : to_drop) g.removeEdge(e);
