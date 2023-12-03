@@ -723,7 +723,10 @@ void RewriteRule::concludeWithAssumptions(
                            std::vector<Hypergraph::Edge>& out_edges) const
 {
     int k = valuation.size(), n = conclusion.vertices.size();
-    Hypergraph::Vertex *new_root = g.addVertex();
+    /* special case: a single id edge; in which case no new root is created */
+    bool is_id = (conclusion.edges.size() == 1 &&
+                  conclusion.edges[0].kind == special_edges::ID);
+    Hypergraph::Vertex *new_root = is_id ? valuation[0] : g.addVertex();
     //new_root->color = assumptions;
     Hypergraph::Valuation extras(std::max(0, n - k));
 
@@ -731,6 +734,8 @@ void RewriteRule::concludeWithAssumptions(
 
     for (auto& u : extras) { u = g.addVertex(); /*u->color = assumptions;*/ }
     for (auto e : conclusion.edges) {
+        /* `id` edge is only allowed as a lone edge */
+        if (e.kind == special_edges::ID) assert(is_id && ~e.target()->id == 0);
         /* treat target root in a special way */
         auto& u = e.vertices[0];
         int i = ~u->id;
@@ -745,7 +750,7 @@ void RewriteRule::concludeWithAssumptions(
         if (e.kind == special_edges::ID)
             out_edges.push_back({
                 .kind = special_edges::COND_MERGE,
-                .vertices = {assumptions.u, e.vertices[0], e.vertices[1]}
+                .vertices = {assumptions.u, e.vertices[0], new_root = e.vertices[1]}
             });
         else
             out_edges.push_back(e);

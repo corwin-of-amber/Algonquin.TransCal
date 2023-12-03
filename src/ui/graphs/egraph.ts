@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { Graph } from 'graphlib';
 import { ifind } from '../infra/itertools';
 import { Hypergraph, Hyperedge, HypernodeId } from './hypergraph';
+import { Pattern } from './rewrites';
 
 
 class EGraph extends Hypergraph {
@@ -18,6 +19,11 @@ class EGraph extends Hypergraph {
     static fromHypergraph(g: Hypergraph) {
         let eg = new EGraph(g.edges);
         return eg;
+    }
+
+    clone(): EGraph {
+        // @todo edges are immutable?
+        return new EGraph([...this.edges], this.colors.clone());
     }
 
     /** Like `Hypergraph.merge`, but merge into smallest id */
@@ -145,11 +151,20 @@ namespace EGraph {
         vertices: ColorGroup[] = []  // colored vertices
         palette: Palette = new Map
 
+        clone() {
+            let c = new ColorScheme;
+            c.palette = new Map(this.palette.entries());
+            return Object.assign(c, structuredClone({eclasses: this.eclasses, vertices: this.vertices}));
+        }
+
         /**
          * Creates a color merge (generates a new colored e-class if not present)
          */
-        merge(color: HypernodeId, members: HypernodeId[]) {
-            this.declareColor(color);
+        merge(color: string | HypernodeId, members: HypernodeId[]) {
+            if (typeof color === 'string')
+                color = this.lookup(color)[0];
+            else
+                this.declareColor(color);
             let c = this.eclasses.filter(c =>
                 c.color === color && members.some(u => c.members.includes(u)));
             if (c[0])  /** @todo c.length > 1 */
@@ -185,7 +200,7 @@ namespace EGraph {
             if (this.palette.has(color)) {
                 if (info) this.palette.set(color, info);
             }
-            else this.palette.set(color, {name: '?'});
+            else this.palette.set(color, info ?? {name: '?'});
         }
 
         declareParent(color: HypernodeId, parent: HypernodeId) {
@@ -317,7 +332,7 @@ namespace EGraph {
             }
         }
     
-        *subgraph(pat: Hyperedge[], valuation: Map<HypernodeId, HypernodeId> = new Map) {
+        *subgraph(pat: Hyperedge[], valuation: Map<HypernodeId, HypernodeId> = new Map): Generator<Map<HypernodeId, HypernodeId>> {
             if (pat.length === 0) {
                 yield valuation;
             }
@@ -334,8 +349,26 @@ namespace EGraph {
                     yield* this.subgraph(pat.slice(1), vt);
                 }
             }
-        }        
+        }
+
+        *pattern(pat: Pattern): Generator<PatternMatch> {
+            let vars = [...pat.vars.entries()];
+            for (let mo of this.subgraph(pat.edges)) {
+                yield {
+                    head: mo.get(pat.head),
+                    vars: new Map(vars.map(([nm, u]) => [nm, mo.get(u)])),
+                    all: mo
+                }
+            }
+        }
     }
+}
+
+
+type PatternMatch = {
+    head: HypernodeId
+    vars: Map<string, HypernodeId>
+    all: Map<HypernodeId, HypernodeId>
 }
 
 function oops(msg: string): never {

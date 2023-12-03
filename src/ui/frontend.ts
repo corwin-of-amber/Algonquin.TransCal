@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { Grammar, Rule } from 'nearley';
 import { Tree, preorderWalk, postorderWalk, treeClone } from './infra/tree';
 import { PickLexer, PassThroughLexer, Token } from './syntax/lexer';
@@ -7,7 +9,8 @@ import sexpParse from 's-expression';
 import { enumerate } from './infra/itertools';
 import { ViviMap } from './infra/collections';
 import { Hyperedge, Hypergraph, HypernodeId } from './graphs/hypergraph';
-import { RewriteRule } from './graphs/rewrites';
+import { Pattern, RewriteRule } from './graphs/rewrites';
+import { EGraph } from './graphs/egraph';
 
 
 
@@ -15,7 +18,18 @@ class SexpFrontend {
     edges: Hyperedge[] = []
     maxId = 0
 
-    add(name: string, statements: string[]) {
+    graph?: Hypergraph
+
+    over(g: Hypergraph) {
+        this.graph = g;
+        this.maxId = _.max([...g.nodes()]);
+        if (g instanceof EGraph) {
+            this.maxId = _.max([this.maxId, ...g.colors.eclasses.map(e => e.color)]);
+        }
+        return this;
+    }
+
+    add(name: string, statements: (Sexp | string)[]) {
         var exprs: CompiledSexp[] = [];
         for (let [i, stmt] of enumerate(statements)) {
             try {
@@ -38,18 +52,26 @@ class SexpFrontend {
         }));
     }
 
+    commit() {
+        this.graph.edges.push(...this.edges);
+    }
+
     asHypergraph() {
         return new Hypergraph(this.edges);
     }
 
     sexpToTree(sexp: Sexp | String | string): Ast<Token> {
-        if (sexp instanceof String)
-            return {type: sexp.valueOf(), subtrees: [], token: {type: '""', value: sexp.valueOf()}};
         sexp = SexpFrontend.sexpPromote(sexp);
-        var type = sexp[0].toString(), /* should be a string */
-            subtrees = sexp.slice(1).map(c =>
-                this.sexpToTree(typeof c === 'string' ? [c] : c));
-        return {type, subtrees};
+        if (typeof sexp === 'string')  /* special cases: unparenthesized single token */
+            return {type: sexp, subtrees: []};
+        else if (sexp instanceof String)
+            return {type: sexp.valueOf(), subtrees: [], token: {type: '""', value: sexp.valueOf()}};
+        else {
+            var type = sexp[0].toString(), /* should be a string */
+                subtrees = sexp.slice(1).map(c =>
+                    this.sexpToTree(typeof c === 'string' ? [c] : c));
+            return {type, subtrees};
+        }
     }
 
     astToText(ast: Ast<Token>) {
@@ -67,22 +89,28 @@ class SexpFrontend {
     *edgesOf(forest: Ast<Token>[], incorporate = false):
                 Generator<Hyperedge & {origin: Ast<Token>, node: Ast<Token>}> {
         // assign ids to nodes
-        let idmap = generateIds(forest, incorporate ? this.maxId + 1 : 1);
+        let idmap = generateIds(forest, incorporate ? this.maxId + 1 : 1,
+                                n => this.idref(n));
         if (incorporate) this.maxId = Math.max(...idmap.values());
 
         for (let t of forest) {
             for (let node of preorderWalk(t)) {
-                yield {
-                    op: node.type,
-                    target: idmap.get(node),
-                    sources: node.subtrees.map(s => idmap.get(s)),
-                    origin: t, node
-                 };
+                if (this.idref(node) === undefined)   // not an idref node
+                    yield {
+                        op: node.type,
+                        target: idmap.get(node),
+                        sources: node.subtrees.map(s => idmap.get(s)),
+                        origin: t, node
+                    };
             }
         }
     }
 
-    static sexpPromote(sexp: Sexp | string): Sexp {
+    idref(node: Ast<Token>): number | undefined {
+        return node.type.startsWith('#') ? +node.type.slice(1) : undefined;
+    }
+
+    static sexpPromote(sexp: Sexp | String | string): Sexp | String {
         return typeof sexp === 'string' ? sexpParse(sexp) : sexp;
     }
 }
@@ -103,8 +131,8 @@ class RuleProcessor {
             rule = [this.edgesToRuleSide(fromEdges, vars),
                     this.edgesToRuleSide(toEdges, vars)];
                     
-        this.compactIdsInplace([].concat(...rule));
-        let varIds = new Map([...vars.entries()].map(([k, v]) => [k, v[0]]));
+        let idmap = this.remapIdsInplace([].concat(...rule)),
+            varIds = this.remappedVars(idmap, vars);
         return new RewriteRule(name ?? '<rule>', varIds, rule[0], rule[1]);
     }
 
@@ -113,6 +141,15 @@ class RuleProcessor {
             (e.sources.length === 0 && vars.has(e.op)) ? undefined
                 : this.remapVars(e, vars)
         ).filter(x => x);
+    }
+
+    sexpToPattern(csexp: CompiledSexp) {
+        let vars = this.getVars(csexp.edges),
+            patEdges = this.edgesToRuleSide(csexp.edges, vars);
+
+        let idmap = this.remapIdsInplace(patEdges),
+            varIds = this.remappedVars(idmap, vars);
+        return new Pattern(varIds, patEdges, idmap.get(csexp.head.target));
     }
 
     getVars(edges: CompiledHyperedge[]) {
@@ -136,18 +173,33 @@ class RuleProcessor {
         };
     }
 
-    compactIdsInplace(es: Hyperedge[]) {
-        var defrag = [],
-            visit = (hnid: HypernodeId) => defrag.includes(hnid) || defrag.push(hnid),
-            recall = (hnid: HypernodeId) => defrag.indexOf(hnid) + 1;
-        for (let e of es) 
+    /**
+     * Renumbers the ids such that there are no "holes".
+     * @param es pattern edges
+     * @returns id mapping
+     */
+    remapIdsInplace(es: Hyperedge[]) {
+        let defrag = [],
+            visit = (hnid: HypernodeId) => defrag.includes(hnid) || defrag.push(hnid);
+        for (let e of es)
             [e.target, ...e.sources].forEach(visit);
         
+        let idmap = new Map(defrag.map((id, idx) => [id, idx + 1]));
         for (let e of es) {
-            e.target = recall(e.target);
-            e.sources = e.sources.map(recall);
+            e.target = idmap.get(e.target);
+            e.sources = e.sources.map(h => idmap.get(h));
         }
-        return es;
+        return idmap;
+    }
+
+    /**
+     * @param idmap mapping returned from `remapIdsInplace`
+     * @param vars variable occurrences
+     * @returns id mapping, plus remapped var ids (only one per var,
+     *    assumes `es` was treated with `remapVars` already)
+     */
+    remappedVars(idmap: Map<HypernodeId, HypernodeId>,  vars: Map<string, HypernodeId[]>): Map<string, HypernodeId> {
+        return new Map([...vars.entries()].map(([k, v]) => [k, idmap.get(v[0])]))
     }
 
     isVar(symbol: string | CompiledHyperedge) {
@@ -198,7 +250,13 @@ class VernacFrontend {
         ];
     }
 
+    over(g: Hypergraph) {
+        this.sexpFe.over(g);
+        return this;
+    }
+
     add(name: string, statements: string[]) {
+        let out: (HypernodeId | undefined)
         for (let stmt of statements) {
             let ast = this.passes[0].parser.parse([stmt]);
             this.asts.push(treeClone(ast));
@@ -234,6 +292,10 @@ class VernacFrontend {
     addLabel(lab: string, target: HypernodeId) {
         this.labeled.set(lab, target);
         this.sexpFe.edges.push({op: lab, target, sources: []});
+    }
+
+    commit() {
+        this.sexpFe.commit();
     }
 }
 
@@ -399,15 +461,17 @@ function expressionHypergraph<Tok extends Token>(forest: Ast<Tok>[]) {
     }
 }
 
-function generateIds<T>(forest: Tree<T>[], start = 0) {
+function generateIds<T, TT extends Tree<T>>(
+        forest: TT[], start = 0,
+        preassigned: (n: TT) => number = () => undefined) {
     let idmap = new Map<Tree<T>, number>(), i = start;
 
     for (let t of forest)
         for (let node of preorderWalk(t))
-            idmap.set(node, i++);
+            idmap.set(node, preassigned(node) ?? i++);
 
     return idmap;
 }
 
 
-export { SexpFrontend, VernacFrontend, wip_flexiparse }
+export { SexpFrontend, VernacFrontend, CompiledSexp, wip_flexiparse }

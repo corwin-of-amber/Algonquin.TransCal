@@ -35,6 +35,7 @@ public:
     void locateAll();
 
     void veryInefficientCompact();
+    void extremelyInefficientCompact();
 
     static const Hypergraph::label_t CLR_MERGE;
     static const Hypergraph::label_t CLR_SUPER;
@@ -228,6 +229,15 @@ bool ColorScheme::compatSlices(
     return true;
 }
 
+/**
+ * Tries to be a bit more efficient than `extremelyInefficientCompact`,
+ * but misses some cases. E.g. in this scenario:
+ *  <3> <2> --(+)--> <4>
+ *  <6> <2> --(+)--> <5>
+ * If <3> <6> --(?~)--> <7>, <4> and <5> will be merged @ 7.
+ * However if <3> <9> --(?~)--> <7> and <6> <9> --(?~)--> <8>
+ *  where 8 is a subcolor of 7, the opportinity to merge @ 8 is missed.
+ */
 void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
     auto color = e->target();
     Hypergraph::Assumptions assumptions = { .u = color, .idx = lookup(color) };
@@ -258,7 +268,37 @@ void ColorScheme::veryInefficientCompact(Hypergraph::Edge* e) {
 
 void ColorScheme::veryInefficientCompact() {
     for (auto e : g.edges_by_kind[CLR_MERGE]) {
-        veryInefficientCompact(e);
+        if (e->target() != ghost.u)
+            veryInefficientCompact(e);
+    }
+
+    for (auto& p : to_merge) merge(p.u1, p.u2, p.assumptions);
+    to_merge.resize(0);
+}
+
+/**
+ * For very small graphs.
+ * This can be seen as the specification for a more efficient version.
+ */
+void ColorScheme::extremelyInefficientCompact() {
+    for (auto& e1 : g.edges) {
+        if (e1.removed || !g.isFunctional(e1.kind)) continue;
+        for (auto e2 : g.edges_by_kind[e1.kind]) {
+            for (auto clr_entry : color_map) {
+                if (clr_entry.second == ghost.idx) continue;
+                Hypergraph::Assumptions assumptions = { &g.vertices[clr_entry.first - 1], clr_entry.second };
+                if (compatSlices(e1.vertices, e2->vertices, 1, assumptions)) {
+                    auto v1 = e1.target(),
+                         v2 = e2->target();
+                    if (!compatVertices(v1, v2, assumptions.idx)) {
+                        std::cout << "// " 
+                            << v1->id << "~" << v2->id << "  @ "
+                            << assumptions.u->id << " (compact)" << std::endl;
+                        to_merge.push_back({v1, v2, assumptions});
+                    }
+                }
+            }
+        }
     }
 
     for (auto& p : to_merge) merge(p.u1, p.u2, p.assumptions);
@@ -370,7 +410,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < rw_depth; i++) {
         g.compact();
         g.gen++;
-        cs.locateAll(); cs.veryInefficientCompact();
+        cs.locateAll(); cs.extremelyInefficientCompact();
         for (auto& rule : rw_rules)
             rule.apply(g, gen, RewriteRule::GEQ, &chron);
         gen = g.gen;

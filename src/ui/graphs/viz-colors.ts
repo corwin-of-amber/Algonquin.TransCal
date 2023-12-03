@@ -26,13 +26,15 @@ class ColorEGraphOverlay extends EventEmitter {
         }
     }
 
-    reapply(eclasses: EGraph.ColorGroup[]) {
+    reapply(eclasses: EGraph.ColorGroup[] = this.g.colors?.eclasses ?? []) {
         for (let c of eclasses) {
             let rcg = this._find(c);
             if (rcg) {
                 this._removeRendered(rcg);
                 rcg.el = this.renderColorGroupFor(c).el;
             }
+            else
+                this.eclasses.push(this.renderColorGroupFor(c));
         }
     }
 

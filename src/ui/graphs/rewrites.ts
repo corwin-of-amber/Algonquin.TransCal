@@ -22,4 +22,36 @@ class RewriteRule {
 }
 
 
-export { RewriteRule }
+/**
+ * Like RewriteRule, but with only the search part (`from`).
+ */
+class Pattern {
+    vars: Map<string, HypernodeId>
+    edges: Hyperedge[]
+    head: HypernodeId
+
+    constructor(vars: Map<string, HypernodeId>, edges: Hyperedge[], head: HypernodeId) {
+        this.vars = vars;
+        this.edges = edges;
+        this.head = head;
+    }
+
+    fill(startId: HypernodeId, vals: Map<string, HypernodeId>) {
+        let idvals = new Map([...vals.entries()]
+                        .map(([nm, id]) => [this.vars.get(nm), id])),
+            remapId = (id: HypernodeId) => idvals.get(id) ?? id + startId;
+
+        return this.edges.map(e => ({...e,
+            target: remapId(e.target),
+            sources: e.sources.map(remapId)
+        }));
+    }
+}
+
+
+function revmap<K, V>(m: Map<K, V>): Map<V, K> {
+    return new Map([...m.entries()].map(([k, v]) => [v, k]));
+}
+
+
+export { RewriteRule, Pattern }

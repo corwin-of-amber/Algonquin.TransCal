@@ -6,7 +6,7 @@ import type { ComponentPublicInstance } from 'vue';
 // @ts-ignore
 import App from './components/app.vue';
 
-import { SexpFrontend, VernacFrontend } from './frontend';
+import { CompiledSexp, SexpFrontend, VernacFrontend } from './frontend';
 import { Ast } from './syntax/parser';
 import { forestToGraph } from './infra/tree';
 import { EGraph } from './graphs/egraph';
@@ -16,6 +16,7 @@ import { PointXY, vsum } from './infra/geom';
 import { svgToPdf, svgToPng } from './infra/gfx';
 import { Hyperedge, Hypergraph, HypernodeId } from './graphs/hypergraph';
 import { reconstructTerms } from './semantics/reconstruct';
+import { Pattern } from './graphs/rewrites';
 
 
 function astsToGraph(forest: Ast<any>[]) {
@@ -72,11 +73,13 @@ const SAMPLES = {
     'plus-0': [
         'u1 :- (+ n 0)',
         'u2 :- (n)',
-        ':- (ghost)',
         'gold :- (?~ n 0)',
         'rose :- (?~ n (S k))',
-        'mud :- (?~ (+ k 0) k)',
-        'rose :- (?> mud)'
+        //'mud :- (?~ (+ k 0) k)',
+        //'rose :- (?> mud)'
+
+        // Proof.
+        // cli.color('mud', 'rose'); cli.merge('mud', ['"k"', '(+ "k" "0")']); cli.do()
     ],
     'plus-comm': [
         'u1 :- (+ n m)',
@@ -84,27 +87,41 @@ const SAMPLES = {
         ':- (ghost)',
         // -- induction n
         //'gold :- (?~ n 0)',
-        'rose :- (?~ n (S "n\'"))',
+        //'rose :- (?~ n (S "n\'"))',
         //'rose :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
         // -- induction m
         //'azure :- (?~ m 0)'
         //'mustard :- (?~ m (S j))',
         //'gold :- (?> mustard)',
+        /*
         'rose :- (?> mud)',
         'mud :- (?~ (+ "n\'" m) (+ m "n\'"))',        // n' + m = m + n'
-        //'mud :- (?> moss)',
+        'mud :- (?> moss)',
         'moss :- (?~ m (S "m\'"))',                    // m = S m'
         
-        //'moss :- (?> gray-1)',
-        //'mud :- (?> gray-2)',
-        //'gray-1 :- (?~ (+ n "m\'") (+ "m\'" n))',
-        //'gray-2 :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',   // S (m' + n') = m' + S n'
-        
+        'mud :- (?> gray-1)',
+        'mud :- (?> gray-2)',
+        'gray-1 :- (?~ (+ n "m\'") (+ "m\'" n))',
+        'gray-2 :- (?~ (S (+ "m\'" "n\'")) (+ "m\'" (S "n\'")))',   // S (m' + n') = m' + S n'
+        */
+
+        /*
+        cli.case(undefined, '"n"', {gold: '"0"', rose: '(S "n\'")'})
+        cli.case('gold', '"m"', {mustard: '"0"', azure: '(S "m\'")'})
+        cli.case('azure', '"m\'"', {moss: '(+ "m\'" "n")'})
+        */
     ],
     'max': [
         'u1 :- (max x y)',
         'rose :- (?~ (max x y) x)'
-    ]
+    ],
+    'leq-len': [
+        'u1 :- (leq (len (filter p xs)) (len xs))',
+        'u2 :- (True)',
+        'u3 :- ([])',
+        //':- (ghost)',
+        'rose :- (?~ xs [])'
+    ]    
 }
 
 async function main() {
@@ -120,7 +137,11 @@ async function main() {
         'rewrite "rev ::%" (:+ (rev xs) x) -> (rev (:: x xs))',
         'rewrite "+ 0" (+ "0" m) -> (id m)',
         'rewrite "+ S" (+ (S n) m) -> (S (+ n m))',
-        'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)'
+        'rewrite "+ S%" (S (+ n m)) -> (+ (S n) m)',
+        
+        'rewrite "filter []" (filter p []) -> ([])',
+        'rewrite "filter ::" (filter p (:: x xs)) -> ' + 
+                ' (ite (p x) (:: x (filter p xs)) (filter p xs))'
     ]);
     
     const name = 'plus-comm';
@@ -145,7 +166,35 @@ async function main() {
 
     Vue.watchEffect(() => { return process(input); });
 
-    function script() {
+    function step1() {
+        let g = Vue.toRaw(app.egraph).clone();
+        g.collapseColors('rose');
+        g.removeDuplicateEdges();
+
+        let named = (nm: string) => [...g.edgesByOp(nm)][0].target;
+
+        console.log(named('u1'), named('u2'));
+
+        let boughPats = {
+            lhs: ['(+ x y)'],
+            rhs: ['(+ y x)']
+        };
+        for (let pats of Object.values(boughPats)) {
+            for (let cpat of vfe.sexpFe.compile(pats)) {
+                console.log('%c%s', 'color: blue', vfe.sexpFe.astToText(cpat.ast));
+                let pat = vfe.rp.sexpToPattern(cpat);
+                console.log(pat.fill(50, new Map([['x', 7], ['y', 9]])));
+                /*
+                for (let vl of g.ematch.subgraph(pat.edges)) {
+                    console.log(vl.get(pat.head), Object.fromEntries(
+                        [...pat.vars.entries()].map(([nm, id]) =>
+                            [nm, vl.get(id)])));
+                }*/
+            }
+        }
+    }
+
+    function step2() {
         app.egraph.collapseColors('rose', 'mud', 'moss');
         app.egraph.removeDuplicateEdges();
 
@@ -154,11 +203,17 @@ async function main() {
             '(+ x y)', '(+ (S x) y)', '(+ (S (S x)) y)',
             /* [dups] '(+ x y)', '(+ (S x) y)', */ '(+ x (S y))'
         ];
+        /*
         for (let cpat of vfe.sexpFe.compile(boughPats)) {
             console.log('%c%s', 'color: blue', vfe.sexpFe.astToText(cpat.ast));
-            let es = vfe.rp.edgesToRuleSide(cpat.edges);
-            console.log([...app.egraph.ematch.subgraph(es)]);
+            let pat = vfe.rp.edgesToPattern(cpat.edges);
+            for (let vl of app.egraph.ematch.subgraph(pat.edges)) {
+                console.log(Object.fromEntries(
+                    [...pat.vars.entries()].map(([nm, id]) =>
+                        [nm, vl.get(id)])));
+            }
         }
+        */
     }
 
     // Some UI actions
@@ -177,7 +232,7 @@ async function main() {
     let cli = new CLI(app);
 
     Object.assign(window, {app, vfe, svgToPng, cli});
-    Object.assign(cli, {process, script});
+    Object.assign(cli, {process, step1});
 }
 
 /**
@@ -186,6 +241,8 @@ async function main() {
 class CLI {
     vue: ComponentPublicInstance<App>
     selection: {colorEclass?: EGraph.ColorGroup} = {}
+
+    stacked: EGraph[] = []
 
     constructor(vue: ComponentPublicInstance<App>) {
         this.vue = vue;
@@ -245,6 +302,82 @@ class CLI {
 
     reconstructTerms(u: HypernodeId | Hyperedge) {
         return reconstructTerms(this.vue.egraph, u);
+    }
+
+    _process() {
+        // @ts-ignore
+        this.process?.(this.vue.egraph.unfoldColorInfo());
+    }
+
+    do(statements: string | string[] = [], process = true) {
+        if (typeof statements === 'string')
+            statements = [statements]
+        let v = this.fe();
+        v.add('cli', statements);
+        v.commit();
+
+        if (process) this._process();
+    }
+
+    fe() {
+        return new VernacFrontend().over(this.vue.egraph);
+    }
+
+    named(nm: string) {
+        return [...this.vue.egraph.edgesByOp(nm)][0].target;
+    }
+
+    color(name: string, parent?: string) {
+        let info: EGraph.ColorInfo = {name};
+        if (parent) info.parent = this.vue.egraph.colors.lookup(parent)[0];
+        let fe = this.fe(),
+            _ = fe.sexpFe.add('cli(color)', [[name]]),
+            id = _[0].head.target;
+        fe.commit();
+        this.vue.egraph.colors.declareColor(id, info);
+    }
+
+    lookup(src: string) {
+        let fe = this.fe(), g: EGraph = this.vue.egraph;
+        let pat = fe.rp.sexpToPattern(fe.sexpFe.compile([src])[0]);
+        let matches = [...g.ematch.pattern(pat)];
+        if (matches.length > 0)
+            return matches[0]?.head;
+        else
+            throw new Error(`pattern not found: ${src}`);
+    }
+
+    merge(color: string, patterns: string[]) {
+        let g: EGraph = this.vue.egraph;
+        g.colors.merge(color, patterns.map(p => this.lookup(p)));
+    }
+
+    case(color: string, term: string, subterms: {[color: string]: string}, process = true) {
+        let v = this.fe(), g: EGraph = this.vue.egraph,
+            u = this.lookup(term),
+            added: [string, CompiledSexp][] = Object.entries(subterms)
+                .map(([nm, t]) => [nm, v.sexpFe.add('cli/case', [t])[0]]);
+        v.commit();
+        for (let [subcolor, uid] of added) {
+            this.color(subcolor, color);
+            g.colors.merge(subcolor, [u, uid.head.target]);
+        }
+
+        if (process) this._process();
+    }
+
+    collapse(...colors: string[]) {
+        this.vue.egraph.collapseColors(...colors);
+    }
+
+    push() {
+        this.stacked.push(this.vue.egraph);
+        this.vue.egraph = Vue.toRaw(this.vue.egraph).clone();
+    }
+
+    pop() {
+        if (this.stacked.length > 0)
+            this.vue.egraph = this.stacked.pop();
     }
 }
 

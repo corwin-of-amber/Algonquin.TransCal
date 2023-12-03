@@ -85,11 +85,15 @@ export default class App extends Vue {
         this.events = new EventEmitter();
     }
 
+    get data() {
+        return {opts: this.opts, override: this.override};
+    }
+
     mounted() {
         let cfg = localStorage['config.app'];
         if (cfg) Object.assign(this, JSON.parse(cfg));
         window.addEventListener('beforeunload', () =>
-            localStorage['config.app'] = JSON.stringify(this.$data));
+            localStorage['config.app'] = JSON.stringify(this.data));
     }
 
     baseConfig() {
